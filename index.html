@@ -1,1 +1,765 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Мачи Коро — своя версия</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --wood:#7a4a2b;
+    --wood-dark:#5c3620;
+    --paper:#efe2c8;
+    --paper-dark:#e0cfa6;
+    --ink:#2b1d10;
+    --blue:#3a6ea5;
+    --blue-bg:#dbe9f7;
+    --green:#3e8e4f;
+    --green-bg:#e0f2e2;
+    --red:#b24a3d;
+    --red-bg:#f8e0dc;
+    --purple:#7a4a9e;
+    --purple-bg:#ece0f5;
+    --teal:#1f7a72;
+    --teal-bg:#d9f0ec;
+    --gold:#c99a2e;
+    --shadow: 0 4px 10px rgba(0,0,0,.25);
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family: 'Georgia', 'Times New Roman', serif;
+    background: radial-gradient(ellipse at top, #9a6a3f 0%, var(--wood) 55%, var(--wood-dark) 100%);
+    color:var(--ink);
+    min-height:100vh;
+  }
+  h1,h2,h3{ font-family: 'Trebuchet MS', 'Segoe UI', sans-serif; letter-spacing:.5px; margin:0 }
+  .app{ max-width:1200px; margin:0 auto; padding:18px; }
+  .title{
+    text-align:center; color:#fff3df; margin-bottom:14px;
+    text-shadow: 0 2px 4px rgba(0,0,0,.5);
+  }
+  .title h1{ font-size:2.1em; }
+  .title .sub{ font-size:.85em; opacity:.8; font-style:italic; }
 
+  /* SETUP SCREEN */
+  .setup-card{
+    background:var(--paper); border-radius:16px; padding:26px; max-width:480px; margin:40px auto;
+    box-shadow:var(--shadow); border:6px solid var(--wood-dark);
+  }
+  .setup-card label{ display:block; margin:14px 0 6px; font-weight:bold }
+  .setup-card input[type=text]{
+    width:100%; padding:8px 10px; border-radius:8px; border:2px solid var(--wood); font-size:1em; background:#fffaf0;
+  }
+  .player-count-row{ display:flex; gap:8px; margin-top:6px; flex-wrap:wrap }
+  .pc-btn{
+    flex:1; min-width:44px; padding:10px; border-radius:10px; border:2px solid var(--wood); background:#fffaf0; cursor:pointer; font-weight:bold; font-size:1em;
+  }
+  .pc-btn.active{ background:var(--gold); color:#fff; border-color:var(--gold) }
+  .expansion-toggle{
+    display:flex; align-items:center; gap:10px; margin-top:16px; padding:10px 12px; border-radius:10px; background:var(--teal-bg); border:2px solid var(--teal); cursor:pointer;
+  }
+  .expansion-toggle input{ width:20px; height:20px }
+  .expansion-toggle .et-text{ font-size:.85em; line-height:1.3 }
+  .expansion-toggle .et-title{ font-weight:bold; color:var(--teal) }
+  .big-btn{
+    margin-top:22px; width:100%; padding:14px; font-size:1.15em; border:none; border-radius:12px;
+    background:linear-gradient(180deg,#e2b13c,#c99a2e); color:#3a2405; font-weight:bold; cursor:pointer;
+    box-shadow: 0 3px 0 #8a6b1c;
+  }
+  .big-btn:active{ transform:translateY(2px); box-shadow:none }
+  .big-btn:disabled{ opacity:.5; cursor:not-allowed }
+
+  /* GAME LAYOUT */
+  .board{ display:grid; grid-template-columns: 2.2fr 1fr; gap:18px; }
+  @media (max-width:880px){ .board{ grid-template-columns:1fr } }
+
+  .panel{ background:var(--paper); border-radius:14px; padding:16px; box-shadow:var(--shadow); border:4px solid var(--wood-dark); margin-bottom:16px }
+
+  .players-strip{ display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px }
+  .player-chip{
+    flex:1; min-width:150px; background:var(--paper-dark); border-radius:10px; padding:10px; border:2px solid var(--wood);
+    position:relative;
+  }
+  .player-chip.current{ border-color:var(--gold); box-shadow:0 0 0 3px rgba(201,154,46,.4) inset }
+  .player-chip .pname{ font-weight:bold; font-size:1em }
+  .player-chip .coins{ color:#7a4a00; font-weight:bold; margin-top:2px }
+  .player-chip .lm-row{ display:flex; gap:4px; margin-top:6px; font-size:1.1em; flex-wrap:wrap }
+  .lm-icon{ opacity:.25 }
+  .lm-icon.built{ opacity:1 }
+  .turn-badge{ position:absolute; top:-9px; right:-9px; background:var(--gold); color:#3a2405; border-radius:50%; width:22px;height:22px; display:flex; align-items:center; justify-content:center; font-size:.75em; font-weight:bold; box-shadow:var(--shadow) }
+
+  .dice-area{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:10px }
+  .dice{ display:flex; gap:8px }
+  .die{ width:52px; height:52px; background:#fffaf0; border-radius:10px; border:3px solid var(--wood); display:flex; align-items:center; justify-content:center; font-size:1.6em; font-weight:bold; box-shadow:var(--shadow) }
+  .action-btn{
+    padding:10px 16px; border-radius:10px; border:2px solid var(--wood); background:#fffaf0; cursor:pointer; font-weight:bold;
+  }
+  .action-btn.primary{ background:var(--gold); border-color:#8a6b1c; color:#3a2405 }
+  .action-btn.teal{ background:var(--teal); border-color:var(--teal); color:#fff }
+  .action-btn:disabled{ opacity:.4; cursor:not-allowed }
+
+  .log{ background:#fffaf0; border-radius:8px; padding:8px 10px; max-height:130px; overflow-y:auto; font-size:.85em; border:1px solid var(--wood) }
+  .log div{ padding:2px 0; border-bottom:1px dashed #d8c7a0 }
+
+  .section-title{ margin:14px 0 8px; font-size:1.05em; color:var(--wood-dark); border-bottom:2px solid var(--wood); padding-bottom:4px }
+
+  .cards-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(150px,1fr)); gap:10px }
+  .card{
+    border-radius:12px; padding:10px; border:2px solid #0002; position:relative; min-height:118px; display:flex; flex-direction:column; justify-content:space-between;
+    box-shadow:0 2px 4px rgba(0,0,0,.15);
+  }
+  .card.blue{ background:var(--blue-bg); border-color:var(--blue) }
+  .card.green{ background:var(--green-bg); border-color:var(--green) }
+  .card.red{ background:var(--red-bg); border-color:var(--red) }
+  .card.purple{ background:var(--purple-bg); border-color:var(--purple) }
+  .card .icon{ font-size:1.6em }
+  .card .name{ font-weight:bold; font-size:.85em; margin:2px 0 }
+  .card .activation{ font-size:.75em; font-weight:bold; }
+  .card .req{ font-size:.68em; font-weight:bold; color:var(--teal) }
+  .card .desc{ font-size:.68em; opacity:.85; flex-grow:1 }
+  .card .footer{ display:flex; justify-content:space-between; align-items:center; margin-top:6px }
+  .card .cost{ font-weight:bold; color:var(--wood-dark) }
+  .card .supply{ font-size:.7em; opacity:.7 }
+  .card .buy-btn{ font-size:.75em; padding:4px 8px; border-radius:6px; border:1px solid var(--wood); background:#fff; cursor:pointer; font-weight:bold }
+  .card .buy-btn:disabled{ opacity:.35; cursor:not-allowed }
+  .card .owned-badge{ position:absolute; top:-8px; right:-8px; background:var(--wood-dark); color:#fff; border-radius:50%; min-width:22px; height:22px; padding:0 5px; display:flex; align-items:center; justify-content:center; font-size:.72em; font-weight:bold }
+
+  .landmarks-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); gap:10px }
+  .landmark{ background:#fffaf0; border:2px solid var(--wood); border-radius:12px; padding:10px }
+  .landmark.built{ background:#f0e6c8; border-color:var(--gold) }
+  .landmark .name{ font-weight:bold }
+  .landmark .desc{ font-size:.78em; margin:4px 0 }
+  .landmark .footer{ display:flex; justify-content:space-between; align-items:center }
+
+  .my-establishments{ display:flex; flex-wrap:wrap; gap:6px; margin-top:6px }
+  .mini-card{ background:#fff; border-radius:6px; padding:3px 7px; font-size:.75em; border:1px solid var(--wood); display:flex; gap:4px; align-items:center }
+
+  .overlay{ position:fixed; inset:0; background:rgba(20,10,0,.55); display:flex; align-items:center; justify-content:center; z-index:20 }
+  .overlay-card{ background:var(--paper); border-radius:14px; padding:22px; max-width:420px; border:5px solid var(--wood-dark); box-shadow:var(--shadow) }
+  .overlay-card h3{ margin-bottom:10px }
+  .overlay-card .choice-btn{ display:block; width:100%; text-align:left; margin:6px 0; padding:10px; border-radius:8px; border:2px solid var(--wood); background:#fffaf0; cursor:pointer; font-weight:bold }
+  .overlay-card .choice-btn:hover{ background:#f5e6c0 }
+
+  .winner-banner{ text-align:center; padding:30px; }
+  .winner-banner h2{ font-size:1.8em; color:var(--gold) }
+
+  footer.note{ text-align:center; color:#f0e0c0; font-size:.75em; opacity:.7; margin-top:20px }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+/* ======================= БАЗОВЫЕ КАРТЫ ======================= */
+const BASE_ESTABLISHMENTS = [
+  { id:'wheat',     name:'Пшеничное поле',       color:'blue',   cost:1, activation:[1],      icon:'🌾', income:1, supply:6,
+    desc:'Любой бросок 1: +1 монета из банка' },
+  { id:'ranch',     name:'Ранчо',                color:'blue',   cost:1, activation:[2],      icon:'🐄', income:1, supply:6,
+    desc:'Любой бросок 2: +1 монета из банка' },
+  { id:'bakery',    name:'Пекарня',              color:'green',  cost:1, activation:[2,3],    icon:'🍞', income:1, supply:6,
+    desc:'Ваш бросок 2-3: +1 монета из банка' },
+  { id:'cafe',      name:'Кафе',                 color:'red',    cost:2, activation:[3],      icon:'☕', income:1, supply:6,
+    desc:'Чужой бросок 3: заберите 1 монету у игрока, бросившего кубики' },
+  { id:'shop',      name:'Магазин',              color:'green',  cost:2, activation:[4],      icon:'🏪', income:3, supply:6,
+    desc:'Ваш бросок 4: +3 монеты из банка' },
+  { id:'forest',    name:'Лес',                  color:'blue',   cost:3, activation:[5],      icon:'🌲', income:1, supply:6,
+    desc:'Любой бросок 5: +1 монета из банка' },
+  { id:'stadium',   name:'Стадион',              color:'purple', cost:6, activation:[6],      icon:'🏟️', supply:'players',
+    desc:'Ваш бросок 6: каждый игрок отдаёт вам 2 монеты' },
+  { id:'tv',        name:'Телестудия',           color:'purple', cost:7, activation:[6],      icon:'📺', supply:'players',
+    desc:'Ваш бросок 6: заберите 5 монет у одного игрока по выбору' },
+  { id:'business',  name:'Бизнес-центр',         color:'purple', cost:8, activation:[6],      icon:'🏢', supply:'players',
+    desc:'Ваш бросок 6: обменяйтесь одной обычной постройкой с другим игроком' },
+  { id:'cheese',    name:'Сырная фабрика',       color:'green',  cost:5, activation:[7],      icon:'🧀', supply:6,
+    desc:'Ваш бросок 7: +3 монеты за каждое Ранчо у вас' },
+  { id:'furniture', name:'Мебельная фабрика',    color:'green',  cost:3, activation:[8],      icon:'🪑', supply:6,
+    desc:'Ваш бросок 8: +3 монеты за каждый Лес и Шахту у вас' },
+  { id:'mine',      name:'Шахта',                color:'blue',   cost:6, activation:[9],      icon:'⛏️', income:5, supply:6,
+    desc:'Любой бросок 9: +5 монет из банка' },
+  { id:'restaurant',name:'Ресторан',              color:'red',    cost:3, activation:[9,10],   icon:'🍽️', income:2, supply:6,
+    desc:'Чужой бросок 9-10: заберите 2 монеты у бросавшего' },
+  { id:'orchard',   name:'Яблочный сад',         color:'blue',   cost:3, activation:[10],     icon:'🍎', income:3, supply:6,
+    desc:'Любой бросок 10: +3 монеты из банка' },
+  { id:'market',    name:'Фруктовый рынок',      color:'green',  cost:2, activation:[11,12],  icon:'🍊', supply:6,
+    desc:'Ваш бросок 11-12: +2 монеты за каждое Пшеничное поле и Яблочный сад у вас' },
+];
+const BASE_LANDMARKS = [
+  { id:'station', name:'Вокзал',           cost:4,  icon:'🚉', desc:'Позволяет бросать 2 кубика вместо одного' },
+  { id:'mall',    name:'Торговый центр',   cost:10, icon:'🏬', desc:'+1 монета от построек с хлебом/чашкой (Пекарня, Магазин, Кафе, Ресторан и т.д.)' },
+  { id:'park',    name:'Парк аттракционов',cost:16, icon:'🎡', desc:'Если выпал дубль — дополнительный ход' },
+  { id:'tower',   name:'Радиовышка',       cost:22, icon:'📡', desc:'Раз за ход можно перебросить кубики' },
+];
+
+/* ======================= ДОПОЛНЕНИЕ HARBOR (Гавань) ======================= */
+const HARBOR_ESTABLISHMENTS = [
+  { id:'flowergarden', name:'Цветочный сад',     color:'blue',  cost:2, activation:[4],     icon:'🌷', income:3, supply:6,
+    desc:'Любой бросок 4: +3 монеты из банка' },
+  { id:'mackerel',      name:'Лодка со скумбрией', color:'blue', cost:2, activation:[8],     icon:'🎣', income:3, supply:6, requiresOwnHarbor:true,
+    desc:'Любой бросок 8: +3 монеты из банка (нужна построенная Гавань)' },
+  { id:'tuna',          name:'Тунцовая лодка',     color:'blue', cost:5, activation:[12,13,14], icon:'🐟', supply:6, requiresOwnHarbor:true,
+    desc:'Любой бросок 12-14: бросьте 2 кубика ещё раз — получите столько монет из банка (нужна Гавань)' },
+  { id:'flowershop',    name:'Цветочный магазин',  color:'green', cost:1, activation:[6],    icon:'🌼', supply:6,
+    desc:'Ваш бросок 6: +1 монета за каждый Цветочный сад у вас' },
+  { id:'foodwarehouse', name:'Продуктовый склад',  color:'green', cost:2, activation:[12,13], icon:'🍱', supply:6,
+    desc:'Ваш бросок 12-13: +2 монеты за каждую вашу постройку-«чашку» (Кафе, Ресторан, Суши-бар и т.п.)' },
+  { id:'sushi',         name:'Суши-бар',           color:'red',  cost:4, activation:[1],     icon:'🍣', income:3, supply:6, requiresOwnHarbor:true,
+    desc:'Чужой бросок 1: заберите 3 монеты у бросавшего (нужна Гавань)' },
+  { id:'pizza',         name:'Пиццерия',           color:'red',  cost:1, activation:[7],     icon:'🍕', income:1, supply:6,
+    desc:'Чужой бросок 7: заберите 1 монету у бросавшего' },
+  { id:'hamburger',     name:'Гамбургерная',       color:'red',  cost:1, activation:[8],     icon:'🍔', income:1, supply:6,
+    desc:'Чужой бросок 8: заберите 1 монету у бросавшего' },
+  { id:'publisher',     name:'Издательство',       color:'purple', cost:5, activation:[7],   icon:'📰', supply:'players',
+    desc:'Ваш бросок 7: каждый игрок отдаёт вам 1 монету за каждую вашу постройку с хлебом/чашкой' },
+  { id:'taxoffice',     name:'Налоговая',          color:'purple', cost:4, activation:[8,9],  icon:'🏦', supply:'players',
+    desc:'Ваш бросок 8-9: игроки с 10+ монетами отдают вам половину своих монет (округление вниз)' },
+];
+const HARBOR_LANDMARKS = [
+  { id:'harbor',  name:'Гавань',   cost:2,  icon:'⚓', desc:'При броске 10+ можно добавить +2 к сумме' },
+  { id:'airport', name:'Аэропорт', cost:30, icon:'✈️', desc:'Если за ход вы не заработали ни монеты — получите 10 из банка' },
+];
+const CITY_HALL = { id:'cityHall', name:'Ратуша', cost:0, icon:'🏛️', desc:'Уже построена: если у вас 0 монет после дохода — получаете 1 из банка' };
+
+// Постройки с иконкой "хлеб" или "чашка" — бустятся Торговым центром и считаются Издательством
+const BREAD_CUP_IDS = ['bakery','shop','cafe','restaurant','flowershop','sushi','pizza','hamburger'];
+// Постройки-"чашки" (рестораны/еда) — считаются Продуктовым складом
+const CUP_IDS = ['cafe','restaurant','sushi','pizza','hamburger'];
+
+const START_CARDS = { wheat:1, bakery:1 };
+const START_COINS = 3;
+
+/* ======================= СОСТОЯНИЕ ИГРЫ ======================= */
+let state = null; // инициализируется после экрана настройки
+
+function newGame(numPlayers, names, harborEnabled){
+  const establishments = BASE_ESTABLISHMENTS.concat(harborEnabled ? HARBOR_ESTABLISHMENTS : [])
+    .map((c,i)=>({...c, _order:i}))
+    .sort((a,b)=> (Math.min(...a.activation)-Math.min(...b.activation)) || (a.cost-b.cost) || (a._order-b._order));
+  const landmarks = BASE_LANDMARKS.concat(harborEnabled ? HARBOR_LANDMARKS : [])
+    .map((l,i)=>({...l, _order:i}))
+    .sort((a,b)=> (a.cost-b.cost) || (a._order-b._order));
+  const supply = {};
+  establishments.forEach(c=>{ supply[c.id] = c.supply === 'players' ? numPlayers : c.supply; });
+  const players = [];
+  for(let i=0;i<numPlayers;i++){
+    const lm = {station:false, mall:false, park:false, tower:false};
+    if(harborEnabled){ lm.harbor=false; lm.airport=false; lm.cityHall=true; }
+    players.push({
+      name: names[i] || ('Игрок '+(i+1)),
+      coins: START_COINS,
+      cards: {...START_CARDS},
+      landmarks: lm,
+    });
+  }
+  return {
+    players, supply, establishments, landmarks, harborEnabled,
+    current:0, log:[], phase:'roll', // roll -> harbor_choice -> action -> end -> (pending)
+    lastRoll:null, usedReroll:false, pending:null, winner:null, extraTurn:false,
+    pendingHarborChoice:null, turnGain:0,
+  };
+}
+
+function log(msg){ state.log.unshift(msg); if(state.log.length>60) state.log.pop(); }
+
+/* ======================= ЛОГИКА ХОДА ======================= */
+function rollDice(numDice){
+  const dice = [1+Math.floor(Math.random()*6)];
+  if(numDice===2) dice.push(1+Math.floor(Math.random()*6));
+  state.lastRoll = dice;
+  state.usedReroll = false;
+  beginResolution(dice, false);
+}
+
+function rerollDice(){
+  const numDice = state.lastRoll.length;
+  const dice = [1+Math.floor(Math.random()*6)];
+  if(numDice===2) dice.push(1+Math.floor(Math.random()*6));
+  state.lastRoll = dice;
+  state.usedReroll = true;
+  log('🔁 '+curPlayer().name+' переброс(ил/ила) кубики: '+dice.join(' + '));
+  beginResolution(dice, true);
+}
+
+function beginResolution(dice, isReroll){
+  const total = dice.reduce((a,b)=>a+b,0);
+  const active = curPlayer();
+  if(state.harborEnabled && active.landmarks.harbor && total>=10){
+    state.pendingHarborChoice = { dice, isReroll, total };
+    state.phase = 'harbor_choice';
+    render();
+    return;
+  }
+  resolveRoll(dice, isReroll, total);
+  render();
+}
+
+function chooseHarborBonus(useBonus){
+  const { dice, isReroll, total } = state.pendingHarborChoice;
+  const finalTotal = total + (useBonus?2:0);
+  state.pendingHarborChoice = null;
+  if(useBonus) log(`⚓ Гавань: сумма увеличена ${total} → ${finalTotal}`);
+  resolveRoll(dice, isReroll, finalTotal);
+  render();
+}
+
+function curPlayer(){ return state.players[state.current]; }
+function count(player, id){ return player.cards[id]||0; }
+function hasMall(player){ return player.landmarks.mall; }
+function estList(){ return state.establishments; }
+function lmList(){ return state.landmarks; }
+
+function bankPay(player, amount){
+  if(amount<=0) return;
+  player.coins += amount;
+  if(player===curPlayer()) state.turnGain += amount;
+}
+function transferPay(from, to, amount){
+  amount = Math.min(amount, from.coins);
+  if(amount<=0) return 0;
+  from.coins -= amount; to.coins += amount;
+  if(to===curPlayer()) state.turnGain += amount;
+  return amount;
+}
+function cupBreadCount(player){ return BREAD_CUP_IDS.reduce((s,id)=>s+count(player,id),0); }
+function cupCount(player){ return CUP_IDS.reduce((s,id)=>s+count(player,id),0); }
+
+function resolveRoll(dice, isReroll, overrideTotal){
+  const total = overrideTotal!==undefined ? overrideTotal : dice.reduce((a,b)=>a+b,0);
+  if(!isReroll) log('🎲 '+curPlayer().name+' бросил(а): '+dice.join(' + ')+' = '+total);
+  else log('   Новый результат: '+total);
+
+  state.turnGain = 0;
+  const n = state.players.length;
+  const curIdx = state.current;
+  const active = state.players[curIdx];
+  const est = estList();
+
+  // 1. КРАСНЫЕ карты — у других игроков, забирают у активного игрока
+  for(let off=1; off<n; off++){
+    const idx = (curIdx+off)%n;
+    const p = state.players[idx];
+    est.filter(c=>c.color==='red').forEach(card=>{
+      if(card.activation.includes(total)){
+        if(card.requiresOwnHarbor && !p.landmarks.harbor) return;
+        const c = count(p, card.id);
+        if(c>0){
+          let per = card.income + (hasMall(p) && BREAD_CUP_IDS.includes(card.id) ? 1 : 0);
+          let amount = per*c;
+          amount = transferPay(active, p, amount);
+          if(amount>0) log(`  ${card.icon} ${card.name} (${p.name}): забрал(а) ${amount} 💰 у ${active.name}`);
+        }
+      }
+    });
+  }
+  // 2. СИНИЕ карты — у всех (кроме Тунцовой лодки — она особая)
+  state.players.forEach(p=>{
+    est.filter(c=>c.color==='blue' && c.id!=='tuna').forEach(card=>{
+      if(card.activation.includes(total)){
+        if(card.requiresOwnHarbor && !p.landmarks.harbor) return;
+        const c = count(p, card.id);
+        if(c>0){
+          const amount = card.income*c;
+          bankPay(p, amount);
+          log(`  ${card.icon} ${card.name} (${p.name}): +${amount} 💰 из банка`);
+        }
+      }
+    });
+  });
+  // 2b. Тунцовая лодка (особая механика: доп. бросок 2 кубиков, платит банк каждому владельцу с Гаванью)
+  const tunaCard = est.find(c=>c.id==='tuna');
+  if(tunaCard && tunaCard.activation.includes(total)){
+    const eligible = state.players.filter(p=>p.landmarks.harbor && count(p,'tuna')>0);
+    if(eligible.length>0){
+      const bd = [1+Math.floor(Math.random()*6), 1+Math.floor(Math.random()*6)];
+      const bonus = bd[0]+bd[1];
+      log(`  🐟 Тунцовая лодка: доп. бросок ${bd.join('+')} = ${bonus}`);
+      eligible.forEach(p=>{
+        const amount = bonus*count(p,'tuna');
+        bankPay(p, amount);
+        log(`    → ${p.name}: +${amount} 💰 из банка`);
+      });
+    }
+  }
+  // 3. ЗЕЛЁНЫЕ карты — только у активного игрока
+  est.filter(c=>c.color==='green').forEach(card=>{
+    if(card.activation.includes(total)){
+      const c = count(active, card.id);
+      if(c>0){
+        let amount = 0;
+        if(card.id==='cheese') amount = 3*count(active,'ranch')*c;
+        else if(card.id==='furniture') amount = 3*(count(active,'forest')+count(active,'mine'))*c;
+        else if(card.id==='market') amount = 2*(count(active,'wheat')+count(active,'orchard'))*c;
+        else if(card.id==='flowershop') amount = 1*count(active,'flowergarden')*c;
+        else if(card.id==='foodwarehouse') amount = 2*cupCount(active)*c;
+        else amount = (card.income + (hasMall(active) && BREAD_CUP_IDS.includes(card.id) ? 1:0)) * c;
+        bankPay(active, amount);
+        if(amount>0) log(`  ${card.icon} ${card.name} (${active.name}): +${amount} 💰 из банка`);
+      }
+    }
+  });
+  // 4. ФИОЛЕТОВЫЕ карты — только у активного игрока
+  est.filter(c=>c.color==='purple').forEach(card=>{
+    if(card.activation.includes(total) && count(active, card.id)>0){
+      if(card.id==='stadium'){
+        state.players.forEach((p,i)=>{
+          if(i!==curIdx){
+            const amt = transferPay(p, active, 2);
+            if(amt>0) log(`  🏟️ Стадион (${active.name}): забрал(а) ${amt} 💰 у ${p.name}`);
+          }
+        });
+      } else if(card.id==='tv'){
+        if(n>1) state.pending = { type:'tv' };
+      } else if(card.id==='business'){
+        if(n>1) state.pending = { type:'business_pick_target' };
+      } else if(card.id==='publisher'){
+        const per = cupBreadCount(active);
+        if(per>0) state.players.forEach((p,i)=>{
+          if(i!==curIdx){
+            const amt = transferPay(p, active, per);
+            if(amt>0) log(`  📰 Издательство (${active.name}): забрал(а) ${amt} 💰 у ${p.name}`);
+          }
+        });
+      } else if(card.id==='taxoffice'){
+        state.players.forEach((p,i)=>{
+          if(i!==curIdx && p.coins>=10){
+            const amt = transferPay(p, active, Math.floor(p.coins/2));
+            if(amt>0) log(`  🏦 Налоговая (${active.name}): забрал(а) ${amt} 💰 у ${p.name}`);
+          }
+        });
+      }
+    }
+  });
+
+  // проверка дублей для Парка аттракционов
+  state.extraTurn = (dice.length===2 && dice[0]===dice[1] && active.landmarks.park);
+
+  state.phase = state.pending ? 'pending' : 'action';
+  if(!state.pending) finalizeIncomeChecks();
+}
+
+function finalizeIncomeChecks(){
+  if(!state.harborEnabled) return;
+  const active = curPlayer();
+  state.players.forEach(pl=>{
+    if(pl.landmarks.cityHall && pl.coins===0){
+      pl.coins += 1;
+      log(`  🏛️ Ратуша (${pl.name}): +1 монета (страховка от банка)`);
+    }
+  });
+  if(active.landmarks.airport && state.turnGain===0){
+    active.coins += 10;
+    log(`  ✈️ Аэропорт (${active.name}): доход не получен — +10 💰 из банка`);
+  }
+  state.turnGain = 0;
+}
+
+function resolveTvChoice(targetIdx){
+  const active = curPlayer();
+  const target = state.players[targetIdx];
+  const amt = transferPay(target, active, 5);
+  log(`  📺 Телестудия (${active.name}): забрал(а) ${amt} 💰 у ${target.name}`);
+  state.pending = null;
+  state.phase = 'action';
+  finalizeIncomeChecks();
+  render();
+}
+
+function nonMajorOwnedList(player){
+  return estList().filter(c=>c.color!=='purple' && count(player,c.id)>0);
+}
+
+function resolveBusinessTarget(targetIdx){
+  state.pending = { type:'business_pick_cards', targetIdx };
+  render();
+}
+
+function resolveBusinessSwap(myCardId, theirCardId){
+  const active = curPlayer();
+  const target = state.players[state.pending.targetIdx];
+  active.cards[myCardId] = (active.cards[myCardId]||0) - 1;
+  target.cards[myCardId] = (target.cards[myCardId]||0) + 1;
+  target.cards[theirCardId] = (target.cards[theirCardId]||0) - 1;
+  active.cards[theirCardId] = (active.cards[theirCardId]||0) + 1;
+  const c1 = estList().find(c=>c.id===myCardId);
+  const c2 = estList().find(c=>c.id===theirCardId);
+  log(`  🏢 Бизнес-центр: ${active.name} обменял(а) «${c1.name}» на «${c2.name}» с ${target.name}`);
+  state.pending = null;
+  state.phase = 'action';
+  finalizeIncomeChecks();
+  render();
+}
+
+function skipBusiness(){
+  state.pending = null;
+  state.phase = 'action';
+  finalizeIncomeChecks();
+  render();
+}
+
+function buyCard(id){
+  const p = curPlayer();
+  const card = estList().find(c=>c.id===id);
+  if(state.supply[id] <= 0 || p.coins < card.cost) return;
+  if(card.color==='purple' && count(p,id) > 0) return; // одна копия на игрока
+  p.coins -= card.cost;
+  p.cards[id] = (p.cards[id]||0)+1;
+  state.supply[id]--;
+  log(`🛒 ${p.name} купил(а): ${card.icon} ${card.name}`);
+  state.phase = 'end';
+  render();
+}
+
+function buildLandmark(id){
+  const p = curPlayer();
+  const lm = lmList().find(l=>l.id===id);
+  if(p.landmarks[id] || p.coins < lm.cost) return;
+  p.coins -= lm.cost;
+  p.landmarks[id] = true;
+  log(`🏗️ ${p.name} построил(а): ${lm.icon} ${lm.name}`);
+  const requiredIds = lmList().map(l=>l.id);
+  if(requiredIds.every(rid=>p.landmarks[rid])){
+    state.winner = p;
+  }
+  state.phase = 'end';
+  render();
+}
+
+function endTurn(){
+  if(state.winner){ render(); return; }
+  if(state.extraTurn){
+    log('✨ Дубль! '+curPlayer().name+' ходит ещё раз.');
+  } else {
+    state.current = (state.current+1)%state.players.length;
+  }
+  state.lastRoll = null;
+  state.usedReroll = false;
+  state.extraTurn = false;
+  state.phase = 'roll';
+  render();
+}
+
+/* ======================= РЕНДЕР ======================= */
+const app = document.getElementById('app');
+
+function render(){
+  if(!state){ renderSetup(); return; }
+  if(state.winner){ renderWinner(); return; }
+
+  const p = curPlayer();
+  const canTwoDice = p.landmarks.station;
+  const inRollPhase = state.phase==='roll';
+  const inHarborChoice = state.phase==='harbor_choice';
+  const inActionPhase = state.phase==='action';
+  const inPending = state.phase==='pending';
+  const canEndTurn = (state.phase==='action' || state.phase==='end');
+  const est = estList();
+  const lms = lmList();
+
+  let html = `<div class="title"><h1>🎲 Мачи Коро</h1><div class="sub">своя настольная версия${state.harborEnabled?' + дополнение «Гавань»':''}</div></div>`;
+  html += `<div class="board"><div>`;
+
+  // Верхняя панель: игроки
+  html += `<div class="panel"><div class="players-strip">`;
+  state.players.forEach((pl,i)=>{
+    html += `<div class="player-chip ${i===state.current?'current':''}">`;
+    if(i===state.current) html += `<div class="turn-badge">▶</div>`;
+    html += `<div class="pname">${pl.name}</div><div class="coins">💰 ${pl.coins}</div>`;
+    html += `<div class="lm-row">`;
+    lms.forEach(l=> html += `<span class="lm-icon ${pl.landmarks[l.id]?'built':''}" title="${l.name}">${l.icon}</span>`);
+    if(state.harborEnabled) html += `<span class="lm-icon built" title="Ратуша (бесплатно)">🏛️</span>`;
+    html += `</div>`;
+    if(nonMajorOwnedList(pl).length || est.some(c=>c.color==='purple'&&count(pl,c.id)>0)){
+      html += `<div class="my-establishments">`;
+      est.forEach(c=>{
+        const cnt = count(pl,c.id);
+        if(cnt>0) html += `<div class="mini-card">${c.icon} x${cnt}</div>`;
+      });
+      html += `</div>`;
+    }
+    html += `</div>`;
+  });
+  html += `</div></div>`;
+
+  // Кубики и действия
+  html += `<div class="panel">`;
+  html += `<div class="dice-area">`;
+  if(state.lastRoll){
+    html += `<div class="dice">` + state.lastRoll.map(d=>`<div class="die">${d}</div>`).join('') + `</div>`;
+    html += `<div style="font-weight:bold">Сумма: ${state.lastRoll.reduce((a,b)=>a+b,0)}</div>`;
+  }
+  if(inRollPhase){
+    html += `<button class="action-btn primary" onclick="rollDice(1)">Бросить 1 кубик</button>`;
+    if(canTwoDice) html += `<button class="action-btn primary" onclick="rollDice(2)">Бросить 2 кубика (Вокзал)</button>`;
+  }
+  if(inActionPhase && p.landmarks.tower && !state.usedReroll){
+    html += `<button class="action-btn" onclick="rerollDice()">📡 Перебросить (Радиовышка)</button>`;
+  }
+  html += `</div>`;
+
+  if(inHarborChoice){
+    const t = state.pendingHarborChoice.total;
+    html += `<div style="margin-bottom:10px">
+      <div style="font-weight:bold;margin-bottom:6px">⚓ Гавань: сумма ${t} ≥ 10 — добавить +2?</div>
+      <button class="action-btn teal" onclick="chooseHarborBonus(true)">Да, стало бы ${t+2}</button>
+      <button class="action-btn" onclick="chooseHarborBonus(false)">Нет, оставить ${t}</button>
+    </div>`;
+  }
+
+  if(canEndTurn){
+    html += `<button class="action-btn primary" onclick="endTurn()">Закончить ход ${state.extraTurn?'(и ходить ещё раз ✨)':'→'}</button>`;
+  }
+  if(inPending){
+    html += `<div style="font-style:italic;color:var(--wood-dark)">Ожидается выбор (см. окно)…</div>`;
+  }
+
+  html += `<div class="log">` + state.log.map(l=>`<div>${l}</div>`).join('') + `</div>`;
+  html += `</div>`; // panel
+
+  // Рынок построек
+  html += `<div class="panel"><h3 class="section-title">🏙️ Рынок построек</h3><div class="cards-grid">`;
+  est.forEach(c=>{
+    const owned = count(p, c.id);
+    const disabled = !inActionPhase || state.supply[c.id]<=0 || p.coins<c.cost || (c.color==='purple' && owned>0);
+    html += `<div class="card ${c.color}">`;
+    if(owned>0) html += `<div class="owned-badge">${owned}</div>`;
+    html += `<div class="icon">${c.icon}</div>`;
+    html += `<div class="name">${c.name}</div>`;
+    html += `<div class="activation">🎯 ${c.activation.join(' / ')}</div>`;
+    if(c.requiresOwnHarbor) html += `<div class="req">⚓ нужна своя Гавань</div>`;
+    html += `<div class="desc">${c.desc}</div>`;
+    html += `<div class="footer"><span class="cost">${c.cost} 💰</span><span class="supply">в запасе: ${state.supply[c.id]}</span></div>`;
+    html += `<button class="buy-btn" ${disabled?'disabled':''} onclick="buyCard('${c.id}')">Купить</button>`;
+    html += `</div>`;
+  });
+  html += `</div></div>`;
+
+  html += `</div>`; // конец левой колонки
+
+  // Правая колонка: достопримечательности текущего игрока
+  html += `<div>`;
+  html += `<div class="panel"><h3 class="section-title">🏛️ Достопримечательности — ${p.name}</h3><div class="landmarks-grid">`;
+  if(state.harborEnabled){
+    html += `<div class="landmark built"><div class="name">🏛️ Ратуша</div><div class="desc">${CITY_HALL.desc}</div><div class="footer"><span class="cost">Построена ✅</span></div></div>`;
+  }
+  lms.forEach(l=>{
+    const built = p.landmarks[l.id];
+    const disabled = !inActionPhase || built || p.coins<l.cost;
+    html += `<div class="landmark ${built?'built':''}">`;
+    html += `<div class="name">${l.icon} ${l.name}</div>`;
+    html += `<div class="desc">${l.desc}</div>`;
+    html += `<div class="footer"><span class="cost">${built?'Построено ✅':l.cost+' 💰'}</span>`;
+    if(!built) html += `<button class="buy-btn" ${disabled?'disabled':''} onclick="buildLandmark('${l.id}')">Строить</button>`;
+    html += `</div></div>`;
+  });
+  html += `</div></div>`;
+
+  html += `<div class="panel"><h3 class="section-title">ℹ️ Правила хода</h3>
+    <div style="font-size:.82em; line-height:1.5">
+    1. Бросьте кубик(и)${state.harborEnabled?' (с Гаванью — можно +2 при сумме 10+)':''}.<br>
+    2. Доход считается автоматически: сначала красные карты соперников, потом синие у всех, потом зелёные и фиолетовые у вас.<br>
+    3. Купите одну постройку <b>или</b> постройте достопримечательность (по желанию).<br>
+    4. Закончите ход.<br>
+    <br>Побеждает первый, кто построит все ${lms.length} достопримечательности${state.harborEnabled?' (Ратуша уже есть бесплатно и не считается)':''}.
+    </div></div>`;
+
+  html += `</div>`; // правая колонка
+  html += `</div>`; // board
+
+  html += `<footer class="note">Основа Мачи Коро + дополнение «Гавань» — меняйте карты прямо в коде (BASE_ESTABLISHMENTS / HARBOR_ESTABLISHMENTS / BASE_LANDMARKS / HARBOR_LANDMARKS вверху файла).</footer>`;
+
+  app.innerHTML = html;
+
+  // Overlay для фиолетовых карт
+  if(inPending) renderPendingOverlay();
+}
+
+function renderPendingOverlay(){
+  const p = curPlayer();
+  let html = `<div class="overlay"><div class="overlay-card">`;
+  if(state.pending.type==='tv'){
+    html += `<h3>📺 Телестудия — выберите жертву</h3>`;
+    state.players.forEach((pl,i)=>{
+      if(i!==state.current){
+        html += `<button class="choice-btn" onclick="resolveTvChoice(${i})">${pl.name} (💰 ${pl.coins})</button>`;
+      }
+    });
+  } else if(state.pending.type==='business_pick_target'){
+    html += `<h3>🏢 Бизнес-центр — с кем меняемся?</h3>`;
+    state.players.forEach((pl,i)=>{
+      if(i!==state.current && nonMajorOwnedList(pl).length>0){
+        html += `<button class="choice-btn" onclick="resolveBusinessTarget(${i})">${pl.name}</button>`;
+      }
+    });
+    html += `<button class="choice-btn" onclick="skipBusiness()">Отменить обмен</button>`;
+  } else if(state.pending.type==='business_pick_cards'){
+    const target = state.players[state.pending.targetIdx];
+    html += `<h3>🏢 Выберите свою карту для обмена</h3>`;
+    nonMajorOwnedList(p).forEach(c=>{
+      html += `<button class="choice-btn" onclick="selectMyCard('${c.id}')" style="${state.pending.myCard===c.id?'background:#f0d896':''}">${c.icon} ${c.name}</button>`;
+    });
+    if(state.pending.myCard){
+      html += `<h3 style="margin-top:12px">Выберите карту ${target.name} взамен</h3>`;
+      nonMajorOwnedList(target).forEach(c=>{
+        html += `<button class="choice-btn" onclick="resolveBusinessSwap('${state.pending.myCard}','${c.id}')">${c.icon} ${c.name}</button>`;
+      });
+    }
+    html += `<button class="choice-btn" onclick="skipBusiness()">Отменить обмен</button>`;
+  }
+  html += `</div></div>`;
+  app.insertAdjacentHTML('beforeend', html);
+}
+
+function selectMyCard(id){
+  state.pending.myCard = id;
+  render();
+}
+
+function renderWinner(){
+  let html = `<div class="title"><h1>🎲 Мачи Коро</h1></div>`;
+  html += `<div class="panel winner-banner">`;
+  html += `<h2>🏆 Победа: ${state.winner.name}!</h2>`;
+  html += `<p>Все достопримечательности построены.</p>`;
+  html += `<button class="big-btn" style="max-width:260px;margin:16px auto 0" onclick="state=null; render()">Новая игра</button>`;
+  html += `</div>`;
+  app.innerHTML = html;
+}
+
+/* ======================= ЭКРАН НАСТРОЙКИ ======================= */
+let setupCount = 4;
+let setupHarbor = true;
+function renderSetup(){
+  let html = `<div class="title"><h1>🎲 Мачи Коро</h1><div class="sub">своя версия базовой игры</div></div>`;
+  html += `<div class="setup-card">`;
+  html += `<h3>Новая игра</h3>`;
+  html += `<label>Количество игроков</label>`;
+  html += `<div class="player-count-row">`;
+  [2,3,4,5].forEach(n=>{
+    html += `<button class="pc-btn ${setupCount===n?'active':''}" onclick="setupCount=${n}; render()">${n}</button>`;
+  });
+  html += `</div>`;
+  html += `<label class="expansion-toggle" for="harborToggle">
+    <input type="checkbox" id="harborToggle" ${setupHarbor?'checked':''} onchange="setupHarbor=this.checked; render()">
+    <span class="et-text"><span class="et-title">⚓ Дополнение «Гавань»</span><br>10 новых построек, Ратуша, Гавань и Аэропорт (до 5 игроков)</span>
+  </label>`;
+  for(let i=0;i<setupCount;i++){
+    html += `<label>Имя игрока ${i+1}</label><input type="text" id="pname${i}" placeholder="Игрок ${i+1}">`;
+  }
+  html += `<button class="big-btn" onclick="startGame()">Начать игру</button>`;
+  html += `</div>`;
+  app.innerHTML = html;
+}
+
+function startGame(){
+  const names = [];
+  for(let i=0;i<setupCount;i++){
+    const v = document.getElementById('pname'+i).value.trim();
+    names.push(v);
+  }
+  state = newGame(setupCount, names, setupHarbor);
+  log('Игра началась! Первый ход: '+curPlayer().name);
+  render();
+}
+
+render();
+</script>
+</body>
+</html>
