@@ -219,6 +219,61 @@ const HARBOR_LANDMARKS = [
 ];
 const CITY_HALL = { id:'cityHall', name:'Ратуша', cost:0, icon:'🏛️', desc:'Уже построена: если у вас 0 монет после дохода — получаете 1 из банка' };
 
+/* ======================= ДОПОЛНЕНИЕ «ДОБЫЧА» ======================= */
+// Все постройки этого дополнения — синие (работают у владельца при любом броске).
+// У каждой базовой постройки есть улучшенная версия (upgradeOf). Чтобы улучшить:
+// нужна построенная Модернизация + хотя бы 1 базовая копия (она уходит в сброс) + оплата стоимости улучшения.
+const HARVEST_ESTABLISHMENTS = [
+  { id:'hwheat',   name:'Пшеничное поле (Добыча)',        color:'blue', cost:1, activation:[1],   icon:'🌾', income:2, supply:6,
+    desc:'Любой бросок 1: +2 монеты из банка' },
+  { id:'hwheatU',  name:'Улучш. пшеничное поле',          color:'blue', cost:3, activation:[1,2], icon:'🌾', income:3, supply:6, upgradeOf:'hwheat',
+    desc:'Любой бросок 1-2: +3 монеты из банка' },
+
+  { id:'hpotato',  name:'Картофельное поле',              color:'blue', cost:2, activation:[4],   icon:'🥔', income:1, supply:6,
+    desc:'Любой бросок 4: +1 монета за каждое ваше Картофельное поле' },
+  { id:'hpotatoU', name:'Улучш. картофельное поле',       color:'blue', cost:6, activation:[4],   icon:'🥔', income:2, supply:6, upgradeOf:'hpotato',
+    desc:'Любой бросок 4: +2 монеты за каждое ваше Картофельное поле' },
+
+  { id:'hcorn',    name:'Кукурузное поле',                color:'blue', cost:3, activation:[5],   icon:'🌽', income:2, supply:6,
+    desc:'Любой бросок 5: +2 монеты из банка' },
+  { id:'hcornU',   name:'Улучш. кукурузное поле',         color:'blue', cost:9, activation:[5,6], icon:'🌽', income:2, supply:6, upgradeOf:'hcorn',
+    desc:'Любой бросок 5-6: +2 монеты из банка' },
+
+  { id:'hpoultry', name:'Птицефабрика',                   color:'blue', cost:1, activation:[2],   icon:'🐔', supply:6,
+    desc:'Любой бросок 2: +1 монета за каждый курятник у ВСЕХ игроков (за каждую вашу Птицефабрику)' },
+  { id:'hpoultryU',name:'Улучш. птицефабрика',            color:'blue', cost:3, activation:[2],   icon:'🐔', supply:6, upgradeOf:'hpoultry',
+    desc:'Любой бросок 2: +2 монеты за каждый курятник у ВСЕХ игроков (за каждую вашу постройку)' },
+
+  { id:'hpig',     name:'Свиноферма',                     color:'blue', cost:2, activation:[3,4], icon:'🐖', income:2, supply:6,
+    desc:'Любой бросок 3-4: +2 монеты из банка' },
+  { id:'hpigU',    name:'Улучш. свиноферма',               color:'blue', cost:6, activation:[3,4], icon:'🐖', income:3, supply:6, upgradeOf:'hpig',
+    desc:'Любой бросок 3-4: +3 монеты из банка' },
+
+  { id:'hmeat',    name:'Мясная ферма',                   color:'blue', cost:5, activation:[4,5,6], icon:'🥩', supply:6,
+    desc:'Любой бросок 4-6: +2 монеты за каждый ваш коровник (Ранчо). Не работает, если у вас есть Птицефабрика или Свиноферма' },
+  { id:'hmeatU',   name:'Улучш. мясная ферма',            color:'blue', cost:15, activation:[4,5,6], icon:'🥩', supply:6, upgradeOf:'hmeat',
+    desc:'Любой бросок 4-6: +3 монеты за каждый ваш коровник (Ранчо). Не работает, если у вас есть Птицефабрика или Свиноферма' },
+
+  { id:'hfishboat', name:'Рыбацкая лодка',                color:'blue', cost:2, activation:[1,5], icon:'🚣', income:2, supply:6, requiresPort:true,
+    desc:'Любой бросок 1 или 5: +2 монеты из банка (нужен Порт)' },
+  { id:'hfishboatU',name:'Улучш. рыбацкая лодка',         color:'blue', cost:6, activation:[1,3,5], icon:'🚣', income:2, supply:6, requiresPort:true, upgradeOf:'hfishboat',
+    desc:'Любой бросок 1, 3 или 5: +2 монеты из банка (нужен Порт)' },
+
+  { id:'hfishnet', name:'Рыбацкие сети',                  color:'blue', cost:3, activation:[2,4,6], icon:'🕸️', income:1, supply:6, requiresPort:true,
+    desc:'Любой бросок 2, 4 или 6: +1 монета из банка (нужен Порт)' },
+  { id:'hfishnetU',name:'Улучш. рыбацкие сети',           color:'blue', cost:9, activation:[1,2,3,4,5,6], icon:'🕸️', income:1, supply:6, requiresPort:true, upgradeOf:'hfishnet',
+    desc:'Любой бросок 1-6: +1 монета из банка (нужен Порт)' },
+
+  { id:'hfishagency', name:'Рыболовное агентство',        color:'blue', cost:8, activation:[1,3,5,7,9,11,13,15,17], icon:'🏭', income:1, supply:6, requiresPort:true,
+    desc:'Любой нечётный бросок 1-17: +1 монета из банка (нужен Порт; высокие суммы пока недостижимы без доп. механик)' },
+  { id:'hfishagencyU', name:'Улучш. рыболовное агентство', color:'blue', cost:24, activation:[1,3,5,7,9,11,13,15,17], icon:'🏭', income:2, supply:6, requiresPort:true, upgradeOf:'hfishagency',
+    desc:'Любой нечётный бросок 1-17: +2 монеты из банка (нужен Порт)' },
+];
+const HARVEST_LANDMARKS = [
+  { id:'port',          name:'Порт',         cost:3,  icon:'⚓', desc:'Открывает рыбные постройки дополнения «Добыча»' },
+  { id:'modernization', name:'Модернизация', cost:12, icon:'⚙️', desc:'Открывает улучшения построек дополнения «Добыча»' },
+];
+
 // Постройки с иконкой "хлеб" или "чашка" — бустятся Торговым центром и считаются Издательством
 const BREAD_CUP_IDS = ['bakery','shop','cafe','restaurant','flowershop','sushi','pizza','hamburger'];
 // Постройки-"чашки" (рестораны/еда) — считаются Продуктовым складом
@@ -230,11 +285,11 @@ const START_COINS = 3;
 /* ======================= СОСТОЯНИЕ ИГРЫ ======================= */
 let state = null; // инициализируется после экрана настройки
 
-function newGame(numPlayers, names, harborEnabled){
-  const establishments = BASE_ESTABLISHMENTS.concat(harborEnabled ? HARBOR_ESTABLISHMENTS : [])
+function newGame(numPlayers, names, harborEnabled, harvestEnabled){
+  const establishments = BASE_ESTABLISHMENTS.concat(harborEnabled ? HARBOR_ESTABLISHMENTS : [], harvestEnabled ? HARVEST_ESTABLISHMENTS : [])
     .map((c,i)=>({...c, _order:i}))
     .sort((a,b)=> (Math.min(...a.activation)-Math.min(...b.activation)) || (a.cost-b.cost) || (a._order-b._order));
-  const landmarks = BASE_LANDMARKS.concat(harborEnabled ? HARBOR_LANDMARKS : [])
+  const landmarks = BASE_LANDMARKS.concat(harborEnabled ? HARBOR_LANDMARKS : [], harvestEnabled ? HARVEST_LANDMARKS : [])
     .map((l,i)=>({...l, _order:i}))
     .sort((a,b)=> (a.cost-b.cost) || (a._order-b._order));
   const supply = {};
@@ -243,6 +298,7 @@ function newGame(numPlayers, names, harborEnabled){
   for(let i=0;i<numPlayers;i++){
     const lm = {station:false, mall:false, park:false, tower:false};
     if(harborEnabled){ lm.harbor=false; lm.airport=false; lm.cityHall=true; }
+    if(harvestEnabled){ lm.port=false; lm.modernization=false; }
     players.push({
       name: names[i] || ('Игрок '+(i+1)),
       coins: START_COINS,
@@ -251,12 +307,13 @@ function newGame(numPlayers, names, harborEnabled){
     });
   }
   return {
-    players, supply, establishments, landmarks, harborEnabled,
+    players, supply, establishments, landmarks, harborEnabled, harvestEnabled,
     current:0, log:[], phase:'roll', // roll -> harbor_choice -> action -> end -> (pending)
     lastRoll:null, usedReroll:false, pending:null, winner:null, extraTurn:false,
     pendingHarborChoice:null, turnGain:0,
   };
 }
+
 
 function log(msg){ state.log.unshift(msg); if(state.log.length>60) state.log.pop(); }
 
@@ -355,11 +412,25 @@ function resolveRoll(dice, isReroll, overrideTotal){
     est.filter(c=>c.color==='blue' && c.id!=='tuna').forEach(card=>{
       if(card.activation.includes(total)){
         if(card.requiresOwnHarbor && !p.landmarks.harbor) return;
+        if(card.requiresPort && !p.landmarks.port) return;
         const c = count(p, card.id);
         if(c>0){
-          const amount = card.income*c;
-          bankPay(p, amount);
-          log(`  ${card.icon} ${card.name} (${p.name}): +${amount} 💰 из банка`);
+          let amount;
+          if(card.id==='hpoultry' || card.id==='hpoultryU'){
+            const rate = card.id==='hpoultry' ? 1 : 2;
+            const globalPoultry = state.players.reduce((s,pl)=>s+count(pl,'hpoultry')+count(pl,'hpoultryU'),0);
+            amount = rate*globalPoultry*c;
+          } else if(card.id==='hmeat' || card.id==='hmeatU'){
+            const blocked = count(p,'hpoultry')>0 || count(p,'hpoultryU')>0 || count(p,'hpig')>0 || count(p,'hpigU')>0;
+            const rate = card.id==='hmeat' ? 2 : 3;
+            amount = blocked ? 0 : rate*count(p,'ranch')*c;
+          } else {
+            amount = card.income*c;
+          }
+          if(amount>0){
+            bankPay(p, amount);
+            log(`  ${card.icon} ${card.name} (${p.name}): +${amount} 💰 из банка`);
+          }
         }
       }
     });
@@ -498,6 +569,21 @@ function skipBusiness(){
 function buyCard(id){
   const p = curPlayer();
   const card = estList().find(c=>c.id===id);
+  if(!card) return;
+  if(card.upgradeOf){
+    if(!p.landmarks.modernization) return;
+    if(count(p, card.upgradeOf) < 1) return;
+    if(state.supply[id] <= 0 || p.coins < card.cost) return;
+    p.coins -= card.cost;
+    p.cards[card.upgradeOf] -= 1; // базовая копия уходит в сброс
+    p.cards[id] = (p.cards[id]||0)+1;
+    state.supply[id]--;
+    const baseCard = estList().find(c=>c.id===card.upgradeOf);
+    log(`⚙️ ${p.name} улучшил(а): ${baseCard.icon} ${baseCard.name} → ${card.icon} ${card.name}`);
+    state.phase = 'end';
+    render();
+    return;
+  }
   if(state.supply[id] <= 0 || p.coins < card.cost) return;
   if(card.color==='purple' && count(p,id) > 0) return; // одна копия на игрока
   p.coins -= card.cost;
@@ -554,7 +640,7 @@ function render(){
   const est = estList();
   const lms = lmList();
 
-  let html = `<div class="title"><h1>🎲 Мачи Коро</h1><div class="sub">своя настольная версия${state.harborEnabled?' + дополнение «Гавань»':''}</div></div>`;
+  let html = `<div class="title"><h1>🎲 Мачи Коро</h1><div class="sub">своя настольная версия${state.harborEnabled?' + «Гавань»':''}${state.harvestEnabled?' + «Добыча»':''}</div></div>`;
   html += `<div class="board"><div>`;
 
   // Верхняя панель: игроки
@@ -618,16 +704,26 @@ function render(){
   html += `<div class="panel"><h3 class="section-title">🏙️ Рынок построек</h3><div class="cards-grid">`;
   est.forEach(c=>{
     const owned = count(p, c.id);
-    const disabled = !inActionPhase || state.supply[c.id]<=0 || p.coins<c.cost || (c.color==='purple' && owned>0);
+    let disabled;
+    if(c.upgradeOf){
+      disabled = !inActionPhase || !p.landmarks.modernization || count(p,c.upgradeOf)<1 || state.supply[c.id]<=0 || p.coins<c.cost;
+    } else {
+      disabled = !inActionPhase || state.supply[c.id]<=0 || p.coins<c.cost || (c.color==='purple' && owned>0);
+    }
     html += `<div class="card ${c.color}">`;
     if(owned>0) html += `<div class="owned-badge">${owned}</div>`;
     html += `<div class="icon">${c.icon}</div>`;
     html += `<div class="name">${c.name}</div>`;
     html += `<div class="activation">🎯 ${c.activation.join(' / ')}</div>`;
     if(c.requiresOwnHarbor) html += `<div class="req">⚓ нужна своя Гавань</div>`;
+    if(c.requiresPort) html += `<div class="req">⚓ нужен Порт</div>`;
+    if(c.upgradeOf){
+      const baseCard = est.find(bc=>bc.id===c.upgradeOf);
+      html += `<div class="req">⚙️ Нужно: Модернизация + 1× ${baseCard?baseCard.name:c.upgradeOf}</div>`;
+    }
     html += `<div class="desc">${c.desc}</div>`;
     html += `<div class="footer"><span class="cost">${c.cost} 💰</span><span class="supply">в запасе: ${state.supply[c.id]}</span></div>`;
-    html += `<button class="buy-btn" ${disabled?'disabled':''} onclick="buyCard('${c.id}')">Купить</button>`;
+    html += `<button class="buy-btn" ${disabled?'disabled':''} onclick="buyCard('${c.id}')">${c.upgradeOf?'Улучшить':'Купить'}</button>`;
     html += `</div>`;
   });
   html += `</div></div>`;
@@ -726,6 +822,7 @@ function renderWinner(){
 /* ======================= ЭКРАН НАСТРОЙКИ ======================= */
 let setupCount = 4;
 let setupHarbor = true;
+let setupHarvest = true;
 function renderSetup(){
   let html = `<div class="title"><h1>🎲 Мачи Коро</h1><div class="sub">своя версия базовой игры</div></div>`;
   html += `<div class="setup-card">`;
@@ -739,6 +836,10 @@ function renderSetup(){
   html += `<label class="expansion-toggle" for="harborToggle">
     <input type="checkbox" id="harborToggle" ${setupHarbor?'checked':''} onchange="setupHarbor=this.checked; render()">
     <span class="et-text"><span class="et-title">⚓ Дополнение «Гавань»</span><br>10 новых построек, Ратуша, Гавань и Аэропорт (до 5 игроков)</span>
+  </label>`;
+  html += `<label class="expansion-toggle" for="harvestToggle">
+    <input type="checkbox" id="harvestToggle" ${setupHarvest?'checked':''} onchange="setupHarvest=this.checked; render()">
+    <span class="et-text"><span class="et-title">⚙️ Дополнение «Добыча»</span><br>9 построек с улучшениями (Порт и Модернизация как новые достопримечательности)</span>
   </label>`;
   for(let i=0;i<setupCount;i++){
     html += `<label>Имя игрока ${i+1}</label><input type="text" id="pname${i}" placeholder="Игрок ${i+1}">`;
@@ -754,7 +855,7 @@ function startGame(){
     const v = document.getElementById('pname'+i).value.trim();
     names.push(v);
   }
-  state = newGame(setupCount, names, setupHarbor);
+  state = newGame(setupCount, names, setupHarbor, setupHarvest);
   log('Игра началась! Первый ход: '+curPlayer().name);
   render();
 }
