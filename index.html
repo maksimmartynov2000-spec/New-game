@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Орден счета: Математическая цитадель</title>
+    <title>Орден Света: Математическая Цитадель</title>
     <style>
         :root {
             --bg-dark: #07080e;
@@ -14,8 +14,6 @@
             --royal: #a855f7;
             --cyan: #06b6d4;
             --text-light: #f8fafc;
-            --theme-color: #06b6d4;
-            --theme-gradient: radial-gradient(circle at center, #111428 0%, #06b6d4 100%);
         }
 
         * {
@@ -35,7 +33,7 @@
             color: var(--text-light);
             display: flex;
             flex-direction: column;
-            background: var(--theme-gradient);
+            background: radial-gradient(circle at center, #111428 0%, #06b6d4 100%);
             transition: background 0.5s ease;
         }
 
@@ -54,7 +52,8 @@
             top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, #111324 0%, #030408 100%);
             z-index: 200;
-            display: flex; flex-direction: column;
+            display: flex;
+            flex-direction: column;
             justify-content: center; align-items: center;
             padding: 20px;
             padding-top: calc(20px + env(safe-area-inset-top));
@@ -63,70 +62,145 @@
         }
 
         .start-title {
-            color: var(--gold); font-size: 1.8rem; text-align: center; margin-bottom: 5px;
+            color: var(--gold);
+            font-size: 1.8rem; text-align: center; margin-bottom: 5px;
             text-shadow: 0 0 10px rgba(255,215,0,0.2);
         }
 
         .start-subtitle {
-            color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px; text-align: center;
+            color: #94a3b8;
+            font-size: 0.85rem; margin-bottom: 20px; text-align: center;
         }
 
-        .mode-list, .setup-container {
-            width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 10px;
+        /* Удобная панель генератора на стартовом экране */
+        .generator-panel {
+            width: 100%;
+            max-width: 440px;
+            background: var(--panel-bg);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
         }
 
-        .btn-mode {
+        .gen-section-title {
+            color: var(--cyan);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+        }
+
+        .radio-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .gen-label-btn {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px; padding: 12px 15px;
-            color: white; text-align: left; cursor: pointer;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            color: #94a3b8;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
         }
-        .btn-mode.m-1 { border-left: 4px solid #10b981; }
-        .btn-mode.m-2 { border-left: 4px solid #3b82f6; }
-        .btn-mode.m-3 { border-left: 4px solid var(--gold); }
-        .btn-mode.m-4 { border-left: 4px solid var(--royal); }
-        .btn-mode.m-5 { border-left: 4px solid #ef4444; }
-        .btn-mode .m-title { font-weight: bold; font-size: 1rem; display: block; margin-bottom: 2px; }
-        .btn-mode .m-desc { font-size: 0.75rem; color: #94a3b8; display: block; }
 
-        /* Стили для выбора персонажей и настроек */
-        .grid-5 {
-            display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; width: 100%; margin-bottom: 15px;
+        .gen-label-btn input {
+            display: none;
         }
-        .card-select {
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 10px; padding: 10px 5px; text-align: center; cursor: pointer; font-size: 0.75rem;
-            transition: all 0.2s; color: #94a3b8;
-        }
-        .card-select.selected {
-            border-color: var(--gold); background: rgba(255,215,0,0.15); color: white; transform: scale(1.05);
-        }
-        .card-select .icon { font-size: 1.6rem; display: block; margin-bottom: 4px; }
 
-        .math-options-box {
-            background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.08);
-            border-radius: 12px; padding: 12px; max-height: 240px; overflow-y: auto; margin-bottom: 15px;
+        .gen-label-btn:has(input:checked) {
+            border-color: var(--gold);
+            color: white;
+            background: rgba(255, 215, 0, 0.08);
+            box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
         }
-        .math-opt-row {
-            display: flex; align-items: center; justify-content: space-between; 
-            padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+
+        .modes-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
         }
-        .math-opt-row:last-child { border-bottom: none; }
-        .opt-label { display: flex; align-items: center; gap: 8px; font-size: 0.85rem; }
-        .opt-label input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
-        .diff-select {
-            background: #0f1220; border: 1px solid rgba(255,255,255,0.2); color: white;
-            border-radius: 6px; padding: 2px 6px; font-size: 0.75rem; outline: none;
+
+        .mode-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 6px 10px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .mode-checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: white;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .mode-checkbox-label input {
+            accent-color: var(--cyan);
+            width: 16px;
+            height: 16px;
+        }
+
+        .difficulty-select {
+            background: rgba(15, 18, 32, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: var(--gold);
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .btn-submit-gen {
+            background: linear-gradient(45deg, #0284c7, #06b6d4);
+            border: none;
+            color: white;
+            padding: 14px;
+            font-size: 1.05rem;
+            font-weight: bold;
+            border-radius: 12px;
+            cursor: pointer;
+            text-align: center;
+            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
+            margin-top: 5px;
+            transition: transform 0.1s;
+        }
+
+        .btn-submit-gen:active {
+            transform: scale(0.98);
         }
 
         .info-container {
-            width: 100%; max-width: 450px; background: rgba(15, 18, 32, 0.95);
+            width: 100%;
+            max-width: 450px; background: rgba(15, 18, 32, 0.95);
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;
-            padding: 20px; max-height: 55vh; overflow-y: auto;
+            padding: 20px; max-height: 65vh;
+            overflow-y: auto;
         }
 
         .info-section-title {
-            color: var(--theme-color); font-size: 0.95rem; text-transform: uppercase;
+            color: var(--cyan);
+            font-size: 0.95rem; text-transform: uppercase;
             letter-spacing: 1px; margin: 15px 0 8px 0;
             border-bottom: 1px solid rgba(6, 182, 212, 0.2); padding-bottom: 4px;
         }
@@ -137,47 +211,54 @@
         .info-text span { color: #94a3b8; }
 
         .btn-start-game {
-            width: 100%; max-width: 450px; background: linear-gradient(45deg, #0284c7, var(--theme-color));
+            width: 100%;
+            max-width: 450px; background: linear-gradient(45deg, #0284c7, #06b6d4);
             border: none; color: white; padding: 15px; font-size: 1.1rem;
-            font-weight: bold; border-radius: 12px; margin-top: 15px; cursor: pointer;
+            font-weight: bold; border-radius: 12px; margin-top: 15px;
+            cursor: pointer;
         }
 
         .top-panel-wrapper {
-            flex-shrink: 0; background: var(--panel-bg);
+            flex-shrink: 0;
+            background: var(--panel-bg);
             border-bottom: 2px solid rgba(255, 215, 0, 0.15); z-index: 10;
             display: flex; flex-direction: column;
             width: 100%; overflow: hidden;
         }
 
         .game-clock-bar {
-            text-align: center; font-size: 0.8rem; color: var(--gold);
+            text-align: center;
+            font-size: 0.8rem; color: var(--gold);
             background: rgba(0, 0, 0, 0.25); padding: 4px 0; font-weight: bold;
             padding-top: calc(4px + env(safe-area-inset-top));
         }
 
         header {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px;
             padding-left: calc(8px + env(safe-area-inset-left));
             padding-right: calc(8px + env(safe-area-inset-right));
             width: 100%;
         }
 
         .resource-card {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
             padding: 6px; border-radius: 10px; background: rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(255,255,255,0.05);
             overflow: hidden; min-width: 0;
         }
         .res-label { font-size: 0.7rem; color: #94a3b8; white-space: nowrap; }
         .res-val { 
-            font-size: clamp(0.75rem, 2.5vw, 1.05rem); 
+            font-size: clamp(0.75rem, 2.5vw, 1.05rem);
             font-weight: bold; margin-top: 1px; 
             white-space: nowrap; text-overflow: ellipsis; overflow: hidden; width: 100%; text-align: center;
         }
         .res-inc { font-size: 0.6rem; color: #cbd5e1; opacity: 0.8; white-space: nowrap; }
 
         .game-space {
-            flex: 1; position: relative; display: flex; flex-direction: column;
+            flex: 1;
+            position: relative; display: flex; flex-direction: column;
             justify-content: center; align-items: center; padding: 10px; min-height: 0;
             width: 100%;
         }
@@ -185,8 +266,9 @@
         #cityCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
 
         .math-box {
-            position: relative; z-index: 2; background: rgba(5, 7, 15, 0.9);
-            border: 2px solid var(--theme-color); box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
+            position: relative;
+            z-index: 2; background: rgba(5, 7, 15, 0.9);
+            border: 2px solid var(--cyan); box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
             border-radius: 16px; padding: 16px; text-align: center; width: 100%; max-width: 360px;
             backdrop-filter: blur(8px);
             transition: background-color 0.15s ease, border-color 0.3s ease, box-shadow 0.3s ease;
@@ -194,7 +276,8 @@
 
         .badge-container { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
         .combo-badge {
-            background: linear-gradient(45deg, #ef4444, #f59e0b); color: white;
+            background: linear-gradient(45deg, #ef4444, #f59e0b);
+            color: white;
             padding: 2px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;
         }
         .combo-badge.frenzy { background: linear-gradient(45deg, #a855f7, #ec4899); }
@@ -202,26 +285,30 @@
         .speed-badge.active-speed { background: linear-gradient(45deg, #0284c7, #06b6d4); color: white; border: none; }
 
         .stats-counter-row {
-            font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;
+            font-size: 0.75rem;
+            color: #94a3b8; margin-bottom: 10px;
             background: rgba(255,255,255,0.03); padding: 4px; border-radius: 6px;
             display: flex; justify-content: center; gap: 12px; border: 1px solid rgba(255,255,255,0.05);
         }
         .stats-counter-row span { font-weight: bold; }
 
         .timer-bar-container { width: 100%; height: 5px; background: rgba(255,255,255,0.05); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
-        .timer-bar { width: 100%; height: 100%; background: var(--theme-color); }
+        .timer-bar { width: 100%; height: 100%; background: var(--cyan); }
         .math-question { font-size: 2.2rem; font-weight: bold; margin-bottom: 14px; color: var(--text-light); }
         .answers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         
         .btn-answer {
-            background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.3);
+            background: rgba(6, 182, 212, 0.06);
+            border: 1px solid rgba(6, 182, 212, 0.3);
             color: white; padding: 14px; border-radius: 12px; font-size: 1.25rem; font-weight: bold;
-            cursor: pointer; position: relative; transition: background 0.1s, transform 0.1s;
+            cursor: pointer;
+            position: relative; transition: background 0.1s, transform 0.1s;
         }
         .btn-answer:active { transform: scale(0.95); background: rgba(6, 182, 212, 0.2); }
 
         .floating-reward {
-            position: fixed; pointer-events: none; font-weight: 900; font-size: 1.4rem; z-index: 300;
+            position: fixed;
+            pointer-events: none; font-weight: 900; font-size: 1.4rem; z-index: 300;
             font-family: 'Impact', 'Arial Black', sans-serif;
             text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.7);
             animation: rewardFlyFast 1.44s cubic-bezier(0.25, 1, 0.5, 1) forwards;
@@ -247,7 +334,8 @@
         }
 
         .control-panel {
-            flex: 1; background: var(--panel-bg); backdrop-filter: blur(15px);
+            flex: 1;
+            background: var(--panel-bg); backdrop-filter: blur(15px);
             border-top: 2px solid rgba(255, 255, 255, 0.08); padding: 8px;
             padding-bottom: calc(10px + env(safe-area-inset-bottom));
             padding-left: calc(10px + env(safe-area-inset-left));
@@ -258,7 +346,8 @@
         }
 
         .shop-cat-header {
-            font-size: 0.72rem; text-transform: uppercase; color: var(--theme-color);
+            font-size: 0.72rem;
+            text-transform: uppercase; color: var(--cyan);
             letter-spacing: 1px; margin: 8px 0 4px 4px; display: flex; align-items: center; gap: 6px; font-weight: bold;
         }
         .shop-cat-header::after { content: ''; flex: 1; height: 1px; background: rgba(6, 182, 212, 0.15); }
@@ -272,7 +361,8 @@
         .build-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
 
         .btn-build {
-            background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.07);
+            background: rgba(255, 255, 255, 0.01);
+            border: 1px solid rgba(255, 255, 255, 0.07);
             border-radius: 10px; padding: 9px 8px; color: white; text-align: left; position: relative; cursor: pointer;
             overflow: hidden;
         }
@@ -295,16 +385,19 @@
         .btn-build.available[data-cat="bless"] { border-color: #f472b6; }
 
         .btn-final {
-            grid-column: span 2; background: linear-gradient(45deg, #1e1b4b, #4c1d95);
+            grid-column: span 2;
+            background: linear-gradient(45deg, #1e1b4b, #4c1d95);
             border: 1px solid var(--royal); text-align: center; padding: 12px; margin-top: 6px;
         }
         .btn-final .name { color: #f3e8ff; font-size: 0.85rem; display: block; }
         .btn-final.available { box-shadow: 0 0 15px rgba(168, 85, 247, 0.6); border-color: #c084fc; }
 
         .win-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
             background: #030712; z-index: 100; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center; padding: 20px;
+            justify-content: center; align-items: center;
+            text-align: center; padding: 20px;
             opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
         }
         .win-screen.active { opacity: 1; pointer-events: auto; }
@@ -321,110 +414,126 @@
 </head>
 <body>
 
-    <!-- ЭКРАН 1: ВЫБОР ЯЗЫКА -->
-    <div class="modal-screen" id="langScreen">
-        <h1 class="start-title">🌍 Язык / Language / Sprache</h1>
-        <p class="start-subtitle">Select game language:</p>
-        <div class="mode-list" style="max-width: 320px;">
-            <button class="btn-mode m-1" onclick="selectLang('ru')"><span class="m-title" style="text-align:center;">Русский</span></button>
-            <button class="btn-mode m-2" onclick="selectLang('en')"><span class="m-title" style="text-align:center;">English</span></button>
-            <button class="btn-mode m-3" onclick="selectLang('de')"><span class="m-title" style="text-align:center;">Deutsch</span></button>
-            <button class="btn-mode m-4" onclick="selectLang('fr')"><span class="m-title" style="text-align:center;">Français</span></button>
-            <button class="btn-mode m-5" onclick="selectLang('es')"><span class="m-title" style="text-align:center;">Español</span></button>
-        </div>
-    </div>
-
-    <!-- ЭКРАН 2: ВЫБОР ПЕРСОНАЖА И НАСТРОЙКА ПРИМЕРОВ -->
-    <div class="modal-screen" id="setupScreen" style="display: none;">
-        <h1 class="start-title" id="setupTitle">🎭 Персонаж и Настройки</h1>
-        <p class="start-subtitle" id="setupSubtitle">Выберите вашего героя и математические дисциплины:</p>
+    <div class="modal-screen" id="startScreen">
+        <h1 class="start-title">🏛️ Орден Света</h1>
+        <p class="start-subtitle">Настройте Обет Вычислений для текущей эпохи:</p>
         
-        <div class="setup-container">
-            <div class="grid-5" id="charsGrid">
-                <!-- Заполняется динамически -->
+        <div class="generator-panel">
+            <div class="gen-section-title">1. Вид числовой магии</div>
+            <div class="radio-group">
+                <label class="gen-label-btn">
+                    <input type="radio" name="numType" value="positive" checked>
+                    ➕ Положительные
+                </label>
+                <label class="gen-label-btn">
+                    <input type="radio" name="numType" value="negative">
+                    ➖ Отрицательные
+                </label>
             </div>
 
-            <div class="math-options-box" id="mathOptionsBox">
-                <!-- Список чекбоксов и сложностей генерируется из JS -->
+            <div class="gen-section-title">2. Режимы и Сложность</div>
+            <div class="modes-container">
+                <div class="mode-row">
+                    <label class="mode-checkbox-label">
+                        <input type="checkbox" name="calcMode" value="add" checked>
+                        ➕ Сложение
+                    </label>
+                    <select class="difficulty-select" id="diff-add">
+                        <option value="1">⭐️</option>
+                        <option value="2">⭐️⭐️</option>
+                        <option value="3">⭐️⭐️⭐️</option>
+                        <option value="4">⭐️⭐️⭐️⭐️</option>
+                        <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
+                    </select>
+                </div>
+                <div class="mode-row">
+                    <label class="mode-checkbox-label">
+                        <input type="checkbox" name="calcMode" value="sub">
+                        ➖ Вычитание
+                    </label>
+                    <select class="difficulty-select" id="diff-sub">
+                        <option value="1">⭐️</option>
+                        <option value="2">⭐️⭐️</option>
+                        <option value="3">⭐️⭐️⭐️</option>
+                        <option value="4">⭐️⭐️⭐️⭐️</option>
+                        <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
+                    </select>
+                </div>
+                <div class="mode-row">
+                    <label class="mode-checkbox-label">
+                        <input type="checkbox" name="calcMode" value="mul">
+                        ✖️ Умножение
+                    </label>
+                    <select class="difficulty-select" id="diff-mul">
+                        <option value="1">⭐️</option>
+                        <option value="2">⭐️⭐️</option>
+                        <option value="3">⭐️⭐️⭐️</option>
+                        <option value="4">⭐️⭐️⭐️⭐️</option>
+                        <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
+                    </select>
+                </div>
+                <div class="mode-row">
+                    <label class="mode-checkbox-label">
+                        <input type="checkbox" name="calcMode" value="div">
+                        ➗ Деление
+                    </label>
+                    <select class="difficulty-select" id="diff-div">
+                        <option value="1">⭐️</option>
+                        <option value="2">⭐️⭐️</option>
+                        <option value="3">⭐️⭐️⭐️</option>
+                        <option value="4">⭐️⭐️⭐️⭐️</option>
+                        <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
+                    </select>
+                </div>
             </div>
 
-            <button class="btn-start-game" id="btnNextSetup" onclick="proceedToModes()">➡️ Далее</button>
+            <button class="btn-submit-gen" onclick="initCustomConfig()">⚔️ Утвердить Обет</button>
         </div>
     </div>
 
-    <!-- ЭКРАН 3: РЕЖИМЫ ИГРЫ -->
-    <div class="modal-screen" id="startScreen" style="display: none;">
-        <h1 class="start-title" id="mainTitle">🏛️ Орден счета: Математическая цитадель</h1>
-        <p class="start-subtitle" id="mainSubtitle">Выберите Обет Научной Цели на эту эпоху:</p>
-        <div class="mode-list">
-            <button class="btn-mode m-1" onclick="selectMode('easy')">
-                <span class="m-title" id="title-easy">📜 Ученик</span>
-                <span class="m-desc" id="m-desc-easy">...</span>
-            </button>
-            <button class="btn-mode m-2" onclick="selectMode('medium')">
-                <span class="m-title" id="title-medium">⚔️ Рыцарь Счета</span>
-                <span class="m-desc" id="m-desc-medium">...</span>
-            </button>
-            <button class="btn-mode m-3" onclick="selectMode('hard')">
-                <span class="m-title" id="title-hard">🏛️ Магистр Цитадели</span>
-                <span class="m-desc" id="m-desc-hard">...</span>
-            </button>
-            <button class="btn-mode m-4" onclick="selectMode('expert')">
-                <span class="m-title" id="title-expert">👑 Хранитель Тайн</span>
-                <span class="m-desc" id="m-desc-expert">...</span>
-            </button>
-            <button class="btn-mode m-5" onclick="selectMode('marathon')">
-                <span class="m-title" id="title-marathon">🪐 Абсолютный Титан</span>
-                <span class="m-desc" id="m-desc-marathon">...</span>
-            </button>
-        </div>
-    </div>
-
-    <!-- ЭКРАН 4: ИНСТРУКТАЖ -->
     <div class="modal-screen" id="briefingScreen" style="display: none;">
-        <h1 class="start-title" style="color: var(--theme-color);" id="briefTitle">📜 Манускрипт Познания</h1>
-        <p class="start-subtitle" id="briefSubtitle">Правила Цитадели Талантов и Славы:</p>
+        <h1 class="start-title" style="color: var(--cyan);">📜 Манускрипт Познания</h1>
+        <p class="start-subtitle">Правила Цитадели Талантов и Славы:</p>
         <div class="info-container">
-            <div class="info-section-title" id="sec-prod">🌾 Добыча ресурсов</div>
+            <div class="info-section-title">🌾 Добыча ресурсов</div>
             <div class="info-row">
                 <div class="info-icon">🪙</div>
-                <div class="info-text"><strong id="brief-row1-t">Школы и Архивы</strong><span id="brief-row1-d">Нанимайте писцов. Цены в Талантах возрастают, а камень дороже в 2 раза!</span></div>
+                <div class="info-text"><strong>Школы и Архивы</strong><span>Нанимайте писцов. Цены в Талантах возрастают, а камень дороже в 2 раза!</span></div>
             </div>
-            <div class="info-section-title" id="sec-click">📐 Сила Ученого Клика</div>
+            <div class="info-section-title">📐 Сила Ученого Клика</div>
             <div class="info-row">
                 <div class="info-icon">🎯</div>
-                <div class="info-text"><strong id="brief-row2-t">Таланты и Слава сразу!</strong><span id="brief-row2-d">Каждый верный клик приносит Таланты и Славу одновременно. Учебник увеличивает обе базы!</span></div>
+                <div class="info-text"><strong>Таланты и Слава сразу!</strong><span>Каждый верный клик приносит Таланты и Славу одновременно. Учебник увеличивает обе базы!</span></div>
             </div>
-            <div class="info-section-title" id="sec-glory">🏛️ Величие и Прорывы</div>
+            <div class="info-section-title">👑 Величие и Прорывы</div>
             <div class="info-row">
                 <div class="info-icon">🏛️</div>
-                <div class="info-text"><strong id="brief-row3-t">Ментальный Прорыв</strong><span id="brief-row3-d">Дает мощнейшие +20% к Талантам и к Славе от клика параллельно!</span></div>
+                <div class="info-text"><strong>Ментальный Прорыв</strong><span>Дает мощнейшие +20% к Талантам и к Славе от клика параллельно!</span></div>
             </div>
         </div>
-        <button class="btn-start-game" id="btnEnterOrder" onclick="startGame()">⚔️ Вступить в Орден счета</button>
+        <button class="btn-start-game" onclick="startGame()">⚔️ Вступить в Орден Света</button>
     </div>
 
-    <!-- ГЛАВНЫЙ ИНТЕРФЕЙС ИГРЫ -->
     <div class="top-panel-wrapper">
         <div class="game-clock-bar" id="gameClock">⏳ Время Эпохи: 00:00</div>
         <header>
             <div class="resource-card">
-                <div class="res-label" id="lbl-gold">🪙 Таланты</div>
+                <div class="res-label">🪙 Таланты</div>
                 <div class="res-val" id="val-gold">0</div>
                 <div class="res-inc" id="inc-gold">+0/с</div>
             </div>
             <div class="resource-card">
-                <div class="res-label" id="lbl-steel">🧱 Камень</div>
+                <div class="res-label">🧱 Камень</div>
                 <div class="res-val" id="val-steel">0</div>
                 <div class="res-inc" id="inc-steel">+0/с</div>
             </div>
             <div class="resource-card">
-                <div class="res-label" id="lbl-scrolls">📜 Свитки</div>
+                <div class="res-label">📜 Свитки</div>
                 <div class="res-val" id="val-scrolls">0</div>
                 <div class="res-inc" id="inc-scrolls">+0/с</div>
             </div>
             <div class="resource-card">
-                <div class="res-label" id="lbl-glory">👑 Слава</div>
+                <div class="res-label">👑 Слава</div>
                 <div class="res-val" id="val-glory">0%</div>
                 <div class="res-inc" id="inc-glory">+0%/с</div>
             </div>
@@ -435,8 +544,8 @@
         <canvas id="cityCanvas"></canvas>
         <div class="math-box" id="mainMathBox">
             <div class="stats-counter-row">
-                <div><span id="lbl-correct">✅ Верно:</span> <span id="stat-correct" style="color:#10b981;">0</span></div>
-                <div><span id="lbl-wrong">❌ Ошибки:</span> <span id="stat-wrong" style="color:#ef4444;">0</span></div>
+                <div>✅ Верно: <span id="stat-correct" style="color:#10b981;">0</span></div>
+                <div>❌ Ошибки: <span id="stat-wrong" style="color:#ef4444;">0</span></div>
             </div>
             <div class="badge-container">
                 <div class="combo-badge" id="comboBadge" style="display:none;">Серия: 🔥 х1.0</div>
@@ -451,151 +560,130 @@
     </div>
 
     <div class="control-panel">
-        <div class="shop-cat-header" id="cat-prod">🌾 Добыча Ресурсов</div>
+        <div class="shop-cat-header">🌾 Добыча Ресурсов</div>
         <div class="build-grid">
             <button class="btn-build" data-type="abacus" data-cat="prod" id="btn-abacus">
-                <span class="name" id="n-abacus">🏫 Школа Писцов</span>
-                <span class="effect-desc" id="d-abacus">Дает: +1 🪙/сек</span>
+                <span class="name">🏫 Школа Писцов</span>
+                <span class="effect-desc">Дает: +1 🪙/сек</span>
                 <span class="cost" id="cost-abacus">...</span>
                 <span class="count" id="cnt-abacus">0</span>
             </button>
             <button class="btn-build" data-type="blueprint" data-cat="prod" id="btn-blueprint">
-                <span class="name" id="n-blueprint">⛏️ Каменоломня</span>
-                <span class="effect-desc" id="d-blueprint">Дает: +1 🧱/сек</span>
+                <span class="name">⛏️ Каменоломня</span>
+                <span class="effect-desc">Дает: +1 🧱/сек</span>
                 <span class="cost" id="cost-blueprint">...</span>
                 <span class="count" id="cnt-blueprint">0</span>
             </button>
             <button class="btn-build" data-type="scriptorium" data-cat="prod" id="btn-scriptorium">
-                <span class="name" id="n-scriptorium">📚 Архив Знаний</span>
-                <span class="effect-desc" id="d-scriptorium">Дает: +0.5 📜/сек</span>
+                <span class="name">📚 Архив Знаний</span>
+                <span class="effect-desc">Дает: +0.5 📜/сек</span>
                 <span class="cost" id="cost-scriptorium">...</span>
                 <span class="count" id="cnt-scriptorium">0</span>
             </button>
             <button class="btn-build" data-type="alchemical" data-cat="prod" id="btn-alchemical">
-                <span class="name" id="n-alchemical">⚗️ Алхим. Фабрика</span>
-                <span class="effect-desc" id="d-alchemical">Дает: +2.5 🧱 и +1 📜/с</span>
+                <span class="name">⚗️ Алхим. Фабрика</span>
+                <span class="effect-desc">Дает: +2.5 🧱 и +1 📜/с</span>
                 <span class="cost" id="cost-alchemical">...</span>
                 <span class="count" id="cnt-alchemical">0</span>
             </button>
         </div>
 
-        <div class="shop-cat-header upg-header" id="cat-upg">📐 Множители и Точность Разума</div>
+        <div class="shop-cat-header upg-header">📐 Множители и Точность Разума</div>
         <div class="build-grid">
             <button class="btn-build" data-type="book" data-cat="upgrade" id="btn-book">
-                <span class="name" id="n-book">📖 Учебник</span>
-                <span class="effect-desc" id="d-book">Клик: +6 баз. 🪙 и +0.00001% баз. 👑</span>
+                <span class="name">📖 Учебник</span>
+                <span class="effect-desc">Клик: +6 баз. 🪙 и +0.00001% баз. 👑</span>
                 <span class="cost" id="cost-book">...</span>
-                <span class="meta-info" id="meta-book">...</span>
+                <span class="meta-info" id="meta-book">Базовый клик: 12 ед.</span>
                 <span class="count" id="cnt-book">0</span>
             </button>
             <button class="btn-build" data-type="theorem" data-cat="upgrade" id="btn-theorem">
-                <span class="name" id="n-theorem">📐 Циркуль Магистра</span>
-                <span class="effect-desc" id="d-theorem">Скидка: -6% на тек. цены</span>
+                <span class="name">📐 Циркуль Магистра</span>
+                <span class="effect-desc">Скидка: -6% на тек. цены</span>
                 <span class="cost" id="cost-theorem">...</span>
-                <span class="meta-info" id="meta-theorem">...</span>
+                <span class="meta-info" id="meta-theorem">Скидка: -0.0%</span>
                 <span class="count" id="cnt-theorem">0</span>
             </button>
             <button class="btn-build" data-type="critChance" data-cat="upgrade" id="btn-critChance">
-                <span class="name" id="n-critChance">🎯 Шанс Крита</span>
-                <span class="effect-desc" id="eff-critChance">...</span>
+                <span class="name">🎯 Шанс Крита</span>
+                <span class="effect-desc" id="eff-critChance">Шанс: 5%</span>
                 <span class="cost" id="cost-critChance">...</span>
                 <span class="count" id="cnt-critChance">0</span>
             </button>
             <button class="btn-build" data-type="critMult" data-cat="upgrade" id="btn-critMult">
-                <span class="name" id="n-critMult">⚡ Сила Крита</span>
-                <span class="effect-desc" id="eff-critMult">...</span>
+                <span class="name">⚡ Сила Крита</span>
+                <span class="effect-desc" id="eff-critMult">Множитель: 4.0х</span>
                 <span class="cost" id="cost-critMult">...</span>
                 <span class="count" id="cnt-critMult">0</span>
             </button>
-            <!-- НОВЫЕ БОНУСЫ В ТОЧНОСТЬ РАЗУМА -->
-            <button class="btn-build" data-type="lightningPower" data-cat="upgrade" id="btn-lightningPower">
-                <span class="name" id="n-lightningPower">⚡ Напряжение Молнии</span>
-                <span class="effect-desc" id="d-lightningPower">Сила Молнии: +1%</span>
-                <span class="cost" id="cost-lightningPower">...</span>
-                <span class="count" id="cnt-lightningPower">0</span>
-            </button>
-            <button class="btn-build" data-type="lightningTime" data-cat="upgrade" id="btn-lightningTime">
-                <span class="name" id="n-lightningTime">⏳ Хроносферный Разряд</span>
-                <span class="effect-desc" id="d-lightningTime">Время Молнии: +0.1 сек</span>
-                <span class="cost" id="cost-lightningTime">...</span>
-                <span class="count" id="cnt-lightningTime">0</span>
-            </button>
         </div>
 
-        <div class="shop-cat-header glory-header" id="cat-glory">👑 Величие Ордена</div>
+        <div class="shop-cat-header glory-header">👑 Величие Ордена</div>
         <div class="build-grid">
             <button class="btn-build" data-type="geometry" data-cat="glory" id="btn-geometry">
-                <span class="name" id="n-geometry">🏛️ Университет</span>
-                <span class="effect-desc" id="d-geometry">Дает: +3 🪙 и +0.00015% 👑/с</span>
+                <span class="name">🏛️ Университет</span>
+                <span class="effect-desc">Дает: +3 🪙 и +0.00015% 👑/с</span>
                 <span class="cost" id="cost-geometry">...</span>
                 <span class="count" id="cnt-geometry">0</span>
             </button>
             <button class="btn-build" data-type="patent" data-cat="glory" id="btn-patent">
-                <span class="name" id="n-patent">📜 Королевский Патент</span>
-                <span class="effect-desc" id="d-patent">Дает: +0.00025% 👑/с</span>
+                <span class="name">📜 Королевский Патент</span>
+                <span class="effect-desc">Дает: +0.00025% 👑/с</span>
                 <span class="cost" id="cost-patent">...</span>
                 <span class="count" id="cnt-patent">0</span>
             </button>
             <button class="btn-build" data-type="astral" data-cat="glory" id="btn-astral">
-                <span class="name" id="n-astral">🌌 Астральное Знамение</span>
-                <span class="effect-desc" id="d-astral">Дает: +0.00075% 👑/с и +3 клик</span>
+                <span class="name">🌌 Астральное Знамение</span>
+                <span class="effect-desc">Дает: +0.00075% 👑/с и +3 клик</span>
                 <span class="cost" id="cost-astral">...</span>
                 <span class="count" id="cnt-astral">0</span>
             </button>
             <button class="btn-build" data-type="manifesto" data-cat="glory" id="btn-manifesto">
-                <span class="name" id="n-manifesto">📜 Королевский Манифест</span>
-                <span class="effect-desc" id="d-manifesto">Дает: +0.00225% 👑/с</span>
+                <span class="name">📜 Королевский Манифест</span>
+                <span class="effect-desc">Дает: +0.00225% 👑/с</span>
                 <span class="cost" id="cost-manifesto">...</span>
                 <span class="count" id="cnt-manifesto">0</span>
             </button>
         </div>
 
-        <div class="shop-cat-header bless-header" id="cat-bless">✨ Благословение Славы</div>
+        <div class="shop-cat-header bless-header">✨ Благословение Славы</div>
         <div class="build-grid">
             <button class="btn-build" data-type="blessIncome" data-cat="bless" id="btn-blessIncome">
-                <span class="name" id="n-blessIncome">✨ Аура Изобилия</span>
-                <span class="effect-desc" id="d-blessIncome">Производство: +25%</span>
+                <span class="name">✨ Аура Изобилия</span>
+                <span class="effect-desc">Производство: +25%</span>
                 <span class="cost" id="cost-blessIncome">...</span>
                 <span class="count" id="cnt-blessIncome">0</span>
             </button>
             <button class="btn-build" data-type="blessClick" data-cat="bless" id="btn-blessClick">
-                <span class="name" id="n-blessClick">🔥 Ментальный Прорыв</span>
-                <span class="effect-desc" id="d-blessClick">Клик 🪙 и Слава 👑: +20%</span>
+                <span class="name">🔥 Ментальный Прорыв</span>
+                <span class="effect-desc">Клик 🪙 и Слава 👑: +20%</span>
                 <span class="cost" id="cost-blessClick">...</span>
                 <span class="count" id="cnt-blessClick">0</span>
             </button>
             <button class="btn-build" data-type="blessQuantum" data-cat="bless" id="btn-blessQuantum">
-                <span class="name" id="n-blessQuantum">🌀 Квантовый Скачок</span>
-                <span class="effect-desc" id="d-blessQuantum">Крит. сила: +1.5х</span>
+                <span class="name">🌀 Квантовый Скачок</span>
+                <span class="effect-desc">Крит. сила: +1.5х</span>
                 <span class="cost" id="cost-blessQuantum">...</span>
                 <span class="count" id="cnt-blessQuantum">0</span>
             </button>
             <button class="btn-build" data-type="blessArchivist" data-cat="bless" id="btn-blessArchivist">
-                <span class="name" id="n-blessArchivist">🦅 Дар Архивариуса</span>
-                <span class="effect-desc" id="eff-blessArchivist">...</span>
+                <span class="name">🦅 Дар Архивариуса</span>
+                <span class="effect-desc" id="eff-blessArchivist">Сила Молнии: +5%</span>
                 <span class="cost" id="cost-blessArchivist">...</span>
                 <span class="count" id="cnt-blessArchivist">0</span>
             </button>
             <button class="btn-build" data-type="blessArchitect" data-cat="bless" id="btn-blessArchitect">
-                <span class="name" id="n-blessArchitect">🧱 Зодчество Магов</span>
-                <span class="effect-desc" id="d-blessArchitect">Доп. скидка цен: -5%</span>
+                <span class="name">🧱 Зодчество Магов</span>
+                <span class="effect-desc">Доп. скидка цен: -5%</span>
                 <span class="cost" id="cost-blessArchitect">...</span>
                 <span class="count" id="cnt-blessArchitect">0</span>
             </button>
             <button class="btn-build" data-type="blessInspiration" data-cat="bless" id="btn-blessInspiration">
-                <span class="name" id="n-blessInspiration">💡 Вдохновение Нации</span>
-                <span class="effect-desc" id="eff-blessInspiration">...</span>
+                <span class="name">💡 Вдохновение Нации</span>
+                <span class="effect-desc" id="eff-blessInspiration">Шаг серии: +0.1х</span>
                 <span class="cost" id="cost-blessInspiration">...</span>
                 <span class="count" id="cnt-blessInspiration">0</span>
             </button>
-            <!-- НОВЫЙ МОЩНЫЙ БОНУС В БЛАГОСЛОВЕНИЕ СЛАВЫ -->
-            <button class="btn-build" data-type="blessShield" data-cat="bless" id="btn-blessShield">
-                <span class="name" id="n-blessShield">🛡️ Щит Божественного Счета</span>
-                <span class="effect-desc" id="d-blessShield">Каждые 100 верных решений дают защиту от 1 ошибки</span>
-                <span class="cost" id="cost-blessShield">...</span>
-                <span class="count" id="cnt-blessShield">0</span>
-            </button>
-
             <button class="btn-build btn-final" data-type="exam" id="btn-exam">
                 <span class="name" id="finalName">🏆 СДАТЬ ВЕЛИКИЙ ЭКЗАМЕН 🏆</span>
                 <span class="cost" id="finalCost">Требования...</span>
@@ -604,761 +692,797 @@
     </div>
 
     <div class="win-screen" id="winScreen">
-        <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;" id="winTitle">Триумф Цитадели!</h1>
+        <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;">Триумф Цитадели!</h1>
         <p id="winDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size: 1.1rem;"></p>
-        <button style="margin-top:30px; padding:12px 25px; background:var(--gold); border:none; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="location.reload()" id="btnRestart">К новым Обетам</button>
+        <button style="margin-top:30px; padding:12px 25px; background:var(--gold); border:none; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="location.reload()">К новым Обетам</button>
     </div>
 
     <script>
-        // СЛОВАРЬ ЛОКАЛИЗАЦИИ
-        const locales = {
-            ru: {
-                setupTitle: "🎭 Персонаж и Настройки", setupSubtitle: "Выберите вашего героя и математические дисциплины:",
-                mainTitle: "🏛️ Орден счета: Математическая цитадель", mainSubtitle: "Выберите Обет Научной Цели на эту эпоху:",
-                briefTitle: "📜 Манускрипт Познания", briefSubtitle: "Правила Цитадели Талантов и Славы:",
-                btnEnterOrder: "⚔️ Вступить в Орден счета", btnNext: "➡️ Далее",
-                secProd: "🌾 Добыча ресурсов", secClick: "📐 Сила Ученого Клика", secGlory: "🏛️ Величие и Прорывы",
-                lblGold: "🪙 Таланты", lblSteel: "🧱 Камень", lblScrolls: "📜 Свитки", lblGlory: "👑 Слава",
-                lblCorrect: "✅ Верно:", lblWrong: "❌ Ошибки:", timeEpoch: "⏳ Время Эпохи:", loading: "Загрузка...",
-                finalExam: "🏆 СДАТЬ ВЕЛИКИЙ ЭКЗАМЕН 🏆", winTitle: "Триумф Цитадели!", btnRestart: "К новым Обетам",
-                combo: "Серия:", lightning: "Молния:", speed: "Скорость:", req: "Нужно:", taskReq: "⚠️ Решить задач:",
-                shieldActive: "🛡️ Защита сработала! Ошибка прощена.", wallBreak: "Ошибка! Разрушение стен (-12 🧱)",
-                modes: {
-                    easy: { name: "📜 ОБЕТ УЧЕНИКА", desc: "Спринт окончен. Основы математики изучены безукоризненно!" },
-                    medium: { name: "⚔️ ОБЕТ РЫЦАРЯ СЧЕТА", desc: "Концентрация удержана! Ваша Цитадель стоит крепко." },
-                    hard: { name: "🏛️ ОБЕТ МАГИСТРА", desc: "Выдающийся результат! Вы — признанный гений счета." },
-                    expert: { name: "👑 ОБЕТ ХРАНИТЕЛЯ ТАЙН", desc: "Древние Свитки раскрыли величайшие тайны Вселенной." },
-                    marathon: { name: "🪐 ТРИУМФ АБСОЛЮТНОГО ТИТАНА", desc: "Великий Марафон завершен абсолютной победой разума!" }
-                },
-                mathTypes: { add:"Сложение", sub:"Вычитание", mul:"Умножение", div:"Деление", dec:"Десятичные дроби", frac:"Дроби", neg:"Отрицательные числа", pct:"Проценты" },
-                diffs: { easy:"Легкий", med:"Средний", hard:"Сложный" }
-            },
-            en: {
-                setupTitle: "🎭 Character & Settings", setupSubtitle: "Choose your hero and mathematical disciplines:",
-                mainTitle: "🏛️ Order of Counting: Math Citadel", mainSubtitle: "Choose your Scientific Goal Vow for this era:",
-                briefTitle: "📜 Scroll of Knowledge", briefSubtitle: "Rules of the Citadel of Talents and Glory:",
-                btnEnterOrder: "⚔️ Enter the Order of Counting", btnNext: "➡️ Next",
-                secProd: "🌾 Resource Production", secClick: "📐 Scholar Click Power", secGlory: "🏛️ Greatness & Breakthroughs",
-                lblGold: "🪙 Talents", lblSteel: "🧱 Stone", lblScrolls: "📜 Scrolls", lblGlory: "👑 Glory",
-                lblCorrect: "✅ Correct:", lblWrong: "❌ Wrong:", timeEpoch: "⏳ Era Time:", loading: "Loading...",
-                finalExam: "🏆 PASS THE GRAND EXAM 🏆", winTitle: "Citadel Triumph!", btnRestart: "To New Vows",
-                combo: "Combo:", lightning: "Lightning:", speed: "Speed:", req: "Required:", taskReq: "⚠️ Solve tasks:",
-                shieldActive: "🛡️ Shield activated! Mistake forgiven.", wallBreak: "Mistake! Walls damaged (-12 🧱)",
-                modes: {
-                    easy: { name: "📜 DISCIPLE VOW", desc: "Sprint finished. Mathematical foundations studied perfectly!" },
-                    medium: { name: "⚔️ COUNT KNIGHT VOW", desc: "Concentration held! Your Citadel stands strong." },
-                    hard: { name: "🏛️ MAGISTER VOW", desc: "Outstanding result! You are a recognized genius of counting." },
-                    expert: { name: "👑 KEEPER OF SECRETS", desc: "Ancient Scrolls revealed the greatest secrets of the Universe." },
-                    marathon: { name: "🪐 ABSOLUTE TITAN TRIUMPH", desc: "The Great Marathon completed with absolute victory of mind!" }
-                },
-                mathTypes: { add:"Addition", sub:"Subtraction", mul:"Multiplication", div:"Division", dec:"Decimals", frac:"Fractions", neg:"Negative numbers", pct:"Percentages" },
-                diffs: { easy:"Easy", med:"Normal", hard:"Hard" }
-            },
-            de: {
-                setupTitle: "🎭 Charakter & Einstellungen", setupSubtitle: "Wählen Sie Ihren Helden und Ihre mathematischen Disziplinen:",
-                mainTitle: "🏛️ Orden des Zählens: Mathematische Zitadelle", mainSubtitle: "Wählen Sie Ihr wissenschaftliches Zielgelübde für diese Ära:",
-                briefTitle: "📜 Schriftrolle des Wissens", briefSubtitle: "Regeln der Zitadelle der Talente und des Ruhms:",
-                btnEnterOrder: "⚔️ Tritt dem Orden des Zählens bei", btnNext: "➡️ Weiter",
-                secProd: "🌾 Ressourcenproduktion", secClick: "📐 Gelehrten-Klickkraft", secGlory: "🏛️ Größe & Durchbrüche",
-                lblGold: "🪙 Talente", lblSteel: "🧱 Stein", lblScrolls: "📜 Schriftrollen", lblGlory: "👑 Ruhm",
-                lblCorrect: "✅ Richtig:", lblWrong: "❌ Falsch:", timeEpoch: "⏳ Ära-Zeit:", loading: "Laden...",
-                finalExam: "🏆 BESTEHE DIE GROSSE PRÜFUNG 🏆", winTitle: "Triumph der Zitadelle!", btnRestart: "Zu neuen Gelübden",
-                combo: "Serie:", lightning: "Blitz:", speed: "Tempo:", req: "Benötigt:", taskReq: "⚠️ Aufgaben lösen:",
-                shieldActive: "🛡️ Schild aktiviert! Fehler verziehen.", wallBreak: "Fehler! Mauern beschädigt (-12 🧱)",
-                modes: {
-                    easy: { name: "📜 SCHÜLER-GELÜBDE", desc: "Sprint beendet. Mathematische Grundlagen perfekt gelernt!" },
-                    medium: { name: "⚔️ RECHTERRITTER-GELÜBDE", desc: "Konzentration gehalten! Ihre Zitadelle steht stark." },
-                    hard: { name: "🏛️ MEISTER-GELÜBDE", desc: "Herausragendes Ergebnis! Sie sind ein anerkanntes Genie des Zählens." },
-                    expert: { name: "👑 HÜTER DER GEHEIMNISSE", desc: "Alte Schriftrollen enthüllten die größten Geheimnisse des Universums." },
-                    marathon: { name: "🪐 ABSOLUTER TITANEN-TRIUMPH", desc: "Der Große Marathon wurde mit dem absoluten Sieg des Geistes beendet!" }
-                },
-                mathTypes: { add:"Addition", sub:"Subtraktion", mul:"Multiplikation", div:"Division", dec:"Dezimalzahlen", frac:"Brüche", neg:"Negative Zahlen", pct:"Prozentwert" },
-                diffs: { easy:"Leicht", med:"Mittel", hard:"Schwer" }
-            },
-            fr: {
-                setupTitle: "🎭 Personnage et Paramètres", setupSubtitle: "Choisissez votre héros et vos disciplines mathématiques :",
-                mainTitle: "🏛️ Ordre du Calcul : Citadelle Mathématique", mainSubtitle: "Choisissez votre vœu d'objectif scientifique pour cette ère :",
-                briefTitle: "📜 Manuscrit du Savoir", briefSubtitle: "Règles de la Citadelle des Talents et de la Gloire :",
-                btnEnterOrder: "⚔️ Entrer dans l'Ordre du Calcul", btnNext: "➡️ Suivant",
-                secProd: "🌾 Production de ressources", secClick: "📐 Puissance du Clic d'Érudit", secGlory: "🏛️ Grandeur & Percées",
-                lblGold: "🪙 Talents", lblSteel: "🧱 Pierre", lblScrolls: "📜 Parchemins", lblGlory: "👑 Gloire",
-                lblCorrect: "✅ Correct :", lblWrong: "❌ Erreurs :", timeEpoch: "⏳ Temps de l'ère :", loading: "Chargement...",
-                finalExam: "🏆 PASSER LE GRAND EXAMEN 🏆", winTitle: "Triomphe de la Citadelle !", btnRestart: "Vers de nouveaux vœux",
-                combo: "Série :", lightning: "Éclair :", speed: "Vitesse :", req: "Requis :", taskReq: "⚠️ Résoudre les tâches :",
-                shieldActive: "🛡️ Bouclier activé ! Erreur pardonnée.", wallBreak: "Erreur ! Murs endommagés (-12 🧱)",
-                modes: {
-                    easy: { name: "📜 VŒU DE DISCIPLE", desc: "Sprint terminé. Les bases des mathématiques sont parfaitement étudiées !" },
-                    medium: { name: "⚔️ VŒU DE CHEVALIER DU CALCUL", desc: "Concentration maintenue ! Votre Citadelle tient bon." },
-                    hard: { name: "🏛️ VŒU DE MAGISTER", desc: "Résultat exceptionnel ! Vous êtes un génie reconnu du calcul." },
-                    expert: { name: "👑 GARDIEN DES SECRETS", desc: "Les manuscrits anciens ont révélé les plus grands secrets de l'Univers." },
-                    marathon: { name: "🪐 TRIOMPHE DU TITAN ABSOLU", desc: "Le Grand Marathon s'est terminé par une victoire absolue de l'esprit !" }
-                },
-                mathTypes: { add:"Addition", sub:"Soustraction", mul:"Multiplication", div:"Division", dec:"Décimales", frac:"Fractions", neg:"Nombres négatifs", pct:"Pourcentages" },
-                diffs: { easy:"Facile", med:"Moyen", hard:"Difficile" }
-            },
-            es: {
-                setupTitle: "🎭 Personaje y Ajustes", setupSubtitle: "Elige a tu héroe y disciplinas matemáticas:",
-                mainTitle: "🏛️ Orden del Cálculo: Ciudadela Matemática", mainSubtitle: "Elige tu voto de objetivo científico para esta era:",
-                briefTitle: "📜 Manuscrito del Conocimiento", briefSubtitle: "Reglas de la Ciudadela de Talentos y Gloria:",
-                btnEnterOrder: "⚔️ Entrar en la Orden del Cálculo", btnNext: "➡️ Siguiente",
-                secProd: "🌾 Producción de Recursos", secClick: "📐 Poder del Clic de Erudito", secGlory: "🏛️ Grandeza y Avances",
-                lblGold: "🪙 Talentos", lblSteel: "🧱 Piedra", lblScrolls: "📜 Pergaminos", lblGlory: "👑 Gloria",
-                lblCorrect: "✅ Correcto:", lblWrong: "❌ Erreores:", timeEpoch: "⏳ Tiempo de Era:", loading: "Cargando...",
-                finalExam: "🏆 APROBAR EL GRAN EXAMEN 🏆", winTitle: "¡Triunfo de la Ciudadela!", btnRestart: "A nuevos votos",
-                combo: "Serie:", lightning: "Rayo:", speed: "Velocidad:", req: "Requerido:", taskReq: "⚠️ Resolver tareas:",
-                shieldActive: "🛡️ ¡Escudo activado! Error perdonado.", wallBreak: "¡Error! Paredes dañadas (-12 🧱)",
-                modes: {
-                    easy: { name: "📜 VOTO DE DISCÍPULO", desc: "Sprint terminado. ¡Los fundamentos de las matemáticas estudiados a la perfección!" },
-                    medium: { name: "⚔️ VOTO DE CABALLERO DEL CÁLCULO", desc: "¡Concentración mantenida! Tu Ciudadela se mantiene firme." },
-                    hard: { name: "🏛️ VOTO DE MAGISTER", desc: "¡Resultado sobresaliente! Eres un genio reconocido del cálculo." },
-                    expert: { name: "👑 GUARDIÁN DE SECRETOS", desc: "Los pergaminos antiguos revelaron los mayores secretos del Universo." },
-                    marathon: { name: "🪐 TRIUNFO DEL TITÁN ABSOLUTO", desc: "¡El Gran Maratón se completó con la victoria absoluta de la mente!" }
-                },
-                mathTypes: { add:"Suma", sub:"Resta", mul:"Multiplicación", div:"División", dec:"Decimales", frac:"Fracciones", neg:"Números negativos", pct:"Porcentajes" },
-                diffs: { easy:"Fácil", med:"Medio", hard:"Difícil" }
+        // Глобальные конфигурационные данные кастомного генератора примеров
+        let gameConfig = {
+            numType: 'positive', // 'positive' или 'negative'
+            modes: [],           // Массив из выбранных ['add', 'sub', 'mul', 'div']
+            difficulties: {      // Звездные уровни сложности по операциям
+                add: 1,
+                sub: 1,
+                mul: 1,
+                div: 1
             }
         };
 
-        let L = locales.ru; // По умолчанию русский
-
-        // Персонажи и их стили оформления интерфейса
-        const characters = [
-            { id: 'mage', icon: '🧙‍♂️', name: {ru:'Маг', en:'Mage', de:'Magier', fr:'Mage', es:'Mago'}, color: '#a855f7', bg: 'radial-gradient(circle at center, #2e1065 0%, #07080e 100%)' },
-            { id: 'engineer', icon: '⚙️', name: {ru:'Инженер', en:'Engineer', de:'Ingenieur', fr:'Ingénieur', es:'Ingeniero'}, color: '#e5630d', bg: 'radial-gradient(circle at center, #451a03 0%, #07080e 100%)' },
-            { id: 'sage', icon: '🦉', name: {ru:'Мудрец', en:'Sage', de:'Weise', fr:'Sage', es:'Sabio'}, color: '#06b6d4', bg: 'radial-gradient(circle at center, #083344 0%, #07080e 100%)' },
-            { id: 'paladin', icon: '🛡️', name: {ru:'Паладин', en:'Paladin', de:'Paladin', fr:'Paladin', es:'Paladín'}, color: '#eab308', bg: 'radial-gradient(circle at center, #422006 0%, #07080e 100%)' },
-            { id: 'elf', icon: '🧝‍♀️', name: {ru:'Друид', en:'Druid', de:'Druide', fr:'Druide', es:'Druida'}, color: '#10b981', bg: 'radial-gradient(circle at center, #022c22 0%, #07080e 100%)' }
-        ];
-        let selectedChar = characters[2]; // Мудрец по умолчанию
-
-        const modes = {
-            easy: { targetG: 3600000, targetS: 400, targetSc: 40, targetGl: 30 },
-            medium: { targetG: 10500000, targetS: 1600, targetSc: 300, targetGl: 60 },
-            hard: { targetG: 22500000, targetS: 5000, targetSc: 1200, targetGl: 100 },
-            expert: { targetG: 45000000, targetS: 12000, targetSc: 4000, targetGl: 100 },
-            marathon: { targetG: 135000000, targetS: 40000, targetSc: 16000, targetGl: 100 }
-        };
-
-        let activeMode = modes.medium;
-        let gameActive = false;
-        let totalSeconds = 0;
-        let correctCount = 0;
-        let wrongCount = 0;
-
-        let globalProductionBonus = 1.0;
-        let blessArchitectDiscount = 1.0; 
-        let speedBonusBaseFactor = 0.5; 
-        let comboStepBonus = 0.35;       
-        let maxTimerTicks = 100; // Базовая длительность молнии (10 сек = 100 тиков)
-        
-        let mentalBreakthroughLevel = 0; 
-        let freeMistakesShields = 0; // Накопленные щиты от ошибок
-
+        // Состояния игры и ресурсы
         const state = {
-            gold: 500, steel: 40, scrolls: 0, glory: 0,
-            clickBase: 12, combo: 0, 
-            critChance: 0.05, 
-            critMultiplier: 4.0, 
-            discount: 1.0,
-            income: { gold: 0, steel: 0, scrolls: 0, glory: 0 },
-            
-            buildings: {
-                abacus: { count: 0, baseG: 450, baseS: 0, baseSc: 0, curG: 450, curS: 0, curSc: 0, currency: 'normal' },
-                blueprint: { count: 0, baseG: 800, baseS: 10, baseSc: 0, curG: 800, curS: 10, curSc: 0, currency: 'normal' },
-                scriptorium: { count: 0, baseG: 1400, baseS: 30, baseSc: 0, curG: 1400, curS: 30, curSc: 0, currency: 'normal' },
-                alchemical: { count: 0, baseG: 3250, baseS: 80, baseSc: 5, curG: 3250, curS: 80, curSc: 5, currency: 'normal' },
-                
-                book: { count: 0, baseG: 900, baseS: 30, baseSc: 0, curG: 900, curS: 30, curSc: 0, currency: 'normal' },
-                theorem: { count: 0, baseG: 2500, baseS: 60, baseSc: 15, curG: 2500, curS: 60, curSc: 15, currency: 'normal' },
-                critChance: { count: 0, baseG: 1400, baseS: 40, baseSc: 8, curG: 1400, curS: 40, curSc: 8, currency: 'normal' }, 
-                critMult: { count: 0, baseG: 1750, baseS: 50, baseSc: 12, curG: 1750, curS: 50, curSc: 12, currency: 'normal' }, 
-                lightningPower: { count: 0, baseG: 1200, baseS: 50, baseSc: 10, curG: 1200, curS: 50, curSc: 10, currency: 'normal' }, 
-                lightningTime: { count: 0, baseG: 1500, baseS: 70, baseSc: 15, curG: 1500, curS: 70, curSc: 15, currency: 'normal' }, 
-                
-                geometry: { count: 0, baseG: 2250, baseS: 80, baseSc: 15, curG: 2250, curS: 80, curSc: 15, currency: 'normal' },
-                patent: { count: 0, baseG: 4000, baseS: 40, baseSc: 25, curG: 4000, curS: 40, curSc: 25, currency: 'normal' },
-                astral: { count: 0, baseG: 8000, baseS: 160, baseSc: 50, curG: 8000, curS: 160, curSc: 50, currency: 'normal' },
-                manifesto: { count: 0, baseG: 12500, baseS: 200, baseSc: 120, curG: 12500, curS: 200, curSc: 120, currency: 'normal' },
-
-                blessIncome: { count: 0, currency: 'glory' },
-                blessClick: { count: 0, currency: 'glory' },
-                blessQuantum: { count: 0, currency: 'glory' },
-                blessArchivist: { count: 0, currency: 'glory' },
-                blessArchitect: { count: 0, currency: 'glory' },
-                blessInspiration: { count: 0, currency: 'glory' },
-                blessShield: { count: 0, currency: 'glory' }
-            }
+            gold: 0,
+            steel: 0,
+            scrolls: 0,
+            glory: 0,
+            correctCount: 0,
+            wrongCount: 0,
+            combo: 1.0,
+            comboStreak: 0,
+            critChance: 0.05,
+            critMultiplier: 4.0,
+            examPassed: false
         };
 
-        let correctAnswer = 0;
-        let timeRemaining = maxTimerTicks; 
-        let timerInterval = null;
-        const canvas = document.getElementById('cityCanvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-        
-        let megaShowActive = false;
-        let megaShowTimer = 0;
-        let bgFlashState = 0;
-        let isUltimateStorm = false;
+        // Целевые требования для сдачи Великого Экзамена
+        const examTarget = {
+            gold: 15000000,
+            steel: 8000,
+            scrolls: 2000,
+            glory: 100
+        };
 
-        // Инициализация при выборе языка
-        function selectLang(langCode) {
-            L = locales[langCode];
-            document.getElementById('langScreen').style.display = 'none';
-            document.getElementById('setupScreen').style.display = 'flex';
-            
-            // Локализация экрана настроек
-            document.getElementById('setupTitle').innerText = L.setupTitle;
-            document.getElementById('setupSubtitle').innerText = L.setupSubtitle;
-            document.getElementById('btnNextSetup').innerText = L.btnNext;
+        // Вспомогательные переменные апгрейдов
+        let speedBonusBaseFactor = 0.05;
+        let blessArchitectDiscount = 1.0;
+        let comboStepBonus = 0.0; 
 
-            // Рендер персонажей
-            const charsGrid = document.getElementById('charsGrid');
-            charsGrid.innerHTML = '';
-            characters.forEach(c => {
-                const div = document.createElement('div');
-                div.className = `card-select ${c.id === selectedChar.id ? 'selected' : ''}`;
-                div.id = `char-${c.id}`;
-                div.onclick = () => pickCharacter(c);
-                div.innerHTML = `<span class="icon">${c.icon}</span>${c.name[langCode] || c.name.en}`;
-                charsGrid.appendChild(div);
-            });
+        // Таймер вопроса
+        let questionTimeMax = 15;
+        let questionTimeLeft = 15;
+        let questionTimerInterval = null;
+        let currentCorrectAnswer = null;
+        let gameActive = false;
+        let startTime = 0;
 
-            // Рендер выбора примеров
-            const optBox = document.getElementById('mathOptionsBox');
-            optBox.innerHTML = '';
-            for (let key in L.mathTypes) {
-                const row = document.createElement('div');
-                row.className = 'math-opt-row';
-                row.innerHTML = `
-                    <label class="opt-label">
-                        <input type="checkbox" id="chk-${key}" ${['add', 'sub'].includes(key) ? 'checked' : ''}>
-                        <span>${L.mathTypes[key]}</span>
-                    </label>
-                    <select class="diff-select" id="diff-${key}">
-                        <option value="easy">${L.diffs.easy}</option>
-                        <option value="med" selected>${L.diffs.med}</option>
-                        <option value="hard">${L.diffs.hard}</option>
-                    </select>
-                `;
-                optBox.appendChild(row);
-            }
-            applyCharacterTheme();
-        }
+        // Постройки и их начальные параметры
+        const buildings = {
+            abacus: { count: 0, baseCostG: 60, baseCostS: 0, costSc: 0 },
+            blueprint: { count: 0, baseCostG: 180, baseCostS: 0, costSc: 0 },
+            scriptorium: { count: 0, baseCostG: 400, baseCostS: 30, costSc: 0 },
+            alchemical: { count: 0, baseCostG: 1200, baseCostS: 120, costSc: 10 },
+            book: { count: 0, baseCostG: 40, baseCostS: 0, costSc: 0 },
+            theorem: { count: 0, baseCostG: 300, baseCostS: 10, costSc: 0 },
+            critChance: { count: 0, baseCostG: 500, baseCostS: 40, costSc: 5 },
+            critMult: { count: 0, baseCostG: 800, baseCostS: 60, costSc: 8 },
+            geometry: { count: 0, baseCostG: 4000, baseCostS: 300, costSc: 40 },
+            patent: { count: 0, baseCostG: 9000, baseCostS: 600, costSc: 90 },
+            astral: { count: 0, baseCostG: 22000, baseCostS: 1500, costSc: 250 },
+            manifesto: { count: 0, baseCostG: 60000, baseCostS: 4500, costSc: 700 },
+            blessIncome: { count: 0, baseCostG: 50000, baseCostS: 2000, costSc: 500 },
+            blessClick: { count: 0, baseCostG: 75000, baseCostS: 4000, costSc: 800 },
+            blessQuantum: { count: 0, baseCostG: 100000, baseCostS: 6000, costSc: 1200 },
+            blessArchivist: { count: 0, baseCostG: 130000, baseCostS: 8000, costSc: 1500 },
+            blessArchitect: { count: 0, baseCostG: 160000, baseCostS: 10000, costSc: 2000 },
+            blessInspiration: { count: 0, baseCostG: 200000, baseCostS: 15000, costSc: 3000 }
+        };
 
-        function pickCharacter(charObj) {
-            selectedChar = charObj;
-            document.querySelectorAll('#charsGrid .card-select').forEach(el => el.classList.remove('selected'));
-            document.getElementById(`char-${charObj.id}`).classList.add('selected');
-            applyCharacterTheme();
-        }
+        // Инициализация кастомного генератора со стартового экрана
+        function initCustomConfig() {
+            const numTypeEl = document.querySelector('input[name="numType"]:checked');
+            gameConfig.numType = numTypeEl ? numTypeEl.value : 'positive';
 
-        function applyCharacterTheme() {
-            document.documentElement.style.setProperty('--theme-color', selectedChar.color);
-            document.documentElement.style.setProperty('--theme-gradient', selectedChar.bg);
-            if(!gameActive) {
-                document.body.style.background = selectedChar.bg;
-            }
-        }
-
-        function proceedToModes() {
-            // Проверка, выбран ли хотя бы один тип примера
-            let anyChecked = false;
-            for (let key in L.mathTypes) {
-                if(document.getElementById(`chk-${key}`).checked) anyChecked = true;
-            }
-            if(!anyChecked) {
-                alert("Select at least one discipline!");
+            const checkedModes = Array.from(document.querySelectorAll('input[name="calcMode"]:checked')).map(el => el.value);
+            if (checkedModes.length === 0) {
+                alert("Пожалуйста, выберите хотя бы один арифметический режим!");
                 return;
             }
+            gameConfig.modes = checkedModes;
 
-            document.getElementById('setupScreen').style.display = 'none';
-            document.getElementById('startScreen').style.display = 'flex';
+            gameConfig.difficulties.add = parseInt(document.getElementById('diff-add').value);
+            gameConfig.difficulties.sub = parseInt(document.getElementById('diff-sub').value);
+            gameConfig.difficulties.mul = parseInt(document.getElementById('diff-mul').value);
+            gameConfig.difficulties.div = parseInt(document.getElementById('diff-div').value);
 
-            // Локализация экранов режимов
-            document.getElementById('mainTitle').innerText = L.mainTitle;
-            document.getElementById('mainSubtitle').innerText = L.mainSubtitle;
-
-            for (let key in modes) {
-                document.getElementById(`title-${key}`).innerText = L.modes[key].name;
-                document.getElementById(`m-desc-${key}`).innerText = `${L.req} ${(modes[key].targetG/1000).toFixed(0)}k 🪙, ${modes[key].targetS} 🧱, ${modes[key].targetSc} 📜, ${modes[key].targetGl}% ${L.lblGlory}.`;
-            }
-        }
-
-        function selectMode(mKey) {
-            activeMode = modes[mKey];
-            activeMode.key = mKey;
-            document.getElementById('startScreen').style.display = 'none';
-            document.getElementById('briefingScreen').style.display = 'flex';
-            
-            document.getElementById('briefTitle').innerText = L.briefTitle;
-            document.getElementById('briefSubtitle').innerText = L.briefSubtitle;
-            document.getElementById('sec-prod').innerText = L.secProd;
-            document.getElementById('sec-click').innerText = L.secClick;
-            document.getElementById('sec-glory').innerText = L.secGlory;
-            document.getElementById('btnEnterOrder').innerText = L.btnEnterOrder;
-
-            document.getElementById('finalName').innerText = `🏆 ${L.modes[mKey].name} 🏆`;
-            let reqText = `${L.req} `;
-            if(activeMode.targetG > 0) reqText += `${activeMode.targetG.toLocaleString()} 🪙 `;
-            if(activeMode.targetS > 0) reqText += `${activeMode.targetS.toLocaleString()} 🧱 `;
-            if(activeMode.targetSc > 0) reqText += `${activeMode.targetSc.toLocaleString()} 📜 `;
-            if(activeMode.targetGl > 0) reqText += `${activeMode.targetGl}% 👑`;
-            document.getElementById('finalCost').innerText = reqText;
+            // Переход на экран брифинга
+            document.getElementById("startScreen").style.display = "none";
+            document.getElementById("briefingScreen").style.display = "flex";
         }
 
         function startGame() {
-            document.getElementById('briefingScreen').style.display = 'none';
+            document.getElementById("briefingScreen").style.display = "none";
             gameActive = true;
-            
-            // Локализация игровых ярлыков
-            document.getElementById('lbl-gold').innerText = L.lblGold;
-            document.getElementById('lbl-steel').innerText = L.lblSteel;
-            document.getElementById('lbl-scrolls').innerText = L.lblScrolls;
-            document.getElementById('lbl-glory').innerText = L.lblGlory;
-            document.getElementById('lbl-correct').innerText = L.lblCorrect;
-            document.getElementById('lbl-wrong').innerText = L.lblWrong;
+            startTime = Date.now();
 
-            resizeCanvas();
-            generateMath();
+            initCanvas();
             updateUI();
-        }
+            generateMathQuestion();
 
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
+            // Основной игровой такт ресурсов (1 раз в секунду)
+            setInterval(() => {
+                if (!gameActive) return;
+                const income = calculateIncome();
+                state.gold += income.gold;
+                state.steel += income.steel;
+                state.scrolls += income.scrolls;
+                state.glory = Math.min(100, state.glory + income.glory);
 
-        function generateMath() {
-            if(!gameActive) return;
-            clearInterval(timerInterval);
-            timeRemaining = maxTimerTicks;
-            document.getElementById('timerBar').style.width = '100%';
-            
-            timerInterval = setInterval(() => {
-                if(!gameActive) return;
-                timeRemaining -= 0.75; 
-                if(timeRemaining <= 0) timeRemaining = 0;
-                document.getElementById('timerBar').style.width = `${(timeRemaining/maxTimerTicks)*100}%`;
-                
-                let currentSpeedBonus = Math.floor((timeRemaining/maxTimerTicks) * 100 * speedBonusBaseFactor); 
-                let sBadge = document.getElementById('speedBadge');
-                if (currentSpeedBonus > 0) {
-                    sBadge.className = "speed-badge active-speed";
-                    sBadge.innerText = `${L.lightning} +${currentSpeedBonus}%`;
+                updateUI();
+            }, 1000);
+
+            // Внутренний таймер вопроса
+            questionTimerInterval = setInterval(() => {
+                if (!gameActive) return;
+                questionTimeLeft -= 0.1;
+                if (questionTimeLeft <= 0) {
+                    processAnswer(null); // Время истекло - ошибка
                 } else {
-                    sBadge.className = "speed-badge";
-                    sBadge.innerText = `${L.speed} +0%`;
+                    updateTimerBar();
                 }
             }, 100);
 
-            // Фильтрация выбранных типов примеров
-            let activeTypes = [];
-            for (let key in L.mathTypes) {
-                if(document.getElementById(`chk-${key}`).checked) activeTypes.push(key);
-            }
-            const pickedType = activeTypes[Math.floor(Math.random() * activeTypes.length)];
-            const diff = document.getElementById(`diff-${pickedType}`).value;
-
-            let n1, n2, text;
-            let range = diff === 'easy' ? 20 : (diff === 'med' ? 70 : 200);
-
-            if (pickedType === 'add') {
-                n1 = Math.floor(Math.random() * range) + 5; n2 = Math.floor(Math.random() * range) + 5;
-                correctAnswer = n1 + n2; text = `${n1} + ${n2}`;
-            } else if (pickedType === 'sub') {
-                n1 = Math.floor(Math.random() * range) + 10; n2 = Math.floor(Math.random() * n1);
-                correctAnswer = n1 - n2; text = `${n1} - ${n2}`;
-            } else if (pickedType === 'mul') {
-                let mRange = diff === 'easy' ? 8 : (diff === 'med' ? 14 : 30);
-                n1 = Math.floor(Math.random() * mRange) + 2; n2 = Math.floor(Math.random() * 10) + 2;
-                correctAnswer = n1 * n2; text = `${n1} × ${n2}`;
-            } else if (pickedType === 'div') {
-                let mRange = diff === 'easy' ? 8 : (diff === 'med' ? 12 : 25);
-                n2 = Math.floor(Math.random() * mRange) + 2; correctAnswer = Math.floor(Math.random() * 10) + 2;
-                n1 = n2 * correctAnswer; text = `${n1} ÷ ${n2}`;
-            } else if (pickedType === 'dec') {
-                let d = diff === 'easy' ? 10 : 100;
-                n1 = (Math.floor(Math.random() * range) + 10) / 10; n2 = (Math.floor(Math.random() * range) + 5) / 10;
-                correctAnswer = parseFloat((n1 + n2).toFixed(1)); text = `${n1} + ${n2}`;
-            } else if (pickedType === 'frac') {
-                let den = diff === 'easy' ? 4 : (diff === 'med' ? 6 : 12);
-                let num1 = Math.floor(Math.random() * (den - 1)) + 1;
-                let num2 = Math.floor(Math.random() * (den - 1)) + 1;
-                text = `${num1}/${den} + ${num2}/${den}`;
-                correctAnswer = `${num1+num2}/${den}`;
-            } else if (pickedType === 'neg') {
-                n1 = Math.floor(Math.random() * range) - range/2; n2 = Math.floor(Math.random() * range) - range/2;
-                correctAnswer = n1 + n2; text = `(${n1}) + (${n2})`;
-            } else if (pickedType === 'pct') {
-                let p = diff === 'easy' ? 10 : (diff === 'med' ? 25 : 15);
-                n2 = diff === 'easy' ? 100 : 200;
-                correctAnswer = (n2 * p) / 100; text = `${p}% от ${n2}`;
-            }
-
-            document.getElementById('mathQuestion').innerText = text;
-
-            let arr = [correctAnswer];
-            while(arr.length < 4) {
-                let fake;
-                if (typeof correctAnswer === 'string') {
-                    fake = `${Math.floor(Math.random() * 15) + 1}/${diff === 'easy' ? 4 : 6}`;
-                } else {
-                    fake = correctAnswer + (Math.floor(Math.random() * 15) - 7);
-                    if(pickedType === 'dec') fake = parseFloat(fake.toFixed(1));
-                }
-                if(fake !== correctAnswer && !arr.includes(fake)) arr.push(fake);
-            }
-            arr.sort(() => Math.random() - 0.5);
-
-            const grid = document.getElementById('answersGrid');
-            grid.innerHTML = '';
-            arr.forEach(ans => {
-                const b = document.createElement('button');
-                b.className = 'btn-answer'; b.innerText = ans;
-                b.onclick = (e) => checkAnswer(ans, e);
-                grid.appendChild(b);
-            });
+            // Анимационный цикл игрового времени цитадели
+            setInterval(() => {
+                if (!gameActive) return;
+                const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+                const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
+                const s = String(elapsedSec % 60)).padStart(2, '0');
+                document.getElementById("gameClock").innerText = `⏳ Время Эпохи: ${m}:${s}`;
+            }, 1000);
         }
 
-        function triggerAnniversaryEffects(count) {
-            if (count === 1000) {
-                megaShowActive = true;
-                isUltimateStorm = true;
-                megaShowTimer = 3000; 
-                document.body.classList.add('mega-storm');
-                let mathBox = document.getElementById('mainMathBox');
-                mathBox.style.borderColor = 'var(--gold)';
-                mathBox.style.boxShadow = '0 0 50px rgba(255, 215, 0, 0.9)';
-                spawnRewardText("🌌 ABSOLUTE MIND BURST! KINETIC WAVE! 🌌", window.innerWidth/2, window.innerHeight/2 - 50, 'var(--gold)', true);
-                return;
-            }
+        // Вычисление инкремента производства в секунду
+        function calculateIncome() {
+            let g = 0, st = 0, sc = 0, gl = 0;
 
-            if (count % 100 === 0) {
-                megaShowActive = true;
-                isUltimateStorm = false;
-                megaShowTimer = 180; 
-                let mathBox = document.getElementById('mainMathBox');
-                mathBox.style.borderColor = 'var(--royal)';
-                mathBox.style.boxShadow = '0 0 40px rgba(168, 85, 247, 0.8)';
-                spawnRewardText(`👑 JUBILEE: ${count} TASKS! 👑`, window.innerWidth/2, window.innerHeight/2 - 30, 'var(--royal)', true);
-                
-                // Начисление щита, если куплено благословение
-                if(state.buildings.blessShield.count > 0) {
-                    freeMistakesShields++;
-                }
+            // Базовое производство зданий
+            g += buildings.abacus.count * 1.0;
+            st += buildings.blueprint.count * 1.0;
+            sc += buildings.scriptorium.count * 0.5;
 
-                let bursts = 0;
-                let interval = setInterval(() => {
-                    if (!gameActive) { clearInterval(interval); return; }
-                    let rx = Math.random() * window.innerWidth;
-                    let ry = Math.random() * window.innerHeight * 0.7;
-                    let colors = ['#ffd700', '#a855f7', '#06b6d4', '#f472b6', '#10b981'];
-                    let col = colors[Math.floor(Math.random() * colors.length)];
-                    for(let i=0; i<30; i++) {
-                        particles.push(new CustomSpark(rx, ry, col, Math.random() * 6 - 3, Math.random() * 6 - 3, Math.random() * 3 + 2, 1.5));
-                    }
-                    bursts++;
-                    if(bursts > 12) clearInterval(interval);
-                }, 250);
-                return;
-            }
+            st += buildings.alchemical.count * 2.5;
+            sc += buildings.alchemical.count * 1.0;
 
-            if (count % 10 === 0) {
-                megaShowActive = true;
-                isUltimateStorm = false;
-                megaShowTimer = 50;
-                let mathBox = document.getElementById('mainMathBox');
-                mathBox.style.borderColor = 'var(--theme-color)';
-                mathBox.style.boxShadow = `0 0 30px ${selectedChar.color}`;
+            g += buildings.geometry.count * 3.0;
+            gl += buildings.geometry.count * 0.00015;
 
-                const mathBoxRect = mathBox.getBoundingClientRect();
-                const mx = mathBoxRect.left + mathBoxRect.width / 2;
-                const my = mathBoxRect.top + mathBoxRect.height / 2;
-                for (let angle = 0; angle < Math.PI * 2; angle += 0.25) {
-                    let speed = 3.5;
-                    particles.push(new CustomSpark(mx, my, 'var(--theme-color)', Math.cos(angle)*speed, Math.sin(angle)*speed, Math.random()*1.5+1.5, 1.0));
-                }
+            gl += buildings.patent.count * 0.00025;
+            gl += buildings.astral.count * 0.00075;
+            gl += buildings.manifesto.count * 0.00225;
+
+            // Модификаторы благословений
+            let incMultiplier = 1.0 + (buildings.blessIncome.count * 0.25);
+            g *= incMultiplier;
+            st *= incMultiplier;
+            sc *= incMultiplier;
+            gl *= incMultiplier;
+
+            return { gold: g, steel: st, scrolls: sc, glory: gl };
+        }
+
+        function updateTimerBar() {
+            const bar = document.getElementById("timerBar");
+            if (bar) {
+                const pct = Math.max(0, (questionTimeLeft / questionTimeMax) * 100);
+                bar.style.width = `${pct}%`;
             }
         }
 
-        function checkAnswer(chosen, event) {
-            if(!gameActive) return;
-            
-            let clickX = window.innerWidth / 2;
-            let clickY = window.innerHeight / 2;
-            if (event && event.currentTarget) {
-                const rect = event.currentTarget.getBoundingClientRect();
-                clickX = rect.left + rect.width / 2;
-                clickY = rect.top + rect.height / 2;
-            }
-
-            if (String(chosen) === String(correctAnswer)) {
-                correctCount++;
-                document.getElementById('stat-correct').innerText = correctCount;
-
-                state.combo++;
-                let comboMultiplier = 1 + (state.combo * comboStepBonus);
-                let speedBonusPercent = 1 + ((timeRemaining/maxTimerTicks) * speedBonusBaseFactor); 
-                let isCrit = Math.random() < state.critChance;
-                
-                let baseClickWithBreakthrough = state.clickBase * (1 + mentalBreakthroughLevel * 0.20);
-                let rewardGold = Math.floor(baseClickWithBreakthrough * comboMultiplier * speedBonusPercent * (isCrit ? state.critMultiplier : 1));
-                state.gold += rewardGold;
-                
-                let baseGloryFromClick = state.clickBase * 0.00001; 
-                let bookGloryBonus = state.buildings.book.count * 0.00001; 
-                let finalBaseGlory = (baseGloryFromClick + bookGloryBonus) * (1 + mentalBreakthroughLevel * 0.20);
-                
-                let rewardGlory = finalBaseGlory * comboMultiplier * speedBonusPercent * (isCrit ? (state.critMultiplier * 0.5 + 0.5) : 1);
-                state.glory = Math.min(100, state.glory + rewardGlory);
-
-                const badge = document.getElementById('comboBadge');
-                badge.style.display = 'inline-block';
-                badge.innerText = `${L.combo} 🔥 x${comboMultiplier.toFixed(1)}`;
-                if (state.combo >= 5) badge.classList.add('frenzy'); else badge.classList.remove('frenzy');
-
-                if(isCrit) {
-                    spawnRewardText(`⚡ CRIT! +${rewardGold} 🪙 | +${rewardGlory.toFixed(4)}% 👑`, clickX, clickY, 'var(--gold)', true);
-                    buildSparks(35, 'var(--gold)');
-                } else {
-                    spawnRewardText(`+${rewardGold} 🪙 | +${rewardGlory.toFixed(4)}% 👑`, clickX, clickY, '#22d3ee', false); 
-                    buildSparks(12, 'var(--theme-color)');
-                }
-                triggerAnniversaryEffects(correctCount);
-            } else {
-                // ПРОВЕРКА ЗАЩИТНОГО ЩИТА ОТ ОШИБОК
-                if (state.buildings.blessShield.count > 0 && freeMistakesShields > 0) {
-                    freeMistakesShields--;
-                    spawnRewardText(L.shieldActive, clickX, clickY, '#38bdf8', true);
-                    buildSparks(20, '#38bdf8');
-                } else {
-                    wrongCount++;
-                    document.getElementById('stat-wrong').innerText = wrongCount;
-                    state.combo = 0;
-                    const badge = document.getElementById('comboBadge');
-                    badge.style.display = 'none'; badge.classList.remove('frenzy');
-                    
-                    state.steel = Math.max(0, state.steel - 12); 
-                    spawnRewardText(L.wallBreak, clickX, clickY, '#f87171', false); 
-                    buildSparks(10, '#ef4444');
-                }
-            }
-            generateMath();
-            updateUI();
+        // Получение случайного числа из диапазона
+        function randRange(min, max) {
+            return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        function spawnRewardText(txt, x, y, color, isCrit) {
-            const el = document.createElement('div');
-            el.className = isCrit ? 'floating-reward crit' : 'floating-reward';
-            el.innerText = txt;
-            el.style.left = `${x}px`; el.style.top = `${y}px`; el.style.color = color;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), isCrit ? 1760 : 1440);
-        }
+        // ==========================================
+        // ЯДРО СИСТЕМЫ ГЕНЕРАЦИИ МАТЕМАТИЧЕСКИХ ПРИМЕРОВ
+        // ==========================================
+        function generateMathQuestion() {
+            if (!gameActive) return;
 
-        class CustomSpark {
-            constructor(x, y, color, vx, vy, radius, lifeMultiplier = 1.0) {
-                this.x = x; this.y = y; this.vx = vx; this.vy = vy; this.radius = radius; 
-                this.opacity = 1; this.color = color; this.decay = 0.015 / lifeMultiplier;
-            }
-            update() { this.x += this.vx; this.y += this.vy; this.opacity -= this.decay; }
-            draw() {
-                ctx.save(); ctx.beginPath(); ctx.globalAlpha = Math.max(0, this.opacity);
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fillStyle = this.color;
-                ctx.fill(); ctx.restore();
-            }
-        }
+            // Выбираем случайный режим из отмеченных пользователем
+            const currentMode = gameConfig.modes[Math.floor(Math.random() * gameConfig.modes.length)];
+            const currentDiff = gameConfig.difficulties[currentMode];
 
-        function buildSparks(num, color) {
-            const spaceRect = document.querySelector('.game-space').getBoundingClientRect();
-            for(let i=0; i<num; i++) {
-                particles.push(new CustomSpark(spaceRect.left + spaceRect.width / 2, spaceRect.top + spaceRect.height / 2, color, Math.random()*4-2, Math.random()*4-2, Math.random()*2+1, 1.0));
-            }
-        }
+            let num1 = 0, num2 = 0, operatorSymbol = '', answer = null;
+            let questionText = '';
 
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            if (megaShowActive) {
-                megaShowTimer--; bgFlashState += 0.1;
-                let mathBox = document.getElementById('mainMathBox');
-                if (isUltimateStorm) {
-                    let r = Math.floor(Math.sin(bgFlashState) * 127 + 128), g = Math.floor(Math.sin(bgFlashState + 2) * 127 + 128), b = Math.floor(Math.cos(bgFlashState) * 127 + 128);
-                    mathBox.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.35)`;
-                    mathBox.style.borderColor = `rgb(${g}, ${b}, ${r})`;
-                    for(let k=0; k<3; k++) {
-                        particles.push(new CustomSpark(canvas.width / 2, canvas.height * 0.4, ['#ff0055', '#00ffcc', '#ffcc00'][Math.floor(Math.random()*3)], Math.cos(Math.random()*Math.PI*2)*(Math.random()*8+4), Math.sin(Math.random()*Math.PI*2)*(Math.random()*8+4), Math.random()*5+2, 4.0));
-                    }
-                } else {
-                    mathBox.style.backgroundColor = `rgba(${Math.floor(Math.sin(bgFlashState)*30+15)}, ${Math.floor(Math.sin(bgFlashState+1)*20+10)}, ${Math.floor(Math.cos(bgFlashState)*40+25)}, 0.93)`;
-                }
-                if (megaShowTimer <= 0) {
-                    megaShowActive = false; isUltimateStorm = false;
-                    document.body.classList.remove('mega-storm');
-                    mathBox.style.backgroundColor = `rgba(5, 7, 15, 0.9)`;
-                    mathBox.style.borderColor = 'var(--theme-color)';
-                    mathBox.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.25)';
-                }
-            }
-            for (let i = particles.length - 1; i >= 0; i--) {
-                let p = particles[i]; p.update(); p.draw();
-                if (p.opacity <= 0) particles.splice(i, 1);
-            }
-            requestAnimationFrame(animate);
-        }
-        animate();
-
-        function formatTime(sec) {
-            return `${Math.floor(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`;
-        }
-
-        function getNextCritChanceGain(count) { return Math.max(0.01, 0.08 * Math.pow(0.75, count)); }
-        function getNextCritMultGain(count) { return Math.max(0.15, 0.8 * Math.pow(0.75, count)); }
-
-        function updateUI() {
-            document.getElementById('gameClock').innerText = `${L.timeEpoch} ${formatTime(totalSeconds)}`;
-            document.getElementById('val-gold').innerText = Math.floor(state.gold).toLocaleString();
-            document.getElementById('val-steel').innerText = Math.floor(state.steel).toLocaleString();
-            document.getElementById('val-scrolls').innerText = Math.floor(state.scrolls).toLocaleString();
-            document.getElementById('val-glory').innerText = state.glory.toFixed(4) + '%';
-
-            document.getElementById('inc-gold').innerText = `+${Math.floor(state.income.gold * globalProductionBonus)}/с`;
-            document.getElementById('inc-steel').innerText = `+${(state.income.steel * globalProductionBonus).toFixed(1)}/с`;
-            document.getElementById('inc-scrolls').innerText = `+${(state.income.scrolls * globalProductionBonus).toFixed(2)}/с`;
-            document.getElementById('inc-glory').innerText = `+${state.income.glory.toFixed(5)}%/с`;
-
-            document.getElementById('eff-critChance').innerText = `Шанс: ${(state.critChance*100).toFixed(0)}% (+${(getNextCritChanceGain(state.buildings.critChance.count)*100).toFixed(1)}%)`;
-            document.getElementById('eff-critMult').innerText = `Крит: ${state.critMultiplier.toFixed(1)}х (+${getNextCritMultGain(state.buildings.critMult.count).toFixed(2)}х)`;
-
-            document.getElementById('meta-book').innerText = `Эфф. клик: ${Math.floor(state.clickBase * (1 + mentalBreakthroughLevel * 0.20))} 🪙`;
-            document.getElementById('meta-theorem').innerText = `Скидка: -${((1 - state.discount * blessArchitectDiscount) * 100).toFixed(1)}%`;
-            document.getElementById('eff-blessArchivist').innerText = `Сила Молнии: +${(speedBonusBaseFactor * 100).toFixed(0)}%`;
-            document.getElementById('eff-blessInspiration').innerText = `Шаг серии: +${comboStepBonus.toFixed(2)}х`;
-            
-            // Информация по новым бонусам молнии
-            document.getElementById('cost-lightningPower').innerText = `${Math.floor(state.buildings.lightningPower.curG * state.discount)} 🪙`;
-            document.getElementById('cost-lightningTime').innerText = `${Math.floor(state.buildings.lightningTime.curG * state.discount)} 🪙`;
-
-            // Информация по щиту
-            let shieldCost = (state.buildings.blessShield.count + 1) * 15;
-            document.getElementById('cost-blessShield').innerText = `${shieldCost}% 👑 (Щиты: ${freeMistakesShields})`;
-
-            let totalCurrentDiscount = state.discount * blessArchitectDiscount;
-
-            for (let key in state.buildings) {
-                let b = state.buildings[key];
-                let btn = document.getElementById(`btn-${key}`);
-                let costEl = document.getElementById(`cost-${key}`);
-                let answersRequired = b.currency === 'normal' ? (b.count + 1) * 10 : (b.count + 1) * 100;
-                let isLocked = correctCount < answersRequired;
-
-                if (b.currency === 'normal') {
-                    let g = Math.floor(b.curG * totalCurrentDiscount), s = Math.floor(b.curS * totalCurrentDiscount), sc = Math.floor(b.curSc * totalCurrentDiscount);
-                    if (costEl) costEl.innerText = isLocked ? `${L.taskReq} ${answersRequired}` : `${g>0?g+' 🪙 ':''}${s>0?s+' 🧱 ':''}${sc>0?sc+' 📜':''}`;
-                    if(btn) {
-                        btn.className = `btn-build ${isLocked?'locked':(state.gold>=g && state.steel>=s && state.scrolls>=sc?'available':'')}`;
-                    }
-                } else {
-                    let costGl = Math.min(100, (b.count + 1) * 10);
-                    if(key === 'blessShield') costGl = Math.min(100, (b.count + 1) * 15); // Особая цена для супер-щита
-                    if (costEl) costEl.innerText = isLocked ? `${L.taskReq} ${answersRequired}` : `${costGl}% 👑`;
-                    if(btn) {
-                        btn.className = `btn-build ${isLocked?'locked':(state.glory>=costGl?'available':'')}`;
-                    }
-                }
-            }
-
-            let winCondition = state.gold >= activeMode.targetG && state.steel >= activeMode.targetS && state.scrolls >= activeMode.targetSc && state.glory >= activeMode.targetGl;
-            let finalBtn = document.getElementById('btn-exam');
-            if(winCondition) finalBtn.classList.add('available'); else finalBtn.classList.remove('available');
-        }
-
-        setInterval(() => {
-            if(!gameActive) return;
-            totalSeconds++;
-            state.gold += state.income.gold * globalProductionBonus;
-            state.steel += state.income.steel * globalProductionBonus;
-            state.scrolls += state.income.scrolls * globalProductionBonus;
-            state.glory = Math.min(100, state.glory + state.income.glory);
-            updateUI();
-        }, 1000);
-
-        document.querySelectorAll('.btn-build').forEach(btn => {
-            btn.addEventListener('click', () => {
-                if(!gameActive) return;
-                const type = btn.getAttribute('data-type');
-                if(type === 'exam') {
-                    if(state.gold >= activeMode.targetG && state.steel >= activeMode.targetS && state.scrolls >= activeMode.targetSc && state.glory >= activeMode.targetGl) {
-                        gameActive = false;
-                        document.getElementById('winTitle').innerText = L.winTitle;
-                        document.getElementById('winDesc').innerText = `${L.modes[activeMode.key].desc}\n\n⏱️ ${L.timeEpoch} ${formatTime(totalSeconds)}\n📊 ${L.lblCorrect} ${correctCount} | ${L.lblWrong} ${wrongCount}`;
-                        document.getElementById('winScreen').classList.add('active');
-                    }
-                    return;
-                }
-
-                const b = state.buildings[type];
-                let totalCurrentDiscount = state.discount * blessArchitectDiscount;
-                let answersRequired = b.currency === 'normal' ? (b.count + 1) * 10 : (b.count + 1) * 100;
-                if (correctCount < answersRequired) return;
-
-                if (b.currency === 'normal') {
-                    let g = Math.floor(b.curG * totalCurrentDiscount), s = Math.floor(b.curS * totalCurrentDiscount), sc = Math.floor(b.curSc * totalCurrentDiscount);
-                    if(state.gold >= g && state.steel >= s && state.scrolls >= sc) {
-                        state.gold -= g; state.steel -= s; state.scrolls -= sc;
-                        
-                        if(type === 'abacus') state.income.gold += 1;
-                        if(type === 'blueprint') state.income.steel += 1; 
-                        if(type === 'scriptorium') state.income.scrolls += 0.5;
-                        if(type === 'alchemical') { state.income.steel += 2.5; state.income.scrolls += 1; } 
-                        if(type === 'book') state.clickBase += 6; 
-                        if(type === 'theorem') state.discount *= 0.94; 
-                        if(type === 'critChance') state.critChance = Math.min(0.85, state.critChance + getNextCritChanceGain(b.count));
-                        if(type === 'critMult') state.critMultiplier += getNextCritMultGain(b.count);
-                        
-                        // НАЧИСЛЕНИЕ НОВЫХ БОНУСОВ ДЛЯ МОЛНИИ
-                        if(type === 'lightningPower') speedBonusBaseFactor += 0.01;
-                        if(type === 'lightningTime') maxTimerTicks += 10; // +1 секунда к шкале молнии (10 тиков)
-
-                        if(type === 'geometry') { state.income.glory += 0.00015; state.income.gold += 3; }
-                        if(type === 'patent') state.income.glory += 0.00025;
-                        if(type === 'astral') { state.income.glory += 0.00075; state.clickBase += 3; }
-                        if(type === 'manifesto') state.income.glory += 0.00225;
-
-                        b.count++;
-                        let priceMult = ['critChance', 'critMult', 'lightningPower', 'lightningTime'].includes(type) ? 1.35 : 1.18;
-                        b.curG = Math.floor(b.baseG * Math.pow(priceMult, b.count));
-                        b.curS = Math.floor(b.baseS * Math.pow(priceMult, b.count));
-                        b.curSc = Math.floor(b.baseSc * Math.pow(priceMult, b.count));
-                        document.getElementById(`cnt-${type}`).innerText = b.count;
-                        updateUI();
-                    }
-                } else {
-                    let costGl = Math.min(100, (b.count + 1) * 10);
-                    if(type === 'blessShield') costGl = Math.min(100, (b.count + 1) * 15);
-                    if (state.glory >= costGl) {
-                        state.glory -= costGl;
-                        if (type === 'blessIncome') globalProductionBonus += 0.25;
-                        if (type === 'blessClick') mentalBreakthroughLevel++;
-                        if (type === 'blessQuantum') state.critMultiplier += 1.5;
-                        if (type === 'blessArchivist') speedBonusBaseFactor += 0.05;
-                        if (type === 'blessArchitect') blessArchitectDiscount *= 0.95;
-                        if (type === 'blessInspiration') comboStepBonus += 0.10;
-                        
-                        // АКТИВАЦИЯ СУПЕР ЩИТА
-                        if (type === 'blessShield') {
-                            freeMistakesShields++; // Сразу даем один заряд
+            if (gameConfig.numType === 'positive') {
+                // ------------------------------------------
+                // ПОЛОЖИТЕЛЬНЫЕ ЧИСЛА
+                // ------------------------------------------
+                if (currentMode === 'add' || currentMode === 'sub') {
+                    if (currentDiff === 1) {
+                        // 1. Сложение и вычитание без перехода через десяток в рамках 10
+                        if (currentMode === 'add') {
+                            num1 = randRange(0, 10);
+                            num2 = randRange(0, 10 - num1);
+                        } else {
+                            num1 = randRange(0, 10);
+                            num2 = randRange(0, num1);
                         }
-
-                        b.count++;
-                        document.getElementById(`cnt-${type}`).innerText = b.count;
-                        updateUI();
+                    } else if (currentDiff === 2) {
+                        // 2. Сложение и вычитание в рамках 20
+                        if (currentMode === 'add') {
+                            num1 = randRange(0, 20);
+                            num2 = randRange(0, 20 - num1);
+                        } else {
+                            num1 = randRange(0, 20);
+                            num2 = randRange(0, num1);
+                        }
+                    } else if (currentDiff === 3) {
+                        // 3. Сложение и вычитание (каждое число не больше 30)
+                        num1 = randRange(0, 30);
+                        num2 = randRange(0, 30);
+                        if (currentMode === 'sub' && num1 < num2) {
+                            let tmp = num1; num1 = num2; num2 = tmp;
+                        }
+                    } else if (currentDiff === 4) {
+                        // 4. Сложение и вычитание в рамках 100 (и числа, и ответы)
+                        if (currentMode === 'add') {
+                            num1 = randRange(0, 100);
+                            num2 = randRange(0, 100 - num1);
+                        } else {
+                            num1 = randRange(0, 100);
+                            num2 = randRange(0, num1);
+                        }
+                    } else if (currentDiff === 5) {
+                        // 5. Сложение и вычитание в рамках 200 (и числа, и ответы)
+                        if (currentMode === 'add') {
+                            num1 = randRange(0, 200);
+                            num2 = randRange(0, 200 - num1);
+                        } else {
+                            num1 = randRange(0, 200);
+                            num2 = randRange(0, num1);
+                        }
                     }
+                    operatorSymbol = (currentMode === 'add') ? '+' : '-';
+                    answer = (currentMode === 'add') ? (num1 + num2) : (num1 - num2);
+                    questionText = `${num1} ${operatorSymbol} ${num2} = ?`;
+
+                } else if (currentMode === 'mul' || currentMode === 'div') {
+                    let allowedMultipliers = [0, 1, 2, 5, 10];
+                    if (currentDiff === 2) allowedMultipliers = [0, 1, 2, 3, 4, 5, 10];
+                    if (currentDiff === 3) allowedMultipliers = [0, 1, 2, 3, 4, 5, 6, 9, 10];
+                    
+                    if (currentDiff <= 3) {
+                        num2 = allowedMultipliers[Math.floor(Math.random() * allowedMultipliers.length)];
+                        num1 = randRange(0, 10);
+                        // Таблица умножения числа до 10 на определенный множитель
+                        if (currentMode === 'mul') {
+                            answer = num1 * num2;
+                            questionText = `${num1} × ${num2} = ?`;
+                        } else {
+                            // Деление аналогичное умножению (даже деление на нуль -> решения нет)
+                            if (num2 === 0) {
+                                answer = "нет решения";
+                                questionText = `${num1} ÷ 0 = ?`;
+                            } else {
+                                let product = num1 * num2;
+                                answer = num1;
+                                questionText = `${product} ÷ ${num2} = ?`;
+                            }
+                        }
+                    } else if (currentDiff === 4) {
+                        // Вся таблица умножения и аналогичное деление
+                        num1 = randRange(0, 10);
+                        num2 = randRange(0, 10);
+                        if (currentMode === 'mul') {
+                            answer = num1 * num2;
+                            questionText = `${num1} × ${num2} = ?`;
+                        } else {
+                            if (num2 === 0) {
+                                answer = "нет решения";
+                                questionText = `${num1} ÷ 0 = ?`;
+                            } else {
+                                let product = num1 * num2;
+                                answer = num1;
+                                questionText = `${product} ÷ ${num2} = ?`;
+                            }
+                        }
+                    } else if (currentDiff === 5) {
+                        // Умножение двузначного числа (10-99) на число от 0 до 10 включительно
+                        num1 = randRange(10, 99);
+                        num2 = randRange(0, 10);
+                        if (currentMode === 'mul') {
+                            answer = num1 * num2;
+                            questionText = `${num1} × ${num2} = ?`;
+                        } else {
+                            // Аналогичное деление (ответ от умножения делить на число от 0 до 10, на 0 нельзя)
+                            num2 = randRange(1, 10); // Исключаем 0 из делителя по условию
+                            let product = num1 * num2;
+                            answer = num1;
+                            questionText = `${product} ÷ ${num2} = ?`;
+                        }
+                    }
+                }
+            } else {
+                // ------------------------------------------
+                // ОТРИЦАТЕЛЬНЫЕ ЧИСЛА
+                // ------------------------------------------
+                let limit = 10;
+                if (currentDiff === 2) limit = 20;
+                if (currentDiff === 3) limit = 50;
+                if (currentDiff === 4) limit = 100;
+                if (currentDiff === 5) limit = 200;
+
+                if (currentMode === 'add' || currentMode === 'sub') {
+                    // Сложение и вычитание чисел в рамках лимита по модулю (от -limit до +limit)
+                    num1 = randRange(-limit, limit);
+                    num2 = randRange(-limit, limit);
+
+                    if (currentMode === 'add') {
+                        answer = num1 + num2;
+                        operatorSymbol = '+';
+                    } else {
+                        answer = num1 - num2;
+                        operatorSymbol = '-';
+                    }
+                    // Форматируем вывод отрицательного второго аргумента скобками для красоты
+                    let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
+                    questionText = `${num1} ${operatorSymbol} ${num2Str} = ?`;
+
+                } else if (currentMode === 'mul' || currentMode === 'div') {
+                    // Умножение и деление
+                    let allowedMultipliers = [0, 1, 2, 5, 10];
+                    if (currentDiff === 2) allowedMultipliers = [0, 1, 2, 3, 4, 5, 9, 10];
+                    if (currentDiff === 3) allowedMultipliers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+                    
+                    if (currentDiff <= 3) {
+                        // Умножение полож/отриц однозначных чисел на полож/отриц из набора
+                        let baseNum = randRange(1, 9) * (Math.random() < 0.5 ? 1 : -1);
+                        let mult = allowedMultipliers[Math.floor(Math.random() * allowedMultipliers.length)];
+                        mult = mult * (Math.random() < 0.5 ? 1 : -1);
+
+                        if (currentMode === 'mul') {
+                            answer = baseNum * mult;
+                            let multStr = mult < 0 ? `(${mult})` : `${mult}`;
+                            questionText = `${baseNum} × ${multStr} = ?`;
+                        } else {
+                            if (mult === 0) {
+                                answer = "нет решения";
+                                questionText = `${baseNum} ÷ 0 = ?`;
+                            } else {
+                                let product = baseNum * mult;
+                                answer = baseNum;
+                                let multStr = mult < 0 ? `(${mult})` : `${mult}`;
+                                questionText = `${product} ÷ ${multStr} = ?`;
+                            }
+                        }
+                    } else if (currentDiff === 4) {
+                        // Умножение полож/отриц чисел до 20 включительно на полож/отриц однозначное
+                        num1 = randRange(-20, 20);
+                        num2 = randRange(-9, 9);
+                        if (num2 === 0 && Math.random() < 0.5) num2 = randRange(1, 9); // Снизим шанс нулей
+
+                        if (currentMode === 'mul') {
+                            answer = num1 * num2;
+                            let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
+                            questionText = `${num1} × ${num2Str} = ?`;
+                        } else {
+                            if (num2 === 0) {
+                                answer = "нет решения";
+                                questionText = `${num1} ÷ 0 = ?`;
+                            } else {
+                                let product = num1 * num2;
+                                answer = num1;
+                                let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
+                                questionText = `${product} ÷ ${num2Str} = ?`;
+                            }
+                        }
+                    } else if (currentDiff === 5) {
+                        // Умножение полож/отриц двузначных чисел на полож/отриц однозначное
+                        // Двузначные по модулю: 10-99
+                        let sign1 = Math.random() < 0.5 ? 1 : -1;
+                        num1 = randRange(10, 99) * sign1;
+                        num2 = randRange(-9, 9);
+
+                        if (currentMode === 'mul') {
+                            answer = num1 * num2;
+                            let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
+                            questionText = `${num1} × ${num2Str} = ?`;
+                        } else {
+                            if (num2 === 0) {
+                                answer = "нет решения";
+                                questionText = `${num1} ÷ 0 = ?`;
+                            } else {
+                                let product = num1 * num2;
+                                answer = num1;
+                                let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
+                                questionText = `${product} ÷ ${num2Str} = ?`;
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Запоминаем верный ответ
+            currentCorrectAnswer = answer;
+
+            // Отображаем на панели Цитадели
+            document.getElementById("mathQuestion").innerText = questionText;
+
+            // Генерируем варианты ответов
+            const choices = generateChoices(answer);
+            const grid = document.getElementById("answersGrid");
+            grid.innerHTML = '';
+
+            choices.forEach(ch => {
+                const btn = document.createElement("button");
+                btn.className = "btn-answer";
+                btn.innerText = ch;
+                btn.onclick = () => processAnswer(ch);
+                grid.appendChild(btn);
+            });
+
+            // Восстанавливаем шкалу времени в зависимости от уровня
+            questionTimeMax = Math.max(6, 16 - currentDiff * 2); 
+            questionTimeLeft = questionTimeMax;
+            updateTimerBar();
+        }
+
+        // Генерация фейковых вариантов ответа
+        function generateChoices(correct) {
+            const set = new Set();
+            set.add(correct.toString());
+
+            if (correct === "нет решения") {
+                while(set.size < 4) {
+                    set.add(randRange(-10, 50).toString());
+                }
+            } else {
+                const val = parseInt(correct);
+                let attempts = 0;
+                while (set.size < 4 && attempts < 100) {
+                    attempts++;
+                    let offset = randRange(-5, 5);
+                    if (offset === 0) offset = Math.random() < 0.5 ? -1 : 1;
+                    let fake = val + offset;
+                    set.add(fake.toString());
+                }
+                // Если не добрали
+                while(set.size < 4) {
+                    set.add((val + randRange(-20, 20)).toString());
+                }
+            }
+
+            const arr = Array.from(set);
+            // Перемешивание алгоритмом Фишера-Йетса
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        // Обработка клика по ответу
+        function processAnswer(selected) {
+            if (!gameActive) return;
+
+            const box = document.getElementById("mainMathBox");
+            const isCorrect = (selected !== null && selected.toString() === currentCorrectAnswer.toString());
+
+            if (isCorrect) {
+                state.correctCount++;
+                state.comboStreak++;
+
+                // Бонусная серия комбо
+                let step = 0.1 + comboStepBonus;
+                if (state.comboStreak >= 10) {
+                    state.combo = Math.min(5.0, state.combo + step * 1.5);
+                } else {
+                    state.combo = Math.min(3.0, state.combo + step);
+                }
+
+                // Вспышка верного ответа
+                box.style.borderColor = "#10b981";
+                box.style.boxShadow = "0 0 25px rgba(16, 185, 129, 0.5)";
+
+                // Расчёт награды за верный клик
+                let baseGoldClick = 12 + (buildings.book.count * 6);
+                let baseGloryClick = 0.00001 + (buildings.book.count * 0.00001);
+
+                // Дополнительный бонус за скорость
+                let speedFactor = 1.0;
+                if (questionTimeLeft > questionTimeMax * 0.6) {
+                    speedFactor += (questionTimeLeft * speedBonusBaseFactor);
+                }
+
+                let finalG = baseGoldClick * state.combo * speedFactor;
+                let finalGl = baseGloryClick * state.combo * speedFactor;
+
+                // Увеличение от клика астрального знамения
+                finalG += buildings.astral.count * 3;
+
+                // Ментальный прорыв (+20% за каждый свиток)
+                let blessFactor = 1.0 + (buildings.blessClick.count * 0.20);
+                finalG *= blessFactor;
+                finalGl *= blessFactor;
+
+                // Проверка критического удара
+                let isCrit = Math.random() < state.critChance;
+                if (isCrit) {
+                    finalG *= state.critMultiplier;
+                    finalGl *= state.critMultiplier;
+                }
+
+                // Добавление ресурсов игроку
+                state.gold += finalG;
+                state.glory = Math.min(100, state.glory + finalGl);
+
+                // Одноразовый шанс получить Свиток Знаний (12% базово + серия)
+                if (Math.random() < 0.12 + (state.comboStreak * 0.005)) {
+                    state.scrolls += 1;
+                    spawnRewardText(`+1 📜`, window.innerWidth/2, window.innerHeight/2 - 40, '#f59e0b', false);
+                }
+
+                // Анимация текста награды
+                let rewardText = `+${Math.floor(finalG)} 🪙`;
+                if (isCrit) rewardText = `💥 КРИТ! ${rewardText}`;
+                spawnRewardText(rewardText, window.innerWidth/2, window.innerHeight/2, isCrit ? varColor('royal') : varColor('gold'), isCrit);
+
+            } else {
+                // Ошибка
+                state.wrongCount++;
+                state.combo = 1.0;
+                state.comboStreak = 0;
+
+                box.style.borderColor = "#ef4444";
+                box.style.boxShadow = "0 0 25px rgba(239, 68, 68, 0.5)";
+                spawnRewardText(`❌ Сбой Мысли`, window.innerWidth/2, window.innerHeight/2, '#ef4444', false);
+            }
+
+            document.getElementById("stat-correct").innerText = state.correctCount;
+            document.getElementById("stat-wrong").innerText = state.wrongCount;
+
+            // Сброс свечения рамки
+            setTimeout(() => {
+                if(box) {
+                    box.style.borderColor = "var(--cyan)";
+                    box.style.boxShadow = "0 0 25px rgba(6, 182, 212, 0.25)";
+                }
+            }, 250);
+
+            // Переход к следующему вычислению
+            updateUI();
+            generateMathQuestion();
+        }
+
+        function varColor(name) {
+            if(name === 'gold') return '#ffd700';
+            if(name === 'royal') return '#a855f7';
+            return '#ffffff';
+        }
+
+        // Всплывающий текст наград
+        function spawnRewardText(text, x, y, color, isCrit) {
+            const el = document.createElement("div");
+            el.className = `floating-reward ${isCrit ? 'crit' : ''}`;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.style.color = color;
+            el.innerText = text;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), isCrit ? 1700 : 1400);
+        }
+
+        // Обновление интерфейса Цитадели
+        function updateUI() {
+            document.getElementById("val-gold").innerText = Math.floor(state.gold).toLocaleString();
+            document.getElementById("val-steel").innerText = Math.floor(state.steel).toLocaleString();
+            document.getElementById("val-scrolls").innerText = Math.floor(state.scrolls).toLocaleString();
+            document.getElementById("val-glory").innerText = `${state.glory.toFixed(4)}%`;
+
+            // Отображение прироста ресурсов
+            const inc = calculateIncome();
+            document.getElementById("inc-gold").innerText = `+${Math.floor(inc.gold)}/с`;
+            document.getElementById("inc-steel").innerText = `+${inc.steel.toFixed(1)}/с`;
+            document.getElementById("inc-scrolls").innerText = `+${inc.scrolls.toFixed(1)}/с`;
+            document.getElementById("inc-glory").innerText = `+${(inc.glory).toFixed(4)}%/с`;
+
+            // Обновление плашек серии комбо и скорости
+            const comboEl = document.getElementById("comboBadge");
+            if (state.comboStreak >= 3) {
+                comboEl.style.display = "inline-block";
+                comboEl.innerText = `Серия: 🔥 х${state.combo.toFixed(1)}`;
+                if (state.comboStreak >= 10) comboEl.className = "combo-badge frenzy";
+                else comboEl.className = "combo-badge";
+            } else {
+                comboEl.style.display = "none";
+            }
+
+            const speedEl = document.getElementById("speedBadge");
+            if (questionTimeLeft > questionTimeMax * 0.6) {
+                let bonus = Math.floor((questionTimeLeft * speedBonusBaseFactor) * 100);
+                speedEl.className = "speed-badge active-speed";
+                speedEl.innerText = `Молния: +${bonus}%`;
+            } else {
+                speedEl.className = "speed-badge";
+                speedEl.innerText = `Скорость: +0%`;
+            }
+
+            // Обновление кнопок магазина
+            Object.keys(buildings).forEach(type => {
+                const b = buildings[type];
+                const btn = document.getElementById(`btn-${type}`);
+                if (!btn) return;
+
+                // Вычисление динамической стоимости с учетом скидок
+                let discount = Math.pow(0.94, buildings.theorem.count) * blessArchitectDiscount;
+                
+                // Камень стоит в 2 раза дороже в золоте
+                let multG = (type === 'blueprint' || type === 'scriptorium' || type === 'alchemical') ? 2.0 : 1.0;
+                let costG = Math.floor(b.baseCostG * Math.pow(1.24, b.count) * discount * multG);
+                let costS = Math.floor(b.baseCostS * Math.pow(1.22, b.count) * discount);
+                let costSc = Math.floor(b.costSc * Math.pow(1.15, b.count));
+
+                // Текст ценников
+                let cText = `${costG} 🪙`;
+                if (costS > 0) cText += ` | ${costS} 🧱`;
+                if (costSc > 0) cText += ` | ${costSc} 📜`;
+                document.getElementById(`cost-${type}`).innerText = cText;
+
+                // Проверка доступности покупки
+                if (state.gold >= costG && state.steel >= costS && state.scrolls >= costSc) {
+                    btn.className = `btn-build available`;
+                    btn.disabled = false;
+                } else {
+                    btn.className = `btn-build locked`;
+                    btn.disabled = true;
+                }
+            });
+
+            // Обновление финальной кнопки Экзамена
+            const examBtn = document.getElementById("btn-exam");
+            document.getElementById("finalCost").innerText = `${examTarget.gold.toLocaleString()} 🪙 | ${examTarget.steel} 🧱 | ${examTarget.scrolls} 📜 | ${examTarget.glory}% 👑`;
+            
+            if (state.gold >= examTarget.gold && state.steel >= examTarget.steel && state.scrolls >= examTarget.scrolls && state.glory >= examTarget.glory) {
+                examBtn.className = "btn-build btn-final available";
+                examBtn.disabled = false;
+            } else {
+                examBtn.className = "btn-build btn-final locked";
+                examBtn.disabled = true;
+            }
+        }
+
+        // Логика покупки улучшений
+        document.querySelectorAll(".btn-build").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const type = btn.getAttribute("data-type");
+                if (!type || type === 'exam') return;
+
+                const b = buildings[type];
+                let discount = Math.pow(0.94, buildings.theorem.count) * blessArchitectDiscount;
+                let multG = (type === 'blueprint' || type === 'scriptorium' || type === 'alchemical') ? 2.0 : 1.0;
+                
+                let costG = Math.floor(b.baseCostG * Math.pow(1.24, b.count) * discount * multG);
+                let costS = Math.floor(b.baseCostS * Math.pow(1.22, b.count) * discount);
+                let costSc = Math.floor(b.costSc * Math.pow(1.15, b.count));
+
+                if (state.gold >= costG && state.steel >= costS && state.scrolls >= costSc) {
+                    state.gold -= costG;
+                    state.steel -= costS;
+                    state.scrolls -= costSc;
+
+                    b.count++;
+                    document.getElementById(`cnt-${type}`).innerText = b.count;
+
+                    // Применение моментальных бонусов при улучшении
+                    if (type === 'book') {
+                        document.getElementById("meta-book").innerText = `Базовый клик: ${12 + b.count * 6} ед.`;
+                    }
+                    if (type === 'theorem') {
+                        let totalDisc = (100 - (Math.pow(0.94, b.count) * blessArchitectDiscount * 100)).toFixed(1);
+                        document.getElementById("meta-theorem").innerText = `Скидка: -${totalDisc}%`;
+                    }
+                    if (type === 'critChance') {
+                        state.critChance = 0.05 + (b.count * 0.02);
+                        document.getElementById("eff-critChance").innerText = `Шанс: ${Math.floor(state.critChance * 100)}%`;
+                    }
+                    if (type === 'critMult') {
+                        state.critMultiplier = 4.0 + (b.count * 0.5);
+                        document.getElementById("eff-critMult").innerText = `Множитель: ${state.critMultiplier.toFixed(1)}х`;
+                    }
+                    if (type === 'blessQuantum') {
+                        state.critMultiplier += 1.5;
+                        spawnRewardText(`🌀 Квантовый Скачок: Крит усилен!`, window.innerWidth/2, window.innerHeight/2, '#d8b4fe', true);
+                    }
+                    if (type === 'blessArchivist') {
+                        speedBonusBaseFactor += 0.05; 
+                        document.getElementById("eff-blessArchivist").innerText = `Сила Молнии: +${5 + b.count * 5}%`;
+                        spawnRewardText(`🦅 Скоростная молния усилена!`, window.innerWidth/2, window.innerHeight/2, '#38bdf8', true);
+                    }
+                    if (type === 'blessArchitect') {
+                        blessArchitectDiscount *= 0.95;
+                        spawnRewardText(`🧱 Стоимость построек упала на 5%!`, window.innerWidth/2, window.innerHeight/2, '#10b981', false);
+                    }
+                    if (type === 'blessInspiration') {
+                        comboStepBonus += 0.10; 
+                        document.getElementById("eff-blessInspiration").innerText = `Шаг серии: +${(0.1 + comboStepBonus).toFixed(1)}х`;
+                        spawnRewardText(`💡 Мастерство серии комбо повышено!`, window.innerWidth/2, window.innerHeight/2, '#ffd700', true);
+                    }
+
+                    updateUI();
                 }
             });
         });
+
+        // Сдача Великого Экзамена
+        document.getElementById("btn-exam").addEventListener("click", () => {
+            if (state.gold >= examTarget.gold && state.steel >= examTarget.steel && state.scrolls >= examTarget.scrolls && state.glory >= examTarget.glory) {
+                gameActive = false;
+                clearInterval(questionTimerInterval);
+                
+                // Расчет времени
+                const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
+                const m = Math.floor(elapsedSec / 60);
+                const s = elapsedSec % 60;
+
+                const winScreen = document.getElementById("winScreen");
+                const winDesc = document.getElementById("winDesc");
+                
+                winDesc.innerHTML = `Вы воздвигли непоколебимую Цитадель Разума!<br><br>` +
+                                    `🧬 Время вознесения: <b>${m} мин. ${s} сек.</b><br>` +
+                                    `✅ Решено уравнений: <b>${state.correctCount}</b><br>` +
+                                    `❌ Допущено ошибок: <b>${state.wrongCount}</b><br><br>` +
+                                    `Ваше имя навечно вписано в скрижали Ордена Света!`;
+                
+                winScreen.classList.add("active");
+            }
+        });
+
+        // ==========================================
+        // ГРАФИЧЕСКИЙ ДВИЖОК ЦИТАДЕЛИ (CANVAS)
+        // ==========================================
+        let canvas, ctx;
+        function initCanvas() {
+            canvas = document.getElementById("cityCanvas");
+            ctx = canvas.getContext("2d");
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            requestAnimationFrame(drawCityLoop);
+        }
+
+        function resizeCanvas() {
+            if(canvas) {
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+            }
+        }
+
+        // Рисуем стилизованную абстрактную неоновую математическую матрицу башен Цитадели
+        function drawCityLoop() {
+            if(!canvas || !ctx) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Сетка фона Цитадели
+            ctx.strokeStyle = "rgba(6, 182, 212, 0.04)";
+            ctx.lineWidth = 1;
+            const gridSize = 40;
+            for(let x=0; x<canvas.width; x+=gridSize) {
+                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+            }
+            for(let y=0; y<canvas.height; y+=gridSize) {
+                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+            }
+
+            // Отрисовка башен (в зависимости от количества зданий)
+            const totalProd = buildings.abacus.count + buildings.blueprint.count + buildings.scriptorium.count + buildings.alchemical.count;
+            ctx.fillStyle = "rgba(6, 182, 212, 0.08)";
+            
+            for(let i=0; i<Math.min(15, totalProd); i++) {
+                let w = 35 + (i % 3) * 10;
+                let h = 60 + (i % 5) * 20;
+                let x = 20 + (i * 50) % (canvas.width - 60);
+                let y = canvas.height - h;
+                
+                ctx.fillRect(x, y, w, h);
+                ctx.strokeStyle = "rgba(6, 182, 212, 0.15)";
+                ctx.strokeRect(x, y, w, h);
+            }
+
+            requestAnimationFrame(drawCityLoop);
+        }
     </script>
 </body>
 </html>
