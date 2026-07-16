@@ -72,122 +72,24 @@
             font-size: 0.85rem; margin-bottom: 20px; text-align: center;
         }
 
-        .generator-panel {
+        .mode-list {
             width: 100%;
-            max-width: 440px;
-            background: var(--panel-bg);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 18px;
-            display: flex;
-            flex-direction: column;
-            gap: 14px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            max-width: 420px; display: flex; flex-direction: column; gap: 10px;
         }
 
-        .gen-section-title {
-            color: var(--cyan);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
-            padding-bottom: 4px;
-            margin-bottom: 4px;
-        }
-
-        .radio-group {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .gen-label-btn {
+        .btn-mode {
             background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 10px;
-            padding: 10px;
-            text-align: center;
-            color: #94a3b8;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            font-size: 0.9rem;
-            transition: all 0.2s ease;
+            border-radius: 12px; padding: 12px 15px;
+            color: white; text-align: left; cursor: pointer;
         }
-
-        .gen-label-btn input {
-            display: none;
-        }
-
-        .gen-label-btn:has(input:checked) {
-            border-color: var(--gold);
-            color: white;
-            background: rgba(255, 215, 0, 0.08);
-            box-shadow: 0 0 8px rgba(255, 215, 0, 0.2);
-        }
-
-        .modes-container {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .mode-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            background: rgba(255, 255, 255, 0.02);
-            padding: 6px 10px;
-            border-radius: 10px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-        }
-
-        .mode-checkbox-label {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            color: white;
-            font-size: 0.9rem;
-            cursor: pointer;
-        }
-
-        .mode-checkbox-label input {
-            accent-color: var(--cyan);
-            width: 16px;
-            height: 16px;
-        }
-
-        .difficulty-select {
-            background: rgba(15, 18, 32, 0.98);
-            border: 1px solid rgba(255, 255, 255, 0.15);
-            color: var(--gold);
-            border-radius: 6px;
-            padding: 4px 6px;
-            font-size: 0.85rem;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .btn-submit-gen {
-            background: linear-gradient(45deg, #0284c7, #06b6d4);
-            border: none;
-            color: white;
-            padding: 14px;
-            font-size: 1.05rem;
-            font-weight: bold;
-            border-radius: 12px;
-            cursor: pointer;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
-            margin-top: 5px;
-            transition: transform 0.1s;
-        }
-
-        .btn-submit-gen:active {
-            transform: scale(0.98);
-        }
+        .btn-mode.m-1 { border-left: 4px solid #10b981; }
+        .btn-mode.m-2 { border-left: 4px solid #3b82f6; }
+        .btn-mode.m-3 { border-left: 4px solid var(--gold); }
+        .btn-mode.m-4 { border-left: 4px solid var(--royal); }
+        .btn-mode.m-5 { border-left: 4px solid #ef4444; }
+        .btn-mode .m-title { font-weight: bold; font-size: 1rem; display: block; margin-bottom: 2px; }
+        .btn-mode .m-desc { font-size: 0.75rem; color: #94a3b8; display: block; }
 
         .info-container {
             width: 100%;
@@ -415,78 +317,28 @@
 
     <div class="modal-screen" id="startScreen">
         <h1 class="start-title">🏛️ Орден Света</h1>
-        <p class="start-subtitle">Настройте Обет Вычислений для текущей эпохи:</p>
-        
-        <div class="generator-panel">
-            <div class="gen-section-title">1. Вид числовой магии</div>
-            <div class="radio-group">
-                <label class="gen-label-btn">
-                    <input type="radio" name="numType" value="positive" checked>
-                    ➕ Положительные
-                </label>
-                <label class="gen-label-btn">
-                    <input type="radio" name="numType" value="negative">
-                    ➖ Отрицательные
-                </label>
-            </div>
-
-            <div class="gen-section-title">2. Режимы и Сложность</div>
-            <div class="modes-container">
-                <div class="mode-row">
-                    <label class="mode-checkbox-label">
-                        <input type="checkbox" name="calcMode" value="add" checked>
-                        ➕ Сложение
-                    </label>
-                    <select class="difficulty-select" id="diff-add">
-                        <option value="1">⭐️</option>
-                        <option value="2">⭐️⭐️</option>
-                        <option value="3">⭐️⭐️⭐️</option>
-                        <option value="4">⭐️⭐️⭐️⭐️</option>
-                        <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
-                    </select>
-                </div>
-                <div class="mode-row">
-                    <label class="mode-checkbox-label">
-                        <input type="checkbox" name="calcMode" value="sub">
-                        ➖ Вычитание
-                    </label>
-                    <select class="difficulty-select" id="diff-sub">
-                        <option value="1">⭐️</option>
-                        <option value="2">⭐️⭐️</option>
-                        <option value="3">⭐️⭐️⭐️</option>
-                        <option value="4">⭐️⭐️⭐️⭐️</option>
-                        <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
-                    </select>
-                </div>
-                <div class="mode-row">
-                    <label class="mode-checkbox-label">
-                        <input type="checkbox" name="calcMode" value="mul">
-                        ✖️ Умножение
-                    </label>
-                    <select class="difficulty-select" id="diff-mul">
-                        <option value="1">⭐️</option>
-                        <option value="2">⭐️⭐️</option>
-                        <option value="3">⭐️⭐️⭐️</option>
-                        <option value="4">⭐️⭐️⭐️⭐️</option>
-                        <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
-                    </select>
-                </div>
-                <div class="mode-row">
-                    <label class="mode-checkbox-label">
-                        <input type="checkbox" name="calcMode" value="div">
-                        ➗ Деление
-                    </label>
-                    <select class="difficulty-select" id="diff-div">
-                        <option value="1">⭐️</option>
-                        <option value="2">⭐️⭐️</option>
-                        <option value="3">⭐️⭐️⭐️</option>
-                        <option value="4">⭐️⭐️⭐️⭐️</option>
-                        <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
-                    </select>
-                </div>
-            </div>
-
-            <button class="btn-submit-gen" onclick="initCustomConfig()">⚔️ Утвердить Обет</button>
+        <p class="start-subtitle">Выберите Обет Научной Цели на эту эпоху:</p>
+        <div class="mode-list">
+            <button class="btn-mode m-1" onclick="selectMode('easy')">
+                <span class="m-title">📜 Ученик</span>
+                <span class="m-desc" id="m-desc-easy">...</span>
+            </button>
+            <button class="btn-mode m-2" onclick="selectMode('medium')">
+                <span class="m-title">⚔️ Рыцарь Счета</span>
+                <span class="m-desc" id="m-desc-medium">...</span>
+            </button>
+            <button class="btn-mode m-3" onclick="selectMode('hard')">
+                <span class="m-title">🏛️ Магистр Цитадели</span>
+                <span class="m-desc" id="m-desc-hard">...</span>
+            </button>
+            <button class="btn-mode m-4" onclick="selectMode('expert')">
+                <span class="m-title">👑 Хранитель Тайн</span>
+                <span class="m-desc" id="m-desc-expert">...</span>
+            </button>
+            <button class="btn-mode m-5" onclick="selectMode('marathon')">
+                <span class="m-title">🪐 Абсолютный Титан</span>
+                <span class="m-desc" id="m-desc-marathon">...</span>
+            </button>
         </div>
     </div>
 
@@ -510,7 +362,7 @@
                 <div class="info-text"><strong>Ментальный Прорыв</strong><span>Дает мощнейшие +20% к Талантам и к Славе от клика параллельно!</span></div>
             </div>
         </div>
-        <button class="btn-start-game" onclick="startGame()">⚔️ Вступить в Ордн Света</button>
+        <button class="btn-start-game" onclick="startGame()">⚔️ Вступить в Орден Света</button>
     </div>
 
     <div class="top-panel-wrapper">
@@ -683,6 +535,7 @@
                 <span class="cost" id="cost-blessInspiration">...</span>
                 <span class="count" id="cnt-blessInspiration">0</span>
             </button>
+
             <button class="btn-build btn-final" data-type="exam" id="btn-exam">
                 <span class="name" id="finalName">🏆 СДАТЬ ВЕЛИКИЙ ЭКЗАМЕН 🏆</span>
                 <span class="cost" id="finalCost">Требования...</span>
@@ -697,706 +550,470 @@
     </div>
 
     <script>
-        let gameConfig = {
-            numType: 'positive',
-            modes: [],
-            difficulties: {
-                add: 1,
-                sub: 1,
-                mul: 1,
-                div: 1
-            }
+        // Оригинальные цели и баланс из вашего файла
+        const modes = {
+            easy: { name: "📜 ОБЕТ УЧЕНИКА", targetG: 3600000, targetS: 400, targetSc: 40, targetGl: 30, desc: "Спринт окончен. Основы математики изучены безукоризненно!" },
+            medium: { name: "⚔️ ОБЕТ РЫЦАРЯ СЧЕТА", targetG: 10500000, targetS: 1600, targetSc: 300, targetGl: 60, desc: "Концентрация удержана! Ваша Цитадель стоит крепко." },
+            hard: { name: "🏛️ ОБЕТ МАГИСТРА", targetG: 22500000, targetS: 5000, targetSc: 1200, targetGl: 100, desc: "Выдающийся результат! Вы — признанный гений счета." },
+            expert: { name: "👑 ОБЕТ ХРАНИТЕЛЯ ТАЙН", targetG: 45000000, targetS: 12000, targetSc: 4000, targetGl: 100, desc: "Древние Свитки раскрыли величайшие тайны Вселенной." },
+            marathon: { name: "🪐 ТРИУМФ АБСОЛЮТНОГО ТИТАНА", targetG: 135000000, targetS: 40000, targetSc: 16000, targetGl: 100, desc: "Великий Марафон завершен абсолютной победой разума!" }
         };
 
-        const state = {
-            gold: 0,
-            steel: 0,
-            scrolls: 0,
-            glory: 0,
-            correctCount: 0,
-            wrongCount: 0,
-            combo: 1.0,
-            comboStreak: 0,
-            critChance: 0.05,
-            critMultiplier: 4.0,
-            examPassed: false
-        };
+        for (let key in modes) {
+            document.getElementById(`m-desc-${key}`).innerText = `Цель: ${(modes[key].targetG/1000).toFixed(0)}k 🪙, ${modes[key].targetS} 🧱, ${modes[key].targetSc} 📜, ${modes[key].targetGl}% Славы.`;
+        }
 
-        const examTarget = {
-            gold: 15000000,
-            steel: 8000,
-            scrolls: 2000,
-            glory: 100
-        };
-
-        let speedBonusBaseFactor = 0.05;
-        let blessArchitectDiscount = 1.0;
-        let comboStepBonus = 0.0; 
-
-        let questionTimeMax = 15;
-        let questionTimeLeft = 15;
-        let questionTimerInterval = null;
-        let currentCorrectAnswer = null;
+        let activeMode = modes.medium;
         let gameActive = false;
-        let startTime = 0;
+        let totalSeconds = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
 
-        const buildings = {
-            abacus: { count: 0, baseCostG: 60, baseCostS: 0, costSc: 0 },
-            blueprint: { count: 0, baseCostG: 180, baseCostS: 0, costSc: 0 },
-            scriptorium: { count: 0, baseCostG: 400, baseCostS: 30, costSc: 0 },
-            alchemical: { count: 0, baseCostG: 1200, baseCostS: 120, costSc: 10 },
-            book: { count: 0, baseCostG: 40, baseCostS: 0, costSc: 0 },
-            theorem: { count: 0, baseCostG: 300, baseCostS: 10, costSc: 0 },
-            critChance: { count: 0, baseCostG: 500, baseCostS: 40, costSc: 5 },
-            critMult: { count: 0, baseCostG: 800, baseCostS: 60, costSc: 8 },
-            geometry: { count: 0, baseCostG: 4000, baseCostS: 300, costSc: 40 },
-            patent: { count: 0, baseCostG: 9000, baseCostS: 600, costSc: 90 },
-            astral: { count: 0, baseCostG: 22000, baseCostS: 1500, costSc: 250 },
-            manifesto: { count: 0, baseCostG: 60000, baseCostS: 4500, costSc: 700 },
-            blessIncome: { count: 0, baseCostG: 50000, baseCostS: 2000, costSc: 500 },
-            blessClick: { count: 0, baseCostG: 75000, baseCostS: 4000, costSc: 800 },
-            blessQuantum: { count: 0, baseCostG: 100000, baseCostS: 6000, costSc: 1200 },
-            blessArchivist: { count: 0, baseCostG: 130000, baseCostS: 8000, costSc: 1500 },
-            blessArchitect: { count: 0, baseCostG: 160000, baseCostS: 10000, costSc: 2000 },
-            blessInspiration: { count: 0, baseCostG: 200000, baseCostS: 15000, costSc: 3000 }
+        let globalProductionBonus = 1.0;
+        let blessArchitectDiscount = 1.0;
+        let speedBonusBaseFactor = 0.5;
+        let comboStepBonus = 0.35;
+        let mentalBreakthroughLevel = 0;
+
+        // Оригинальные цены и параметры
+        const state = {
+            gold: 500, steel: 40, scrolls: 0, glory: 0,
+            clickBase: 12, combo: 0, critChance: 0.05, critMultiplier: 4.0,
+            discount: 1.0,
+            income: { gold: 0, steel: 0, scrolls: 0, glory: 0 },
+            buildings: {
+                abacus: { count: 0, baseG: 450, baseS: 0, baseSc: 0, curG: 450, curS: 0, curSc: 0, currency: 'normal' },
+                blueprint: { count: 0, baseG: 800, baseS: 10, baseSc: 0, curG: 800, curS: 10, curSc: 0, currency: 'normal' },
+                scriptorium: { count: 0, baseG: 1400, baseS: 30, baseSc: 0, curG: 1400, curS: 30, curSc: 0, currency: 'normal' },
+                alchemical: { count: 0, baseG: 3250, baseS: 80, baseSc: 5, curG: 3250, curS: 80, curSc: 5, currency: 'normal' },
+                book: { count: 0, baseG: 900, baseS: 30, baseSc: 0, curG: 900, curS: 30, curSc: 0, currency: 'normal' },
+                theorem: { count: 0, baseG: 2500, baseS: 60, baseSc: 15, curG: 2500, curS: 60, curSc: 15, currency: 'normal' },
+                critChance: { count: 0, baseG: 1400, baseS: 40, baseSc: 8, curG: 1400, curS: 40, curSc: 8, currency: 'normal' },
+                critMult: { count: 0, baseG: 1750, baseS: 50, baseSc: 12, curG: 1750, curS: 50, curSc: 12, currency: 'normal' },
+                geometry: { count: 0, baseG: 2250, baseS: 80, baseSc: 15, curG: 2250, curS: 80, curSc: 15, currency: 'normal' },
+                patent: { count: 0, baseG: 4000, baseS: 40, baseSc: 25, curG: 4000, curS: 40, curSc: 25, currency: 'normal' },
+                astral: { count: 0, baseG: 8000, baseS: 160, baseSc: 50, curG: 8000, curS: 160, curSc: 50, currency: 'normal' },
+                manifesto: { count: 0, baseG: 12500, baseS: 200, baseSc: 120, curG: 12500, curS: 200, curSc: 120, currency: 'normal' },
+                blessIncome: { count: 0, currency: 'glory' },
+                blessClick: { count: 0, currency: 'glory' },
+                blessQuantum: { count: 0, currency: 'glory' },
+                blessArchivist: { count: 0, currency: 'glory' },
+                blessArchitect: { count: 0, currency: 'glory' },
+                blessInspiration: { count: 0, currency: 'glory' }
+            }
         };
 
-        function initCustomConfig() {
-            const numTypeEl = document.querySelector('input[name="numType"]:checked');
-            gameConfig.numType = numTypeEl ? numTypeEl.value : 'positive';
-
-            const checkedModes = Array.from(document.querySelectorAll('input[name="calcMode"]:checked')).map(el => el.value);
-            if (checkedModes.length === 0) {
-                alert("Пожалуйста, выберите хотя бы один арифметический режим!");
-                return;
-            }
-            gameConfig.modes = checkedModes;
-
-            gameConfig.difficulties.add = parseInt(document.getElementById('diff-add').value);
-            gameConfig.difficulties.sub = parseInt(document.getElementById('diff-sub').value);
-            gameConfig.difficulties.mul = parseInt(document.getElementById('diff-mul').value);
-            gameConfig.difficulties.div = parseInt(document.getElementById('diff-div').value);
-
-            document.getElementById("startScreen").style.display = "none";
-            document.getElementById("briefingScreen").style.display = "flex";
-        }
-
-        function startGame() {
-            document.getElementById("briefingScreen").style.display = "none";
-            gameActive = true;
-            startTime = Date.now();
-
-            initCanvas();
-            updateUI();
-            generateMathQuestion();
-
-            setInterval(() => {
-                if (!gameActive) return;
-                const income = calculateIncome();
-                state.gold += income.gold;
-                state.steel += income.steel;
-                state.scrolls += income.scrolls;
-                state.glory = Math.min(100, state.glory + income.glory);
-
-                updateUI();
-            }, 1000);
-
-            questionTimerInterval = setInterval(() => {
-                if (!gameActive) return;
-                questionTimeLeft -= 0.1;
-                if (questionTimeLeft <= 0) {
-                    processAnswer(null);
-                } else {
-                    updateTimerBar();
-                }
-            }, 100);
-
-            setInterval(() => {
-                if (!gameActive) return;
-                const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
-                const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
-                const s = String(elapsedSec % 60).padStart(2, '0');
-                document.getElementById("gameClock").innerText = `⏳ Время Эпохи: ${m}:${s}`;
-            }, 1000);
-        }
-
-        function calculateIncome() {
-            let g = 0, st = 0, sc = 0, gl = 0;
-
-            g += buildings.abacus.count * 1.0;
-            st += buildings.blueprint.count * 1.0;
-            sc += buildings.scriptorium.count * 0.5;
-
-            st += buildings.alchemical.count * 2.5;
-            sc += buildings.alchemical.count * 1.0;
-
-            g += buildings.geometry.count * 3.0;
-            gl += buildings.geometry.count * 0.00015;
-
-            gl += buildings.patent.count * 0.00025;
-            gl += buildings.astral.count * 0.00075;
-            gl += buildings.manifesto.count * 0.00225;
-
-            let incMultiplier = 1.0 + (buildings.blessIncome.count * 0.25);
-            g *= incMultiplier;
-            st *= incMultiplier;
-            sc *= incMultiplier;
-            gl *= incMultiplier;
-
-            return { gold: g, steel: st, scrolls: sc, glory: gl };
-        }
-
-        function updateTimerBar() {
-            const bar = document.getElementById("timerBar");
-            if (bar) {
-                const pct = Math.max(0, (questionTimeLeft / questionTimeMax) * 100);
-                bar.style.width = `${pct}%`;
-            }
-        }
-
-        function randRange(min, max) {
-            return Math.floor(Math.random() * (max - min + 1)) + min;
-        }
+        // Логика математического блока
+        let currentAnswer = 0;
+        let mathTimer = null;
+        let mathTimeLeft = 100;
+        let speedBonusActive = 0;
 
         function generateMathQuestion() {
-            if (!gameActive) return;
+            const types = ['add', 'sub', 'mul', 'div', 'percent'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            let num1, num2, questionText, correctAnswer;
 
-            const currentMode = gameConfig.modes[Math.floor(Math.random() * gameConfig.modes.length)];
-            const currentDiff = gameConfig.difficulties[currentMode];
-
-            let num1 = 0, num2 = 0, operatorSymbol = '', answer = null;
-            let questionText = '';
-
-            if (gameConfig.numType === 'positive') {
-                if (currentMode === 'add' || currentMode === 'sub') {
-                    if (currentDiff === 1) {
-                        if (currentMode === 'add') {
-                            num1 = randRange(0, 10);
-                            num2 = randRange(0, 10 - num1);
-                        } else {
-                            num1 = randRange(0, 10);
-                            num2 = randRange(0, num1);
-                        }
-                    } else if (currentDiff === 2) {
-                        if (currentMode === 'add') {
-                            num1 = randRange(0, 20);
-                            num2 = randRange(0, 20 - num1);
-                        } else {
-                            num1 = randRange(0, 20);
-                            num2 = randRange(0, num1);
-                        }
-                    } else if (currentDiff === 3) {
-                        num1 = randRange(0, 30);
-                        num2 = randRange(0, 30);
-                        if (currentMode === 'sub' && num1 < num2) {
-                            let tmp = num1; num1 = num2; num2 = tmp;
-                        }
-                    } else if (currentDiff === 4) {
-                        if (currentMode === 'add') {
-                            num1 = randRange(0, 100);
-                            num2 = randRange(0, 100 - num1);
-                        } else {
-                            num1 = randRange(0, 100);
-                            num2 = randRange(0, num1);
-                        }
-                    } else if (currentDiff === 5) {
-                        if (currentMode === 'add') {
-                            num1 = randRange(0, 200);
-                            num2 = randRange(0, 200 - num1);
-                        } else {
-                            num1 = randRange(0, 200);
-                            num2 = randRange(0, num1);
-                        }
-                    }
-                    operatorSymbol = (currentMode === 'add') ? '+' : '-';
-                    answer = (currentMode === 'add') ? (num1 + num2) : (num1 - num2);
-                    questionText = `${num1} ${operatorSymbol} ${num2} = ?`;
-
-                } else if (currentMode === 'mul' || currentMode === 'div') {
-                    let allowedMultipliers = [0, 1, 2, 5, 10];
-                    if (currentDiff === 2) allowedMultipliers = [0, 1, 2, 3, 4, 5, 10];
-                    if (currentDiff === 3) allowedMultipliers = [0, 1, 2, 3, 4, 5, 6, 9, 10];
-                    
-                    if (currentDiff <= 3) {
-                        num2 = allowedMultipliers[Math.floor(Math.random() * allowedMultipliers.length)];
-                        num1 = randRange(0, 10);
-                        if (currentMode === 'mul') {
-                            answer = num1 * num2;
-                            questionText = `${num1} × ${num2} = ?`;
-                        } else {
-                            if (num2 === 0) {
-                                answer = "нет решения";
-                                questionText = `${num1} ÷ 0 = ?`;
-                            } else {
-                                let product = num1 * num2;
-                                answer = num1;
-                                questionText = `${product} ÷ ${num2} = ?`;
-                            }
-                        }
-                    } else if (currentDiff === 4) {
-                        num1 = randRange(0, 10);
-                        num2 = randRange(0, 10);
-                        if (currentMode === 'mul') {
-                            answer = num1 * num2;
-                            questionText = `${num1} × ${num2} = ?`;
-                        } else {
-                            if (num2 === 0) {
-                                answer = "нет решения";
-                                questionText = `${num1} ÷ 0 = ?`;
-                            } else {
-                                let product = num1 * num2;
-                                answer = num1;
-                                questionText = `${product} ÷ ${num2} = ?`;
-                            }
-                        }
-                    } else if (currentDiff === 5) {
-                        num1 = randRange(10, 99);
-                        num2 = randRange(0, 10);
-                        if (currentMode === 'mul') {
-                            answer = num1 * num2;
-                            questionText = `${num1} × ${num2} = ?`;
-                        } else {
-                            num2 = randRange(1, 10);
-                            let product = num1 * num2;
-                            answer = num1;
-                            questionText = `${product} ÷ ${num2} = ?`;
-                        }
-                    }
-                }
-            } else {
-                let limit = 10;
-                if (currentDiff === 2) limit = 20;
-                if (currentDiff === 3) limit = 50;
-                if (currentDiff === 4) limit = 100;
-                if (currentDiff === 5) limit = 200;
-
-                if (currentMode === 'add' || currentMode === 'sub') {
-                    num1 = randRange(-limit, limit);
-                    num2 = randRange(-limit, limit);
-
-                    if (currentMode === 'add') {
-                        answer = num1 + num2;
-                        operatorSymbol = '+';
-                    } else {
-                        answer = num1 - num2;
-                        operatorSymbol = '-';
-                    }
-                    let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
-                    questionText = `${num1} ${operatorSymbol} ${num2Str} = ?`;
-
-                } else if (currentMode === 'mul' || currentMode === 'div') {
-                    let allowedMultipliers = [0, 1, 2, 5, 10];
-                    if (currentDiff === 2) allowedMultipliers = [0, 1, 2, 3, 4, 5, 9, 10];
-                    if (currentDiff === 3) allowedMultipliers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-                    
-                    if (currentDiff <= 3) {
-                        let baseNum = randRange(1, 9) * (Math.random() < 0.5 ? 1 : -1);
-                        let mult = allowedMultipliers[Math.floor(Math.random() * allowedMultipliers.length)];
-                        mult = mult * (Math.random() < 0.5 ? 1 : -1);
-
-                        if (currentMode === 'mul') {
-                            answer = baseNum * mult;
-                            let multStr = mult < 0 ? `(${mult})` : `${mult}`;
-                            questionText = `${baseNum} × ${multStr} = ?`;
-                        } else {
-                            if (mult === 0) {
-                                answer = "нет решения";
-                                questionText = `${baseNum} ÷ 0 = ?`;
-                            } else {
-                                let product = baseNum * mult;
-                                answer = baseNum;
-                                let multStr = mult < 0 ? `(${mult})` : `${mult}`;
-                                questionText = `${product} ÷ ${multStr} = ?`;
-                            }
-                        }
-                    } else if (currentDiff === 4) {
-                        num1 = randRange(-20, 20);
-                        num2 = randRange(-9, 9);
-                        if (num2 === 0 && Math.random() < 0.5) num2 = randRange(1, 9);
-
-                        if (currentMode === 'mul') {
-                            answer = num1 * num2;
-                            let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
-                            questionText = `${num1} × ${num2Str} = ?`;
-                        } else {
-                            if (num2 === 0) {
-                                answer = "нет решения";
-                                questionText = `${num1} ÷ 0 = ?`;
-                            } else {
-                                let product = num1 * num2;
-                                answer = num1;
-                                let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
-                                questionText = `${product} ÷ ${num2Str} = ?`;
-                            }
-                        }
-                    } else if (currentDiff === 5) {
-                        let sign1 = Math.random() < 0.5 ? 1 : -1;
-                        num1 = randRange(10, 99) * sign1;
-                        num2 = randRange(-9, 9);
-
-                        if (currentMode === 'mul') {
-                            answer = num1 * num2;
-                            let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
-                            questionText = `${num1} × ${num2Str} = ?`;
-                        } else {
-                            if (num2 === 0) {
-                                answer = "нет решения";
-                                questionText = `${num1} ÷ 0 = ?`;
-                            } else {
-                                let product = num1 * num2;
-                                answer = num1;
-                                let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
-                                questionText = `${product} ÷ ${num2Str} = ?`;
-                            }
-                        }
-                    }
-                }
+            if (type === 'add') {
+                num1 = Math.floor(Math.random() * 80) + 10;
+                num2 = Math.floor(Math.random() * 80) + 10;
+                questionText = `${num1} + ${num2}`;
+                correctAnswer = num1 + num2;
+            } else if (type === 'sub') {
+                num1 = Math.floor(Math.random() * 90) + 10;
+                num2 = Math.floor(Math.random() * num1);
+                questionText = `${num1} - ${num2}`;
+                correctAnswer = num1 - num2;
+            } else if (type === 'mul') {
+                num1 = Math.floor(Math.random() * 12) + 2;
+                num2 = Math.floor(Math.random() * 12) + 2;
+                questionText = `${num1} × ${num2}`;
+                correctAnswer = num1 * num2;
+            } else if (type === 'div') {
+                num2 = Math.floor(Math.random() * 10) + 2;
+                correctAnswer = Math.floor(Math.random() * 10) + 2;
+                num1 = num2 * correctAnswer;
+                questionText = `${num1} ÷ ${num2}`;
+            } else if (type === 'percent') {
+                const percentages = [10, 20, 25, 50, 75];
+                num2 = percentages[Math.floor(Math.random() * percentages.length)];
+                num1 = (Math.floor(Math.random() * 8) + 1) * 50;
+                questionText = `${num2}% от ${num1}`;
+                correctAnswer = (num1 * num2) / 100;
             }
 
-            currentCorrectAnswer = answer;
-            document.getElementById("mathQuestion").innerText = questionText;
+            currentAnswer = correctAnswer;
+            document.getElementById('mathQuestion').innerText = questionText;
 
-            const choices = generateChoices(answer);
-            const grid = document.getElementById("answersGrid");
+            let answers = [correctAnswer];
+            while (answers.length < 4) {
+                let offset = Math.floor(Math.random() * 15) + 1;
+                if (Math.random() > 0.5) offset = -offset;
+                let fake = correctAnswer + offset;
+                if (fake >= 0 && !answers.includes(fake)) {
+                    answers.push(fake);
+                }
+            }
+            answers.sort(() => Math.random() - 0.5);
+
+            const grid = document.getElementById('answersGrid');
             grid.innerHTML = '';
-
-            choices.forEach(ch => {
-                const btn = document.createElement("button");
-                btn.className = "btn-answer";
-                btn.innerText = ch;
-                btn.onclick = () => processAnswer(ch);
+            answers.forEach(ans => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-answer';
+                btn.innerText = ans;
+                btn.onclick = () => submitAnswer(ans);
                 grid.appendChild(btn);
             });
 
-            questionTimeMax = Math.max(6, 16 - currentDiff * 2); 
-            questionTimeLeft = questionTimeMax;
-            updateTimerBar();
+            mathTimeLeft = 100;
+            if (mathTimer) clearInterval(mathTimer);
+            mathTimer = setInterval(() => {
+                if (!gameActive) return;
+                mathTimeLeft -= 2.5; // Скорость таймера из оригинального файла
+                if (mathTimeLeft <= 0) {
+                    mathTimeLeft = 0;
+                    submitAnswer(null);
+                }
+                document.getElementById('timerBar').style.width = mathTimeLeft + '%';
+            }, 100);
         }
 
-        function generateChoices(correct) {
-            const set = new Set();
-            set.add(correct.toString());
-
-            if (correct === "нет решения") {
-                while(set.size < 4) {
-                    set.add(randRange(-10, 50).toString());
-                }
-            } else {
-                const val = parseInt(correct);
-                let attempts = 0;
-                while (set.size < 4 && attempts < 100) {
-                    attempts++;
-                    let offset = randRange(-5, 5);
-                    if (offset === 0) offset = Math.random() < 0.5 ? -1 : 1;
-                    let fake = val + offset;
-                    set.add(fake.toString());
-                }
-                while(set.size < 4) {
-                    set.add((val + randRange(-20, 20)).toString());
-                }
-            }
-
-            const arr = Array.from(set);
-            for (let i = arr.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [arr[i], arr[j]] = [arr[j], arr[i]];
-            }
-            return arr;
-        }
-
-        function processAnswer(selected) {
+        function submitAnswer(chosen) {
             if (!gameActive) return;
 
-            const box = document.getElementById("mainMathBox");
-            const isCorrect = (selected !== null && selected.toString() === currentCorrectAnswer.toString());
+            const isCorrect = chosen === currentAnswer;
+            const box = document.getElementById('mainMathBox');
 
             if (isCorrect) {
-                state.correctCount++;
-                state.comboStreak++;
+                correctCount++;
+                document.getElementById('stat-correct').innerText = correctCount;
 
-                let step = 0.1 + comboStepBonus;
-                if (state.comboStreak >= 10) {
-                    state.combo = Math.min(5.0, state.combo + step * 1.5);
-                } else {
-                    state.combo = Math.min(3.0, state.combo + step);
-                }
+                box.style.borderColor = '#10b981';
+                box.style.boxShadow = '0 0 25px rgba(16, 185, 129, 0.5)';
 
-                box.style.borderColor = "#10b981";
-                box.style.boxShadow = "0 0 25px rgba(16, 185, 129, 0.5)";
+                state.combo++;
 
-                let baseGoldClick = 12 + (buildings.book.count * 6);
-                let baseGloryClick = 0.00001 + (buildings.book.count * 0.00001);
-
-                let speedFactor = 1.0;
-                if (questionTimeLeft > questionTimeMax * 0.6) {
-                    speedFactor += (questionTimeLeft * speedBonusBaseFactor);
-                }
-
-                let finalG = baseGoldClick * state.combo * speedFactor;
-                let finalGl = baseGloryClick * state.combo * speedFactor;
-
-                finalG += buildings.astral.count * 3;
-
-                let blessFactor = 1.0 + (buildings.blessClick.count * 0.20);
-                finalG *= blessFactor;
-                finalGl *= blessFactor;
+                // Ограничение шкалы скорости до 100%
+                speedBonusActive = Math.min(100, speedBonusActive + 10);
 
                 let isCrit = Math.random() < state.critChance;
+                
+                // Формула клика полностью сохранена как в оригинале
+                let baseGainGold = state.clickBase;
+                let baseGainGlory = 0.00001; 
+
+                let comboMult = 1.0 + (state.combo * comboStepBonus);
+                let speedMult = 1.0 + (speedBonusActive / 100 * speedBonusBaseFactor);
+                let breakthroughMult = 1.0 + (mentalBreakthroughLevel * 0.20); 
+
+                let finalGold = baseGainGold * comboMult * speedMult * breakthroughMult;
+                let finalGlory = baseGainGlory * comboMult * speedMult * breakthroughMult;
+
                 if (isCrit) {
-                    finalG *= state.critMultiplier;
-                    finalGl *= state.critMultiplier;
+                    finalGold *= state.critMultiplier;
+                    finalGlory *= state.critMultiplier;
                 }
 
-                state.gold += finalG;
-                state.glory = Math.min(100, state.glory + finalGl);
+                state.gold += finalGold;
+                state.glory = Math.min(100, state.glory + finalGlory);
 
-                if (Math.random() < 0.12 + (state.comboStreak * 0.005)) {
-                    state.scrolls += 1;
-                    spawnRewardText(`+1 📜`, window.innerWidth/2, window.innerHeight/2 - 40, '#f59e0b', false);
-                }
-
-                let rewardText = `+${Math.floor(finalG)} 🪙`;
-                if (isCrit) rewardText = `💥 КРИТ! ${rewardText}`;
-                spawnRewardText(rewardText, window.innerWidth/2, window.innerHeight/2, isCrit ? varColor('royal') : varColor('gold'), isCrit);
-
+                spawnRewardText(`+${finalGold.toFixed(0)}🪙\n+${(finalGlory).toFixed(5)}%👑`, window.innerWidth/2, window.innerHeight/2 - 50, isCrit ? '#a855f7' : '#ffd700', isCrit);
             } else {
-                state.wrongCount++;
-                state.combo = 1.0;
-                state.comboStreak = 0;
+                wrongCount++;
+                document.getElementById('stat-wrong').innerText = wrongCount;
 
-                box.style.borderColor = "#ef4444";
-                box.style.boxShadow = "0 0 25px rgba(239, 68, 68, 0.5)";
-                spawnRewardText(`❌ Сбой Мысли`, window.innerWidth/2, window.innerHeight/2, '#ef4444', false);
+                box.style.borderColor = '#ef4444';
+                box.style.boxShadow = '0 0 25px rgba(239, 68, 68, 0.5)';
+
+                state.combo = 0;
+                speedBonusActive = Math.max(0, speedBonusActive - 25);
+
+                spawnRewardText(`Ошибочка! ⚡`, window.innerWidth/2, window.innerHeight/2 - 50, '#ef4444', false);
             }
 
-            document.getElementById("stat-correct").innerText = state.correctCount;
-            document.getElementById("stat-wrong").innerText = state.wrongCount;
-
             setTimeout(() => {
-                if(box) {
-                    box.style.borderColor = "var(--cyan)";
-                    box.style.boxShadow = "0 0 25px rgba(6, 182, 212, 0.25)";
-                }
+                box.style.borderColor = 'var(--cyan)';
+                box.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.25)';
             }, 250);
 
             updateUI();
             generateMathQuestion();
         }
 
-        function varColor(name) {
-            if(name === 'gold') return '#ffd700';
-            if(name === 'royal') return '#a855f7';
-            return '#ffffff';
+        function spawnRewardText(text, x, y, color, isCrit) {
+            const div = document.createElement('div');
+            div.className = `floating-reward ${isCrit ? 'crit' : ''}`;
+            div.style.left = x + 'px';
+            div.style.top = y + 'px';
+            div.style.color = color;
+            div.innerText = text;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), isCrit ? 1760 : 1440);
         }
 
-        function spawnRewardText(text, x, y, color, isCrit) {
-            const el = document.createElement("div");
-            el.className = `floating-reward ${isCrit ? 'crit' : ''}`;
-            el.style.left = `${x}px`;
-            el.style.top = `${y}px`;
-            el.style.color = color;
-            el.innerText = text;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), isCrit ? 1700 : 1400);
+        function selectMode(key) {
+            activeMode = modes[key];
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('briefingScreen').style.display = 'flex';
+        }
+
+        function startGame() {
+            document.getElementById('briefingScreen').style.display = 'none';
+            gameActive = true;
+            
+            // Запуск игрового времени
+            setInterval(() => {
+                if (!gameActive) return;
+                totalSeconds++;
+                let m = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+                let s = (totalSeconds % 60).toString().padStart(2, '0');
+                document.getElementById('gameClock').innerText = `⏳ Время Эпохи: ${m}:${s}`;
+            }, 100);
+
+            // Ресурсный цикл (каждые 100мс = 10 тиков в сек)
+            setInterval(() => {
+                if (!gameActive) return;
+                state.gold += (state.income.gold / 10) * globalProductionBonus;
+                state.steel += (state.income.steel / 10) * globalProductionBonus;
+                state.scrolls += (state.income.scrolls / 10) * globalProductionBonus;
+                state.glory = Math.min(100, state.glory + (state.income.glory / 10) * globalProductionBonus);
+                updateUI();
+            }, 100);
+
+            // Медленное затухание шкалы скорости
+            setInterval(() => {
+                if (!gameActive || speedBonusActive <= 0) return;
+                speedBonusActive = Math.max(0, speedBonusActive - 1);
+                updateUI();
+            }, 150);
+
+            recalcPrices();
+            generateMathQuestion();
+            updateUI();
+        }
+
+        function recalcPrices() {
+            for (let type in state.buildings) {
+                let b = state.buildings[type];
+                if (b.currency === 'glory') continue;
+                
+                // Базовый расчет из оригинального файла (Школы и Архивы зависят от золота, Камень дороже х2)
+                let multiplier = Math.pow(1.14, b.count);
+                b.curG = Math.floor(b.baseG * multiplier * state.discount);
+                b.curS = Math.floor(b.baseS * multiplier * 2 * state.discount); 
+                b.curSc = Math.floor(b.baseSc * multiplier * state.discount);
+            }
         }
 
         function updateUI() {
-            document.getElementById("val-gold").innerText = Math.floor(state.gold).toLocaleString();
-            document.getElementById("val-steel").innerText = Math.floor(state.steel).toLocaleString();
-            document.getElementById("val-scrolls").innerText = Math.floor(state.scrolls).toLocaleString();
-            document.getElementById("val-glory").innerText = `${state.glory.toFixed(4)}%`;
+            document.getElementById('val-gold').innerText = Math.floor(state.gold).toLocaleString();
+            document.getElementById('val-steel').innerText = Math.floor(state.steel).toLocaleString();
+            document.getElementById('val-scrolls').innerText = state.scrolls.toFixed(1);
+            document.getElementById('val-glory').innerText = state.glory.toFixed(5) + '%';
 
-            const inc = calculateIncome();
-            document.getElementById("inc-gold").innerText = `+${Math.floor(inc.gold)}/с`;
-            document.getElementById("inc-steel").innerText = `+${inc.steel.toFixed(1)}/с`;
-            document.getElementById("inc-scrolls").innerText = `+${inc.scrolls.toFixed(1)}/с`;
-            document.getElementById("inc-glory").innerText = `+${(inc.glory).toFixed(4)}%/с`;
+            document.getElementById('inc-gold').innerText = `+${(state.income.gold * globalProductionBonus).toFixed(1)}/с`;
+            document.getElementById('inc-steel').innerText = `+${(state.income.steel * globalProductionBonus).toFixed(1)}/с`;
+            document.getElementById('inc-scrolls').innerText = `+${(state.income.scrolls * globalProductionBonus).toFixed(1)}/с`;
+            document.getElementById('inc-glory').innerText = `+${(state.income.glory * globalProductionBonus).toFixed(5)}%/с`;
 
-            const comboEl = document.getElementById("comboBadge");
-            if (state.comboStreak >= 3) {
-                comboEl.style.display = "inline-block";
-                comboEl.innerText = `Серия: 🔥 х${state.combo.toFixed(1)}`;
-                if (state.comboStreak >= 10) comboEl.className = "combo-badge frenzy";
-                else comboEl.className = "combo-badge";
+            // Обновление панели комбо
+            const cb = document.getElementById('comboBadge');
+            if (state.combo >= 3) {
+                cb.style.display = 'inline-block';
+                cb.innerText = `Серия: 🔥 х${(1.0 + state.combo * comboStepBonus).toFixed(1)}`;
+                if (state.combo >= 10) cb.className = 'combo-badge frenzy';
+                else cb.className = 'combo-badge';
             } else {
-                comboEl.style.display = "none";
+                cb.style.display = 'none';
             }
 
-            const speedEl = document.getElementById("speedBadge");
-            if (questionTimeLeft > questionTimeMax * 0.6) {
-                let bonus = Math.floor((questionTimeLeft * speedBonusBaseFactor) * 100);
-                speedEl.className = "speed-badge active-speed";
-                speedEl.innerText = `Молния: +${bonus}%`;
-            } else {
-                speedEl.className = "speed-badge";
-                speedEl.innerText = `Скорость: +0%`;
-            }
+            // Обновление шкалы скорости
+            const sb = document.getElementById('speedBadge');
+            sb.innerText = `Скорость: +${speedBonusActive}%`;
+            if (speedBonusActive > 0) sb.className = 'speed-badge active-speed';
+            else sb.className = 'speed-badge';
 
-            Object.keys(buildings).forEach(type => {
-                const b = buildings[type];
-                const btn = document.getElementById(`btn-${type}`);
-                if (!btn) return;
+            // Обновление кнопок в магазине
+            for (let type in state.buildings) {
+                let b = state.buildings[type];
+                let btn = document.getElementById(`btn-${type}`);
+                if (!btn) continue;
 
-                let discount = Math.pow(0.94, buildings.theorem.count) * blessArchitectDiscount;
-                let multG = (type === 'blueprint' || type === 'scriptorium' || type === 'alchemical') ? 2.0 : 1.0;
-                let costG = Math.floor(b.baseCostG * Math.pow(1.24, b.count) * discount * multG);
-                let costS = Math.floor(b.baseCostS * Math.pow(1.22, b.count) * discount);
-                let costSc = Math.floor(b.costSc * Math.pow(1.15, b.count));
-
-                let cText = `${costG} 🪙`;
-                if (costS > 0) cText += ` | ${costS} 🧱`;
-                if (costSc > 0) cText += ` | ${costSc} 📜`;
-                document.getElementById(`cost-${type}`).innerText = cText;
-
-                if (state.gold >= costG && state.steel >= costS && state.scrolls >= costSc) {
-                    btn.className = `btn-build available`;
-                    btn.disabled = false;
+                let canBuy = false;
+                if (b.currency === 'glory') {
+                    let costGlory = (b.count + 1) * 5; // Цена благословений в % славы
+                    document.getElementById(`cost-${type}`).innerText = `${costGlory}% Славы`;
+                    canBuy = state.glory >= costGlory;
                 } else {
-                    btn.className = `btn-build locked`;
-                    btn.disabled = true;
+                    let txt = `${b.curG}🪙`;
+                    if (b.curS > 0) txt += ` ${b.curS}🧱`;
+                    if (b.curSc > 0) txt += ` ${b.curSc}📜`;
+                    document.getElementById(`cost-${type}`).innerText = txt;
+                    canBuy = state.gold >= b.curG && state.steel >= b.curS && state.scrolls >= b.curSc;
                 }
-            });
 
-            const examBtn = document.getElementById("btn-exam");
-            document.getElementById("finalCost").innerText = `${examTarget.gold.toLocaleString()} 🪙 | ${examTarget.steel} 🧱 | ${examTarget.scrolls} 📜 | ${examTarget.glory}% 👑`;
-            
-            if (state.gold >= examTarget.gold && state.steel >= examTarget.steel && state.scrolls >= examTarget.scrolls && state.glory >= examTarget.glory) {
-                examBtn.className = "btn-build btn-final available";
-                examBtn.disabled = false;
+                if (canBuy) {
+                    btn.className = 'btn-build available';
+                    btn.dataset.cat = btn.getAttribute('data-cat'); 
+                } else {
+                    btn.className = 'btn-build locked';
+                }
+            }
+
+            // Проверка условий Финального Экзамена
+            let examBtn = document.getElementById('btn-exam');
+            let gReq = state.gold >= activeMode.targetG;
+            let sReq = state.steel >= activeMode.targetS;
+            let scReq = state.scrolls >= activeMode.targetSc;
+            let glReq = state.glory >= activeMode.targetGl;
+
+            document.getElementById('finalCost').innerText = 
+                `${gReq?'✅':'❌'} ${(activeMode.targetG/1000).toFixed(0)}k🪙 ` +
+                `${sReq?'✅':'❌'} ${activeMode.targetS}🧱 ` +
+                `${scReq?'✅':'❌'} ${activeMode.targetSc}📜 ` +
+                `${glReq?'✅':'❌'} ${activeMode.targetGl}%👑`;
+
+            if (gReq && sReq && scReq && glReq) {
+                examBtn.className = 'btn-build btn-final available';
             } else {
-                examBtn.className = "btn-build btn-final locked";
-                examBtn.disabled = true;
+                examBtn.className = 'btn-build btn-final locked';
             }
         }
 
-        document.querySelectorAll(".btn-build").forEach(btn => {
-            btn.addEventListener("click", () => {
-                const type = btn.getAttribute("data-type");
-                if (!type || type === 'exam') return;
+        // Логика покупки улучшений и зданий
+        document.querySelectorAll('.btn-build').forEach(btn => {
+            btn.addEventListener('click', () => {
+                if (!gameActive) return;
+                let type = btn.getAttribute('data-type');
+                if (type === 'exam') {
+                    let gReq = state.gold >= activeMode.targetG;
+                    let sReq = state.steel >= activeMode.targetS;
+                    let scReq = state.scrolls >= activeMode.targetSc;
+                    let glReq = state.glory >= activeMode.targetGl;
+                    if (gReq && sReq && scReq && glReq) {
+                        gameActive = false;
+                        clearInterval(mathTimer);
+                        document.getElementById('winDesc').innerText = `${activeMode.desc}\nЭпоха завершена за ${Math.floor(totalSeconds/60)} мин ${totalSeconds%60} сек!\nОшибок совершено: ${wrongCount}.`;
+                        document.getElementById('winScreen').classList.add('active');
+                    }
+                    return;
+                }
 
-                const b = buildings[type];
-                let discount = Math.pow(0.94, buildings.theorem.count) * blessArchitectDiscount;
-                let multG = (type === 'blueprint' || type === 'scriptorium' || type === 'alchemical') ? 2.0 : 1.0;
-                
-                let costG = Math.floor(b.baseCostG * Math.pow(1.24, b.count) * discount * multG);
-                let costS = Math.floor(b.baseCostS * Math.pow(1.22, b.count) * discount);
-                let costSc = Math.floor(b.costSc * Math.pow(1.15, b.count));
+                let b = state.buildings[type];
+                if (b.currency === 'glory') {
+                    let costGlory = (b.count + 1) * 5;
+                    if (state.glory >= costGlory) {
+                        state.glory -= costGlory;
+                        
+                        // Эффекты благословений из вашего оригинального кода
+                        if (type === 'blessIncome') {
+                            globalProductionBonus += 0.25;
+                            spawnRewardText(`✨ Аура Изобилия: Продакшн +25%!`, window.innerWidth/2, window.innerHeight/2, '#f472b6', true);
+                        }
+                        if (type === 'blessClick') {
+                            mentalBreakthroughLevel++;
+                            spawnRewardText(`🔥 Ментальный Прорыв! Уровень клика: ${mentalBreakthroughLevel}`, window.innerWidth/2, window.innerHeight/2, '#f472b6', true);
+                        }
+                        if (type === 'blessQuantum') {
+                            state.critMultiplier += 1.5;
+                            spawnRewardText(`🌀 Квантовый Скачок: Крит стал мощнее!`, window.innerWidth/2, window.innerHeight/2, '#d8b4fe', true);
+                        }
+                        if (type === 'blessArchivist') {
+                            speedBonusBaseFactor += 0.05; 
+                            spawnRewardText(`🦅 Молния усилена! Множитель скорости повышен`, window.innerWidth/2, window.innerHeight/2, '#38bdf8', true);
+                        }
+                        if (type === 'blessArchitect') {
+                            blessArchitectDiscount *= 0.95;
+                            state.discount *= 0.95;
+                            spawnRewardText(`🧱 Стоимость построек упала на 5%!`, window.innerWidth/2, window.innerHeight/2, '#10b981', false);
+                        }
+                        if (type === 'blessInspiration') {
+                            comboStepBonus += 0.10; 
+                            spawnRewardText(`💡 Мастерство серии повышенно! Шаг комбо вырос`, window.innerWidth/2, window.innerHeight/2, '#ffd700', true);
+                        }
 
-                if (state.gold >= costG && state.steel >= costS && state.scrolls >= costSc) {
-                    state.gold -= costG;
-                    state.steel -= costS;
-                    state.scrolls -= costSc;
+                        b.count++;
+                        document.getElementById(`cnt-${type}`).innerText = b.count;
+                        recalcPrices();
+                        updateUI();
+                    }
+                } else {
+                    if (state.gold >= b.curG && state.steel >= b.curS && state.scrolls >= b.curSc) {
+                        state.gold -= b.curG;
+                        state.steel -= b.curS;
+                        state.scrolls -= b.curSc;
+                        b.count++;
 
-                    b.count++;
-                    document.getElementById(`cnt-${type}`).innerText = b.count;
+                        // Влияние построек на доходы
+                        if (type === 'abacus') state.income.gold += 1;
+                        if (type === 'blueprint') state.income.steel += 1;
+                        if (type === 'scriptorium') state.income.scrolls += 0.5;
+                        if (type === 'alchemical') { state.income.steel += 2.5; state.income.scrolls += 1; }
+                        
+                        if (type === 'book') {
+                            state.clickBase += 6;
+                            document.getElementById('meta-book').innerText = `Базовый клик: ${state.clickBase} ед.`;
+                        }
+                        if (type === 'theorem') {
+                            state.discount *= 0.94;
+                            document.getElementById('meta-theorem').innerText = `Скидка: -${((1 - state.discount)*100).toFixed(1)}%`;
+                        }
+                        if (type === 'critChance') {
+                            state.critChance += 0.05;
+                            document.getElementById('eff-critChance').innerText = `Шанс: ${(state.critChance*100).toFixed(0)}%`;
+                        }
+                        if (type === 'critMult') {
+                            state.critMultiplier += 1.0;
+                            document.getElementById('eff-critMult').innerText = `Множитель: ${state.critMultiplier.toFixed(1)}х`;
+                        }
 
-                    if (type === 'book') {
-                        document.getElementById("meta-book").innerText = `Базовый клик: ${12 + b.count * 6} ед.`;
-                    }
-                    if (type === 'theorem') {
-                        let totalDisc = (100 - (Math.pow(0.94, b.count) * blessArchitectDiscount * 100)).toFixed(1);
-                        document.getElementById("meta-theorem").innerText = `Скидка: -${totalDisc}%`;
-                    }
-                    if (type === 'critChance') {
-                        state.critChance = 0.05 + (b.count * 0.02);
-                        document.getElementById("eff-critChance").innerText = `Шанс: ${Math.floor(state.critChance * 100)}%`;
-                    }
-                    if (type === 'critMult') {
-                        state.critMultiplier = 4.0 + (b.count * 0.5);
-                        document.getElementById("eff-critMult").innerText = `Множитель: ${state.critMultiplier.toFixed(1)}х`;
-                    }
-                    if (type === 'blessQuantum') {
-                        state.critMultiplier += 1.5;
-                        spawnRewardText(`🌀 Квантовый Скачок: Крит усилен!`, window.innerWidth/2, window.innerHeight/2, '#d8b4fe', true);
-                    }
-                    if (type === 'blessArchivist') {
-                        speedBonusBaseFactor += 0.05; 
-                        document.getElementById("eff-blessArchivist").innerText = `Сила Молнии: +${5 + b.count * 5}%`;
-                        spawnRewardText(`🦅 Скоростная молния усилена!`, window.innerWidth/2, window.innerHeight/2, '#38bdf8', true);
-                    }
-                    if (type === 'blessArchitect') {
-                        blessArchitectDiscount *= 0.95;
-                        spawnRewardText(`🧱 Стоимость построек упала на 5%!`, window.innerWidth/2, window.innerHeight/2, '#10b981', false);
-                    }
-                    if (type === 'blessInspiration') {
-                        comboStepBonus += 0.10; 
-                        document.getElementById("eff-blessInspiration").innerText = `Шаг серии: +${(0.1 + comboStepBonus).toFixed(1)}х`;
-                        spawnRewardText(`💡 Мастерство серии комбо повышено!`, window.innerWidth/2, window.innerHeight/2, '#ffd700', true);
-                    }
+                        if (type === 'geometry') { state.income.gold += 3; state.income.glory += 0.00015; }
+                        if (type === 'patent') state.income.glory += 0.00025;
+                        if (type === 'astral') { state.income.glory += 0.00075; state.clickBase += 3; }
+                        if (type === 'manifesto') state.income.glory += 0.00225;
 
-                    updateUI();
+                        document.getElementById(`cnt-${type}`).innerText = b.count;
+                        recalcPrices();
+                        updateUI();
+                    }
                 }
             });
         });
 
-        document.getElementById("btn-exam").addEventListener("click", () => {
-            if (state.gold >= examTarget.gold && state.steel >= examTarget.steel && state.scrolls >= examTarget.scrolls && state.glory >= examTarget.glory) {
-                gameActive = false;
-                clearInterval(questionTimerInterval);
-                
-                const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
-                const m = Math.floor(elapsedSec / 60);
-                const s = elapsedSec % 60;
-
-                const winScreen = document.getElementById("winScreen");
-                const winDesc = document.getElementById("winDesc");
-                
-                winDesc.innerHTML = `Вы воздвигли непоколебимую Цитадель Разума!<br><br>` +
-                                    `🧬 Время вознесения: <b>${m} мин. ${s} сек.</b><br>` +
-                                    `✅ Решено уравнений: <b>${state.correctCount}</b><br>` +
-                                    `❌ Допущено ошибок: <b>${state.wrongCount}</b><br><br>` +
-                                    `Ваше имя навечно вписано в скрижали Ордена Света!`;
-                
-                winScreen.classList.add("active");
-            }
-        });
-
-        let canvas, ctx;
-        function initCanvas() {
-            canvas = document.getElementById("cityCanvas");
-            ctx = canvas.getContext("2d");
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-            requestAnimationFrame(drawCityLoop);
-        }
-
+        // Визуальный фон (Canvas) из оригинального файла
+        const canvas = document.getElementById('cityCanvas');
+        const ctx = canvas.getContext('2d');
         function resizeCanvas() {
-            if(canvas) {
-                canvas.width = canvas.parentElement.clientWidth;
-                canvas.height = canvas.parentElement.clientHeight;
-            }
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        let stars = [];
+        for(let i=0; i<60; i++) {
+            stars.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                r: Math.random() * 1.5 + 0.5,
+                d: Math.random() * 2
+            });
         }
 
-        function drawCityLoop() {
-            if(!canvas || !ctx) return;
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-            ctx.strokeStyle = "rgba(6, 182, 212, 0.04)";
-            ctx.lineWidth = 1;
-            const gridSize = 40;
-            for(let x=0; x<canvas.width; x+=gridSize) {
-                ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
-            }
-            for(let y=0; y<canvas.height; y+=gridSize) {
-                ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
-            }
-
-            const totalProd = buildings.abacus.count + buildings.blueprint.count + buildings.scriptorium.count + buildings.alchemical.count;
-            ctx.fillStyle = "rgba(6, 182, 212, 0.08)";
-            
-            for(let i=0; i<Math.min(15, totalProd); i++) {
-                let w = 35 + (i % 3) * 10;
-                let h = 60 + (i % 5) * 20;
-                let x = 20 + (i * 50) % (canvas.width - 60);
-                let y = canvas.height - h;
-                
-                ctx.fillRect(x, y, w, h);
-                ctx.strokeStyle = "rgba(6, 182, 212, 0.15)";
-                ctx.strokeRect(x, y, w, h);
-            }
-
-            requestAnimationFrame(drawCityLoop);
+        function drawBg() {
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle = "rgba(255,255,255,0.3)";
+            stars.forEach(s => {
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.r, 0, Math.PI*2);
+                ctx.fill();
+                s.y += 0.2;
+                if(s.y > canvas.height) s.y = 0;
+            });
+            requestAnimationFrame(drawBg);
         }
+        drawBg();
     </script>
 </body>
 </html>
