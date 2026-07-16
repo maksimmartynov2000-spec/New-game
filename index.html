@@ -72,7 +72,6 @@
             font-size: 0.85rem; margin-bottom: 20px; text-align: center;
         }
 
-        /* Удобная панель генератора на стартовом экране */
         .generator-panel {
             width: 100%;
             max-width: 440px;
@@ -511,7 +510,7 @@
                 <div class="info-text"><strong>Ментальный Прорыв</strong><span>Дает мощнейшие +20% к Талантам и к Славе от клика параллельно!</span></div>
             </div>
         </div>
-        <button class="btn-start-game" onclick="startGame()">⚔️ Вступить в Орден Света</button>
+        <button class="btn-start-game" onclick="startGame()">⚔️ Вступить в Ордн Света</button>
     </div>
 
     <div class="top-panel-wrapper">
@@ -698,11 +697,10 @@
     </div>
 
     <script>
-        // Глобальные конфигурационные данные кастомного генератора примеров
         let gameConfig = {
-            numType: 'positive', // 'positive' или 'negative'
-            modes: [],           // Массив из выбранных ['add', 'sub', 'mul', 'div']
-            difficulties: {      // Звездные уровни сложности по операциям
+            numType: 'positive',
+            modes: [],
+            difficulties: {
                 add: 1,
                 sub: 1,
                 mul: 1,
@@ -710,7 +708,6 @@
             }
         };
 
-        // Состояния игры и ресурсы
         const state = {
             gold: 0,
             steel: 0,
@@ -725,7 +722,6 @@
             examPassed: false
         };
 
-        // Целевые требования для сдачи Великого Экзамена
         const examTarget = {
             gold: 15000000,
             steel: 8000,
@@ -733,12 +729,10 @@
             glory: 100
         };
 
-        // Вспомогательные переменные апгрейдов
         let speedBonusBaseFactor = 0.05;
         let blessArchitectDiscount = 1.0;
         let comboStepBonus = 0.0; 
 
-        // Таймер вопроса
         let questionTimeMax = 15;
         let questionTimeLeft = 15;
         let questionTimerInterval = null;
@@ -746,7 +740,6 @@
         let gameActive = false;
         let startTime = 0;
 
-        // Постройки и их начальные параметры
         const buildings = {
             abacus: { count: 0, baseCostG: 60, baseCostS: 0, costSc: 0 },
             blueprint: { count: 0, baseCostG: 180, baseCostS: 0, costSc: 0 },
@@ -768,7 +761,6 @@
             blessInspiration: { count: 0, baseCostG: 200000, baseCostS: 15000, costSc: 3000 }
         };
 
-        // Инициализация кастомного генератора со стартового экрана
         function initCustomConfig() {
             const numTypeEl = document.querySelector('input[name="numType"]:checked');
             gameConfig.numType = numTypeEl ? numTypeEl.value : 'positive';
@@ -785,7 +777,6 @@
             gameConfig.difficulties.mul = parseInt(document.getElementById('diff-mul').value);
             gameConfig.difficulties.div = parseInt(document.getElementById('diff-div').value);
 
-            // Переход на экран брифинга
             document.getElementById("startScreen").style.display = "none";
             document.getElementById("briefingScreen").style.display = "flex";
         }
@@ -799,7 +790,6 @@
             updateUI();
             generateMathQuestion();
 
-            // Основной игровой такт ресурсов (1 раз в секунду)
             setInterval(() => {
                 if (!gameActive) return;
                 const income = calculateIncome();
@@ -811,32 +801,28 @@
                 updateUI();
             }, 1000);
 
-            // Внутренний таймер вопроса
             questionTimerInterval = setInterval(() => {
                 if (!gameActive) return;
                 questionTimeLeft -= 0.1;
                 if (questionTimeLeft <= 0) {
-                    processAnswer(null); // Время истекло - ошибка
+                    processAnswer(null);
                 } else {
                     updateTimerBar();
                 }
             }, 100);
 
-            // Анимационный цикл игрового времени цитадели
             setInterval(() => {
                 if (!gameActive) return;
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
                 const m = String(Math.floor(elapsedSec / 60)).padStart(2, '0');
-                const s = String(elapsedSec % 60)).padStart(2, '0');
+                const s = String(elapsedSec % 60).padStart(2, '0');
                 document.getElementById("gameClock").innerText = `⏳ Время Эпохи: ${m}:${s}`;
             }, 1000);
         }
 
-        // Вычисление инкремента производства в секунду
         function calculateIncome() {
             let g = 0, st = 0, sc = 0, gl = 0;
 
-            // Базовое производство зданий
             g += buildings.abacus.count * 1.0;
             st += buildings.blueprint.count * 1.0;
             sc += buildings.scriptorium.count * 0.5;
@@ -851,7 +837,6 @@
             gl += buildings.astral.count * 0.00075;
             gl += buildings.manifesto.count * 0.00225;
 
-            // Модификаторы благословений
             let incMultiplier = 1.0 + (buildings.blessIncome.count * 0.25);
             g *= incMultiplier;
             st *= incMultiplier;
@@ -869,18 +854,13 @@
             }
         }
 
-        // Получение случайного числа из диапазона
         function randRange(min, max) {
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
 
-        // ==========================================
-        // ЯДРО СИСТЕМЫ ГЕНЕРАЦИИ МАТЕМАТИЧЕСКИХ ПРИМЕРОВ
-        // ==========================================
         function generateMathQuestion() {
             if (!gameActive) return;
 
-            // Выбираем случайный режим из отмеченных пользователем
             const currentMode = gameConfig.modes[Math.floor(Math.random() * gameConfig.modes.length)];
             const currentDiff = gameConfig.difficulties[currentMode];
 
@@ -888,12 +868,8 @@
             let questionText = '';
 
             if (gameConfig.numType === 'positive') {
-                // ------------------------------------------
-                // ПОЛОЖИТЕЛЬНЫЕ ЧИСЛА
-                // ------------------------------------------
                 if (currentMode === 'add' || currentMode === 'sub') {
                     if (currentDiff === 1) {
-                        // 1. Сложение и вычитание без перехода через десяток в рамках 10
                         if (currentMode === 'add') {
                             num1 = randRange(0, 10);
                             num2 = randRange(0, 10 - num1);
@@ -902,7 +878,6 @@
                             num2 = randRange(0, num1);
                         }
                     } else if (currentDiff === 2) {
-                        // 2. Сложение и вычитание в рамках 20
                         if (currentMode === 'add') {
                             num1 = randRange(0, 20);
                             num2 = randRange(0, 20 - num1);
@@ -911,14 +886,12 @@
                             num2 = randRange(0, num1);
                         }
                     } else if (currentDiff === 3) {
-                        // 3. Сложение и вычитание (каждое число не больше 30)
                         num1 = randRange(0, 30);
                         num2 = randRange(0, 30);
                         if (currentMode === 'sub' && num1 < num2) {
                             let tmp = num1; num1 = num2; num2 = tmp;
                         }
                     } else if (currentDiff === 4) {
-                        // 4. Сложение и вычитание в рамках 100 (и числа, и ответы)
                         if (currentMode === 'add') {
                             num1 = randRange(0, 100);
                             num2 = randRange(0, 100 - num1);
@@ -927,7 +900,6 @@
                             num2 = randRange(0, num1);
                         }
                     } else if (currentDiff === 5) {
-                        // 5. Сложение и вычитание в рамках 200 (и числа, и ответы)
                         if (currentMode === 'add') {
                             num1 = randRange(0, 200);
                             num2 = randRange(0, 200 - num1);
@@ -948,12 +920,10 @@
                     if (currentDiff <= 3) {
                         num2 = allowedMultipliers[Math.floor(Math.random() * allowedMultipliers.length)];
                         num1 = randRange(0, 10);
-                        // Таблица умножения числа до 10 на определенный множитель
                         if (currentMode === 'mul') {
                             answer = num1 * num2;
                             questionText = `${num1} × ${num2} = ?`;
                         } else {
-                            // Деление аналогичное умножению (даже деление на нуль -> решения нет)
                             if (num2 === 0) {
                                 answer = "нет решения";
                                 questionText = `${num1} ÷ 0 = ?`;
@@ -964,7 +934,6 @@
                             }
                         }
                     } else if (currentDiff === 4) {
-                        // Вся таблица умножения и аналогичное деление
                         num1 = randRange(0, 10);
                         num2 = randRange(0, 10);
                         if (currentMode === 'mul') {
@@ -981,15 +950,13 @@
                             }
                         }
                     } else if (currentDiff === 5) {
-                        // Умножение двузначного числа (10-99) на число от 0 до 10 включительно
                         num1 = randRange(10, 99);
                         num2 = randRange(0, 10);
                         if (currentMode === 'mul') {
                             answer = num1 * num2;
                             questionText = `${num1} × ${num2} = ?`;
                         } else {
-                            // Аналогичное деление (ответ от умножения делить на число от 0 до 10, на 0 нельзя)
-                            num2 = randRange(1, 10); // Исключаем 0 из делителя по условию
+                            num2 = randRange(1, 10);
                             let product = num1 * num2;
                             answer = num1;
                             questionText = `${product} ÷ ${num2} = ?`;
@@ -997,9 +964,6 @@
                     }
                 }
             } else {
-                // ------------------------------------------
-                // ОТРИЦАТЕЛЬНЫЕ ЧИСЛА
-                // ------------------------------------------
                 let limit = 10;
                 if (currentDiff === 2) limit = 20;
                 if (currentDiff === 3) limit = 50;
@@ -1007,7 +971,6 @@
                 if (currentDiff === 5) limit = 200;
 
                 if (currentMode === 'add' || currentMode === 'sub') {
-                    // Сложение и вычитание чисел в рамках лимита по модулю (от -limit до +limit)
                     num1 = randRange(-limit, limit);
                     num2 = randRange(-limit, limit);
 
@@ -1018,18 +981,15 @@
                         answer = num1 - num2;
                         operatorSymbol = '-';
                     }
-                    // Форматируем вывод отрицательного второго аргумента скобками для красоты
                     let num2Str = num2 < 0 ? `(${num2})` : `${num2}`;
                     questionText = `${num1} ${operatorSymbol} ${num2Str} = ?`;
 
                 } else if (currentMode === 'mul' || currentMode === 'div') {
-                    // Умножение и деление
                     let allowedMultipliers = [0, 1, 2, 5, 10];
                     if (currentDiff === 2) allowedMultipliers = [0, 1, 2, 3, 4, 5, 9, 10];
                     if (currentDiff === 3) allowedMultipliers = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
                     
                     if (currentDiff <= 3) {
-                        // Умножение полож/отриц однозначных чисел на полож/отриц из набора
                         let baseNum = randRange(1, 9) * (Math.random() < 0.5 ? 1 : -1);
                         let mult = allowedMultipliers[Math.floor(Math.random() * allowedMultipliers.length)];
                         mult = mult * (Math.random() < 0.5 ? 1 : -1);
@@ -1050,10 +1010,9 @@
                             }
                         }
                     } else if (currentDiff === 4) {
-                        // Умножение полож/отриц чисел до 20 включительно на полож/отриц однозначное
                         num1 = randRange(-20, 20);
                         num2 = randRange(-9, 9);
-                        if (num2 === 0 && Math.random() < 0.5) num2 = randRange(1, 9); // Снизим шанс нулей
+                        if (num2 === 0 && Math.random() < 0.5) num2 = randRange(1, 9);
 
                         if (currentMode === 'mul') {
                             answer = num1 * num2;
@@ -1071,8 +1030,6 @@
                             }
                         }
                     } else if (currentDiff === 5) {
-                        // Умножение полож/отриц двузначных чисел на полож/отриц однозначное
-                        // Двузначные по модулю: 10-99
                         let sign1 = Math.random() < 0.5 ? 1 : -1;
                         num1 = randRange(10, 99) * sign1;
                         num2 = randRange(-9, 9);
@@ -1096,13 +1053,9 @@
                 }
             }
 
-            // Запоминаем верный ответ
             currentCorrectAnswer = answer;
-
-            // Отображаем на панели Цитадели
             document.getElementById("mathQuestion").innerText = questionText;
 
-            // Генерируем варианты ответов
             const choices = generateChoices(answer);
             const grid = document.getElementById("answersGrid");
             grid.innerHTML = '';
@@ -1115,13 +1068,11 @@
                 grid.appendChild(btn);
             });
 
-            // Восстанавливаем шкалу времени в зависимости от уровня
             questionTimeMax = Math.max(6, 16 - currentDiff * 2); 
             questionTimeLeft = questionTimeMax;
             updateTimerBar();
         }
 
-        // Генерация фейковых вариантов ответа
         function generateChoices(correct) {
             const set = new Set();
             set.add(correct.toString());
@@ -1140,14 +1091,12 @@
                     let fake = val + offset;
                     set.add(fake.toString());
                 }
-                // Если не добрали
                 while(set.size < 4) {
                     set.add((val + randRange(-20, 20)).toString());
                 }
             }
 
             const arr = Array.from(set);
-            // Перемешивание алгоритмом Фишера-Йетса
             for (let i = arr.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -1155,7 +1104,6 @@
             return arr;
         }
 
-        // Обработка клика по ответу
         function processAnswer(selected) {
             if (!gameActive) return;
 
@@ -1166,7 +1114,6 @@
                 state.correctCount++;
                 state.comboStreak++;
 
-                // Бонусная серия комбо
                 let step = 0.1 + comboStepBonus;
                 if (state.comboStreak >= 10) {
                     state.combo = Math.min(5.0, state.combo + step * 1.5);
@@ -1174,15 +1121,12 @@
                     state.combo = Math.min(3.0, state.combo + step);
                 }
 
-                // Вспышка верного ответа
                 box.style.borderColor = "#10b981";
                 box.style.boxShadow = "0 0 25px rgba(16, 185, 129, 0.5)";
 
-                // Расчёт награды за верный клик
                 let baseGoldClick = 12 + (buildings.book.count * 6);
                 let baseGloryClick = 0.00001 + (buildings.book.count * 0.00001);
 
-                // Дополнительный бонус за скорость
                 let speedFactor = 1.0;
                 if (questionTimeLeft > questionTimeMax * 0.6) {
                     speedFactor += (questionTimeLeft * speedBonusBaseFactor);
@@ -1191,38 +1135,31 @@
                 let finalG = baseGoldClick * state.combo * speedFactor;
                 let finalGl = baseGloryClick * state.combo * speedFactor;
 
-                // Увеличение от клика астрального знамения
                 finalG += buildings.astral.count * 3;
 
-                // Ментальный прорыв (+20% за каждый свиток)
                 let blessFactor = 1.0 + (buildings.blessClick.count * 0.20);
                 finalG *= blessFactor;
                 finalGl *= blessFactor;
 
-                // Проверка критического удара
                 let isCrit = Math.random() < state.critChance;
                 if (isCrit) {
                     finalG *= state.critMultiplier;
                     finalGl *= state.critMultiplier;
                 }
 
-                // Добавление ресурсов игроку
                 state.gold += finalG;
                 state.glory = Math.min(100, state.glory + finalGl);
 
-                // Одноразовый шанс получить Свиток Знаний (12% базово + серия)
                 if (Math.random() < 0.12 + (state.comboStreak * 0.005)) {
                     state.scrolls += 1;
                     spawnRewardText(`+1 📜`, window.innerWidth/2, window.innerHeight/2 - 40, '#f59e0b', false);
                 }
 
-                // Анимация текста награды
                 let rewardText = `+${Math.floor(finalG)} 🪙`;
                 if (isCrit) rewardText = `💥 КРИТ! ${rewardText}`;
                 spawnRewardText(rewardText, window.innerWidth/2, window.innerHeight/2, isCrit ? varColor('royal') : varColor('gold'), isCrit);
 
             } else {
-                // Ошибка
                 state.wrongCount++;
                 state.combo = 1.0;
                 state.comboStreak = 0;
@@ -1235,7 +1172,6 @@
             document.getElementById("stat-correct").innerText = state.correctCount;
             document.getElementById("stat-wrong").innerText = state.wrongCount;
 
-            // Сброс свечения рамки
             setTimeout(() => {
                 if(box) {
                     box.style.borderColor = "var(--cyan)";
@@ -1243,7 +1179,6 @@
                 }
             }, 250);
 
-            // Переход к следующему вычислению
             updateUI();
             generateMathQuestion();
         }
@@ -1254,7 +1189,6 @@
             return '#ffffff';
         }
 
-        // Всплывающий текст наград
         function spawnRewardText(text, x, y, color, isCrit) {
             const el = document.createElement("div");
             el.className = `floating-reward ${isCrit ? 'crit' : ''}`;
@@ -1266,21 +1200,18 @@
             setTimeout(() => el.remove(), isCrit ? 1700 : 1400);
         }
 
-        // Обновление интерфейса Цитадели
         function updateUI() {
             document.getElementById("val-gold").innerText = Math.floor(state.gold).toLocaleString();
             document.getElementById("val-steel").innerText = Math.floor(state.steel).toLocaleString();
             document.getElementById("val-scrolls").innerText = Math.floor(state.scrolls).toLocaleString();
             document.getElementById("val-glory").innerText = `${state.glory.toFixed(4)}%`;
 
-            // Отображение прироста ресурсов
             const inc = calculateIncome();
             document.getElementById("inc-gold").innerText = `+${Math.floor(inc.gold)}/с`;
             document.getElementById("inc-steel").innerText = `+${inc.steel.toFixed(1)}/с`;
             document.getElementById("inc-scrolls").innerText = `+${inc.scrolls.toFixed(1)}/с`;
             document.getElementById("inc-glory").innerText = `+${(inc.glory).toFixed(4)}%/с`;
 
-            // Обновление плашек серии комбо и скорости
             const comboEl = document.getElementById("comboBadge");
             if (state.comboStreak >= 3) {
                 comboEl.style.display = "inline-block";
@@ -1301,28 +1232,22 @@
                 speedEl.innerText = `Скорость: +0%`;
             }
 
-            // Обновление кнопок магазина
             Object.keys(buildings).forEach(type => {
                 const b = buildings[type];
                 const btn = document.getElementById(`btn-${type}`);
                 if (!btn) return;
 
-                // Вычисление динамической стоимости с учетом скидок
                 let discount = Math.pow(0.94, buildings.theorem.count) * blessArchitectDiscount;
-                
-                // Камень стоит в 2 раза дороже в золоте
                 let multG = (type === 'blueprint' || type === 'scriptorium' || type === 'alchemical') ? 2.0 : 1.0;
                 let costG = Math.floor(b.baseCostG * Math.pow(1.24, b.count) * discount * multG);
                 let costS = Math.floor(b.baseCostS * Math.pow(1.22, b.count) * discount);
                 let costSc = Math.floor(b.costSc * Math.pow(1.15, b.count));
 
-                // Текст ценников
                 let cText = `${costG} 🪙`;
                 if (costS > 0) cText += ` | ${costS} 🧱`;
                 if (costSc > 0) cText += ` | ${costSc} 📜`;
                 document.getElementById(`cost-${type}`).innerText = cText;
 
-                // Проверка доступности покупки
                 if (state.gold >= costG && state.steel >= costS && state.scrolls >= costSc) {
                     btn.className = `btn-build available`;
                     btn.disabled = false;
@@ -1332,7 +1257,6 @@
                 }
             });
 
-            // Обновление финальной кнопки Экзамена
             const examBtn = document.getElementById("btn-exam");
             document.getElementById("finalCost").innerText = `${examTarget.gold.toLocaleString()} 🪙 | ${examTarget.steel} 🧱 | ${examTarget.scrolls} 📜 | ${examTarget.glory}% 👑`;
             
@@ -1345,7 +1269,6 @@
             }
         }
 
-        // Логика покупки улучшений
         document.querySelectorAll(".btn-build").forEach(btn => {
             btn.addEventListener("click", () => {
                 const type = btn.getAttribute("data-type");
@@ -1367,7 +1290,6 @@
                     b.count++;
                     document.getElementById(`cnt-${type}`).innerText = b.count;
 
-                    // Применение моментальных бонусов при улучшении
                     if (type === 'book') {
                         document.getElementById("meta-book").innerText = `Базовый клик: ${12 + b.count * 6} ед.`;
                     }
@@ -1407,13 +1329,11 @@
             });
         });
 
-        // Сдача Великого Экзамена
         document.getElementById("btn-exam").addEventListener("click", () => {
             if (state.gold >= examTarget.gold && state.steel >= examTarget.steel && state.scrolls >= examTarget.scrolls && state.glory >= examTarget.glory) {
                 gameActive = false;
                 clearInterval(questionTimerInterval);
                 
-                // Расчет времени
                 const elapsedSec = Math.floor((Date.now() - startTime) / 1000);
                 const m = Math.floor(elapsedSec / 60);
                 const s = elapsedSec % 60;
@@ -1431,9 +1351,6 @@
             }
         });
 
-        // ==========================================
-        // ГРАФИЧЕСКИЙ ДВИЖОК ЦИТАДЕЛИ (CANVAS)
-        // ==========================================
         let canvas, ctx;
         function initCanvas() {
             canvas = document.getElementById("cityCanvas");
@@ -1450,12 +1367,10 @@
             }
         }
 
-        // Рисуем стилизованную абстрактную неоновую математическую матрицу башен Цитадели
         function drawCityLoop() {
             if(!canvas || !ctx) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // Сетка фона Цитадели
             ctx.strokeStyle = "rgba(6, 182, 212, 0.04)";
             ctx.lineWidth = 1;
             const gridSize = 40;
@@ -1466,7 +1381,6 @@
                 ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
             }
 
-            // Отрисовка башен (в зависимости от количества зданий)
             const totalProd = buildings.abacus.count + buildings.blueprint.count + buildings.scriptorium.count + buildings.alchemical.count;
             ctx.fillStyle = "rgba(6, 182, 212, 0.08)";
             
