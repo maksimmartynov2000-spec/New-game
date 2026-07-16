@@ -52,8 +52,7 @@
             top: 0; left: 0; width: 100%; height: 100%;
             background: radial-gradient(circle at center, #111324 0%, #030408 100%);
             z-index: 200;
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
             justify-content: center; align-items: center;
             padding: 20px;
             padding-top: calc(20px + env(safe-area-inset-top));
@@ -62,126 +61,40 @@
         }
 
         .start-title {
-            color: var(--gold);
-            font-size: 1.8rem; text-align: center; margin-bottom: 5px;
+            color: var(--gold); font-size: 1.8rem; text-align: center; margin-bottom: 5px;
             text-shadow: 0 0 10px rgba(255,215,0,0.2);
         }
 
         .start-subtitle {
-            color: #94a3b8;
-            font-size: 0.85rem; margin-bottom: 20px; text-align: center;
+            color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px; text-align: center;
         }
 
-        .setup-container {
-            width: 100%;
-            max-width: 440px;
-            background: rgba(15, 18, 32, 0.95);
+        .mode-list {
+            width: 100%; max-width: 420px; display: flex; flex-direction: column; gap: 10px;
+        }
+
+        .btn-mode {
+            background: rgba(255, 255, 255, 0.03);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 16px;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+            border-radius: 12px; padding: 12px 15px;
+            color: white; text-align: left; cursor: pointer;
         }
-
-        .setup-section-title {
-            color: var(--cyan);
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            border-bottom: 1px solid rgba(6, 182, 212, 0.2);
-            padding-bottom: 4px;
-            margin-bottom: 5px;
-        }
-
-        .radio-group, .mode-checkbox-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .custom-label {
-            display: flex;
-            align-items: center;
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            padding: 10px;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .custom-label:hover {
-            background: rgba(255, 255, 255, 0.07);
-        }
-        .custom-label input {
-            margin-right: 10px;
-            transform: scale(1.1);
-        }
-
-        .mode-row {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 10px;
-            padding: 10px;
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-
-        .mode-row-top {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .mode-row-top label {
-            display: flex;
-            align-items: center;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.95rem;
-        }
-
-        .mode-row-top input {
-            margin-right: 8px;
-        }
-
-        .star-select {
-            background: #0f1220;
-            color: var(--gold);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 6px;
-            padding: 3px 6px;
-            font-size: 0.85rem;
-            outline: none;
-            cursor: pointer;
-        }
-
-        .btn-action-start {
-            width: 100%;
-            background: linear-gradient(45deg, #0284c7, #06b6d4);
-            border: none; color: white; padding: 14px; font-size: 1.1rem;
-            font-weight: bold; border-radius: 12px;
-            cursor: pointer;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(6, 182, 212, 0.3);
-            margin-top: 5px;
-        }
-        .btn-action-start:active {
-            transform: scale(0.98);
-        }
+        .btn-mode.m-1 { border-left: 4px solid #10b981; }
+        .btn-mode.m-2 { border-left: 4px solid #3b82f6; }
+        .btn-mode.m-3 { border-left: 4px solid var(--gold); }
+        .btn-mode.m-4 { border-left: 4px solid var(--royal); }
+        .btn-mode.m-5 { border-left: 4px solid #ef4444; }
+        .btn-mode .m-title { font-weight: bold; font-size: 1rem; display: block; margin-bottom: 2px; }
+        .btn-mode .m-desc { font-size: 0.75rem; color: #94a3b8; display: block; }
 
         .info-container {
-            width: 100%;
-            max-width: 450px; background: rgba(15, 18, 32, 0.95);
+            width: 100%; max-width: 450px; background: rgba(15, 18, 32, 0.95);
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;
-            padding: 20px; max-height: 65vh;
-            overflow-y: auto;
+            padding: 20px; max-height: 65vh; overflow-y: auto;
         }
 
         .info-section-title {
-            color: var(--cyan);
-            font-size: 0.95rem; text-transform: uppercase;
+            color: var(--cyan); font-size: 0.95rem; text-transform: uppercase;
             letter-spacing: 1px; margin: 15px 0 8px 0;
             border-bottom: 1px solid rgba(6, 182, 212, 0.2); padding-bottom: 4px;
         }
@@ -192,54 +105,47 @@
         .info-text span { color: #94a3b8; }
 
         .btn-start-game {
-            width: 100%;
-            max-width: 450px; background: linear-gradient(45deg, #0284c7, #06b6d4);
+            width: 100%; max-width: 450px; background: linear-gradient(45deg, #0284c7, #06b6d4);
             border: none; color: white; padding: 15px; font-size: 1.1rem;
-            font-weight: bold; border-radius: 12px; margin-top: 15px;
-            cursor: pointer;
+            font-weight: bold; border-radius: 12px; margin-top: 15px; cursor: pointer;
         }
 
         .top-panel-wrapper {
-            flex-shrink: 0;
-            background: var(--panel-bg);
+            flex-shrink: 0; background: var(--panel-bg);
             border-bottom: 2px solid rgba(255, 215, 0, 0.15); z-index: 10;
             display: flex; flex-direction: column;
             width: 100%; overflow: hidden;
         }
 
         .game-clock-bar {
-            text-align: center;
-            font-size: 0.8rem; color: var(--gold);
+            text-align: center; font-size: 0.8rem; color: var(--gold);
             background: rgba(0, 0, 0, 0.25); padding: 4px 0; font-weight: bold;
             padding-top: calc(4px + env(safe-area-inset-top));
         }
 
         header {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px;
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 8px;
             padding-left: calc(8px + env(safe-area-inset-left));
             padding-right: calc(8px + env(safe-area-inset-right));
             width: 100%;
         }
 
         .resource-card {
-            display: flex;
-            flex-direction: column; align-items: center; justify-content: center;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
             padding: 6px; border-radius: 10px; background: rgba(0, 0, 0, 0.4);
             border: 1px solid rgba(255,255,255,0.05);
             overflow: hidden; min-width: 0;
         }
         .res-label { font-size: 0.7rem; color: #94a3b8; white-space: nowrap; }
         .res-val { 
-            font-size: clamp(0.75rem, 2.5vw, 1.05rem);
+            font-size: clamp(0.75rem, 2.5vw, 1.05rem); 
             font-weight: bold; margin-top: 1px; 
             white-space: nowrap; text-overflow: ellipsis; overflow: hidden; width: 100%; text-align: center;
         }
         .res-inc { font-size: 0.6rem; color: #cbd5e1; opacity: 0.8; white-space: nowrap; }
 
         .game-space {
-            flex: 1;
-            position: relative; display: flex; flex-direction: column;
+            flex: 1; position: relative; display: flex; flex-direction: column;
             justify-content: center; align-items: center; padding: 10px; min-height: 0;
             width: 100%;
         }
@@ -247,8 +153,7 @@
         #cityCanvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
 
         .math-box {
-            position: relative;
-            z-index: 2; background: rgba(5, 7, 15, 0.9);
+            position: relative; z-index: 2; background: rgba(5, 7, 15, 0.9);
             border: 2px solid var(--cyan); box-shadow: 0 0 25px rgba(6, 182, 212, 0.25);
             border-radius: 16px; padding: 16px; text-align: center; width: 100%; max-width: 360px;
             backdrop-filter: blur(8px);
@@ -257,18 +162,15 @@
 
         .badge-container { display: flex; justify-content: center; gap: 8px; margin-bottom: 8px; }
         .combo-badge {
-            background: linear-gradient(45deg, #ef4444, #f59e0b);
-            color: white;
+            background: linear-gradient(45deg, #ef4444, #f59e0b); color: white;
             padding: 2px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;
         }
         .combo-badge.frenzy { background: linear-gradient(45deg, #a855f7, #ec4899); }
-        .speed-badge { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255,255,255,0.1);
-            color: #94a3b8; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; }
+        .speed-badge { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; }
         .speed-badge.active-speed { background: linear-gradient(45deg, #0284c7, #06b6d4); color: white; border: none; }
 
         .stats-counter-row {
-            font-size: 0.75rem;
-            color: #94a3b8; margin-bottom: 10px;
+            font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;
             background: rgba(255,255,255,0.03); padding: 4px; border-radius: 6px;
             display: flex; justify-content: center; gap: 12px; border: 1px solid rgba(255,255,255,0.05);
         }
@@ -276,21 +178,19 @@
 
         .timer-bar-container { width: 100%; height: 5px; background: rgba(255,255,255,0.05); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
         .timer-bar { width: 100%; height: 100%; background: var(--cyan); }
-        .math-question { font-size: 2.0rem; font-weight: bold; margin-bottom: 14px; color: var(--text-light); word-break: break-all; }
+        .math-question { font-size: 2.2rem; font-weight: bold; margin-bottom: 14px; color: var(--text-light); }
         .answers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         
         .btn-answer {
-            background: rgba(6, 182, 212, 0.06);
-            border: 1px solid rgba(6, 182, 212, 0.3);
-            color: white; padding: 14px; border-radius: 12px; font-size: 1.15rem; font-weight: bold;
-            cursor: pointer;
-            position: relative; transition: background 0.1s, transform 0.1s;
+            background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.3);
+            color: white; padding: 14px; border-radius: 12px; font-size: 1.25rem; font-weight: bold;
+            cursor: pointer; position: relative; transition: background 0.1s, transform 0.1s;
         }
         .btn-answer:active { transform: scale(0.95); background: rgba(6, 182, 212, 0.2); }
 
+        /* Анимации наград укорочены на 20% */
         .floating-reward {
-            position: fixed;
-            pointer-events: none; font-weight: 900; font-size: 1.4rem; z-index: 300;
+            position: fixed; pointer-events: none; font-weight: 900; font-size: 1.4rem; z-index: 300;
             font-family: 'Impact', 'Arial Black', sans-serif;
             text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.7);
             animation: rewardFlyFast 1.44s cubic-bezier(0.25, 1, 0.5, 1) forwards;
@@ -316,8 +216,7 @@
         }
 
         .control-panel {
-            flex: 1;
-            background: var(--panel-bg); backdrop-filter: blur(15px);
+            flex: 1; background: var(--panel-bg); backdrop-filter: blur(15px);
             border-top: 2px solid rgba(255, 255, 255, 0.08); padding: 8px;
             padding-bottom: calc(10px + env(safe-area-inset-bottom));
             padding-left: calc(10px + env(safe-area-inset-left));
@@ -328,8 +227,7 @@
         }
 
         .shop-cat-header {
-            font-size: 0.72rem;
-            text-transform: uppercase; color: var(--cyan);
+            font-size: 0.72rem; text-transform: uppercase; color: var(--cyan);
             letter-spacing: 1px; margin: 8px 0 4px 4px; display: flex; align-items: center; gap: 6px; font-weight: bold;
         }
         .shop-cat-header::after { content: ''; flex: 1; height: 1px; background: rgba(6, 182, 212, 0.15); }
@@ -343,8 +241,7 @@
         .build-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 4px; }
 
         .btn-build {
-            background: rgba(255, 255, 255, 0.01);
-            border: 1px solid rgba(255, 255, 255, 0.07);
+            background: rgba(255, 255, 255, 0.01); border: 1px solid rgba(255, 255, 255, 0.07);
             border-radius: 10px; padding: 9px 8px; color: white; text-align: left; position: relative; cursor: pointer;
             overflow: hidden;
         }
@@ -367,105 +264,144 @@
         .btn-build.available[data-cat="bless"] { border-color: #f472b6; }
 
         .btn-final {
-            grid-column: span 2;
-            background: linear-gradient(45deg, #1e1b4b, #4c1d95);
+            grid-column: span 2; background: linear-gradient(45deg, #1e1b4b, #4c1d95);
             border: 1px solid var(--royal); text-align: center; padding: 12px; margin-top: 6px;
         }
         .btn-final .name { color: #f3e8ff; font-size: 0.85rem; display: block; }
         .btn-final.available { box-shadow: 0 0 15px rgba(168, 85, 247, 0.6); border-color: #c084fc; }
 
         .win-screen {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #030712; z-index: 100; display: flex; flex-direction: column;
-            justify-content: center; align-items: center;
-            text-align: center; padding: 20px;
+            justify-content: center; align-items: center; text-align: center; padding: 20px;
             opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
         }
         .win-screen.active { opacity: 1; pointer-events: auto; }
 
         @media (max-height: 600px) {
             .math-box { padding: 8px; max-width: 320px; }
-            .math-question { font-size: 1.5rem; margin-bottom: 6px; }
-            .btn-answer { padding: 8px; font-size: 1.05rem; }
+            .math-question { font-size: 1.6rem; margin-bottom: 6px; }
+            .btn-answer { padding: 8px; font-size: 1.1rem; }
             .control-panel { max-height: 38vh; }
             .build-grid { grid-template-columns: repeat(2, 1fr); gap: 4px; }
             .btn-final { grid-column: span 2; padding: 8px; }
         }
+
+        /* ===== Новый экран настройки генерации примеров ===== */
+        .config-container {
+            width: 100%; max-width: 450px; background: rgba(15, 18, 32, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;
+            padding: 18px; max-height: 72vh; overflow-y: auto;
+        }
+        .config-section { margin-bottom: 18px; }
+        .config-section:last-child { margin-bottom: 0; }
+        .config-section-title {
+            color: var(--cyan); font-size: 0.85rem; text-transform: uppercase;
+            letter-spacing: 0.5px; margin-bottom: 10px; font-weight: bold;
+            border-bottom: 1px solid rgba(6, 182, 212, 0.2); padding-bottom: 5px;
+        }
+        .type-select-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-type {
+            background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 12px 8px; color: white; text-align: center;
+            font-size: 0.85rem; font-weight: bold; cursor: pointer;
+        }
+        .btn-type.selected {
+            border-color: var(--cyan); background: rgba(6, 182, 212, 0.15);
+            box-shadow: 0 0 12px rgba(6, 182, 212, 0.35);
+        }
+        .op-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .btn-op {
+            background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 12px 8px; color: white; text-align: center;
+            font-size: 0.85rem; font-weight: bold; cursor: pointer;
+        }
+        .btn-op.selected {
+            border-color: var(--gold); background: rgba(255, 215, 0, 0.12);
+            box-shadow: 0 0 12px rgba(255, 215, 0, 0.3);
+        }
+        .diff-row {
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px; padding: 10px; margin-bottom: 8px;
+        }
+        .diff-row:last-child { margin-bottom: 0; }
+        .diff-row-label { font-size: 0.8rem; color: #f1f5f9; font-weight: bold; margin-bottom: 6px; }
+        .diff-stars { display: flex; gap: 6px; }
+        .btn-star {
+            flex: 1; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px; padding: 8px 2px; color: #94a3b8; text-align: center;
+            font-size: 0.95rem; cursor: pointer;
+        }
+        .btn-star.selected { background: rgba(255, 215, 0, 0.18); border-color: var(--gold); color: var(--gold); }
+        .config-hint { font-size: 0.72rem; color: #64748b; margin-top: 4px; }
+        .btn-config-continue {
+            width: 100%; max-width: 450px; background: linear-gradient(45deg, #0284c7, #06b6d4);
+            border: none; color: white; padding: 15px; font-size: 1.05rem;
+            font-weight: bold; border-radius: 12px; margin-top: 15px; cursor: pointer;
+            opacity: 0.4; pointer-events: none; transition: opacity 0.2s ease;
+        }
+        .btn-config-continue.ready { opacity: 1; pointer-events: auto; }
     </style>
 </head>
 <body>
 
-    <div class="modal-screen" id="startScreen">
+    <!-- НОВЫЙ СТАРТОВЫЙ ЭКРАН: настройка генерации примеров -->
+    <div class="modal-screen" id="configScreen">
+        <h1 class="start-title">🔮 Настройка Испытаний</h1>
+        <p class="start-subtitle">Определите, какими примерами Орден будет проверять ваш разум</p>
+        <div class="config-container">
+            <div class="config-section">
+                <div class="config-section-title">1️⃣ Вид чисел</div>
+                <div class="type-select-row" id="typeSelectRow">
+                    <button class="btn-type" data-value="positive">🔵 Положительные числа</button>
+                    <button class="btn-type" data-value="negative">🔴 Отрицательные числа</button>
+                </div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-title">2️⃣ Режимы вычислений</div>
+                <div class="op-select-grid" id="opSelectGrid">
+                    <button class="btn-op" data-op="add">➕ Сложение</button>
+                    <button class="btn-op" data-op="sub">➖ Вычитание</button>
+                    <button class="btn-op" data-op="mul">✖️ Умножение</button>
+                    <button class="btn-op" data-op="div">➗ Деление</button>
+                </div>
+                <div class="config-hint">Можно выбрать один или несколько режимов</div>
+            </div>
+
+            <div class="config-section" id="difficultyContainer" style="display:none;">
+                <div class="config-section-title">3️⃣ Сложность по режимам</div>
+                <div id="difficultyList"></div>
+                <div class="config-hint">Для каждого выбранного режима — своя сложность</div>
+            </div>
+        </div>
+        <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">⚔️ Продолжить к выбору Обета</button>
+    </div>
+
+    <div class="modal-screen" id="startScreen" style="display:none;">
         <h1 class="start-title">🏛️ Орден Света</h1>
-        <p class="start-subtitle">Настройте параметры Математической Цитадели:</p>
-        
-        <div class="setup-container">
-            <div class="setup-section-title">1. Вид чисел</div>
-            <div class="radio-group">
-                <label class="custom-label">
-                    <input type="radio" name="numberType" value="positive" checked>
-                    <span>➕ Положительные числа</span>
-                </label>
-                <label class="custom-label">
-                    <input type="radio" name="numberType" value="negative">
-                    <span>➖ Отрицательные числа</span>
-                </label>
-            </div>
-
-            <div class="setup-section-title">2. Режимы и Сложность</div>
-            <div class="mode-checkbox-list">
-                <div class="mode-row">
-                    <div class="mode-row-top">
-                        <label><input type="checkbox" id="mode-add" value="add" checked> Сложение</label>
-                        <select class="star-select" id="diff-add">
-                            <option value="1">⭐️</option>
-                            <option value="2">⭐️⭐️</option>
-                            <option value="3">⭐️⭐️⭐️</option>
-                            <option value="4">⭐️⭐️⭐️⭐️</option>
-                            <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="mode-row">
-                    <div class="mode-row-top">
-                        <label><input type="checkbox" id="mode-sub" value="sub"> Вычитание</label>
-                        <select class="star-select" id="diff-sub">
-                            <option value="1">⭐️</option>
-                            <option value="2">⭐️⭐️</option>
-                            <option value="3">⭐️⭐️⭐️</option>
-                            <option value="4">⭐️⭐️⭐️⭐️</option>
-                            <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="mode-row">
-                    <div class="mode-row-top">
-                        <label><input type="checkbox" id="mode-mul" value="mul"> Умножение</label>
-                        <select class="star-select" id="diff-mul">
-                            <option value="1">⭐️</option>
-                            <option value="2">⭐️⭐️</option>
-                            <option value="3">⭐️⭐️⭐️</option>
-                            <option value="4">⭐️⭐️⭐️⭐️</option>
-                            <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="mode-row">
-                    <div class="mode-row-top">
-                        <label><input type="checkbox" id="mode-div" value="div"> Деление</label>
-                        <select class="star-select" id="diff-div">
-                            <option value="1">⭐️</option>
-                            <option value="2">⭐️⭐️</option>
-                            <option value="3">⭐️⭐️⭐️</option>
-                            <option value="4">⭐️⭐️⭐️⭐️</option>
-                            <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <button class="btn-action-start" onclick="processSetup()">Продолжить ➡️</button>
+        <p class="start-subtitle">Выберите Обет Научной Цели на эту эпоху:</p>
+        <div class="mode-list">
+            <button class="btn-mode m-1" onclick="selectMode('easy')">
+                <span class="m-title">📜 Ученик</span>
+                <span class="m-desc" id="m-desc-easy">...</span>
+            </button>
+            <button class="btn-mode m-2" onclick="selectMode('medium')">
+                <span class="m-title">⚔️ Рыцарь Счета</span>
+                <span class="m-desc" id="m-desc-medium">...</span>
+            </button>
+            <button class="btn-mode m-3" onclick="selectMode('hard')">
+                <span class="m-title">🏛️ Магистр Цитадели</span>
+                <span class="m-desc" id="m-desc-hard">...</span>
+            </button>
+            <button class="btn-mode m-4" onclick="selectMode('expert')">
+                <span class="m-title">👑 Хранитель Тайн</span>
+                <span class="m-desc" id="m-desc-expert">...</span>
+            </button>
+            <button class="btn-mode m-5" onclick="selectMode('marathon')">
+                <span class="m-title">🪐 Абсолютный Титан</span>
+                <span class="m-desc" id="m-desc-marathon">...</span>
+            </button>
         </div>
     </div>
 
@@ -662,6 +598,7 @@
                 <span class="cost" id="cost-blessInspiration">...</span>
                 <span class="count" id="cnt-blessInspiration">0</span>
             </button>
+
             <button class="btn-build btn-final" data-type="exam" id="btn-exam">
                 <span class="name" id="finalName">🏆 СДАТЬ ВЕЛИКИЙ ЭКЗАМЕН 🏆</span>
                 <span class="cost" id="finalCost">Требования...</span>
@@ -670,777 +607,928 @@
     </div>
 
     <div class="win-screen" id="winScreen">
-        <h1 style="color:var(--gold); font-size: 2.5rem; margin-bottom: 10px;">👑 Эпоха Просвещения!</h1>
-        <p style="color:#94a3b8; font-size: 1.1rem; max-width: 400px; margin-bottom: 25px;">Вы привели Цитадель Математики к абсолютному величию и сдали Великий Экзамен!</p>
-        <div style="background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); padding: 15px; border-radius: 12px; margin-bottom: 25px; min-width: 280px; font-size:0.95rem;">
-            <p>⏳ Время Прохождения: <span id="winTime" style="color:var(--gold); font-weight:bold;">00:00</span></p>
-            <p style="margin-top: 6px;">✅ Правильных Ответов: <span id="winCorrect" style="color:#10b981; font-weight:bold;">0</span></p>
-            <p style="margin-top: 6px;">❌ Допущено Ошибок: <span id="winWrong" style="color:#ef4444; font-weight:bold;">0</span></p>
-        </div>
-        <button class="btn-start-game" onclick="location.reload()" style="max-width: 280px;">🔄 Собрать Новый Орден</button>
+        <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;">Триумф Цитадели!</h1>
+        <p id="winDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size: 1.1rem;"></p>
+        <button style="margin-top:30px; padding:12px 25px; background:var(--gold); border:none; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="location.reload()">К новым Обетам</button>
     </div>
 
     <script>
-        // Глобальные настройки генерации примеров
-        let gameConfig = {
-            numberType: 'positive', // 'positive' или 'negative'
-            activeModes: [],        // ['add', 'sub', ...]
-            difficulties: {         // Уровни для каждого режима
-                add: 1,
-                sub: 1,
-                mul: 1,
-                div: 1
-            }
+        // ===================== НАСТРОЙКА ГЕНЕРАЦИИ ПРИМЕРОВ =====================
+        const OP_LABELS = { add: '➕ Сложение', sub: '➖ Вычитание', mul: '✖️ Умножение', div: '➗ Деление' };
+        const OP_ORDER = ['add', 'sub', 'mul', 'div'];
+
+        let exampleConfig = {
+            numberType: null,     // 'positive' | 'negative'
+            operations: {}        // { add: level(1-5), sub: level, ... } — только выбранные режимы
         };
 
-        // Состояние игры
-        let state = {
-            gold: 0,
-            steel: 0,
-            scrolls: 0,
-            glory: 0,
-            correct: 0,
-            wrong: 0,
-            combo: 0,
-            critChance: 0.05,
-            critMultiplier: 4.0
-        };
-
-        // Вспомогательные переменные для бонусов
-        let speedBonusBaseFactor = 0.0;
-        let comboStepBonus = 0.0;
-        let blessArchitectDiscount = 1.0;
-        let totalElapsedSeconds = 0;
-        let gameActive = false;
-        let currentTimer = null;
-        let maxQuestionTime = 15000;
-        let currentQuestionEndTime = 0;
-        let currentAnswer = ""; 
-
-        // Базовые характеристики построек
-        const builds = {
-            abacus: { count:0, baseCost:15, costType:'gold', baseProd:1, prodType:'gold' },
-            blueprint: { count:0, baseCost:35, costType:'gold', baseProd:1, prodType:'steel' },
-            scriptorium: { count:0, baseCost:120, costType:'gold', baseProd:0.5, prodType:'scrolls' },
-            alchemical: { count:0, baseCost:450, costType:'gold', multiProd: true },
-            book: { count:0, baseCost:50, costType:'gold' },
-            theorem: { count:0, baseCost:180, costType:'gold' },
-            critChance: { count:0, baseCost:100, costType:'steel' },
-            critMult: { count:0, baseCost:150, costType:'scrolls' },
-            geometry: { count:0, baseCost:1000, costType:'gold' },
-            patent: { count:0, baseCost:2500, costType:'gold' },
-            astral: { count:0, baseCost:7500, costType:'gold' },
-            manifesto: { count:0, baseCost:20000, costType:'gold' },
-            blessIncome: { count:0, baseCost:30, costType:'glory' },
-            blessClick: { count:0, baseCost:50, costType:'glory' },
-            blessQuantum: { count:0, baseCost:75, costType:'glory' },
-            blessArchivist: { count:0, baseCost:60, costType:'glory' },
-            blessArchitect: { count:0, baseCost:45, costType:'glory' },
-            blessInspiration: { count:0, baseCost:40, costType:'glory' }
-        };
-
-        // Канвас для анимации города
-        const canvas = document.getElementById('cityCanvas');
-        const ctx = canvas.getContext('2d');
-        function resizeCanvas() {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
-        }
-        window.addEventListener('resize', resizeCanvas);
-        resizeCanvas();
-
-        let buildingsDrawList = [];
-        function addVisualBuilding() {
-            let type = Math.random() > 0.5 ? 'tower' : 'dome';
-            let w = 30 + Math.random()*30;
-            let h = 40 + Math.random()*70;
-            let x = Math.random() * (canvas.width - w);
-            let color = `hsl(${190 + Math.random()*40}, 60%, ${15 + Math.random()*15}%)`;
-            buildingsDrawList.push({x, y: canvas.height, w, h, color, targetH: h, currentH: 0});
-        }
-
-        function drawCityLoop() {
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            buildingsDrawList.forEach(b => {
-                if(b.currentH < b.targetH) b.currentH += 2;
-                ctx.fillStyle = b.color;
-                ctx.fillRect(b.x, canvas.height - b.currentH, b.w, b.currentH);
-                ctx.strokeStyle = 'rgba(6, 182, 212, 0.15)';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(b.x, canvas.height - b.currentH, b.w, b.currentH);
+        document.querySelectorAll('.btn-type').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.btn-type').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                exampleConfig.numberType = btn.getAttribute('data-value');
+                updateConfigValidity();
             });
-            requestAnimationFrame(drawCityLoop);
-        }
-        drawCityLoop();
+        });
 
-        // Валидация и обработка настроек перед началом игры
-        function processSetup() {
-            const numType = document.querySelector('input[name="numberType"]:checked').value;
-            
-            const modes = [];
-            if(document.getElementById('mode-add').checked) modes.push('add');
-            if(document.getElementById('mode-sub').checked) modes.push('sub');
-            if(document.getElementById('mode-mul').checked) modes.push('mul');
-            if(document.getElementById('mode-div').checked) modes.push('div');
+        document.querySelectorAll('.btn-op').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const op = btn.getAttribute('data-op');
+                if (btn.classList.contains('selected')) {
+                    btn.classList.remove('selected');
+                    delete exampleConfig.operations[op];
+                } else {
+                    btn.classList.add('selected');
+                    exampleConfig.operations[op] = null; // сложность ещё не выбрана
+                }
+                renderDifficultyList();
+                updateConfigValidity();
+            });
+        });
 
-            if(modes.length === 0) {
-                alert("Пожалуйста, выберите хотя бы один арифметический режим!");
+        function renderDifficultyList() {
+            const container = document.getElementById('difficultyContainer');
+            const list = document.getElementById('difficultyList');
+            const selectedOps = OP_ORDER.filter(op => op in exampleConfig.operations);
+
+            if (selectedOps.length === 0) {
+                container.style.display = 'none';
+                list.innerHTML = '';
                 return;
             }
 
-            gameConfig.numberType = numType;
-            gameConfig.activeModes = modes;
-            gameConfig.difficulties.add = parseInt(document.getElementById('diff-add').value);
-            gameConfig.difficulties.sub = parseInt(document.getElementById('diff-sub').value);
-            gameConfig.difficulties.mul = parseInt(document.getElementById('diff-mul').value);
-            gameConfig.difficulties.div = parseInt(document.getElementById('diff-div').value);
+            container.style.display = 'block';
+            list.innerHTML = '';
 
-            // Переход на экран брифинга
+            selectedOps.forEach(op => {
+                const row = document.createElement('div');
+                row.className = 'diff-row';
+
+                const label = document.createElement('div');
+                label.className = 'diff-row-label';
+                label.innerText = OP_LABELS[op];
+                row.appendChild(label);
+
+                const starsWrap = document.createElement('div');
+                starsWrap.className = 'diff-stars';
+
+                for (let lvl = 1; lvl <= 5; lvl++) {
+                    const starBtn = document.createElement('button');
+                    starBtn.className = 'btn-star';
+                    starBtn.innerText = '⭐'.repeat(lvl);
+                    if (exampleConfig.operations[op] === lvl) starBtn.classList.add('selected');
+                    starBtn.addEventListener('click', () => {
+                        exampleConfig.operations[op] = lvl;
+                        row.querySelectorAll('.btn-star').forEach(s => s.classList.remove('selected'));
+                        starBtn.classList.add('selected');
+                        updateConfigValidity();
+                    });
+                    starsWrap.appendChild(starBtn);
+                }
+
+                row.appendChild(starsWrap);
+                list.appendChild(row);
+            });
+        }
+
+        function updateConfigValidity() {
+            const btn = document.getElementById('btnConfigContinue');
+            const selectedOps = Object.keys(exampleConfig.operations);
+            const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
+            const valid = !!exampleConfig.numberType && allHaveDifficulty;
+            if (valid) btn.classList.add('ready'); else btn.classList.remove('ready');
+        }
+
+        function finishConfig() {
+            const selectedOps = Object.keys(exampleConfig.operations);
+            const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
+            if (!exampleConfig.numberType || !allHaveDifficulty) return;
+
+            document.getElementById('configScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'flex';
+        }
+
+        // ===================== ГЕНЕРАТОРЫ ПРИМЕРОВ =====================
+        function randInt(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+        function randSign() { return Math.random() < 0.5 ? -1 : 1; }
+        function fmt(n) { return n < 0 ? `(${n})` : `${n}`; }
+
+        // --- ПОЛОЖИТЕЛЬНЫЕ ЧИСЛА ---
+        function genAddPositive(level) {
+            let maxOperand, maxResult;
+            switch (level) {
+                case 1: maxOperand = 10; maxResult = 10; break;
+                case 2: maxOperand = 20; maxResult = 20; break;
+                case 3: maxOperand = 30; maxResult = 60; break;
+                case 4: maxOperand = 100; maxResult = 100; break;
+                default: maxOperand = 200; maxResult = 200; break;
+            }
+            let n1, n2, sum, tries = 0;
+            do {
+                n1 = randInt(1, maxOperand);
+                n2 = randInt(1, maxOperand);
+                sum = n1 + n2;
+                tries++;
+            } while (sum > maxResult && tries < 40);
+            if (sum > maxResult) { n2 = Math.max(1, maxResult - n1); sum = n1 + n2; }
+            return { text: `${n1} + ${n2}`, answer: sum };
+        }
+
+        function genSubPositive(level) {
+            let maxOperand;
+            switch (level) {
+                case 1: maxOperand = 10; break;
+                case 2: maxOperand = 20; break;
+                case 3: maxOperand = 30; break;
+                case 4: maxOperand = 100; break;
+                default: maxOperand = 200; break;
+            }
+            const n1 = randInt(2, maxOperand);
+            const n2 = randInt(0, n1);
+            return { text: `${n1} - ${n2}`, answer: n1 - n2 };
+        }
+
+        function genMulPositive(level) {
+            let table;
+            switch (level) {
+                case 1: table = [0, 1, 2, 5, 10]; break;
+                case 2: table = [0, 1, 2, 3, 4, 5, 10]; break;
+                case 3: table = [0, 1, 2, 3, 4, 5, 6, 9, 10]; break;
+                case 4: table = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; break;
+                default: table = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; break;
+            }
+            let a, b;
+            if (level < 5) {
+                a = table[randInt(0, table.length - 1)];
+                b = randInt(0, 10);
+                if (Math.random() < 0.5) { const t = a; a = b; b = t; }
+            } else {
+                a = randInt(10, 99);
+                b = table[randInt(0, table.length - 1)];
+            }
+            return { text: `${a} × ${b}`, answer: a * b };
+        }
+
+        function genDivPositive(level) {
+            let table;
+            switch (level) {
+                case 1: table = [0, 1, 2, 5, 10]; break;
+                case 2: table = [0, 1, 2, 3, 4, 5, 10]; break;
+                case 3: table = [0, 1, 2, 3, 4, 5, 6, 9, 10]; break;
+                case 4: table = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; break;
+                default: table = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; break; // на 0 делить нельзя
+            }
+            const divisor = table[randInt(0, table.length - 1)];
+            if (divisor === 0) {
+                const dividend = randInt(1, level < 4 ? 20 : 100);
+                return { text: `${dividend} ÷ 0`, answer: null, noSolution: true };
+            }
+            const quotient = randInt(0, 10);
+            const dividend = divisor * quotient;
+            return { text: `${dividend} ÷ ${divisor}`, answer: quotient };
+        }
+
+        // --- ОТРИЦАТЕЛЬНЫЕ ЧИСЛА ---
+        function rangeForLevelNeg(level) {
+            switch (level) {
+                case 1: return 10;
+                case 2: return 20;
+                case 3: return 50;
+                case 4: return 100;
+                default: return 200;
+            }
+        }
+
+        function genAddNegative(level) {
+            const range = rangeForLevelNeg(level);
+            let n1, n2, sum, tries = 0;
+            do {
+                n1 = randInt(-range, range);
+                n2 = randInt(-range, range);
+                sum = n1 + n2;
+                tries++;
+            } while ((sum < -range || sum > range) && tries < 40);
+            if (sum < -range || sum > range) { n2 = Math.max(-range, Math.min(range, -n1)); sum = n1 + n2; }
+            return { text: `${fmt(n1)} + ${fmt(n2)}`, answer: sum };
+        }
+
+        function genSubNegative(level) {
+            const range = rangeForLevelNeg(level);
+            let n1, n2, diff, tries = 0;
+            do {
+                n1 = randInt(-range, range);
+                n2 = randInt(-range, range);
+                diff = n1 - n2;
+                tries++;
+            } while ((diff < -range || diff > range) && tries < 40);
+            if (diff < -range || diff > range) { n2 = Math.max(-range, Math.min(range, n1)); diff = n1 - n2; }
+            return { text: `${fmt(n1)} - ${fmt(n2)}`, answer: diff };
+        }
+
+        function genMulNegative(level) {
+            let table, magAMax, magBMax;
+            switch (level) {
+                case 1: table = [0, 1, 2, 5, 10]; magAMax = 10; break;
+                case 2: table = [0, 1, 2, 3, 4, 5, 9, 10]; magAMax = 10; break;
+                case 3: table = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; magAMax = 10; break;
+                case 4: table = null; magAMax = 20; magBMax = 9; break;
+                default: table = null; magAMax = 99; magBMax = 9; break;
+            }
+            let magA, magB;
+            if (level <= 3) {
+                magA = table[randInt(0, table.length - 1)];
+                magB = randInt(0, 10);
+            } else if (level === 4) {
+                magA = randInt(0, 20);
+                magB = randInt(0, 9);
+            } else {
+                magA = randInt(10, 99);
+                magB = randInt(0, 9);
+            }
+            const a = magA === 0 ? 0 : magA * randSign();
+            const b = magB === 0 ? 0 : magB * randSign();
+            return { text: `${fmt(a)} × ${fmt(b)}`, answer: a * b };
+        }
+
+        function genDivNegative(level) {
+            let table, divMax;
+            switch (level) {
+                case 1: table = [0, 1, 2, 5, 10]; break;
+                case 2: table = [0, 1, 2, 3, 4, 5, 9, 10]; break;
+                case 3: table = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]; break;
+                case 4: divMax = 9; break;
+                default: divMax = 9; break;
+            }
+            let divisorMag;
+            if (level <= 3) divisorMag = table[randInt(0, table.length - 1)];
+            else divisorMag = randInt(0, divMax);
+
+            if (divisorMag === 0) {
+                const dividendMag = randInt(1, level < 4 ? 20 : 100);
+                const dividend = dividendMag * randSign();
+                return { text: `${fmt(dividend)} ÷ 0`, answer: null, noSolution: true };
+            }
+
+            const divisorSign = randSign();
+            const divisor = divisorMag * divisorSign;
+
+            let quotientMag;
+            if (level <= 3) quotientMag = randInt(0, 10);
+            else if (level === 4) quotientMag = randInt(0, 20);
+            else quotientMag = randInt(0, 99);
+
+            const quotientSign = quotientMag === 0 ? 1 : randSign();
+            const quotient = quotientMag * quotientSign;
+            const dividend = divisor * quotient;
+            return { text: `${fmt(dividend)} ÷ ${fmt(divisor)}`, answer: quotient };
+        }
+
+        function generateProblem(opKey, level, isNegative) {
+            if (!isNegative) {
+                if (opKey === 'add') return genAddPositive(level);
+                if (opKey === 'sub') return genSubPositive(level);
+                if (opKey === 'mul') return genMulPositive(level);
+                return genDivPositive(level);
+            } else {
+                if (opKey === 'add') return genAddNegative(level);
+                if (opKey === 'sub') return genSubNegative(level);
+                if (opKey === 'mul') return genMulNegative(level);
+                return genDivNegative(level);
+            }
+        }
+
+        // ===================== ОСТАЛЬНАЯ ЛОГИКА ИГРЫ (без изменений) =====================
+        // Цели увеличены в 20 раз от исходных в кодовой базе
+        const modes = {
+            easy: { name: "📜 ОБЕТ УЧЕНИКА", targetG: 3600000, targetS: 400, targetSc: 40, targetGl: 30, desc: "Спринт окончен. Основы математики изучены безукоризненно!" },
+            medium: { name: "⚔️ ОБЕТ РЫЦАРЯ СЧЕТА", targetG: 10500000, targetS: 1600, targetSc: 300, targetGl: 60, desc: "Концентрация удержана! Ваша Цитадель стоит крепко." },
+            hard: { name: "🏛️ ОБЕТ МАГИСТРА", targetG: 22500000, targetS: 5000, targetSc: 1200, targetGl: 100, desc: "Выдающийся результат! Вы — признанный гений счета." },
+            expert: { name: "👑 ОБЕТ ХРАНИТЕЛЯ ТАЙН", targetG: 45000000, targetS: 12000, targetSc: 4000, targetGl: 100, desc: "Древние Свитки раскрыли величайшие тайны Вселенной." },
+            marathon: { name: "🪐 ТРИУМФ АБСОЛЮТНОГО ТИТАНА", targetG: 135000000, targetS: 40000, targetSc: 16000, targetGl: 100, desc: "Великий Марафон завершен абсолютной победой разума!" }
+        };
+
+        for (let key in modes) {
+            document.getElementById(`m-desc-${key}`).innerText = `Цель: ${(modes[key].targetG/1000).toFixed(0)}k 🪙, ${modes[key].targetS} 🧱, ${modes[key].targetSc} 📜, ${modes[key].targetGl}% Славы.`;
+        }
+
+        let activeMode = modes.medium;
+        let gameActive = false;
+        let totalSeconds = 0;
+        let correctCount = 0;
+        let wrongCount = 0;
+
+        let globalProductionBonus = 1.0;
+        let blessArchitectDiscount = 1.0; 
+        let speedBonusBaseFactor = 0.5; 
+        let comboStepBonus = 0.35;       
+        
+        let mentalBreakthroughLevel = 0; 
+
+        const state = {
+            gold: 500, steel: 40, scrolls: 0, glory: 0,
+            clickBase: 12, combo: 0, 
+            critChance: 0.05, 
+            critMultiplier: 4.0, 
+            discount: 1.0,
+            income: { gold: 0, steel: 0, scrolls: 0, glory: 0 },
+            
+            buildings: {
+                abacus: { count: 0, baseG: 450, baseS: 0, baseSc: 0, curG: 450, curS: 0, curSc: 0, currency: 'normal' },
+                blueprint: { count: 0, baseG: 800, baseS: 10, baseSc: 0, curG: 800, curS: 10, curSc: 0, currency: 'normal' },
+                scriptorium: { count: 0, baseG: 1400, baseS: 30, baseSc: 0, curG: 1400, curS: 30, curSc: 0, currency: 'normal' },
+                alchemical: { count: 0, baseG: 3250, baseS: 80, baseSc: 5, curG: 3250, curS: 80, curSc: 5, currency: 'normal' },
+                
+                book: { count: 0, baseG: 900, baseS: 30, baseSc: 0, curG: 900, curS: 30, curSc: 0, currency: 'normal' },
+                theorem: { count: 0, baseG: 2500, baseS: 60, baseSc: 15, curG: 2500, curS: 60, curSc: 15, currency: 'normal' },
+                critChance: { count: 0, baseG: 1400, baseS: 40, baseSc: 8, curG: 1400, curS: 40, curSc: 8, currency: 'normal' }, 
+                critMult: { count: 0, baseG: 1750, baseS: 50, baseSc: 12, curG: 1750, curS: 50, curSc: 12, currency: 'normal' }, 
+                
+                geometry: { count: 0, baseG: 2250, baseS: 80, baseSc: 15, curG: 2250, curS: 80, curSc: 15, currency: 'normal' },
+                patent: { count: 0, baseG: 4000, baseS: 40, baseSc: 25, curG: 4000, curS: 40, curSc: 25, currency: 'normal' },
+                astral: { count: 0, baseG: 8000, baseS: 160, baseSc: 50, curG: 8000, curS: 160, curSc: 50, currency: 'normal' },
+                manifesto: { count: 0, baseG: 12500, baseS: 200, baseSc: 120, curG: 12500, curS: 200, curSc: 120, currency: 'normal' },
+
+                blessIncome: { count: 0, currency: 'glory' },
+                blessClick: { count: 0, currency: 'glory' },
+                blessQuantum: { count: 0, currency: 'glory' },
+                blessArchivist: { count: 0, currency: 'glory' },
+                blessArchitect: { count: 0, currency: 'glory' },
+                blessInspiration: { count: 0, currency: 'glory' }
+            }
+        };
+
+        let correctAnswer = 0;
+        let timeRemaining = 100; 
+        let timerInterval = null;
+        const canvas = document.getElementById('cityCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        
+        let megaShowActive = false;
+        let megaShowTimer = 0;
+        let bgFlashState = 0;
+        let isUltimateStorm = false; // Триггер супер-эффекта на 1000 побед
+
+        function selectMode(mKey) {
+            activeMode = modes[mKey];
             document.getElementById('startScreen').style.display = 'none';
             document.getElementById('briefingScreen').style.display = 'flex';
+            
+            document.getElementById('finalName').innerText = `🏆 ${activeMode.name} 🏆`;
+            let reqText = "Нужно: ";
+            if(activeMode.targetG > 0) reqText += `${activeMode.targetG.toLocaleString()} 🪙 `;
+            if(activeMode.targetS > 0) reqText += `${activeMode.targetS.toLocaleString()} 🧱 `;
+            if(activeMode.targetSc > 0) reqText += `${activeMode.targetSc.toLocaleString()} 📜 `;
+            if(activeMode.targetGl > 0) reqText += `${activeMode.targetGl}% 👑`;
+            document.getElementById('finalCost').innerText = reqText;
         }
 
         function startGame() {
             document.getElementById('briefingScreen').style.display = 'none';
             gameActive = true;
-            generateMathTask();
-            
-            // Основной игровой цикл таймеров и ресурсов
-            setInterval(() => {
-                if(!gameActive) return;
-                
-                // Расчет прироста в секунду
-                let multBase = 1 + (builds.blessIncome.count * 0.25);
-                
-                let goldInc = (builds.abacus.count * 1 + builds.alchemical.count * 0 + builds.geometry.count * 3) * multBase;
-                let steelInc = (builds.blueprint.count * 1 + builds.alchemical.count * 2.5) * multBase;
-                let scrollsInc = (builds.scriptorium.count * 0.5 + builds.alchemical.count * 1) * multBase;
-                
-                let gloryInc = (
-                    builds.geometry.count * 0.00015 + 
-                    builds.patent.count * 0.00025 + 
-                    builds.astral.count * 0.00075 + 
-                    builds.manifesto.count * 0.00225
-                ) * multBase;
-
-                state.gold += goldInc / 10;
-                state.steel += steelInc / 10;
-                state.scrolls += scrollsInc / 10;
-                state.glory += gloryInc / 10;
-
-                updateUI();
-            }, 100);
-
-            // Таймер эпохи
-            setInterval(() => {
-                if(!gameActive) return;
-                totalElapsedSeconds++;
-                let m = Math.floor(totalElapsedSeconds/60).toString().padStart(2,'0');
-                let s = (totalElapsedSeconds%60).toString().padStart(2,'0');
-                document.getElementById('gameClock').innerText = `⏳ Время Эпохи: ${m}:${s}`;
-            }, 1000);
-
-            // Цикл обновления шкалы времени вопроса
-            setInterval(() => {
-                if(!gameActive) return;
-                let now = Date.now();
-                let left = currentQuestionEndTime - now;
-                if(left <= 0) {
-                    left = 0;
-                    handleAnswer(null); // Время истекло
-                }
-                let pct = (left / maxQuestionTime) * 100;
-                document.getElementById('timerBar').style.width = `${pct}%`;
-                
-                let speedFactor = speedBonusBaseFactor + (builds.blessArchivist.count * 0.05);
-                let speedBonusPct = Math.floor((left / maxQuestionTime) * 100 * speedFactor);
-                let speedBadge = document.getElementById('speedBadge');
-                speedBadge.innerText = `Скорость: +${speedBonusPct}%`;
-                if(speedBonusPct > 0) {
-                    speedBadge.classList.add('active-speed');
-                } else {
-                    speedBadge.classList.remove('active-speed');
-                }
-            }, 50);
-        }
-
-        // НОВАЯ ЛОГИКА ГЕНЕРАЦИИ ПРИМЕРОВ
-        function generateMathTask() {
-            // Выбираем случайный режим из отмеченных пользователем
-            const randomMode = gameConfig.activeModes[Math.floor(Math.random() * gameConfig.activeModes.length)];
-            const level = gameConfig.difficulties[randomMode]; // 1, 2, 3, 4, 5
-
-            let num1 = 0, num2 = 0, answerVal = 0;
-            let questionText = "";
-            let specialAnswer = null; // Для случаев "нет решения"
-
-            // Вспомогательная функция для генерации случайного числа в диапазоне [min, max]
-            const randRange = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-            
-            // Вспомогательная функция для выбора из списка
-            const choose = (arr) => arr[Math.floor(Math.random() * arr.length)];
-
-            if (gameConfig.numberType === 'positive') {
-                // ПОЛОЖИТЕЛЬНЫЕ ЧИСЛА
-                if (randomMode === 'add' || randomMode === 'sub') {
-                    if (level === 1) {
-                        // Сложение и вычитание без перехода через десяток в рамках 10
-                        if (randomMode === 'add') {
-                            num1 = randRange(0, 10);
-                            num2 = randRange(0, 10 - num1);
-                            answerVal = num1 + num2;
-                        } else {
-                            num1 = randRange(0, 10);
-                            num2 = randRange(0, num1);
-                            answerVal = num1 - num2;
-                        }
-                    } else if (level === 2) {
-                        // Сложение и вычитание в рамках 20
-                        if (randomMode === 'add') {
-                            num1 = randRange(0, 20);
-                            num2 = randRange(0, 20 - num1);
-                            answerVal = num1 + num2;
-                        } else {
-                            num1 = randRange(0, 20);
-                            num2 = randRange(0, num1);
-                            answerVal = num1 - num2;
-                        }
-                    } else if (level === 3) {
-                        // Каждое число не больше 30
-                        num1 = randRange(0, 30);
-                        num2 = randRange(0, 30);
-                        if (randomMode === 'add') {
-                            answerVal = num1 + num2;
-                        } else {
-                            // Чтобы оставаться в рамках положительных чисел (или 0)
-                            if (num1 < num2) { let t = num1; num1 = num2; num2 = t; }
-                            answerVal = num1 - num2;
-                        }
-                    } else if (level === 4) {
-                        // В рамках 100 (и числа, и ответы)
-                        if (randomMode === 'add') {
-                            num1 = randRange(0, 100);
-                            num2 = randRange(0, 100 - num1);
-                            answerVal = num1 + num2;
-                        } else {
-                            num1 = randRange(0, 100);
-                            num2 = randRange(0, num1);
-                            answerVal = num1 - num2;
-                        }
-                    } else if (level === 5) {
-                        // В рамках 200 (и числа, и ответы)
-                        if (randomMode === 'add') {
-                            num1 = randRange(0, 200);
-                            num2 = randRange(0, 200 - num1);
-                            answerVal = num1 + num2;
-                        } else {
-                            num1 = randRange(0, 200);
-                            num2 = randRange(0, num1);
-                            answerVal = num1 - num2;
-                        }
-                    }
-                } 
-                else if (randomMode === 'mul') {
-                    if (level === 1) {
-                        num1 = choose([0, 1, 2, 5, 10]);
-                        num2 = randRange(0, 10);
-                    } else if (level === 2) {
-                        num1 = choose([0, 1, 2, 3, 4, 5, 10]);
-                        num2 = randRange(0, 10);
-                    } else if (level === 3) {
-                        num1 = choose([0, 1, 2, 3, 4, 5, 6, 9, 10]);
-                        num2 = randRange(0, 10);
-                    } else if (level === 4) {
-                        num1 = randRange(0, 10);
-                        num2 = randRange(0, 10);
-                    } else if (level === 5) {
-                        // умножение двузначного числа на число от 0 до 10 включительно
-                        num1 = randRange(10, 99);
-                        num2 = randRange(0, 10);
-                    }
-                    // Случайная перестановка множителей для разнообразия
-                    if (Math.random() > 0.5) { let t = num1; num1 = num2; num2 = t; }
-                    answerVal = num1 * num2;
-                } 
-                else if (randomMode === 'div') {
-                    // Генерируем обратным умножением для красивого деления, с учетом условий уровней
-                    if (level === 1) {
-                        let base = choose([0, 1, 2, 5, 10]);
-                        let factor = randRange(0, 10);
-                        if (Math.random() > 0.5) {
-                            num1 = base * factor;
-                            num2 = base;
-                        } else {
-                            num1 = base * factor;
-                            num2 = factor;
-                        }
-                    } else if (level === 2) {
-                        let base = choose([0, 1, 2, 3, 4, 5, 10]);
-                        let factor = randRange(0, 10);
-                        if (Math.random() > 0.5) {
-                            num1 = base * factor;
-                            num2 = base;
-                        } else {
-                            num1 = base * factor;
-                            num2 = factor;
-                        }
-                    } else if (level === 3) {
-                        let base = choose([0, 1, 2, 3, 4, 5, 6, 9, 10]);
-                        let factor = randRange(0, 10);
-                        if (Math.random() > 0.5) {
-                            num1 = base * factor;
-                            num2 = base;
-                        } else {
-                            num1 = base * factor;
-                            num2 = factor;
-                        }
-                    } else if (level === 4) {
-                        let factor1 = randRange(0, 10);
-                        let factor2 = randRange(0, 10);
-                        num1 = factor1 * factor2;
-                        num2 = factor2; 
-                    } else if (level === 5) {
-                        // ответ от умножения делить на число от 0 до 10 включительно
-                        let doubleDigit = randRange(10, 99);
-                        let factor = randRange(0, 10); // делитель
-                        num1 = doubleDigit * factor;
-                        num2 = factor;
-                    }
-
-                    // Проверка деления на ноль для уровней 1, 2, 3, 4
-                    if (num2 === 0) {
-                        specialAnswer = "нет решения";
-                    } else {
-                        answerVal = num1 / num2;
-                    }
-                }
-            } 
-            else {
-                // ОТРИЦАТЕЛЬНЫЕ ЧИСЛА (диапазоны по модулю)
-                // Функция генерации числа со случайным знаком
-                const randSigned = (limit) => randRange(-limit, limit);
-
-                if (randomMode === 'add' || randomMode === 'sub') {
-                    let limit = 10;
-                    if (level === 1) limit = 10;
-                    else if (level === 2) limit = 20;
-                    else if (level === 3) limit = 50;
-                    else if (level === 4) limit = 100;
-                    else if (level === 5) limit = 200;
-
-                    // Числа и ответы должны быть в рамках лимита по модулю
-                    let attempts = 0;
-                    do {
-                        num1 = randSigned(limit);
-                        num2 = randSigned(limit);
-                        answerVal = (randomMode === 'add') ? (num1 + num2) : (num1 - num2);
-                        attempts++;
-                    } while ((Math.abs(answerVal) > limit) && attempts < 100);
-                } 
-                else if (randomMode === 'mul') {
-                    let n1 = 0, n2 = 0;
-                    if (level === 1) {
-                        n1 = randSigned(9); // однозначное
-                        n2 = choose([0, 1, 2, 5, 10]) * (Math.random() > 0.5 ? 1 : -1);
-                    } else if (level === 2) {
-                        n1 = randSigned(9);
-                        n2 = choose([0, 1, 2, 3, 4, 5, 9, 10]) * (Math.random() > 0.5 ? 1 : -1);
-                    } else if (level === 3) {
-                        n1 = randSigned(9);
-                        n2 = choose([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) * (Math.random() > 0.5 ? 1 : -1);
-                    } else if (level === 4) {
-                        n1 = randRange(-20, 20); // числа до 20 по модулю
-                        n2 = randSigned(9);      // однозначное
-                    } else if (level === 5) {
-                        n1 = randRange(10, 99) * (Math.random() > 0.5 ? 1 : -1); // двузначное
-                        n2 = randSigned(9); // однозначное
-                    }
-
-                    if (Math.random() > 0.5) { let t = n1; n1 = n2; n2 = t; }
-                    num1 = n1;
-                    num2 = n2;
-                    answerVal = num1 * num2;
-                } 
-                else if (randomMode === 'div') {
-                    // Деление формируется через аналогичное обратное умножение
-                    let n1 = 0, n2 = 0; // n1 * n2 = произведение
-                    if (level === 1) {
-                        let base = choose([0, 1, 2, 5, 10]) * (Math.random() > 0.5 ? 1 : -1);
-                        let factor = randSigned(9);
-                        num1 = base * factor;
-                        num2 = (Math.random() > 0.5) ? base : factor;
-                    } else if (level === 2) {
-                        let base = choose([0, 1, 2, 3, 4, 5, 9, 10]) * (Math.random() > 0.5 ? 1 : -1);
-                        let factor = randSigned(9);
-                        num1 = base * factor;
-                        num2 = (Math.random() > 0.5) ? base : factor;
-                    } else if (level === 3) {
-                        let base = choose([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]) * (Math.random() > 0.5 ? 1 : -1);
-                        let factor = randSigned(9);
-                        num1 = base * factor;
-                        num2 = (Math.random() > 0.5) ? base : factor;
-                    } else if (level === 4) {
-                        let base = randRange(-20, 20);
-                        let factor = randSigned(9);
-                        num1 = base * factor;
-                        num2 = (Math.random() > 0.5) ? base : factor;
-                    } else if (level === 5) {
-                        let doubleDigit = randRange(10, 99) * (Math.random() > 0.5 ? 1 : -1);
-                        let factor = randSigned(9);
-                        num1 = doubleDigit * factor;
-                        num2 = factor; // делим на однозначное
-                    }
-
-                    if (num2 === 0) {
-                        specialAnswer = "нет решения";
-                    } else {
-                        answerVal = num1 / num2;
-                    }
-                }
-            }
-
-            // Форматирование отображения примера
-            let signMap = { 'add': '+', 'sub': '-', 'mul': '×', 'div': '÷' };
-            let opSign = signMap[randomMode];
-
-            // Обертка отрицательных чисел в скобки для красоты
-            let strNum1 = num1 < 0 ? `(${num1})` : `${num1}`;
-            let strNum2 = num2 < 0 ? `(${num2})` : `${num2}`;
-            questionText = `${strNum1} ${opSign} ${strNum2} = ?`;
-
-            document.getElementById('mathQuestion').innerText = questionText;
-            currentAnswer = specialAnswer !== null ? specialAnswer : String(answerVal);
-
-            // Тайм-лимит на вопрос
-            currentQuestionEndTime = Date.now() + maxQuestionTime;
-
-            // Генерация вариантов ответов
-            generateAnswersGrid(specialAnswer !== null ? null : answerVal, specialAnswer);
-        }
-
-        function generateAnswersGrid(numericCorrect, specialCorrect) {
-            let answers = [];
-            
-            if (specialCorrect !== null) {
-                // Если правильный ответ "нет решения"
-                answers.push("нет решения");
-                while(answers.length < 4) {
-                    let fake = Math.floor(Math.random() * 40) - 20;
-                    if(!answers.includes(String(fake))) answers.push(String(fake));
-                }
-            } else {
-                answers.push(String(numericCorrect));
-                
-                // Генерируем ложные ответы поблизости
-                let attempts = 0;
-                while(answers.length < 4 && attempts < 200) {
-                    attempts++;
-                    let deviation = Math.floor(Math.random() * 9) - 4;
-                    if(deviation === 0) deviation = Math.random() > 0.5 ? 5 : -5;
-                    
-                    let fakeVal = numericCorrect + deviation;
-                    // Если перемножали большие числа, ложные ответы могут отличаться сильнее
-                    if (Math.abs(numericCorrect) > 50) {
-                        fakeVal = numericCorrect + (Math.floor(Math.random() * 30) - 15);
-                    }
-                    
-                    let fakeStr = String(fakeVal);
-                    if(!answers.includes(fakeStr)) {
-                        answers.push(fakeStr);
-                    }
-                }
-                
-                // На всякий случай добавляем "нет решения" как один из фейков иногда для запутывания
-                if(answers.length < 4 && !answers.includes("нет решения") && Math.random() > 0.5) {
-                    answers.push("нет решения");
-                }
-                
-                // Заполняем до 4 элементов, если не хватило уникальных
-                while(answers.length < 4) {
-                    let fakeVal = numericCorrect + answers.length + 7;
-                    answers.push(String(fakeVal));
-                }
-            }
-
-            // Перемешивание вариантов
-            answers.sort(() => Math.random() - 0.5);
-
-            // Отрисовка кнопок
-            const grid = document.getElementById('answersGrid');
-            grid.innerHTML = "";
-            answers.forEach(ans => {
-                const btn = document.createElement('button');
-                btn.className = 'btn-answer';
-                btn.innerText = ans;
-                btn.onclick = () => handleAnswer(ans);
-                grid.appendChild(btn);
-            });
-        }
-
-        // Обработка ответа пользователя
-        function handleAnswer(chosenOption) {
-            if(!gameActive) return;
-
-            let isCorrect = (chosenOption === currentAnswer);
-
-            if(isCorrect && chosenOption !== null) {
-                state.correct++;
-                state.combo++;
-                
-                // Расчет коэффициента скорости
-                let now = Date.now();
-                let left = currentQuestionEndTime - now;
-                if(left < 0) left = 0;
-                
-                let speedFactor = speedBonusBaseFactor + (builds.blessArchivist.count * 0.05);
-                let speedBonusPct = Math.floor((left / maxQuestionTime) * 100 * speedFactor);
-                
-                // Расчет серии
-                let comboMultiplier = 1.0 + (state.combo * (0.1 + comboStepBonus));
-                if(state.combo >= 10) {
-                    comboMultiplier *= 1.5; 
-                }
-
-                // Расчет критического удара
-                let isCrit = Math.random() < state.critChance;
-                let rewardFactor = comboMultiplier * (1 + speedBonusPct / 100);
-                if(isCrit) {
-                    rewardFactor *= state.critMultiplier;
-                }
-
-                // Базовые награды
-                let baseGoldReward = 12 + (builds.book.count * 6) + (builds.astral.count * 3);
-                let baseGloryReward = 0.00001 + (builds.book.count * 0.00001);
-
-                let finalGold = Math.floor(baseGoldReward * rewardFactor);
-                let finalGlory = baseGloryReward * rewardFactor;
-
-                // Учет благословения Клик-Бонуса (+20%)
-                let blessClickMult = 1 + (builds.blessClick.count * 0.20);
-                finalGold = Math.floor(finalGold * blessClickMult);
-                finalGlory = finalGlory * blessClickMult;
-
-                state.gold += finalGold;
-                state.glory += finalGlory;
-
-                // Всплывающий текст награды
-                let visualX = window.innerWidth / 2;
-                let visualY = window.innerHeight / 2 - 80;
-                if(isCrit) {
-                    spawnRewardText(`🔥 КРИТ! +${finalGold} 🪙`, visualX, visualY, '#f59e0b', true);
-                } else {
-                    spawnRewardText(`+${finalGold} 🪙`, visualX, visualY, '#38bdf8', false);
-                }
-
-                // Визуальный рост здания при правильном ответе
-                if(state.correct % 3 === 0) {
-                    addVisualBuilding();
-                }
-
-                // Зеленая вспышка коробки
-                let box = document.getElementById('mainMathBox');
-                box.style.backgroundColor = 'rgba(16, 185, 129, 0.2)';
-                box.style.borderColor = '#10b981';
-                setTimeout(() => {
-                    box.style.backgroundColor = 'rgba(5, 7, 15, 0.9)';
-                    box.style.borderColor = 'var(--cyan)';
-                }, 150);
-
-            } else {
-                // Ошибка или пропуск по времени
-                state.wrong++;
-                state.combo = 0;
-
-                let box = document.getElementById('mainMathBox');
-                box.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
-                box.style.borderColor = '#ef4444';
-                setTimeout(() => {
-                    box.style.backgroundColor = 'rgba(5, 7, 15, 0.9)';
-                    box.style.borderColor = 'var(--cyan)';
-                }, 150);
-            }
-
-            // Обновляем счетчики верных/неверных на панели вопросов
-            document.getElementById('stat-correct').innerText = state.correct;
-            document.getElementById('stat-wrong').innerText = state.wrong;
-
-            // Генерируем новый пример
-            generateMathTask();
+            resizeCanvas();
+            generateMath();
             updateUI();
         }
 
-        // Спавн красивого летающего текста
-        function spawnRewardText(text, x, y, color, isCrit) {
-            const div = document.createElement('div');
-            div.className = `floating-reward ${isCrit ? 'crit' : ''}`;
-            div.style.left = `${x}px`;
-            div.style.top = `${y}px`;
-            div.style.color = color;
-            div.innerText = text;
-            document.body.appendChild(div);
-            setTimeout(() => div.remove(), isCrit ? 1700 : 1400);
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
         }
+        window.addEventListener('resize', resizeCanvas);
 
-        // Обновление интерфейса магазинов и цен
-        function updateUI() {
-            // Ресурсы сверху
-            document.getElementById('val-gold').innerText = Math.floor(state.gold);
-            document.getElementById('val-steel').innerText = Math.floor(state.steel);
-            document.getElementById('val-scrolls').innerText = Math.floor(state.scrolls);
-            document.getElementById('val-glory').innerText = (state.glory * 100).toFixed(4) + '%';
-
-            // Расчет приростов в секунду для лейблов
-            let multBase = 1 + (builds.blessIncome.count * 0.25);
-            let labelGoldInc = (builds.abacus.count * 1 + builds.geometry.count * 3) * multBase;
-            let labelSteelInc = (builds.blueprint.count * 1 + builds.alchemical.count * 2.5) * multBase;
-            let labelScrollsInc = (builds.scriptorium.count * 0.5 + builds.alchemical.count * 1) * multBase;
-            let labelGloryInc = (builds.geometry.count * 0.00015 + builds.patent.count * 0.00025 + builds.astral.count * 0.00075 + builds.manifesto.count * 0.00225) * multBase;
-
-            document.getElementById('inc-gold').innerText = `+${labelGoldInc.toFixed(1)}/с`;
-            document.getElementById('inc-steel').innerText = `+${labelSteelInc.toFixed(1)}/с`;
-            document.getElementById('inc-scrolls').innerText = `+${labelScrollsInc.toFixed(1)}/с`;
-            document.getElementById('inc-glory').innerText = `+${(labelGloryInc * 100).toFixed(4)}%/с`;
-
-            // Обновление комбо плашки
-            let comboBadge = document.getElementById('comboBadge');
-            if(state.combo > 0) {
-                comboBadge.style.display = 'block';
-                let currentComboMult = 1.0 + (state.combo * (0.1 + comboStepBonus));
-                if(state.combo >= 10) currentComboMult *= 1.5;
-                comboBadge.innerText = `Серия: 🔥 х${currentComboMult.toFixed(1)}`;
-                if(state.combo >= 10) {
-                    comboBadge.classList.add('frenzy');
+        function generateMath() {
+            if(!gameActive) return;
+            clearInterval(timerInterval);
+            timeRemaining = 100;
+            document.getElementById('timerBar').style.width = '100%';
+            
+            timerInterval = setInterval(() => {
+                if(!gameActive) return;
+                timeRemaining -= 0.75; 
+                if(timeRemaining <= 0) timeRemaining = 0;
+                document.getElementById('timerBar').style.width = `${timeRemaining}%`;
+                
+                let currentSpeedBonus = Math.floor(timeRemaining * speedBonusBaseFactor); 
+                let sBadge = document.getElementById('speedBadge');
+                if (currentSpeedBonus > 0) {
+                    sBadge.className = "speed-badge active-speed";
+                    sBadge.innerText = `Молния: +${currentSpeedBonus}%`;
                 } else {
-                    comboBadge.classList.remove('frenzy');
+                    sBadge.className = "speed-badge";
+                    sBadge.innerText = `Скорость: +0%`;
                 }
+            }, 100);
+
+            const isNegative = exampleConfig.numberType === 'negative';
+            const opsKeys = Object.keys(exampleConfig.operations);
+            const opKey = opsKeys[Math.floor(Math.random() * opsKeys.length)];
+            const level = exampleConfig.operations[opKey];
+
+            const problem = generateProblem(opKey, level, isNegative);
+
+            document.getElementById('mathQuestion').innerText = problem.text;
+
+            const grid = document.getElementById('answersGrid');
+            grid.innerHTML = '';
+
+            if (problem.noSolution) {
+                correctAnswer = 'NO_SOLUTION';
+                let opts = ['Нет решения'];
+                let guard = 0;
+                while (opts.length < 4 && guard < 50) {
+                    guard++;
+                    let fake = randInt(-25, 25);
+                    if (!isNegative && fake < 0) continue;
+                    if (!opts.includes(String(fake))) opts.push(String(fake));
+                }
+                opts.sort(() => Math.random() - 0.5);
+                opts.forEach(optText => {
+                    const b = document.createElement('button');
+                    b.className = 'btn-answer';
+                    b.innerText = optText;
+                    b.onclick = (e) => checkAnswer(optText === 'Нет решения' ? 'NO_SOLUTION' : Number(optText), e);
+                    grid.appendChild(b);
+                });
             } else {
-                comboBadge.style.display = 'none';
+                correctAnswer = problem.answer;
+                let arr = [correctAnswer];
+                let guard = 0;
+                while (arr.length < 4 && guard < 60) {
+                    guard++;
+                    let delta = randInt(-7, 7);
+                    if (delta === 0) delta = 1;
+                    let fake = correctAnswer + delta;
+                    if (fake === correctAnswer) continue;
+                    if (!isNegative && fake < 0) continue;
+                    if (arr.includes(fake)) continue;
+                    arr.push(fake);
+                }
+                arr.sort(() => Math.random() - 0.5);
+                arr.forEach(ans => {
+                    const b = document.createElement('button');
+                    b.className = 'btn-answer'; b.innerText = ans;
+                    b.onclick = (e) => checkAnswer(ans, e);
+                    grid.appendChild(b);
+                });
+            }
+        }
+
+        function triggerAnniversaryEffects(count) {
+            // ВАУ-эффект на 1000 примеров: Длится 30 секунд (30000мс / 100мс = 300 тиков анимации)
+            if (count === 1000) {
+                megaShowActive = true;
+                isUltimateStorm = true;
+                megaShowTimer = 3000; 
+                document.body.classList.add('mega-storm');
+                
+                let mathBox = document.getElementById('mainMathBox');
+                mathBox.style.borderColor = 'var(--gold)';
+                mathBox.style.boxShadow = '0 0 50px rgba(255, 215, 0, 0.9)';
+
+                spawnRewardText("🌌 ДОСТИГНУТ АБСОЛЮТНЫЙ РАЗУМ! КВАНТОВЫЙ ВЗРЫВ! 🌌", window.innerWidth/2, window.innerHeight/2 - 50, 'var(--gold)', true);
+                return;
             }
 
-            // Рендер кнопок магазина построек
-            // Расчет глобальной скидки от Циркулей Магистра и благословений зодчества
-            let discFactor = Math.pow(0.94, builds.theorem.count) * blessArchitectDiscount;
-            document.getElementById('meta-theorem').innerText = `Скидка: -${((1 - discFactor)*100).toFixed(1)}%`;
-            document.getElementById('meta-book').innerText = `Базовый клик: ${12 + builds.book.count*6 + builds.astral.count*3} ед.`;
-            document.getElementById('eff-critChance').innerText = `Шанс: ${Math.floor(state.critChance * 100)}%`;
-            document.getElementById('eff-critMult').innerText = `Множитель: ${state.critMultiplier.toFixed(1)}х`;
-            document.getElementById('eff-blessArchivist').innerText = `Сила Молнии: +${Math.floor((speedBonusBaseFactor + builds.blessArchivist.count * 0.05)*100)}%`;
-            document.getElementById('eff-blessInspiration').innerText = `Шаг серии: +${(0.10 + comboStepBonus).toFixed(2)}х`;
-
-            for (let type in builds) {
-                if(type === 'exam') continue;
-                let b = builds[type];
+            // На 100 примерах: Работает в 3 раза дольше (Было 6 секунд -> Стало 18 секунд = 180 тиков)
+            if (count % 100 === 0) {
+                megaShowActive = true;
+                isUltimateStorm = false;
+                megaShowTimer = 180; 
                 
-                // Камень дороже в 2 раза согласно Манускрипту
-                let priceMult = b.costType === 'steel' ? 2.0 : 1.0;
-                let cost = Math.floor(b.baseCost * Math.pow(1.28, b.count) * discFactor * priceMult);
-                if(b.costType === 'glory') {
-                    // Слава не имеет прогрессии цен
-                    cost = b.baseCost;
-                }
+                let mathBox = document.getElementById('mainMathBox');
+                mathBox.style.borderColor = 'var(--royal)';
+                mathBox.style.boxShadow = '0 0 40px rgba(168, 85, 247, 0.8)';
 
-                b.currentCalculatedCost = cost;
-
-                let costLabel = "";
-                let isAffordable = false;
-
-                if(b.costType === 'gold') { costLabel = `${cost} 🪙`; isAffordable = (state.gold >= cost); }
-                if(b.costType === 'steel') { costLabel = `${cost} 🧱`; isAffordable = (state.steel >= cost); }
-                if(b.costType === 'scrolls') { costLabel = `${cost} 📜`; isAffordable = (state.scrolls >= cost); }
-                if(b.costType === 'glory') { costLabel = `${cost}% 👑`; isAffordable = ((state.glory * 100) >= cost); }
-
-                let btn = document.getElementById(`cost-${type}`);
-                if(btn) btn.innerText = costLabel;
-
-                let fullBtn = document.getElementById(`btn-${type}`);
-                if(fullBtn) {
-                    if(isAffordable) {
-                        fullBtn.classList.add('available');
-                        fullBtn.classList.remove('locked');
-                    } else {
-                        fullBtn.classList.remove('available');
-                        fullBtn.classList.add('locked');
+                spawnRewardText(`👑 ЮБИЛЕЙ: ${count} РЕШЕННЫХ ЗАДАЧ! 👑`, window.innerWidth/2, window.innerHeight/2 - 30, 'var(--royal)', true);
+                
+                let bursts = 0;
+                let interval = setInterval(() => {
+                    if (!gameActive) { clearInterval(interval); return; }
+                    let rx = Math.random() * window.innerWidth;
+                    let ry = Math.random() * window.innerHeight * 0.7;
+                    let colors = ['#ffd700', '#a855f7', '#06b6d4', '#f472b6', '#10b981'];
+                    let col = colors[Math.floor(Math.random() * colors.length)];
+                    for(let i=0; i<30; i++) {
+                        particles.push(new CustomSpark(rx, ry, col, Math.random() * 6 - 3, Math.random() * 6 - 3, Math.random() * 3 + 2, 1.5));
                     }
+                    bursts++;
+                    if(bursts > 12) clearInterval(interval);
+                }, 250);
+                return;
+            }
+
+            // Каждые 10 примеров: Подсветка на 5 секунд (50 тиков)
+            if (count % 10 === 0) {
+                megaShowActive = true;
+                isUltimateStorm = false;
+                megaShowTimer = 50;
+                
+                let mathBox = document.getElementById('mainMathBox');
+                mathBox.style.borderColor = 'var(--cyan)';
+                mathBox.style.boxShadow = '0 0 30px rgba(6, 182, 212, 0.7)';
+
+                const mathBoxRect = mathBox.getBoundingClientRect();
+                const mx = mathBoxRect.left + mathBoxRect.width / 2;
+                const my = mathBoxRect.top + mathBoxRect.height / 2;
+                for (let angle = 0; angle < Math.PI * 2; angle += 0.25) {
+                    let speed = 3.5;
+                    let vx = Math.cos(angle) * speed;
+                    let vy = Math.sin(angle) * speed;
+                    particles.push(new CustomSpark(mx, my, 'var(--cyan)', vx, vy, Math.random() * 1.5 + 1.5, 1.0));
                 }
             }
+        }
 
-            // Проверка кнопки Великого Экзамена (Финальная победа)
-            // Условие победы: набрать 100% славы
-            let examBtn = document.getElementById('btn-exam');
-            let finalCostLabel = document.getElementById('finalCost');
-            let gloryPct = state.glory * 100;
+        function checkAnswer(chosen, event) {
+            if(!gameActive) return;
             
-            finalCostLabel.innerText = `Требуется: 100.0% 👑 (У вас: ${gloryPct.toFixed(2)}%)`;
-            
-            if(gloryPct >= 100.0) {
-                examBtn.classList.add('available');
-                examBtn.classList.remove('locked');
-                examBtn.onclick = triggerWinScreen;
+            let clickX = window.innerWidth / 2;
+            let clickY = window.innerHeight / 2;
+            if (event && event.currentTarget) {
+                const rect = event.currentTarget.getBoundingClientRect();
+                clickX = rect.left + rect.width / 2;
+                clickY = rect.top + rect.height / 2;
+            }
+
+            if (chosen === correctAnswer) {
+                correctCount++;
+                document.getElementById('stat-correct').innerText = correctCount;
+
+                state.combo++;
+                let comboMultiplier = 1 + (state.combo * comboStepBonus);
+                let speedBonusPercent = 1 + (timeRemaining * 0.01 * speedBonusBaseFactor); 
+                let isCrit = Math.random() < state.critChance;
+                
+                let baseClickWithBreakthrough = state.clickBase * (1 + mentalBreakthroughLevel * 0.20);
+                let rewardGold = Math.floor(baseClickWithBreakthrough * comboMultiplier * speedBonusPercent * (isCrit ? state.critMultiplier : 1));
+                state.gold += rewardGold;
+                
+                let baseGloryFromClick = state.clickBase * 0.00001; 
+                let bookGloryBonus = state.buildings.book.count * 0.00001; 
+                let totalBaseGloryClick = baseGloryFromClick + bookGloryBonus;
+                
+                let breakthroughGloryMultiplier = 1 + mentalBreakthroughLevel * 0.20;
+                let finalBaseGlory = totalBaseGloryClick * breakthroughGloryMultiplier;
+                
+                let rewardGlory = finalBaseGlory * comboMultiplier * speedBonusPercent * (isCrit ? (state.critMultiplier * 0.5 + 0.5) : 1);
+                
+                state.glory += rewardGlory;
+                if (state.glory > 100) state.glory = 100;
+
+                const badge = document.getElementById('comboBadge');
+                badge.style.display = 'inline-block';
+                badge.innerText = `Серия: 🔥 x${comboMultiplier.toFixed(1)}`;
+                if (state.combo >= 5) badge.classList.add('frenzy'); else badge.classList.remove('frenzy');
+
+                if(isCrit) {
+                    spawnRewardText(`⚡ КРИТ! +${rewardGold} 🪙 | +${rewardGlory.toFixed(4)}% 👑`, clickX, clickY, 'var(--gold)', true);
+                    buildSparks(35, 'var(--gold)');
+                } else {
+                    spawnRewardText(`+${rewardGold} 🪙 | +${rewardGlory.toFixed(4)}% 👑`, clickX, clickY, '#22d3ee', false); 
+                    buildSparks(12, 'var(--cyan)');
+                }
+
+                triggerAnniversaryEffects(correctCount);
+
             } else {
-                examBtn.classList.remove('available');
-                examBtn.classList.add('locked');
-                examBtn.onclick = null;
+                wrongCount++;
+                document.getElementById('stat-wrong').innerText = wrongCount;
+
+                state.combo = 0;
+                const badge = document.getElementById('comboBadge');
+                badge.style.display = 'none'; badge.classList.remove('frenzy');
+                
+                state.steel = Math.max(0, state.steel - 12); 
+                spawnRewardText('Ошибка! Разрушение стен (-12 🧱)', clickX, clickY, '#f87171', false); 
+                buildSparks(10, '#ef4444');
+            }
+            generateMath();
+            updateUI();
+        }
+
+        function spawnRewardText(txt, x, y, color, isCrit) {
+            const el = document.createElement('div');
+            el.className = isCrit ? 'floating-reward crit' : 'floating-reward';
+            el.innerText = txt;
+            el.style.left = `${x}px`;
+            el.style.top = `${y}px`;
+            el.style.color = color;
+            document.body.appendChild(el);
+            
+            setTimeout(() => el.remove(), isCrit ? 1760 : 1440);
+        }
+
+        class CustomSpark {
+            constructor(x, y, color, vx, vy, radius, lifeMultiplier = 1.0) {
+                this.x = x; this.y = y;
+                this.vx = vx; this.vy = vy;
+                this.radius = radius; 
+                this.opacity = 1; 
+                this.color = color;
+                this.decay = 0.015 / lifeMultiplier;
+            }
+            update() { 
+                this.x += this.vx; 
+                this.y += this.vy; 
+                this.opacity -= this.decay; 
+            }
+            draw() {
+                ctx.save(); ctx.beginPath(); ctx.globalAlpha = Math.max(0, this.opacity);
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI*2); ctx.fillStyle = this.color;
+                ctx.fill(); ctx.restore();
             }
         }
 
-        function triggerWinScreen() {
-            gameActive = false;
-            let winScreen = document.getElementById('winScreen');
-            winScreen.classList.add('active');
-
-            let m = Math.floor(totalElapsedSeconds/60).toString().padStart(2,'0');
-            let s = (totalElapsedSeconds%60).toString().padStart(2,'0');
-
-            document.getElementById('winTime').innerText = `${m}:${s}`;
-            document.getElementById('winCorrect').innerText = state.correct;
-            document.getElementById('winWrong').innerText = state.wrong;
+        function buildSparks(num, color) {
+            const spaceRect = document.querySelector('.game-space').getBoundingClientRect();
+            const centerX = spaceRect.left + spaceRect.width / 2;
+            const centerY = spaceRect.top + spaceRect.height / 2;
+            for(let i=0; i<num; i++) {
+                let vx = Math.random() * 4 - 2;
+                let vy = Math.random() * 4 - 2;
+                particles.push(new CustomSpark(centerX, centerY, color, vx, vy, Math.random() * 2 + 1, 1.0));
+            }
         }
 
-        // Логика покупки улучшений и построек
-        document.querySelectorAll('.btn-build').forEach(button => {
-            button.addEventListener('click', () => {
-                let type = button.getAttribute('data-type');
-                if(!type || type === 'exam') return;
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (megaShowActive) {
+                megaShowTimer--;
+                bgFlashState += 0.1;
                 
-                let b = builds[type];
-                let cost = b.currentCalculatedCost;
+                let mathBox = document.getElementById('mainMathBox');
 
-                let purchased = false;
-                if(b.costType === 'gold' && state.gold >= cost) { state.gold -= cost; purchased = true; }
-                else if(b.costType === 'steel' && state.steel >= cost) { state.steel -= cost; purchased = true; }
-                else if(b.costType === 'scrolls' && state.scrolls >= cost) { state.scrolls -= cost; purchased = true; }
-                else if(b.costType === 'glory' && (state.glory * 100) >= cost) { state.glory -= (cost / 100); purchased = true; }
-
-                if(purchased) {
-                    // Активация спец эффектов апгрейдов
-                    if(type === 'critChance') state.critChance += 0.03;
-                    if(type === 'critMult') state.critMultiplier += 0.40;
+                if (isUltimateStorm) {
+                    // Космическая переливающаяся иллюминация для 1000 побед
+                    let r = Math.floor(Math.sin(bgFlashState) * 127 + 128);
+                    let g = Math.floor(Math.sin(bgFlashState + 2) * 127 + 128);
+                    let b = Math.floor(Math.cos(bgFlashState) * 127 + 128);
+                    mathBox.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.35)`;
+                    mathBox.style.borderColor = `rgb(${g}, ${b}, ${r})`;
                     
-                    if(type === 'blessQuantum') {
-                        state.critMultiplier += 1.5;
-                        spawnRewardText(`🌀 Квантовый Скачок: Крит стал мощнее!`, window.innerWidth/2, window.innerHeight/2, '#d8b4fe', true);
+                    // Увеличено производство искр для масштабности
+                    let colors = ['#ff0055', '#00ffcc', '#ffcc00', '#ff00ff', '#00ff00', '#ffffff'];
+                    for(let k=0; k<3; k++) {
+                        let angle = Math.random() * Math.PI * 2;
+                        let spd = Math.random() * 8 + 4;
+                        let vx = Math.cos(angle) * spd;
+                        let vy = Math.sin(angle) * spd;
+                        let c = colors[Math.floor(Math.random() * colors.length)];
+                        particles.push(new CustomSpark(canvas.width / 2, canvas.height * 0.4, c, vx, vy, Math.random() * 5 + 2, 4.0));
                     }
-                    if(type === 'blessArchivist') {
-                        speedBonusBaseFactor += 0.05; 
-                        spawnRewardText(`🦅 Молния усилена! Множитель скорости повышен`, window.innerWidth/2, window.innerHeight/2, '#38bdf8', true);
-                    }
-                    if(type === 'blessArchitect') {
-                        blessArchitectDiscount *= 0.95;
-                        spawnRewardText(`🧱 Стоимость построек упала на 5%!`, window.innerWidth/2, window.innerHeight/2, '#10b981', false);
-                    }
-                    if(type === 'blessInspiration') {
-                        comboStepBonus += 0.10; 
-                        spawnRewardText(`💡 Мастерство серии повышенно! Шаг комбо вырос`, window.innerWidth/2, window.innerHeight/2, '#ffd700', true);
+                } else {
+                    // Стандартная юбилейная неоновая пульсация
+                    let r = Math.floor(Math.sin(bgFlashState) * 30 + 15);
+                    let g = Math.floor(Math.sin(bgFlashState + 1) * 20 + 10);
+                    let b = Math.floor(Math.cos(bgFlashState) * 40 + 25);
+                    mathBox.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.93)`;
+                }
+
+                if (megaShowTimer <= 0) {
+                    megaShowActive = false;
+                    isUltimateStorm = false;
+                    document.body.classList.remove('mega-storm');
+                    mathBox.style.backgroundColor = `rgba(5, 7, 15, 0.9)`;
+                    mathBox.style.borderColor = 'var(--cyan)';
+                    mathBox.style.boxShadow = '0 0 25px rgba(6, 182, 212, 0.25)';
+                }
+            }
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.update();
+                p.draw();
+                if (p.opacity <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        function formatTime(sec) {
+            let m = Math.floor(sec / 60).toString().padStart(2, '0');
+            let s = (sec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+
+        function getNextCritChanceGain(count) { return Math.max(0.01, 0.08 * Math.pow(0.75, count)); }
+        function getNextCritMultGain(count) { return Math.max(0.15, 0.8 * Math.pow(0.75, count)); }
+
+        function updateUI() {
+            document.getElementById('val-gold').innerText = Math.floor(state.gold).toLocaleString();
+            document.getElementById('val-steel').innerText = Math.floor(state.steel).toLocaleString();
+            document.getElementById('val-scrolls').innerText = Math.floor(state.scrolls).toLocaleString();
+            document.getElementById('val-glory').innerText = state.glory.toFixed(4) + '%';
+
+            let currentGoldInc = state.income.gold * globalProductionBonus;
+            document.getElementById('inc-gold').innerText = `+${Math.floor(currentGoldInc)}/с`;
+            document.getElementById('inc-steel').innerText = `+${(state.income.steel * globalProductionBonus).toFixed(1)}/с`;
+            document.getElementById('inc-scrolls').innerText = `+${(state.income.scrolls * globalProductionBonus).toFixed(2)}/с`;
+            document.getElementById('inc-glory').innerText = `+${state.income.glory.toFixed(5)}%/с`;
+
+            let nextChance = (getNextCritChanceGain(state.buildings.critChance.count) * 100).toFixed(1);
+            document.getElementById('eff-critChance').innerText = `Шанс: ${(state.critChance*100).toFixed(0)}% (+${nextChance}%)`;
+
+            let nextMult = getNextCritMultGain(state.buildings.critMult.count).toFixed(2);
+            document.getElementById('eff-critMult').innerText = `Крит: ${state.critMultiplier.toFixed(1)}х (+${nextMult}х)`;
+
+            let effectiveClickDisplay = state.clickBase * (1 + mentalBreakthroughLevel * 0.20);
+            document.getElementById('meta-book').innerText = `Эфф. клик: ${Math.floor(effectiveClickDisplay)} 🪙`;
+            document.getElementById('meta-theorem').innerText = `Скидка: -${((1 - state.discount * blessArchitectDiscount) * 100).toFixed(1)}%`;
+
+            document.getElementById('eff-blessArchivist').innerText = `Сила Молнии: +${(speedBonusBaseFactor * 100).toFixed(0)}%`;
+            document.getElementById('eff-blessInspiration').innerText = `Шаг серии: +${comboStepBonus.toFixed(2)}х`;
+
+            let totalCurrentDiscount = state.discount * blessArchitectDiscount;
+
+            for (let key in state.buildings) {
+                let b = state.buildings[key];
+                let btn = document.getElementById(`btn-${key}`);
+                let costEl = document.getElementById(`cost-${key}`);
+                
+                let answersRequired = 0;
+                let currentGloryCost = 0;
+                let isLockedByAnswers = false;
+
+                if (b.currency === 'normal') {
+                    answersRequired = (b.count + 1) * 10;
+                    if (correctCount < answersRequired) {
+                        isLockedByAnswers = true;
                     }
 
-                    if(type === 'alchemical') {
-                        // Каждая фабрика увеличивает скорость ответов косвенно
-                        document.body.classList.add('mega-storm');
+                    let g = Math.floor(b.curG * totalCurrentDiscount);
+                    let s = Math.floor(b.curS * totalCurrentDiscount);
+                    let sc = Math.floor(b.curSc * totalCurrentDiscount);
+
+                    if (isLockedByAnswers) {
+                        if(costEl) costEl.innerText = `⚠️ Решить задач: ${answersRequired}`;
+                    } else {
+                        let str = "";
+                        if(g > 0) str += `${g} 🪙 `;
+                        if(s > 0) str += `${s} 🧱 `;
+                        if(sc > 0) str += `${sc} 📜`;
+                        if(costEl) costEl.innerText = str;
                     }
 
-                    b.count++;
-                    document.getElementById(`cnt-${type}`).innerText = b.count;
-                    updateUI();
+                    if(btn) {
+                        btn.classList.remove('available', 'locked');
+                        if (isLockedByAnswers) {
+                            btn.classList.add('locked');
+                        } else if (state.gold >= g && state.steel >= s && state.scrolls >= sc) {
+                            btn.classList.add('available');
+                        }
+                    }
+
+                } else if (b.currency === 'glory') {
+                    answersRequired = (b.count + 1) * 100;
+                    
+                    if (correctCount < answersRequired) {
+                        isLockedByAnswers = true;
+                    }
+
+                    currentGloryCost = (b.count + 1) * 10;
+                    if (currentGloryCost > 100) currentGloryCost = 100;
+
+                    if (isLockedByAnswers) {
+                        if(costEl) costEl.innerText = `⚠️ Решить задач: ${answersRequired}`;
+                    } else {
+                        if(costEl) costEl.innerText = `${currentGloryCost}% 👑`;
+                    }
+
+                    if(btn) {
+                        btn.classList.remove('available', 'locked');
+                        if (isLockedByAnswers) {
+                            btn.classList.add('locked');
+                        } else if (state.glory >= currentGloryCost) {
+                            btn.classList.add('available');
+                        }
+                    }
+                }
+            }
+
+            let winCondition = state.gold >= activeMode.targetG && 
+                               state.steel >= activeMode.targetS && 
+                               state.scrolls >= activeMode.targetSc && 
+                               state.glory >= activeMode.targetGl;
+
+            let finalBtn = document.getElementById('btn-exam');
+            if(winCondition) finalBtn.classList.add('available'); else finalBtn.classList.remove('available');
+        }
+
+        setInterval(() => {
+            if(!gameActive) return;
+            totalSeconds++;
+            document.getElementById('gameClock').innerText = `⏳ Время Эпохи: ${formatTime(totalSeconds)}`;
+
+            state.gold += state.income.gold * globalProductionBonus;
+            state.steel += state.income.steel * globalProductionBonus;
+            state.scrolls += state.income.scrolls * globalProductionBonus;
+            state.glory += state.income.glory;
+            if (state.glory > 100) state.glory = 100;
+            updateUI();
+        }, 1000);
+
+        document.querySelectorAll('.btn-build').forEach(btn => {
+            btn.addEventListener('click', (event) => {
+                if(!gameActive) return;
+                const type = btn.getAttribute('data-type');
+                if(type === 'exam') {
+                    let winCondition = state.gold >= activeMode.targetG && 
+                                       state.steel >= activeMode.targetS && 
+                                       state.scrolls >= activeMode.targetSc && 
+                                       state.glory >= activeMode.targetGl;
+                    if(winCondition) {
+                        gameActive = false;
+                        document.getElementById('winDesc').innerText = `${activeMode.desc}\n\n⏱️ Время прохождения: ${formatTime(totalSeconds)}\n📊 Решено верно: ${correctCount} | Ошибок: ${wrongCount}`;
+                        document.getElementById('winScreen').classList.add('active');
+                    }
+                    return;
+                }
+
+                const b = state.buildings[type];
+                let totalCurrentDiscount = state.discount * blessArchitectDiscount;
+                
+                if (b.currency === 'normal') {
+                    let answersRequired = (b.count + 1) * 10;
+                    if (correctCount < answersRequired) return; 
+
+                    let g = Math.floor(b.curG * totalCurrentDiscount);
+                    let s = Math.floor(b.curS * totalCurrentDiscount);
+                    let sc = Math.floor(b.curSc * totalCurrentDiscount);
+
+                    if(state.gold >= g && state.steel >= s && state.scrolls >= sc) {
+                        state.gold -= g; state.steel -= s; state.scrolls -= sc;
+                        
+                        if(type === 'abacus') state.income.gold += 1;
+                        if(type === 'blueprint') state.income.steel += 1; 
+                        if(type === 'scriptorium') state.income.scrolls += 0.5;
+                        if(type === 'alchemical') { state.income.steel += 2.5; state.income.scrolls += 1; } 
+                        
+                        if(type === 'book') state.clickBase += 6; 
+                        if(type === 'theorem') state.discount *= 0.94; 
+                        if(type === 'critChance') {
+                            state.critChance += getNextCritChanceGain(b.count);
+                            if(state.critChance > 0.85) state.critChance = 0.85; 
+                        }
+                        if(type === 'critMult') state.critMultiplier += getNextCritMultGain(b.count);
+                        
+                        if(type === 'geometry') { state.income.glory += 0.00015; state.income.gold += 3; }
+                        if(type === 'patent') state.income.glory += 0.00025;
+                        if(type === 'astral') { state.income.glory += 0.00075; state.clickBase += 3; }
+                        if(type === 'manifesto') state.income.glory += 0.00225;
+
+                        b.count++;
+                        let priceMult = (type === 'critChance' || type === 'critMult') ? 1.38 : ((type === 'manifesto' || type === 'astral') ? 1.42 : 1.18);
+
+                        b.curG = Math.floor(b.baseG * Math.pow(priceMult, b.count));
+                        b.curS = Math.floor(b.baseS * Math.pow(priceMult, b.count));
+                        b.curSc = Math.floor(b.baseSc * Math.pow(priceMult, b.count));
+
+                        document.getElementById(`cnt-${type}`).innerText = b.count;
+                        updateUI();
+                    }
+                } else if (b.currency === 'glory') {
+                    let answersRequired = (b.count + 1) * 100;
+                    if (correctCount < answersRequired) return; 
+
+                    let currentGloryCost = (b.count + 1) * 10;
+                    if (currentGloryCost > 100) currentGloryCost = 100;
+
+                    if (state.glory >= currentGloryCost) {
+                        state.glory -= currentGloryCost;
+                        
+                        if (type === 'blessIncome') {
+                            globalProductionBonus += 0.25; 
+                            spawnRewardText(`✨ Аура Изобилия активирована!`, window.innerWidth/2, window.innerHeight/2, '#f472b6', true);
+                        }
+                        if (type === 'blessClick') {
+                            mentalBreakthroughLevel++; 
+                            spawnRewardText(`🔥 Ментальный Прорыв! Клик и Слава клика +20%`, window.innerWidth/2, window.innerHeight/2, '#f472b6', true);
+                        }
+                        if (type === 'blessQuantum') {
+                            state.critMultiplier += 1.5;
+                            spawnRewardText(`🌀 Квантовый Скачок: Крит стал мощнее!`, window.innerWidth/2, window.innerHeight/2, '#d8b4fe', true);
+                        }
+                        if (type === 'blessArchivist') {
+                            speedBonusBaseFactor += 0.05; 
+                            spawnRewardText(`🦅 Молния усилена! Множитель скорости повышен`, window.innerWidth/2, window.innerHeight/2, '#38bdf8', true);
+                        }
+                        if (type === 'blessArchitect') {
+                            blessArchitectDiscount *= 0.95;
+                            spawnRewardText(`🧱 Стоимость построек упала на 5%!`, window.innerWidth/2, window.innerHeight/2, '#10b981', false);
+                        }
+                        if (type === 'blessInspiration') {
+                            comboStepBonus += 0.10; 
+                            spawnRewardText(`💡 Мастерство серии повышенно! Шаг комбо вырос`, window.innerWidth/2, window.innerHeight/2, '#ffd700', true);
+                        }
+
+                        b.count++;
+                        document.getElementById(`cnt-${type}`).innerText = b.count;
+                        updateUI();
+                    }
                 }
             });
         });
