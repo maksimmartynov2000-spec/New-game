@@ -498,7 +498,7 @@
             </button>
             <button class="btn-build" data-type="alchemical" data-cat="prod" id="btn-alchemical">
                 <span class="name">⚗️ Алхим. Фабрика</span>
-                <span class="effect-desc">+4 🪙 к базовому клику</span>
+                <span class="effect-desc">+3 🪙 к базовому клику</span>
                 <span class="cost" id="cost-alchemical">...</span>
                 <span class="meta-info" id="meta-alchemical">Текущий клик: 12 🪙</span>
                 <span class="count" id="cnt-alchemical">0</span>
@@ -591,7 +591,7 @@
             </button>
             <button class="btn-build" data-type="blessArchitect" data-cat="bless" id="btn-blessArchitect">
                 <span class="name">🧱 Зодчество Магов</span>
-                <span class="effect-desc">Доп. скидка цен: -10%</span>
+                <span class="effect-desc">Доп. скидка цен: -15%</span>
                 <span class="cost" id="cost-blessArchitect">...</span>
                 <span class="count" id="cnt-blessArchitect">0</span>
             </button>
@@ -977,7 +977,7 @@
                 abacus: { count: 0, baseG: 2250, baseS: 0, baseSc: 0, curG: 2250, curS: 0, curSc: 0, currency: 'normal' },
                 blueprint: { count: 0, baseG: 4000, baseS: 6, baseSc: 0, curG: 4000, curS: 6, curSc: 0, currency: 'normal' },
                 scriptorium: { count: 0, baseG: 7000, baseS: 18, baseSc: 0, curG: 7000, curS: 18, curSc: 0, currency: 'normal' },
-                alchemical: { count: 0, baseG: 16250, baseS: 48, baseSc: 5, curG: 16250, curS: 48, curSc: 5, currency: 'normal' },
+                alchemical: { count: 0, baseG: 16250, baseS: 34, baseSc: 5, curG: 16250, curS: 34, curSc: 5, currency: 'normal' },
                 
                 book: { count: 0, baseG: 4500, baseS: 18, baseSc: 0, curG: 4500, curS: 18, curSc: 0, currency: 'normal' },
                 theorem: { count: 0, baseG: 12500, baseS: 36, baseSc: 15, curG: 12500, curS: 36, curSc: 15, currency: 'normal' },
@@ -1129,8 +1129,8 @@
                 }
             }
 
-            // ВАУ-эффект на 1000 примеров: Длится 30 секунд (30000мс / 100мс = 300 тиков анимации)
-            if (count === 1000) {
+            // ВАУ-эффект на КАЖДУЮ тысячу примеров (1000, 2000, 3000...): Длится 30 секунд
+            if (count % 1000 === 0) {
                 megaShowActive = true;
                 isUltimateStorm = true;
                 megaShowTimer = 4500; 
@@ -1140,7 +1140,7 @@
                 mathBox.style.borderColor = 'var(--gold)';
                 mathBox.style.boxShadow = '0 0 50px rgba(255, 215, 0, 0.9)';
 
-                spawnRewardText("🌌 ДОСТИГНУТ АБСОЛЮТНЫЙ РАЗУМ! КВАНТОВЫЙ ВЗРЫВ! 🌌", window.innerWidth/2, window.innerHeight/2 - 50, 'var(--gold)', true);
+                spawnRewardText(`🌌 ${count} РЕШЕНО! АБСОЛЮТНЫЙ РАЗУМ! КВАНТОВЫЙ ВЗРЫВ! 🌌`, window.innerWidth/2, window.innerHeight/2 - 50, 'var(--gold)', true);
                 return;
             }
 
@@ -1399,7 +1399,7 @@
             return `${m}:${s}`;
         }
 
-        function getNextCritChanceGain(count) { return Math.max(0.01, 0.08 * Math.pow(0.75, count)); }
+        function getNextCritChanceGain(currentChance) { return (1 - currentChance) * 0.15; }
         function getNextCritMultGain(count) { return Math.max(0.15, 0.8 * Math.pow(0.75, count)); }
 
         function updateUI() {
@@ -1414,8 +1414,8 @@
             document.getElementById('inc-scrolls').innerText = `+${(state.income.scrolls * globalProductionBonus * manifestoProductionMultiplier).toFixed(2)}/с`;
             document.getElementById('inc-glory').innerText = `+${displayedGloryRate.toFixed(5)}%/с`;
 
-            let nextChance = (getNextCritChanceGain(state.buildings.critChance.count) * 100).toFixed(1);
-            document.getElementById('eff-critChance').innerText = `Шанс: ${(state.critChance*100).toFixed(0)}% (+${nextChance}%)`;
+            let nextChance = (getNextCritChanceGain(state.critChance) * 100).toFixed(2);
+            document.getElementById('eff-critChance').innerText = `Шанс: ${(state.critChance*100).toFixed(2)}% (+${nextChance}%)`;
 
             let nextMult = getNextCritMultGain(state.buildings.critMult.count).toFixed(2);
             document.getElementById('eff-critMult').innerText = `Крит: ${state.critMultiplier.toFixed(1)}х (+${nextMult}х)`;
@@ -1561,12 +1561,11 @@
                         if(type === 'abacus') { abacusGoldDiscount *= 0.90; state.income.gold += 3; }
                         if(type === 'blueprint') state.income.steel += 1; 
                         if(type === 'scriptorium') state.income.scrolls += 0.5;
-                        if(type === 'alchemical') { state.clickBase += 4; } 
+                        if(type === 'alchemical') { state.clickBase += 3; } 
                         
-                        if(type === 'theorem') state.discount *= 0.94; 
+                        if(type === 'theorem') state.discount *= 0.93; 
                         if(type === 'critChance') {
-                            state.critChance += getNextCritChanceGain(b.count);
-                            if(state.critChance > 0.85) state.critChance = 0.85; 
+                            state.critChance += getNextCritChanceGain(state.critChance);
                         }
                         if(type === 'critMult') state.critMultiplier += getNextCritMultGain(b.count);
 
@@ -1622,7 +1621,7 @@
                             spawnRewardText(`🦅 Архивариус усилен! Больше прощений за сотню`, window.innerWidth/2, window.innerHeight/2, '#38bdf8', true);
                         }
                         if (type === 'blessArchitect') {
-                            blessArchitectDiscount *= 0.90;
+                            blessArchitectDiscount *= 0.85;
                             spawnRewardText(`🧱 Стоимость построек упала на 10%!`, window.innerWidth/2, window.innerHeight/2, '#10b981', false);
                         }
                         if (type === 'blessInspiration') {
