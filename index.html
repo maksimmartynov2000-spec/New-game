@@ -193,11 +193,11 @@
             position: fixed; pointer-events: none; font-weight: 900; font-size: 1.4rem; z-index: 300;
             font-family: 'Impact', 'Arial Black', sans-serif; text-align: center;
             text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.7);
-            animation: rewardFlyFast 0.43s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+            animation: rewardFlyFast 0.52s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
         .floating-reward.crit {
             font-size: 2.0rem;
-            animation: critFlyFast 0.52s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            animation: critFlyFast 0.62s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
 
         @keyframes rewardFlyFast {
@@ -498,7 +498,7 @@
             </button>
             <button class="btn-build" data-type="alchemical" data-cat="prod" id="btn-alchemical">
                 <span class="name">⚗️ Алхим. Фабрика</span>
-                <span class="effect-desc">+10 🪙 к базовому клику</span>
+                <span class="effect-desc">+4 🪙 к базовому клику</span>
                 <span class="cost" id="cost-alchemical">...</span>
                 <span class="meta-info" id="meta-alchemical">Текущий клик: 12 🪙</span>
                 <span class="count" id="cnt-alchemical">0</span>
@@ -903,11 +903,11 @@
         // ===================== ОСТАЛЬНАЯ ЛОГИКА ИГРЫ (без изменений) =====================
         // Цели увеличены в 20 раз от исходных в кодовой базе
         const modes = {
-            easy: { name: "📜 ОБЕТ УЧЕНИКА", targetG: 1800, targetS: 0, targetSc: 0, targetGl: 2, estTime: "~8–10 мин", desc: "Спринт окончен. Основы математики изучены безукоризненно!" },
-            medium: { name: "⚔️ ОБЕТ РЫЦАРЯ СЧЕТА", targetG: 2800, targetS: 0, targetSc: 0, targetGl: 10, estTime: "~18–22 мин", desc: "Концентрация удержана! Ваша Цитадель стоит крепко." },
-            hard: { name: "🏛️ ОБЕТ МАГИСТРА", targetG: 7000, targetS: 0, targetSc: 0, targetGl: 35, estTime: "~35–45 мин", desc: "Выдающийся результат! Вы — признанный гений счета." },
-            expert: { name: "👑 ОБЕТ ХРАНИТЕЛЯ ТАЙН", targetG: 55000, targetS: 0, targetSc: 0, targetGl: 80, estTime: "~55–70 мин", desc: "Древние Свитки раскрыли величайшие тайны Вселенной." },
-            marathon: { name: "🪐 ТРИУМФ АБСОЛЮТНОГО ТИТАНА", targetG: 700000, targetS: 0, targetSc: 0, targetGl: 100, estTime: "~1.5–3+ часа", desc: "Великий Марафон завершен абсолютной победой разума!" }
+            easy: { name: "📜 ОБЕТ УЧЕНИКА", targetG: 9000, targetS: 0, targetSc: 0, targetGl: 2, estTime: "~15–20 мин", desc: "Спринт окончен. Основы математики изучены безукоризненно!" },
+            medium: { name: "⚔️ ОБЕТ РЫЦАРЯ СЧЕТА", targetG: 14000, targetS: 0, targetSc: 0, targetGl: 10, estTime: "~30–40 мин", desc: "Концентрация удержана! Ваша Цитадель стоит крепко." },
+            hard: { name: "🏛️ ОБЕТ МАГИСТРА", targetG: 35000, targetS: 0, targetSc: 0, targetGl: 35, estTime: "~1–1.5 часа", desc: "Выдающийся результат! Вы — признанный гений счета." },
+            expert: { name: "👑 ОБЕТ ХРАНИТЕЛЯ ТАЙН", targetG: 275000, targetS: 0, targetSc: 0, targetGl: 80, estTime: "~2.5–3.5 часа", desc: "Древние Свитки раскрыли величайшие тайны Вселенной." },
+            marathon: { name: "🪐 ТРИУМФ АБСОЛЮТНОГО ТИТАНА", targetG: 3500000, targetS: 0, targetSc: 0, targetGl: 100, estTime: "~6+ часов", desc: "Великий Марафон завершен абсолютной победой разума!" }
         };
 
         for (let key in modes) {
@@ -1301,7 +1301,7 @@
             el.style.color = color;
             document.body.appendChild(el);
             
-            setTimeout(() => el.remove(), isCrit ? 517 : 424);
+            setTimeout(() => el.remove(), isCrit ? 620 : 509);
         }
 
         class CustomSpark {
@@ -1561,7 +1561,7 @@
                         if(type === 'abacus') { abacusGoldDiscount *= 0.90; state.income.gold += 3; }
                         if(type === 'blueprint') state.income.steel += 1; 
                         if(type === 'scriptorium') state.income.scrolls += 0.5;
-                        if(type === 'alchemical') { state.clickBase += 10; } 
+                        if(type === 'alchemical') { state.clickBase += 4; } 
                         
                         if(type === 'theorem') state.discount *= 0.94; 
                         if(type === 'critChance') {
