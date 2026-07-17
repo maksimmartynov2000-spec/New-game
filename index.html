@@ -191,7 +191,7 @@
         /* Анимации наград укорочены на 20% */
         .floating-reward {
             position: fixed; pointer-events: none; font-weight: 900; font-size: 1.4rem; z-index: 300;
-            font-family: 'Impact', 'Arial Black', sans-serif;
+            font-family: 'Impact', 'Arial Black', sans-serif; text-align: center;
             text-shadow: -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000, 0 4px 8px rgba(0,0,0,0.7);
             animation: rewardFlyFast 0.43s cubic-bezier(0.25, 1, 0.5, 1) forwards;
         }
@@ -247,7 +247,7 @@
         }
         .btn-build:active { transform: scale(0.97); }
         .btn-build .name { font-size: 0.78rem; font-weight: bold; display: block; color: #f1f5f9; white-space: normal; word-break: normal; overflow-wrap: break-word; padding-right: 18px; line-height: 1.25; }
-        .btn-build .effect-desc { font-size: 0.65rem; color: #38bdf8; display: block; font-style: italic; margin-top: 1px; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .btn-build .effect-desc { font-size: 0.65rem; color: #38bdf8; display: block; font-style: italic; margin-top: 1px; white-space: normal; overflow-wrap: break-word; line-height: 1.25; }
         .btn-build[data-cat="upgrade"] .effect-desc { color: var(--gold); }
         .btn-build[data-cat="glory"] .effect-desc { color: #e9d5ff; }
         .btn-build[data-cat="bless"] .effect-desc { color: #fbcfe8; }
@@ -500,6 +500,7 @@
                 <span class="name">⚗️ Алхим. Фабрика</span>
                 <span class="effect-desc">+10 🪙 к базовому клику</span>
                 <span class="cost" id="cost-alchemical">...</span>
+                <span class="meta-info" id="meta-alchemical">Текущий клик: 12 🪙</span>
                 <span class="count" id="cnt-alchemical">0</span>
             </button>
         </div>
@@ -508,9 +509,9 @@
         <div class="build-grid">
             <button class="btn-build" data-type="book" data-cat="upgrade" id="btn-book">
                 <span class="name">📖 Учебник</span>
-                <span class="effect-desc">+0.00001% к базовой Славе за клик</span>
+                <span class="effect-desc">+0.00055% к базовой Славе за клик</span>
                 <span class="cost" id="cost-book">...</span>
-                <span class="meta-info" id="meta-book">Базовый клик: 12 ед.</span>
+                <span class="meta-info" id="meta-book">Бонус клика: 0.00660% 👑</span>
                 <span class="count" id="cnt-book">0</span>
             </button>
             <button class="btn-build" data-type="theorem" data-cat="upgrade" id="btn-theorem">
@@ -902,11 +903,11 @@
         // ===================== ОСТАЛЬНАЯ ЛОГИКА ИГРЫ (без изменений) =====================
         // Цели увеличены в 20 раз от исходных в кодовой базе
         const modes = {
-            easy: { name: "📜 ОБЕТ УЧЕНИКА", targetG: 3000, targetS: 0, targetSc: 0, targetGl: 5, estTime: "~8–10 мин", desc: "Спринт окончен. Основы математики изучены безукоризненно!" },
-            medium: { name: "⚔️ ОБЕТ РЫЦАРЯ СЧЕТА", targetG: 9000, targetS: 0, targetSc: 0, targetGl: 15, estTime: "~15–17 мин", desc: "Концентрация удержана! Ваша Цитадель стоит крепко." },
-            hard: { name: "🏛️ ОБЕТ МАГИСТРА", targetG: 45000, targetS: 0, targetSc: 0, targetGl: 30, estTime: "~22–25 мин", desc: "Выдающийся результат! Вы — признанный гений счета." },
-            expert: { name: "👑 ОБЕТ ХРАНИТЕЛЯ ТАЙН", targetG: 120000, targetS: 0, targetSc: 0, targetGl: 50, estTime: "~35–40 мин", desc: "Древние Свитки раскрыли величайшие тайны Вселенной." },
-            marathon: { name: "🪐 ТРИУМФ АБСОЛЮТНОГО ТИТАНА", targetG: 600000, targetS: 0, targetSc: 0, targetGl: 100, estTime: "~2–2.5 часа", desc: "Великий Марафон завершен абсолютной победой разума!" }
+            easy: { name: "📜 ОБЕТ УЧЕНИКА", targetG: 1800, targetS: 0, targetSc: 0, targetGl: 2, estTime: "~8–10 мин", desc: "Спринт окончен. Основы математики изучены безукоризненно!" },
+            medium: { name: "⚔️ ОБЕТ РЫЦАРЯ СЧЕТА", targetG: 2800, targetS: 0, targetSc: 0, targetGl: 10, estTime: "~18–22 мин", desc: "Концентрация удержана! Ваша Цитадель стоит крепко." },
+            hard: { name: "🏛️ ОБЕТ МАГИСТРА", targetG: 7000, targetS: 0, targetSc: 0, targetGl: 35, estTime: "~35–45 мин", desc: "Выдающийся результат! Вы — признанный гений счета." },
+            expert: { name: "👑 ОБЕТ ХРАНИТЕЛЯ ТАЙН", targetG: 55000, targetS: 0, targetSc: 0, targetGl: 80, estTime: "~55–70 мин", desc: "Древние Свитки раскрыли величайшие тайны Вселенной." },
+            marathon: { name: "🪐 ТРИУМФ АБСОЛЮТНОГО ТИТАНА", targetG: 700000, targetS: 0, targetSc: 0, targetGl: 100, estTime: "~1.5–3+ часа", desc: "Великий Марафон завершен абсолютной победой разума!" }
         };
 
         for (let key in modes) {
@@ -922,9 +923,19 @@
         let globalProductionBonus = 1.0;
         let blessArchitectDiscount = 1.0; 
         let speedBonusBaseFactor = 0.5; 
-        let comboStepBonus = 0.35;       
+        let comboStepBonus = 0.1;       
         
         let mentalBreakthroughLevel = 0; 
+
+        // Множитель Славы от серии — растёт по убывающей (как крит-бонусы) и упирается в потолок ~2.6х,
+        // в отличие от монет, где серия может расти неограниченно
+        const GLORY_COMBO_STEP = 0.08;
+        const GLORY_COMBO_DECAY = 0.95;
+        const GLORY_CLICK_CONST = 0.00055;
+        function getGloryComboMultiplier(combo) {
+            if (combo <= 0) return 1;
+            return 1 + GLORY_COMBO_STEP * (1 - Math.pow(GLORY_COMBO_DECAY, combo)) / (1 - GLORY_COMBO_DECAY);
+        }
 
         // Новые механики: стак-множители добычи, бонусный запас времени Молнии, прощения ошибок
         let abacusGoldDiscount = 1.0;            // Школа Писцов: стак -10% к ценам построек в 🪙
@@ -1207,14 +1218,15 @@
                 let rewardGold = Math.floor(baseClickWithBreakthrough * comboMultiplier * speedBonusPercent * (isCrit ? state.critMultiplier : 1));
                 state.gold += rewardGold;
                 
-                let baseGloryFromClick = state.clickBase * 0.00045; 
-                let bookGloryBonus = state.buildings.book.count * 0.00045; 
+                let baseGloryFromClick = state.clickBase * GLORY_CLICK_CONST; 
+                let bookGloryBonus = state.buildings.book.count * GLORY_CLICK_CONST; 
                 let totalBaseGloryClick = baseGloryFromClick + bookGloryBonus;
                 
                 let breakthroughGloryMultiplier = 1 + mentalBreakthroughLevel * 0.20;
                 let finalBaseGlory = totalBaseGloryClick * breakthroughGloryMultiplier;
                 
-                let rewardGlory = finalBaseGlory * comboMultiplier * speedBonusPercent * (isCrit ? (state.critMultiplier * 0.5 + 0.5) : 1);
+                let gloryComboMultiplier = getGloryComboMultiplier(state.combo);
+                let rewardGlory = finalBaseGlory * gloryComboMultiplier * speedBonusPercent * (isCrit ? (state.critMultiplier * 0.5 + 0.5) : 1);
                 
                 state.glory += rewardGlory;
                 if (state.glory > 100) state.glory = 100;
@@ -1274,11 +1286,18 @@
         }
 
         function spawnRewardText(txt, x, y, color, isCrit) {
+            const marginX = 80;
+            const marginTop = 110; // с запасом на подъём анимации вверх (~100px)
+            const marginBottom = 30;
+            const clampedX = Math.min(Math.max(x, marginX), window.innerWidth - marginX);
+            const clampedY = Math.min(Math.max(y, marginTop), window.innerHeight - marginBottom);
+
             const el = document.createElement('div');
             el.className = isCrit ? 'floating-reward crit' : 'floating-reward';
             el.innerText = txt;
-            el.style.left = `${x}px`;
-            el.style.top = `${y}px`;
+            el.style.left = `${clampedX}px`;
+            el.style.top = `${clampedY}px`;
+            el.style.maxWidth = `${window.innerWidth - marginX}px`;
             el.style.color = color;
             document.body.appendChild(el);
             
@@ -1402,7 +1421,9 @@
             document.getElementById('eff-critMult').innerText = `Крит: ${state.critMultiplier.toFixed(1)}х (+${nextMult}х)`;
 
             let effectiveClickDisplay = state.clickBase * (1 + mentalBreakthroughLevel * 0.20);
-            document.getElementById('meta-book').innerText = `Эфф. клик: ${Math.floor(effectiveClickDisplay)} 🪙`;
+            document.getElementById('meta-alchemical').innerText = `Текущий клик: ${Math.floor(effectiveClickDisplay)} 🪙`;
+            let bookGloryDisplay = (state.clickBase + state.buildings.book.count) * GLORY_CLICK_CONST * (1 + mentalBreakthroughLevel * 0.20);
+            document.getElementById('meta-book').innerText = `Бонус клика: ${bookGloryDisplay.toFixed(5)}% 👑`;
             document.getElementById('meta-theorem').innerText = `Скидка: -${((1 - state.discount * blessArchitectDiscount) * 100).toFixed(1)}%`;
 
             document.getElementById('eff-blessArchivist').innerText = `Прощений за 100: ${state.buildings.blessArchivist.count}`;
