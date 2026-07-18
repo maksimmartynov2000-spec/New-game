@@ -110,6 +110,29 @@
             font-weight: bold; border-radius: 12px; margin-top: 15px; cursor: pointer;
         }
 
+        .btn-profile-link {
+            width: 100%; max-width: 420px; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.12); color: #cbd5e1; padding: 12px;
+            font-size: 0.9rem; font-weight: bold; border-radius: 12px; margin-top: 14px; cursor: pointer;
+        }
+        .m-status { font-size: 0.75rem; font-weight: normal; }
+        .profile-obet-row {
+            display: flex; justify-content: space-between; align-items: center;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; font-size: 0.85rem;
+        }
+        .profile-obet-row .po-name { font-weight: bold; color: #f1f5f9; }
+        .profile-obet-row .po-detail { color: #94a3b8; font-size: 0.78rem; text-align: right; }
+        .profile-stat-row {
+            display: flex; justify-content: space-between; font-size: 0.85rem;
+            padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+        .btn-reset-profile {
+            width: 100%; max-width: 450px; background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.35); color: #f87171; padding: 12px;
+            font-size: 0.85rem; font-weight: bold; border-radius: 12px; margin-top: 10px; cursor: pointer;
+        }
+
         .top-panel-wrapper {
             flex-shrink: 0; background: var(--panel-bg);
             border-bottom: 2px solid rgba(255, 215, 0, 0.15); z-index: 10;
@@ -384,26 +407,37 @@
         <p class="start-subtitle">Выберите Обет Научной Цели на эту эпоху:</p>
         <div class="mode-list">
             <button class="btn-mode m-1" onclick="selectMode('easy')">
-                <span class="m-title">📜 Ученик</span>
+                <span class="m-title">📜 Ученик <span class="m-status" id="status-easy"></span></span>
                 <span class="m-desc" id="m-desc-easy">...</span>
             </button>
             <button class="btn-mode m-2" onclick="selectMode('medium')">
-                <span class="m-title">⚔️ Рыцарь Счета</span>
+                <span class="m-title">⚔️ Рыцарь Счета <span class="m-status" id="status-medium"></span></span>
                 <span class="m-desc" id="m-desc-medium">...</span>
             </button>
             <button class="btn-mode m-3" onclick="selectMode('hard')">
-                <span class="m-title">🏛️ Магистр Цитадели</span>
+                <span class="m-title">🏛️ Магистр Цитадели <span class="m-status" id="status-hard"></span></span>
                 <span class="m-desc" id="m-desc-hard">...</span>
             </button>
             <button class="btn-mode m-4" onclick="selectMode('expert')">
-                <span class="m-title">👑 Хранитель Тайн</span>
+                <span class="m-title">👑 Хранитель Тайн <span class="m-status" id="status-expert"></span></span>
                 <span class="m-desc" id="m-desc-expert">...</span>
             </button>
             <button class="btn-mode m-5" onclick="selectMode('marathon')">
-                <span class="m-title">🪐 Абсолютный Титан</span>
+                <span class="m-title">🪐 Абсолютный Титан <span class="m-status" id="status-marathon"></span></span>
                 <span class="m-desc" id="m-desc-marathon">...</span>
             </button>
         </div>
+        <button class="btn-profile-link" onclick="openProfileScreen()">👤 Профиль и рекорды</button>
+    </div>
+
+    <div class="modal-screen" id="profileScreen" style="display:none;">
+        <h1 class="start-title" style="color: var(--cyan);">👤 Профиль Ордена</h1>
+        <p class="start-subtitle">Ваш прогресс сохраняется в этом браузере</p>
+        <div class="info-container" id="profileStatsBox">
+            <!-- заполняется через JS -->
+        </div>
+        <button class="btn-start-game" onclick="closeProfileScreen()">⬅️ Назад к выбору Обета</button>
+        <button class="btn-reset-profile" onclick="resetProfile()">🗑️ Сбросить весь прогресс</button>
     </div>
 
     <div class="modal-screen" id="briefingScreen" style="display: none;">
@@ -734,7 +768,7 @@
                 tries++;
             } while (sum > maxResult && tries < 40);
             if (sum > maxResult) { n2 = Math.max(1, maxResult - n1); sum = n1 + n2; }
-            return { text: `${n1} + ${n2}`, answer: sum };
+            return { text: `${n1} + ${n2}`, answer: sum, a: n1, b: n2 };
         }
 
         function genSubPositive(level) {
@@ -748,7 +782,7 @@
             }
             const n1 = randInt(2, maxOperand);
             const n2 = randInt(0, n1);
-            return { text: `${n1} - ${n2}`, answer: n1 - n2 };
+            return { text: `${n1} - ${n2}`, answer: n1 - n2, a: n1, b: n2 };
         }
 
         function genMulPositive(level) {
@@ -769,7 +803,7 @@
                 a = randInt(10, 99);
                 b = table[randInt(0, table.length - 1)];
             }
-            return { text: `${a} × ${b}`, answer: a * b };
+            return { text: `${a} × ${b}`, answer: a * b, a: a, b: b };
         }
 
         function genDivPositive(level) {
@@ -784,11 +818,11 @@
             const divisor = table[randInt(0, table.length - 1)];
             if (divisor === 0) {
                 const dividend = randInt(1, level < 4 ? 20 : 100);
-                return { text: `${dividend} ÷ 0`, answer: null, noSolution: true };
+                return { text: `${dividend} ÷ 0`, answer: null, noSolution: true, a: dividend, b: 0 };
             }
             const quotient = randInt(0, 10);
             const dividend = divisor * quotient;
-            return { text: `${dividend} ÷ ${divisor}`, answer: quotient };
+            return { text: `${dividend} ÷ ${divisor}`, answer: quotient, a: dividend, b: divisor };
         }
 
         // --- ОТРИЦАТЕЛЬНЫЕ ЧИСЛА ---
@@ -812,7 +846,7 @@
                 tries++;
             } while ((sum < -range || sum > range) && tries < 40);
             if (sum < -range || sum > range) { n2 = Math.max(-range, Math.min(range, -n1)); sum = n1 + n2; }
-            return { text: `${fmt(n1)} + ${fmt(n2)}`, answer: sum };
+            return { text: `${fmt(n1)} + ${fmt(n2)}`, answer: sum, a: n1, b: n2 };
         }
 
         function genSubNegative(level) {
@@ -825,7 +859,7 @@
                 tries++;
             } while ((diff < -range || diff > range) && tries < 40);
             if (diff < -range || diff > range) { n2 = Math.max(-range, Math.min(range, n1)); diff = n1 - n2; }
-            return { text: `${fmt(n1)} - ${fmt(n2)}`, answer: diff };
+            return { text: `${fmt(n1)} - ${fmt(n2)}`, answer: diff, a: n1, b: n2 };
         }
 
         function genMulNegative(level) {
@@ -850,7 +884,7 @@
             }
             const a = magA === 0 ? 0 : magA * randSign();
             const b = magB === 0 ? 0 : magB * randSign();
-            return { text: `${fmt(a)} × ${fmt(b)}`, answer: a * b };
+            return { text: `${fmt(a)} × ${fmt(b)}`, answer: a * b, a: a, b: b };
         }
 
         function genDivNegative(level) {
@@ -869,7 +903,7 @@
             if (divisorMag === 0) {
                 const dividendMag = randInt(1, level < 4 ? 20 : 100);
                 const dividend = dividendMag * randSign();
-                return { text: `${fmt(dividend)} ÷ 0`, answer: null, noSolution: true };
+                return { text: `${fmt(dividend)} ÷ 0`, answer: null, noSolution: true, a: dividend, b: 0 };
             }
 
             const divisorSign = randSign();
@@ -883,7 +917,143 @@
             const quotientSign = quotientMag === 0 ? 1 : randSign();
             const quotient = quotientMag * quotientSign;
             const dividend = divisor * quotient;
-            return { text: `${fmt(dividend)} ÷ ${fmt(divisor)}`, answer: quotient };
+            return { text: `${fmt(dividend)} ÷ ${fmt(divisor)}`, answer: quotient, a: dividend, b: divisor };
+        }
+
+        // --- ГЕНЕРАЦИЯ ОТВЛЕКАЮЩИХ ВАРИАНТОВ ОТВЕТА ---
+
+        // Имитация "сложения без переноса через разряд" — частая ошибка новичков.
+        // Работает только для неотрицательных целых чисел.
+        function noCarryAdd(a, b) {
+            if (a < 0 || b < 0) return null;
+            const sa = String(a), sb = String(b);
+            const maxLen = Math.max(sa.length, sb.length);
+            const pa = sa.padStart(maxLen, '0');
+            const pb = sb.padStart(maxLen, '0');
+            let digits = '';
+            for (let i = 0; i < maxLen; i++) {
+                digits += (parseInt(pa[i]) + parseInt(pb[i])) % 10;
+            }
+            const val = parseInt(digits, 10);
+            return Number.isNaN(val) ? null : val;
+        }
+
+        // Добавляет кандидата в массив структурных дистракторов (может совпадать с операндами —
+        // это специально, т.к. "спутал делимое/делитель с ответом" тоже реальная ошибка)
+        function pushStructural(arr, val, correctAnswer, isNegative) {
+            if (val === undefined || val === null || !Number.isFinite(val)) return;
+            val = Math.round(val);
+            if (val === correctAnswer) return;
+            if (!isNegative && val < 0) return;
+            if (arr.includes(val)) return;
+            arr.push(val);
+        }
+
+        function shuffleArray(arr) {
+            const copy = arr.slice();
+            for (let i = copy.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [copy[i], copy[j]] = [copy[j], copy[i]];
+            }
+            return copy;
+        }
+
+        // Строит ровно `count` уникальных отвлекающих вариантов для обычного (не noSolution) примера.
+        // Смешивает 1-2 "похожих на реальную ошибку" варианта со случайными, масштабируемыми по величине ответа.
+        function buildDistractors(opKey, a, b, correctAnswer, isNegative, count) {
+            let structural = [];
+
+            if (opKey === 'add') {
+                pushStructural(structural, noCarryAdd(a, b), correctAnswer, isNegative);
+                pushStructural(structural, a - b, correctAnswer, isNegative);
+            } else if (opKey === 'sub') {
+                pushStructural(structural, b - a, correctAnswer, isNegative);
+                pushStructural(structural, a + b, correctAnswer, isNegative);
+            } else if (opKey === 'mul') {
+                pushStructural(structural, a * (b + 1), correctAnswer, isNegative);
+                pushStructural(structural, a * (b - 1), correctAnswer, isNegative);
+                pushStructural(structural, (a + 1) * b, correctAnswer, isNegative);
+                pushStructural(structural, a + b, correctAnswer, isNegative);
+            } else if (opKey === 'div') {
+                pushStructural(structural, correctAnswer + 1, correctAnswer, isNegative);
+                pushStructural(structural, correctAnswer - 1, correctAnswer, isNegative);
+                // делитель как "ответ" — реалистичная ошибка, только если он сопоставим по величине с частным
+                if (Math.abs(b) <= Math.abs(correctAnswer) * 3 + 10) {
+                    pushStructural(structural, b, correctAnswer, isNegative);
+                }
+            }
+
+            structural = shuffleArray(structural);
+
+            const used = new Set([correctAnswer]);
+            const result = [];
+
+            // берём максимум 2 "структурных", чтобы не все варианты были предсказуемо случайными
+            const structuralTake = Math.min(2, structural.length, count);
+            for (let i = 0; i < structuralTake; i++) {
+                const v = structural[i];
+                if (!used.has(v)) { result.push(v); used.add(v); }
+            }
+
+            // разброс масштабируется под величину ответа (~15%, но не меньше 3)
+            const deltaMax = Math.max(3, Math.round(Math.abs(correctAnswer) * 0.15));
+            let guard = 0;
+            while (result.length < count && guard < 100) {
+                guard++;
+                let delta = randInt(-deltaMax, deltaMax);
+                if (delta === 0) delta = 1;
+                const fake = correctAnswer + delta;
+                if (!isNegative && fake < 0) continue;
+                if (fake === a || fake === b) continue; // случайный не должен случайно совпасть с условием
+                if (used.has(fake)) continue;
+                result.push(fake); used.add(fake);
+            }
+
+            // подстраховка на случай исчерпания попыток (очень маловероятно)
+            let widen = deltaMax;
+            while (result.length < count) {
+                widen++;
+                const fake = correctAnswer + widen * (Math.random() < 0.5 ? -1 : 1);
+                if (!isNegative && fake < 0) continue;
+                if (used.has(fake)) continue;
+                result.push(fake); used.add(fake);
+            }
+
+            return result;
+        }
+
+        // Строит варианты для случая деления на 0: всегда включает "0" и "делимое" (частые заблуждения),
+        // остальное — случайные значения, масштабируемые под величину делимого.
+        function buildNoSolutionOptions(dividend, isNegative) {
+            const used = new Set();
+            const opts = [];
+
+            function tryAdd(v) {
+                if (v === undefined || v === null || !Number.isFinite(v)) return false;
+                v = Math.round(v);
+                if (!isNegative && v < 0) return false;
+                if (used.has(v)) return false;
+                used.add(v);
+                opts.push(v);
+                return true;
+            }
+
+            tryAdd(0); // "на 0 делить = 0" — самое частое заблуждение
+            tryAdd(dividend); // "на 0 делить = само число" — второе по частоте
+
+            const deltaMax = Math.max(5, Math.round(Math.abs(dividend) * 0.3));
+            let guard = 0;
+            while (opts.length < 3 && guard < 60) {
+                guard++;
+                tryAdd(dividend + randInt(-deltaMax, deltaMax));
+            }
+            let widen = deltaMax;
+            while (opts.length < 3) {
+                widen++;
+                tryAdd(dividend + widen * (Math.random() < 0.5 ? -1 : 1));
+            }
+
+            return opts;
         }
 
         function generateProblem(opKey, level, isNegative) {
@@ -914,7 +1084,124 @@
             document.getElementById(`m-desc-${key}`).innerText = `Цель: ${(modes[key].targetG/1000).toFixed(0)}k 🪙, ${modes[key].targetGl}% Славы. Время: ${modes[key].estTime}`;
         }
 
+        // ===================== ЛОКАЛЬНЫЙ ПРОФИЛЬ (localStorage) =====================
+        const PROFILE_KEY = 'orderOfLight_profile_v1';
+
+        function defaultProfile() {
+            const obets = {};
+            for (let key in modes) {
+                obets[key] = { completed: false, bestTimeSeconds: null, attempts: 0 };
+            }
+            return {
+                totalCorrect: 0,
+                totalWrong: 0,
+                totalGamesStarted: 0,
+                bestComboEver: 0,
+                obets: obets,
+                modeStats: {} // ключ вида "pos_add_2" -> кол-во верно решённых примеров этой конфигурации
+            };
+        }
+
+        function loadProfile() {
+            try {
+                const raw = localStorage.getItem(PROFILE_KEY);
+                if (raw) {
+                    const parsed = JSON.parse(raw);
+                    // на случай если появятся новые обеты — дозаполняем недостающие поля
+                    const fresh = defaultProfile();
+                    for (let key in fresh.obets) {
+                        if (!parsed.obets || !parsed.obets[key]) {
+                            parsed.obets = parsed.obets || {};
+                            parsed.obets[key] = fresh.obets[key];
+                        }
+                    }
+                    if (!parsed.modeStats) parsed.modeStats = {};
+                    return Object.assign(fresh, parsed);
+                }
+            } catch (e) { /* localStorage недоступен (приватный режим и т.п.) — просто не сохраняем */ }
+            return defaultProfile();
+        }
+
+        function saveProfile() {
+            try {
+                localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
+            } catch (e) { /* не критично — просто прогресс не сохранится */ }
+        }
+
+        function resetProfile() {
+            if (!confirm('Точно сбросить весь сохранённый прогресс? Это необратимо.')) return;
+            profile = defaultProfile();
+            saveProfile();
+            renderModeStatusBadges();
+            renderProfileScreen();
+        }
+
+        let profile = loadProfile();
+        let currentProblemMeta = null; // { isNegative, opKey, level } — заполняется в generateMath()
+
+        function renderModeStatusBadges() {
+            for (let key in modes) {
+                const el = document.getElementById(`status-${key}`);
+                if (!el) continue;
+                const rec = profile.obets[key];
+                if (rec && rec.completed) {
+                    el.innerText = rec.bestTimeSeconds != null ? `✅ ${formatTime(rec.bestTimeSeconds)}` : '✅';
+                    el.style.color = '#10b981';
+                } else {
+                    el.innerText = '';
+                }
+            }
+        }
+
+        function openProfileScreen() {
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('profileScreen').style.display = 'flex';
+            renderProfileScreen();
+        }
+
+        function closeProfileScreen() {
+            document.getElementById('profileScreen').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'flex';
+        }
+
+        function renderProfileScreen() {
+            const box = document.getElementById('profileStatsBox');
+            let html = '';
+
+            html += `<div class="info-section-title">📊 Общая статистика</div>`;
+            html += `<div class="profile-stat-row"><span>Игр начато</span><span>${profile.totalGamesStarted}</span></div>`;
+            html += `<div class="profile-stat-row"><span>Верных ответов всего</span><span>${profile.totalCorrect.toLocaleString()}</span></div>`;
+            html += `<div class="profile-stat-row"><span>Ошибок всего</span><span>${profile.totalWrong.toLocaleString()}</span></div>`;
+            html += `<div class="profile-stat-row"><span>Лучшая серия</span><span>🔥 x${profile.bestComboEver}</span></div>`;
+
+            html += `<div class="info-section-title">🏆 Обеты</div>`;
+            for (let key in modes) {
+                const rec = profile.obets[key];
+                const status = rec.completed ? `✅ Пройден за ${formatTime(rec.bestTimeSeconds)}` : (rec.attempts > 0 ? `⏳ Попыток: ${rec.attempts}` : '— не начат');
+                html += `<div class="profile-obet-row"><span class="po-name">${modes[key].name}</span><span class="po-detail">${status}</span></div>`;
+            }
+
+            html += `<div class="info-section-title">📈 Практика по режимам</div>`;
+            const statEntries = Object.entries(profile.modeStats).sort((a, b) => b[1] - a[1]);
+            if (statEntries.length === 0) {
+                html += `<div class="profile-stat-row"><span style="color:#64748b;">Пока нет данных — сыграйте хотя бы один раунд</span></div>`;
+            } else {
+                statEntries.forEach(([key, count]) => {
+                    const parts = key.split('_'); // ["pos"|"neg", opKey, level]
+                    const numLabel = parts[0] === 'neg' ? '🔴 Отрицательные' : '🔵 Положительные';
+                    const opLabel = OP_LABELS[parts[1]] || parts[1];
+                    const stars = '⭐'.repeat(parseInt(parts[2], 10) || 1);
+                    html += `<div class="profile-obet-row"><span class="po-name">${numLabel} — ${opLabel} ${stars}</span><span class="po-detail">${count.toLocaleString()} решено</span></div>`;
+                });
+            }
+
+            box.innerHTML = html;
+        }
+
+        renderModeStatusBadges();
+
         let activeMode = modes.medium;
+        let activeModeKey = 'medium';
         let gameActive = false;
         let totalSeconds = 0;
         let correctCount = 0;
@@ -1012,6 +1299,7 @@
 
         function selectMode(mKey) {
             activeMode = modes[mKey];
+            activeModeKey = mKey;
             document.getElementById('startScreen').style.display = 'none';
             document.getElementById('briefingScreen').style.display = 'flex';
             
@@ -1022,6 +1310,10 @@
             if(activeMode.targetSc > 0) reqText += `${activeMode.targetSc.toLocaleString()} 📜 `;
             if(activeMode.targetGl > 0) reqText += `${activeMode.targetGl}% 👑`;
             document.getElementById('finalCost').innerText = reqText;
+
+            profile.totalGamesStarted++;
+            profile.obets[mKey].attempts++;
+            saveProfile();
         }
 
         function startGame() {
@@ -1070,6 +1362,8 @@
             const opKey = opsKeys[Math.floor(Math.random() * opsKeys.length)];
             const level = exampleConfig.operations[opKey];
 
+            currentProblemMeta = { isNegative, opKey, level };
+
             const problem = generateProblem(opKey, level, isNegative);
 
             document.getElementById('mathQuestion').innerText = problem.text;
@@ -1079,15 +1373,9 @@
 
             if (problem.noSolution) {
                 correctAnswer = 'NO_SOLUTION';
-                let opts = ['Нет решения'];
-                let guard = 0;
-                while (opts.length < 4 && guard < 50) {
-                    guard++;
-                    let fake = randInt(-25, 25);
-                    if (!isNegative && fake < 0) continue;
-                    if (!opts.includes(String(fake))) opts.push(String(fake));
-                }
-                opts.sort(() => Math.random() - 0.5);
+                const fakeNums = buildNoSolutionOptions(problem.a, isNegative);
+                let opts = ['Нет решения', ...fakeNums.map(String)];
+                opts = shuffleArray(opts);
                 opts.forEach(optText => {
                     const b = document.createElement('button');
                     b.className = 'btn-answer';
@@ -1097,19 +1385,8 @@
                 });
             } else {
                 correctAnswer = problem.answer;
-                let arr = [correctAnswer];
-                let guard = 0;
-                while (arr.length < 4 && guard < 60) {
-                    guard++;
-                    let delta = randInt(-7, 7);
-                    if (delta === 0) delta = 1;
-                    let fake = correctAnswer + delta;
-                    if (fake === correctAnswer) continue;
-                    if (!isNegative && fake < 0) continue;
-                    if (arr.includes(fake)) continue;
-                    arr.push(fake);
-                }
-                arr.sort(() => Math.random() - 0.5);
+                const fakeNums = buildDistractors(opKey, problem.a, problem.b, correctAnswer, isNegative, 3);
+                let arr = shuffleArray([correctAnswer, ...fakeNums]);
                 arr.forEach(ans => {
                     const b = document.createElement('button');
                     b.className = 'btn-answer'; b.innerText = ans;
@@ -1208,8 +1485,15 @@
             if (chosen === correctAnswer) {
                 correctCount++;
                 document.getElementById('stat-correct').innerText = correctCount;
+                profile.totalCorrect++;
+
+                if (currentProblemMeta) {
+                    const modeKey = `${currentProblemMeta.isNegative ? 'neg' : 'pos'}_${currentProblemMeta.opKey}_${currentProblemMeta.level}`;
+                    profile.modeStats[modeKey] = (profile.modeStats[modeKey] || 0) + 1;
+                }
 
                 state.combo++;
+                if (state.combo > profile.bestComboEver) profile.bestComboEver = state.combo;
                 let comboMultiplier = 1 + (state.combo * comboStepBonus);
                 let speedBonusPercent = 1 + (timeRemaining * 0.01 * speedBonusBaseFactor); 
                 let isCrit = Math.random() < state.critChance;
@@ -1249,6 +1533,7 @@
             } else {
                 wrongCount++;
                 document.getElementById('stat-wrong').innerText = wrongCount;
+                profile.totalWrong++;
 
                 let forgiven = false;
                 if (errorForgivenessTokens > 0) {
@@ -1506,6 +1791,7 @@
         }
 
         let lastGloryForRate = 0;
+        window.addEventListener('beforeunload', () => { saveProfile(); });
         let displayedGloryRate = 0;
 
         setInterval(() => {
@@ -1523,6 +1809,8 @@
             displayedGloryRate = Math.max(0, state.glory - lastGloryForRate);
             lastGloryForRate = state.glory;
 
+            if (totalSeconds % 5 === 0) saveProfile();
+
             updateUI();
         }, 1000);
 
@@ -1539,6 +1827,13 @@
                         gameActive = false;
                         document.getElementById('winDesc').innerText = `${activeMode.desc}\n\n⏱️ Время прохождения: ${formatTime(totalSeconds)}\n📊 Решено верно: ${correctCount} | Ошибок: ${wrongCount}`;
                         document.getElementById('winScreen').classList.add('active');
+
+                        const rec = profile.obets[activeModeKey];
+                        rec.completed = true;
+                        if (rec.bestTimeSeconds === null || totalSeconds < rec.bestTimeSeconds) {
+                            rec.bestTimeSeconds = totalSeconds;
+                        }
+                        saveProfile();
                     }
                     return;
                 }
