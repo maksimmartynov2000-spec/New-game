@@ -543,6 +543,22 @@
             return Number.isNaN(val) ? null : val;
         }
 
+        // Имитация "вычитания без заёма через разряд" — частая ошибка новичков:
+        // по каждому разряду берут модуль разности цифр, не занимая десяток
+        function noBorrowSub(a, b) {
+            if (a < 0 || b < 0) return null;
+            const sa = String(a), sb = String(b);
+            const maxLen = Math.max(sa.length, sb.length);
+            const pa = sa.padStart(maxLen, '0');
+            const pb = sb.padStart(maxLen, '0');
+            let digits = '';
+            for (let i = 0; i < maxLen; i++) {
+                digits += Math.abs(parseInt(pa[i]) - parseInt(pb[i]));
+            }
+            const val = parseInt(digits, 10);
+            return Number.isNaN(val) ? null : val;
+        }
+
         function pushStructural(arr, val, correctAnswer, isNegative) {
             if (val === undefined || val === null || !Number.isFinite(val)) return;
             val = Math.round(val);
@@ -562,53 +578,83 @@
         }
 
         function buildDistractors(opKey, a, b, correctAnswer, isNegative, count) {
-            // Приоритетный дистрактор: перепутанный знак ответа — самая частая ошибка
-            // при работе с отрицательными числами (модуль верный, знак — нет)
+            // ===== ПРИОРИТЕТ 1: самые частые реальные ошибки =====
             let priority = [];
+
+            // Знаковая ошибка — верный модуль, неверный знак (для отрицательных чисел)
             if (isNegative && correctAnswer !== 0) {
                 pushStructural(priority, -correctAnswer, correctAnswer, isNegative);
             }
 
+            // Умножение: один из множителей — 0 → берут второй множитель "как есть"
+            // (путают с умножением на 1)
+            if (opKey === 'mul') {
+                if (a === 0 && b !== 0) pushStructural(priority, b, correctAnswer, isNegative);
+                else if (b === 0 && a !== 0) pushStructural(priority, a, correctAnswer, isNegative);
+            }
+
+            // Деление: нулевое частное (делимое = 0) → "Нет решения" как ловушка,
+            // путают с правилом "на 0 делить нельзя". Плюс редкая (1%) случайная
+            // приманка в обычных примерах — чтобы вариант не был 100%-ным индикатором нуля.
+            let includeNoSolutionDecoy = false;
+            if (opKey === 'div') {
+                if (correctAnswer === 0) includeNoSolutionDecoy = true;
+                else if (Math.random() < 0.01) includeNoSolutionDecoy = true;
+            }
+
+            // ===== ПРИОРИТЕТ 2: типовые структурные ошибки по операциям =====
             let structural = [];
 
             if (opKey === 'add') {
                 pushStructural(structural, noCarryAdd(a, b), correctAnswer, isNegative);
                 pushStructural(structural, a - b, correctAnswer, isNegative);
             } else if (opKey === 'sub') {
+                pushStructural(structural, noBorrowSub(a, b), correctAnswer, isNegative);
                 pushStructural(structural, b - a, correctAnswer, isNegative);
                 pushStructural(structural, a + b, correctAnswer, isNegative);
             } else if (opKey === 'mul') {
                 pushStructural(structural, a * (b + 1), correctAnswer, isNegative);
                 pushStructural(structural, a * (b - 1), correctAnswer, isNegative);
                 pushStructural(structural, (a + 1) * b, correctAnswer, isNegative);
+                pushStructural(structural, (a - 1) * b, correctAnswer, isNegative);
                 pushStructural(structural, a + b, correctAnswer, isNegative);
             } else if (opKey === 'div') {
                 pushStructural(structural, correctAnswer + 1, correctAnswer, isNegative);
                 pushStructural(structural, correctAnswer - 1, correctAnswer, isNegative);
                 if (Math.abs(b) <= Math.abs(correctAnswer) * 3 + 10) {
-                    pushStructural(structural, b, correctAnswer, isNegative);
+                    pushStructural(structural, b, correctAnswer, isNegative); // делитель как ответ
                 }
+                pushStructural(structural, a, correctAnswer, isNegative);     // делимое как ответ
+                pushStructural(structural, a * b, correctAnswer, isNegative); // умножение вместо деления
             }
 
             structural = shuffleArray(structural);
 
             const used = new Set([correctAnswer]);
-            const result = [];
+            const result = []; // числа и, возможно, строка 'NO_SOLUTION'
 
-            // сначала — приоритетный "знаковый" дистрактор (если применим)
+            // Сначала — обязательный приоритет 1 (знак, нулевые кейсы умножения)
             for (const v of priority) {
                 if (result.length >= count) break;
                 if (!used.has(v)) { result.push(v); used.add(v); }
             }
 
-            // затем до 2 структурных дистракторов на оставшиеся места
-            const structuralTake = Math.min(2, structural.length, count - result.length);
-            for (let i = 0; i < structuralTake; i++) {
-                const v = structural[i];
+            // "Нет решения" — отдельная сущность, тоже приоритет 1
+            if (includeNoSolutionDecoy && result.length < count && !used.has('NO_SOLUTION')) {
+                result.push('NO_SOLUTION');
+                used.add('NO_SOLUTION');
+            }
+
+            // Затем — структурные дистракторы, заполняем всё, что осталось (до 3 слотов)
+            for (const v of structural) {
+                if (result.length >= count) break;
                 if (!used.has(v)) { result.push(v); used.add(v); }
             }
 
-            const deltaMax = Math.max(3, Math.round(Math.abs(correctAnswer) * 0.15));
+            // Остаток — случайный разброс. Масштаб считаем и от ответа, и от величины
+            // операндов примера, чтобы разброс не выглядел нелепо мелким при больших числах
+            const scaleBase = Math.max(Math.abs(correctAnswer), Math.abs(a), Math.abs(b));
+            const deltaMax = Math.max(3, Math.round(scaleBase * 0.15));
             let guard = 0;
             while (result.length < count && guard < 100) {
                 guard++;
@@ -626,6 +672,7 @@
                 widen++;
                 const fake = correctAnswer + widen * (Math.random() < 0.5 ? -1 : 1);
                 if (!isNegative && fake < 0) continue;
+                if (fake === a || fake === b) continue; // выровнено с основным циклом выше
                 if (used.has(fake)) continue;
                 result.push(fake); used.add(fake);
             }
@@ -780,7 +827,8 @@
                 let arr = shuffleArray([correctAnswer, ...fakeNums]);
                 arr.forEach(ans => {
                     const b = document.createElement('button');
-                    b.className = 'btn-answer'; b.innerText = ans;
+                    b.className = 'btn-answer';
+                    b.innerText = ans === 'NO_SOLUTION' ? 'Нет решения' : ans;
                     b.onclick = (e) => checkAnswer(ans, e);
                     grid.appendChild(b);
                 });
