@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Орден Света: Математическая Цитадель (мини)</title>
+    <title>Орден Счёта: Математическая Цитадель</title>
     <style>
         * {
             box-sizing: border-box;
@@ -66,6 +66,15 @@
         }
         .btn-type.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.15); box-shadow: 0 0 12px rgba(6, 182, 212, 0.35); }
         .op-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .frac-special-block {
+            margin-top: 10px; padding: 10px; border: 1px dashed rgba(168, 85, 247, 0.35);
+            border-radius: 12px; background: rgba(168, 85, 247, 0.04);
+        }
+        .frac-special-label {
+            font-size: 0.7rem; color: #d8b4fe; margin-bottom: 8px; font-weight: bold;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .btn-op.disabled-op { opacity: 0.4; pointer-events: none; }
         .btn-op {
             background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1);
             border-radius: 12px; padding: 12px 8px; color: white; text-align: center;
@@ -94,11 +103,11 @@
         }
         .btn-config-continue.ready { opacity: 1; pointer-events: auto; }
 
-        .category-select-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .category-select-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .btn-category {
             background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1);
-            border-radius: 14px; padding: 16px 8px; color: white; text-align: center;
-            font-size: 0.95rem; font-weight: bold; cursor: pointer;
+            border-radius: 14px; padding: 14px 4px; color: white; text-align: center;
+            font-size: 0.8rem; font-weight: bold; cursor: pointer; line-height: 1.3;
         }
         .btn-category.selected {
             border-color: var(--royal); background: rgba(168, 85, 247, 0.15);
@@ -238,48 +247,66 @@
 
     <!-- Экран настройки генерации примеров -->
     <div class="modal-screen" id="configScreen">
+        <p style="color: var(--royal); font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">⚔️ Орден Счёта: Математическая Цитадель</p>
         <h1 class="start-title">🔮 Настройка Испытаний</h1>
-        <p class="start-subtitle">Определите, какими примерами Орден будет проверять ваш разум</p>
-        <div class="config-container">
-            <div class="config-section">
-                <div class="config-section-title">1️⃣ Категория</div>
-                <div class="category-select-row" id="categorySelectRow">
-                    <button class="btn-category" data-value="integer">🔢 Целые числа</button>
-                    <button class="btn-category" data-value="fraction">🧮 Дроби</button>
-                </div>
-            </div>
 
-            <div class="config-section">
-                <div class="config-section-title">2️⃣ Вид чисел</div>
-                <div class="type-select-row" id="typeSelectRow">
-                    <button class="btn-type" data-value="positive">🔵 Положительные числа</button>
-                    <button class="btn-type" data-value="negative">🔴 Отрицательные числа</button>
+        <!-- ШАГ 1: только выбор категории -->
+        <div id="categoryStepScreen" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+            <p class="start-subtitle">Выберите, с какими числами будет работать Орден</p>
+            <div class="config-container">
+                <div class="config-section">
+                    <div class="category-select-row" id="categorySelectRow">
+                        <button class="btn-category" data-value="integer">🔢 Целые числа</button>
+                        <button class="btn-category" data-value="decimal">🔟 Десятичные дроби</button>
+                        <button class="btn-category" data-value="fraction">🧮 Дроби</button>
+                    </div>
                 </div>
-            </div>
-
-            <div class="config-section">
-                <div class="config-section-title">3️⃣ Режимы вычислений</div>
-                <div class="op-select-grid" id="opSelectGrid">
-                    <button class="btn-op" data-op="add">➕ Сложение</button>
-                    <button class="btn-op" data-op="sub">➖ Вычитание</button>
-                    <button class="btn-op" data-op="mul">✖️ Умножение</button>
-                    <button class="btn-op" data-op="div">➗ Деление</button>
-                    <button class="btn-op frac-only-op" data-op="simplify" style="display:none;">➗ Сокращение</button>
-                    <button class="btn-op frac-only-op" data-op="toMixed" style="display:none;">🔼 В смешанное число</button>
-                    <button class="btn-op frac-only-op" data-op="toImproper" style="display:none;">🔽 В неправильную дробь</button>
-                    <button class="btn-op frac-only-op" data-op="fracOfNumber" style="display:none;">🎯 Дробь от числа</button>
-                    <button class="btn-op frac-only-op" data-op="findWhole" style="display:none;">🔎 Найти число</button>
-                </div>
-                <div class="config-hint">Можно выбрать один или несколько режимов</div>
-            </div>
-
-            <div class="config-section" id="difficultyContainer" style="display:none;">
-                <div class="config-section-title">4️⃣ Сложность по режимам</div>
-                <div id="difficultyList"></div>
-                <div class="config-hint">Для каждого выбранного режима — своя сложность</div>
             </div>
         </div>
-        <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">⚔️ Начать испытание</button>
+
+        <!-- ШАГ 2: остальная настройка, открывается после выбора категории -->
+        <div id="restStepScreen" style="display:none; width:100%; flex-direction:column; align-items:center;">
+            <button id="btnBackToCategory" style="background:none; border:none; color:#94a3b8; font-size:0.85rem; margin-bottom:8px; cursor:pointer; text-decoration:underline;">← Назад к выбору категории</button>
+            <p class="start-subtitle" id="restStepSubtitle">Определите, какими примерами Орден будет проверять ваш разум</p>
+            <div class="config-container">
+                <div class="config-section">
+                    <div class="config-section-title">1️⃣ Вид чисел</div>
+                    <div class="type-select-row" id="typeSelectRow">
+                        <button class="btn-type" data-value="positive">🔵 Положительные числа</button>
+                        <button class="btn-type" data-value="negative">🔴 Отрицательные числа</button>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <div class="config-section-title">2️⃣ Режимы вычислений</div>
+                    <div class="op-select-grid" id="opSelectGrid">
+                        <button class="btn-op" data-op="add">➕ Сложение</button>
+                        <button class="btn-op" data-op="sub">➖ Вычитание</button>
+                        <button class="btn-op" data-op="mul">✖️ Умножение</button>
+                        <button class="btn-op" data-op="div">➗ Деление</button>
+                    </div>
+                    <div class="config-hint">Можно выбрать один или несколько режимов</div>
+
+                    <div class="frac-special-block" id="fracSpecialBlock" style="display:none;">
+                        <div class="frac-special-label">✨ Особые режимы дробей — только положительные числа</div>
+                        <div class="op-select-grid">
+                            <button class="btn-op frac-only-op" data-op="simplify">➗ Сокращение</button>
+                            <button class="btn-op frac-only-op" data-op="toMixed">🔼 В смешанное число</button>
+                            <button class="btn-op frac-only-op" data-op="toImproper">🔽 В неправильную дробь</button>
+                            <button class="btn-op frac-only-op" data-op="fracOfNumber">🎯 Дробь от числа</button>
+                            <button class="btn-op frac-only-op" data-op="findWhole">🔎 Найти число</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-section" id="difficultyContainer" style="display:none;">
+                    <div class="config-section-title">3️⃣ Сложность по режимам</div>
+                    <div id="difficultyList"></div>
+                    <div class="config-hint">Для каждого выбранного режима — своя сложность</div>
+                </div>
+            </div>
+            <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">⚔️ Начать испытание</button>
+        </div>
     </div>
 
     <div class="top-panel-wrapper">
@@ -344,21 +371,33 @@
                 document.querySelectorAll('.btn-category').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
                 const newCategory = btn.getAttribute('data-value');
+                const categoryChanged = exampleConfig.category !== newCategory;
 
-                // При смене категории сбрасываем выбор режимов и сложности — семантика различается
-                // между целыми числами и дробями, оставлять старый выбор небезопасно
+                // Сбрасываем выбор режимов и сложности только если категория РЕАЛЬНО изменилась —
+                // семантика различается между целыми/дробями/десятичными, оставлять старый выбор
+                // небезопасно. Но если вернулись назад и выбрали ту же категорию — прогресс сохраняем.
                 exampleConfig.category = newCategory;
-                exampleConfig.operations = {};
-                document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('selected'));
-                renderDifficultyList();
+                if (categoryChanged) {
+                    exampleConfig.operations = {};
+                    document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('selected'));
+                    renderDifficultyList();
+                }
 
-                // "Сокращение" и "Смешанные дроби" существуют только для категории "Дроби"
-                document.querySelectorAll('.frac-only-op').forEach(b => {
-                    b.style.display = newCategory === 'fraction' ? '' : 'none';
-                });
+                // Особые режимы дробей (блок целиком) существуют только для категории "Дроби"
+                document.getElementById('fracSpecialBlock').style.display = newCategory === 'fraction' ? 'block' : 'none';
 
+                updateFracOnlyOpAvailability();
                 updateConfigValidity();
+
+                // Переходим на второй экран — остальная настройка (открывается только после выбора категории)
+                document.getElementById('categoryStepScreen').style.display = 'none';
+                document.getElementById('restStepScreen').style.display = 'flex';
             });
+        });
+
+        document.getElementById('btnBackToCategory').addEventListener('click', () => {
+            document.getElementById('restStepScreen').style.display = 'none';
+            document.getElementById('categoryStepScreen').style.display = 'flex';
         });
 
         document.querySelectorAll('.btn-type').forEach(btn => {
@@ -366,12 +405,36 @@
                 document.querySelectorAll('.btn-type').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
                 exampleConfig.numberType = btn.getAttribute('data-value');
+                updateFracOnlyOpAvailability();
                 updateConfigValidity();
             });
         });
 
+        // Особые режимы дробей (Сокращение / В смешанное / В неправильную / Дробь от числа / Найти число)
+        // всегда работают только с положительными числами. Если выбраны "Отрицательные числа" —
+        // эти кнопки гаснут (как неактивная кнопка "Продолжить") и автоматически снимаются с выбора.
+        function updateFracOnlyOpAvailability() {
+            const isNegativeSelected = exampleConfig.numberType === 'negative';
+            let changed = false;
+            document.querySelectorAll('.frac-only-op').forEach(btn => {
+                if (isNegativeSelected) {
+                    btn.classList.add('disabled-op');
+                    const op = btn.getAttribute('data-op');
+                    if (op in exampleConfig.operations) {
+                        delete exampleConfig.operations[op];
+                        btn.classList.remove('selected');
+                        changed = true;
+                    }
+                } else {
+                    btn.classList.remove('disabled-op');
+                }
+            });
+            if (changed) renderDifficultyList();
+        }
+
         document.querySelectorAll('.btn-op').forEach(btn => {
             btn.addEventListener('click', () => {
+                if (btn.classList.contains('disabled-op')) return; // затухшая кнопка недоступна
                 const op = btn.getAttribute('data-op');
                 if (btn.classList.contains('selected')) {
                     btn.classList.remove('selected');
@@ -452,6 +515,17 @@
         function randSign() { return Math.random() < 0.5 ? -1 : 1; }
         function fmt(n) { return n < 0 ? `(${n})` : `${n}`; }
 
+        // Для +/- со вторым отрицательным операндом не пишем "5 + (-6)", а сразу переворачиваем
+        // оператор и показываем модуль: "5 - 6". Для ×/÷ такого преобразования не существует —
+        // там второй отрицательный операнд по-прежнему берётся в скобки (см. fmt выше).
+        function formatAddSubText(n1, opSymbol, n2) {
+            if (n2 < 0) {
+                const flipped = opSymbol === '+' ? '-' : '+';
+                return `${n1} ${flipped} ${Math.abs(n2)}`;
+            }
+            return `${n1} ${opSymbol} ${n2}`;
+        }
+
         // --- ОБЩИЕ ТАБЛИЦЫ СЛОЖНОСТИ (единые для + и - режимов чисел) ---
         const ADD_SUB_RANGE = { 1: 10, 2: 20, 3: 50, 4: 100, 5: 200 };
         const DIVISOR_POOL = {
@@ -463,10 +537,11 @@
         };
         const QUOTIENT_MAX = { 1: 5, 2: 10, 3: 15, 4: 25, 5: 50 };
         const DIV_ZERO_CHANCE = 0.10; // фиксированная доля примеров "деление на 0", не зависит от таблиц
+        const MUL_ZERO_CHANCE = 0.08; // управляемая доля "умножения на 0" — не зависит от таблиц/диапазонов
         const MUL_TABLE = {
-            1: [0, 1, 2, 5, 10],
-            2: [0, 1, 2, 3, 4, 5, 10],
-            3: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+            1: [1, 2, 5, 10],
+            2: [1, 2, 3, 4, 5, 10],
+            3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         };
 
         // --- "МЕШОК" ЗНАКОВ: гарантирует, что все 4 комбинации (+/+ +/- -/+ -/-)
@@ -505,18 +580,27 @@
         }
 
         function genMulPositive(level) {
+            if (Math.random() < MUL_ZERO_CHANCE) {
+                // Намеренный, управляемый случай "умножение на 0" — не случайный побочный эффект таблиц
+                const maxOther = level <= 3 ? 10 : (level === 4 ? 20 : 99);
+                const other = randInt(1, maxOther);
+                const zeroFirst = Math.random() < 0.5;
+                const a = zeroFirst ? 0 : other;
+                const b = zeroFirst ? other : 0;
+                return { text: `${a} × ${b}`, answer: 0, a, b };
+            }
             let a, b;
             if (level <= 3) {
                 const table = MUL_TABLE[level];
                 a = table[randInt(0, table.length - 1)];
-                b = randInt(0, 10);
+                b = randInt(1, 10);
                 if (Math.random() < 0.5) { const t = a; a = b; b = t; }
             } else if (level === 4) {
                 a = randInt(10, 20);
-                b = randInt(0, 10);
+                b = randInt(1, 10);
             } else {
                 a = randInt(10, 99);
-                b = randInt(0, 10);
+                b = randInt(1, 10);
             }
             return { text: `${a} × ${b}`, answer: a * b, a: a, b: b };
         }
@@ -543,7 +627,7 @@
             const mag2 = (s1 === s2) ? randInt(0, range - mag1) : randInt(0, range);
             const n1 = s1 * mag1;
             const n2 = s2 * mag2;
-            return { text: `${fmt(n1)} + ${fmt(n2)}`, answer: n1 + n2, a: n1, b: n2 };
+            return { text: formatAddSubText(n1, '+', n2), answer: n1 + n2, a: n1, b: n2 };
         }
 
         function genSubNegative(level) {
@@ -555,33 +639,43 @@
             const mag2 = (s1 !== s2) ? randInt(0, range - mag1) : randInt(0, range);
             const n1 = s1 * mag1;
             const n2 = s2 * mag2;
-            return { text: `${fmt(n1)} - ${fmt(n2)}`, answer: n1 - n2, a: n1, b: n2 };
+            return { text: formatAddSubText(n1, '-', n2), answer: n1 - n2, a: n1, b: n2 };
         }
 
         function genMulNegative(level) {
+            if (Math.random() < MUL_ZERO_CHANCE) {
+                // Намеренный, управляемый случай "умножение на 0" — знак ненулевого множителя
+                // берём напрямую (не через мешок знаков), как и в аналогичном случае деления на 0
+                const maxOther = level <= 3 ? 10 : (level === 4 ? 20 : 99);
+                const other = randInt(1, maxOther) * randSign();
+                const zeroFirst = Math.random() < 0.5;
+                const a = zeroFirst ? 0 : other;
+                const b = zeroFirst ? other : 0;
+                return { text: `${a} × ${fmt(b)}`, answer: 0, a, b };
+            }
             let magA, magB;
             if (level <= 3) {
                 const table = MUL_TABLE[level];
                 magA = table[randInt(0, table.length - 1)];
-                magB = randInt(0, 10);
+                magB = randInt(1, 10);
             } else if (level === 4) {
                 magA = randInt(10, 20);
-                magB = randInt(0, 10);
+                magB = randInt(1, 10);
             } else {
                 magA = randInt(10, 99);
-                magB = randInt(0, 10);
+                magB = randInt(1, 10);
             }
             const [s1, s2] = nextSignPair(signBags.mul);
-            const a = magA === 0 ? 0 : magA * s1;
-            const b = magB === 0 ? 0 : magB * s2;
-            return { text: `${fmt(a)} × ${fmt(b)}`, answer: a * b, a: a, b: b };
+            const a = magA * s1;
+            const b = magB * s2;
+            return { text: `${a} × ${fmt(b)}`, answer: a * b, a: a, b: b };
         }
 
         function genDivNegative(level) {
             if (Math.random() < DIV_ZERO_CHANCE) {
                 const dividendMag = randInt(1, Math.max(10, QUOTIENT_MAX[level] * 2));
                 const dividend = dividendMag * randSign();
-                return { text: `${fmt(dividend)} ÷ 0`, answer: null, noSolution: true, a: dividend, b: 0 };
+                return { text: `${dividend} ÷ 0`, answer: null, noSolution: true, a: dividend, b: 0 };
             }
             const pool = DIVISOR_POOL[level];
             const divisorMag = pool[randInt(0, pool.length - 1)];
@@ -590,13 +684,16 @@
             const divisor = divisorMag * s1;
             const quotient = quotientMag === 0 ? 0 : quotientMag * s2;
             const dividend = divisor * quotient;
-            return { text: `${fmt(dividend)} ÷ ${fmt(divisor)}`, answer: quotient, a: dividend, b: divisor };
+            return { text: `${dividend} ÷ ${fmt(divisor)}`, answer: quotient, a: dividend, b: divisor };
         }
 
         // --- ГЕНЕРАЦИЯ ОТВЛЕКАЮЩИХ ВАРИАНТОВ ОТВЕТА ---
+        // Обе функции работают через МОДУЛЬ чисел (не зависят от знака a/b) — так ловушка
+        // "ошибка в разрядах" работает и в отрицательном режиме тоже. Знак результата
+        // применяется на стороне вызова (buildDistractors), обычно совпадающим со знаком
+        // правильного ответа — это изолирует "ошибку в цифрах" от "ошибки в знаке".
         function noCarryAdd(a, b) {
-            if (a < 0 || b < 0) return null;
-            const sa = String(a), sb = String(b);
+            const sa = String(Math.abs(a)), sb = String(Math.abs(b));
             const maxLen = Math.max(sa.length, sb.length);
             const pa = sa.padStart(maxLen, '0');
             const pb = sb.padStart(maxLen, '0');
@@ -611,8 +708,7 @@
         // Имитация "вычитания без заёма через разряд" — частая ошибка новичков:
         // по каждому разряду берут модуль разности цифр, не занимая десяток
         function noBorrowSub(a, b) {
-            if (a < 0 || b < 0) return null;
-            const sa = String(a), sb = String(b);
+            const sa = String(Math.abs(a)), sb = String(Math.abs(b));
             const maxLen = Math.max(sa.length, sb.length);
             const pa = sa.padStart(maxLen, '0');
             const pb = sb.padStart(maxLen, '0');
@@ -671,10 +767,18 @@
             let structural = [];
 
             if (opKey === 'add') {
-                pushStructural(structural, noCarryAdd(a, b), correctAnswer, isNegative);
+                const noCarryMag = noCarryAdd(a, b);
+                if (noCarryMag !== null) {
+                    const signedNoCarry = correctAnswer < 0 ? -noCarryMag : noCarryMag;
+                    pushStructural(structural, signedNoCarry, correctAnswer, isNegative);
+                }
                 pushStructural(structural, a - b, correctAnswer, isNegative);
             } else if (opKey === 'sub') {
-                pushStructural(structural, noBorrowSub(a, b), correctAnswer, isNegative);
+                const noBorrowMag = noBorrowSub(a, b);
+                if (noBorrowMag !== null) {
+                    const signedNoBorrow = correctAnswer < 0 ? -noBorrowMag : noBorrowMag;
+                    pushStructural(structural, signedNoBorrow, correctAnswer, isNegative);
+                }
                 pushStructural(structural, b - a, correctAnswer, isNegative);
                 pushStructural(structural, a + b, correctAnswer, isNegative);
             } else if (opKey === 'mul') {
@@ -839,6 +943,26 @@
             5: [2, 3, 4, 5, 6, 7, 8, 9, 10]
         };
 
+        // Отдельные пулы для сложения/вычитания — знаменатели одинаковые на 4-5★ (12), различие
+        // между уровнями идёт через ограничение сверху на НОК (см. ADD_SUB_MAX_LCM), а не через
+        // сами числа: иначе НОК может случайно оказаться слишком большим для устного счёта
+        // (например, пара 7 и 9 технически "разные и не делятся", но их НОК = 63).
+        const ADD_SUB_FRAC_DEN_POOL = {
+            1: [2, 3, 4, 5],
+            2: [2, 3, 4, 5, 6, 7, 8],
+            3: [2, 3, 4, 5, 6, 7, 8, 9, 10],
+            4: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+            5: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        };
+        const ADD_SUB_MAX_LCM = { 4: 20, 5: 24 };
+
+        // Умножение/деление на 5★ — без смешанных чисел, знаменатели чуть шире, чем на 3-4★,
+        // но перемножение двух дробей (в отличие от сложения) не требует поиска НОК, поэтому
+        // даже такой диапазон остаётся посильным для устного счёта.
+        const MUL_DIV_LEVEL5_POOL = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15];
+
+        function lcm(a, b) { return (a * b) / gcd(a, b); }
+
         // Числитель правильной, уже несократимой дроби (условие примера всегда в сокращённом виде)
         function randFracProper(den) {
             if (den <= 1) return 0;
@@ -877,15 +1001,26 @@
             return { n1, n2 };
         }
 
-        // Пара разных знаменателей, ни один из которых не делится на другой (нужен настоящий НОК)
-        function pickDifferentDenominators(pool) {
+        // Пара разных знаменателей, ни один из которых не делится на другой, С ОГРАНИЧЕНИЕМ НОК
+        // сверху (maxLcm) — иначе даже "разные, не делящиеся" знаменатели могут дать неподъёмный
+        // для устного счёта НОК (например, 7 и 9 технически подходят, но их НОК = 63).
+        function pickDifferentDenominators(pool, maxLcm) {
+            const ok = (a, b) => a !== b && b % a !== 0 && a % b !== 0 && lcm(a, b) <= maxLcm;
             let d1, d2, guard = 0;
             do {
                 d1 = pool[randInt(0, pool.length - 1)];
                 d2 = pool[randInt(0, pool.length - 1)];
                 guard++;
-            } while ((d1 === d2 || d2 % d1 === 0 || d1 % d2 === 0) && guard < 30);
-            return { d1, d2 };
+            } while (!ok(d1, d2) && guard < 50);
+            if (ok(d1, d2)) return { d1, d2 };
+
+            // Детерминированный фолбэк — ищем любую валидную пару прямым перебором пула
+            for (const a of pool) {
+                for (const b of pool) {
+                    if (ok(a, b)) return { d1: a, d2: b };
+                }
+            }
+            return { d1: 2, d2: 3 }; // крайний фолбэк, всегда валиден (НОК=6)
         }
 
         // Общий множитель k в допустимых пределах пула (чтобы d1=k*mult не выходил за диапазон уровня
@@ -897,9 +1032,9 @@
         }
 
         // Умножение: гарантированное перекрёстное сокращение (числитель второй дроби делит
-        // знаменатель первой, при этом каждая дробь по отдельности несократима)
-        function pickCancelMulPair(level) {
-            const pool = FRAC_DEN_POOL[level];
+        // знаменатель первой, при этом каждая дробь по отдельности несократима).
+        // Принимает пул знаменателей напрямую — переиспользуется для разных уровней/операций.
+        function pickCancelMulPair(pool) {
             const k = pickCrossFactor(pool);
             const d1 = k * randInt(2, 3);
             const n2 = k;
@@ -910,8 +1045,7 @@
         }
 
         // Умножение: гарантированное ОТСУТСТВИЕ возможности сократить (ни по одной диагонали)
-        function pickNoCancelMulPair(level) {
-            const pool = FRAC_DEN_POOL[level];
+        function pickNoCancelMulPair(pool) {
             const d1 = pool[randInt(0, pool.length - 1)];
             let d2, n1, n2, guard = 0;
             do {
@@ -926,8 +1060,7 @@
 
         // Деление: гарантированная возможность сокращения (общий множитель либо в числителях,
         // либо в знаменателях — механика отличается от умножения из-за переворота второй дроби)
-        function pickCancelDivPair(level) {
-            const pool = FRAC_DEN_POOL[level];
+        function pickCancelDivPair(pool) {
             if (Math.random() < 0.5) {
                 // общий множитель в числителях
                 const k = pickCrossFactor(pool);
@@ -943,8 +1076,7 @@
         }
 
         // Деление: гарантированное отсутствие сокращения (ни в числителях, ни в знаменателях)
-        function pickNoCancelDivPair(level) {
-            const pool = FRAC_DEN_POOL[level];
+        function pickNoCancelDivPair(pool) {
             let d1, d2, n1, n2, guard = 0;
             do {
                 d1 = pool[randInt(0, pool.length - 1)];
@@ -959,40 +1091,15 @@
 
         // ===================== ДРОБИ: ПОДБОР ВЕЛИЧИН ПО УРОВНЯМ =====================
         function pickAddSubMagnitudes(level, opKey) {
-            if (level === 5) {
-                const wholePool = [1, 2, 3, 4, 5];
-                // Гарантированный минимальный порог сложности: разные знаменатели дробных частей
-                // (не сводится к тривиальному "уже общий знаменатель")
-                let { d1, d2 } = pickDifferentDenominators(FRAC_DEN_POOL[5]);
-                let n1 = randFracProper(d1);
-                let n2 = randFracProper(d2);
-
-                // Для вычитания смещаем вероятность в сторону "нужен заём" — чаще, чем получилось бы случайно
-                if (opKey === 'sub' && Math.random() < 0.7) {
-                    const borrowNeeded = (n1 * d2) < (n2 * d1);
-                    if (!borrowNeeded) {
-                        // меняем местами дробные части операндов целиком (парами num/den),
-                        // чтобы дробная часть первого операнда стала меньше второго
-                        const tN = n1, tD = d1;
-                        n1 = n2; d1 = d2;
-                        n2 = tN; d2 = tD;
-                    }
-                }
-
-                return {
-                    whole1: wholePool[randInt(0, wholePool.length - 1)], n1, d1,
-                    whole2: wholePool[randInt(0, wholePool.length - 1)], n2, d2
-                };
-            }
             if (level === 1) {
-                const pool = FRAC_DEN_POOL[1];
+                const pool = ADD_SUB_FRAC_DEN_POOL[1];
                 const den = pool[randInt(0, pool.length - 1)];
                 const n1 = randFracProper(den);
                 const n2 = randFracProper(den);
                 return { whole1: 0, n1, d1: den, whole2: 0, n2, d2: den };
             }
             if (level === 2) {
-                const pool = FRAC_DEN_POOL[2];
+                const pool = ADD_SUB_FRAC_DEN_POOL[2];
                 const den = pool[randInt(0, pool.length - 1)];
                 const pair = pickReducibleAddSubPair(den, opKey === 'add');
                 return { whole1: 0, n1: pair.n1, d1: den, whole2: 0, n2: pair.n2, d2: den };
@@ -1008,8 +1115,12 @@
                 const n2 = randFracProper(d2);
                 return { whole1: 0, n1, d1, whole2: 0, n2, d2 };
             }
-            // level 4 — разные знаменатели, требуется настоящий НОК
-            const { d1, d2 } = pickDifferentDenominators(FRAC_DEN_POOL[4]);
+            // level 4 и 5 — разные знаменатели, требуется настоящий НОК, но с ограничением сверху
+            // (ADD_SUB_MAX_LCM), чтобы даже самый сложный случай оставался решаемым в уме.
+            // Уровни отличаются только величиной допустимого НОК (20 против 24), не самими числами.
+            const pool = ADD_SUB_FRAC_DEN_POOL[level];
+            const maxLcm = ADD_SUB_MAX_LCM[level];
+            const { d1, d2 } = pickDifferentDenominators(pool, maxLcm);
             const n1 = randFracProper(d1);
             const n2 = randFracProper(d2);
             return { whole1: 0, n1, d1, whole2: 0, n2, d2 };
@@ -1017,13 +1128,14 @@
 
         function pickMulDivMagnitudes(level, opKey) {
             if (level === 5) {
-                const wholePool = [1, 2, 3, 4, 5];
-                // Гарантированный минимальный порог сложности: разные знаменатели дробных частей
-                const { d1, d2 } = pickDifferentDenominators(FRAC_DEN_POOL[5]);
-                return {
-                    whole1: wholePool[randInt(0, wholePool.length - 1)], n1: randFracProper(d1), d1,
-                    whole2: wholePool[randInt(0, wholePool.length - 1)], n2: randFracProper(d2), d2
-                };
+                // Без смешанных чисел — знаменатели чуть шире, чем на 3-4★, сокращение возможно
+                // не всегда (как на 3★), но сами числа остаются посильными для устного счёта
+                const pool = MUL_DIV_LEVEL5_POOL;
+                const hasCancelOpportunity = Math.random() < 0.5;
+                const p = opKey === 'div'
+                    ? (hasCancelOpportunity ? pickCancelDivPair(pool) : pickNoCancelDivPair(pool))
+                    : (hasCancelOpportunity ? pickCancelMulPair(pool) : pickNoCancelMulPair(pool));
+                return { whole1: 0, n1: p.n1, d1: p.d1, whole2: 0, n2: p.n2, d2: p.d2 };
             }
             if (level === 4) {
                 // дробь × целое число (для деления — случайно, с какой стороны целое)
@@ -1038,15 +1150,17 @@
             if (level === 3) {
                 // Уровень 3: возможность сократить есть НЕ ВСЕГДА (иначе ученик просто запоминает
                 // шаблон "тут всегда что-то сокращается", вместо того чтобы реально её искать)
+                const pool = FRAC_DEN_POOL[3];
                 const hasCancelOpportunity = Math.random() < 0.5;
-                let p;
-                if (opKey === 'div') p = hasCancelOpportunity ? pickCancelDivPair(3) : pickNoCancelDivPair(3);
-                else p = hasCancelOpportunity ? pickCancelMulPair(3) : pickNoCancelMulPair(3);
+                const p = opKey === 'div'
+                    ? (hasCancelOpportunity ? pickCancelDivPair(pool) : pickNoCancelDivPair(pool))
+                    : (hasCancelOpportunity ? pickCancelMulPair(pool) : pickNoCancelMulPair(pool));
                 return { whole1: 0, n1: p.n1, d1: p.d1, whole2: 0, n2: p.n2, d2: p.d2 };
             }
             if (level === 2) {
                 // Уровень 2: сокращение результата гарантировано ВСЕГДА (в отличие от уровня 3)
-                const p = opKey === 'div' ? pickCancelDivPair(2) : pickCancelMulPair(2);
+                const pool = FRAC_DEN_POOL[2];
+                const p = opKey === 'div' ? pickCancelDivPair(pool) : pickCancelMulPair(pool);
                 return { whole1: 0, n1: p.n1, d1: p.d1, whole2: 0, n2: p.n2, d2: p.d2 };
             }
             // level 1 — простые дроби без гарантий на сокращение
@@ -1454,8 +1568,31 @@
             return { isFraction: true, opKey: 'fracOfNumber', level, fracNum: num, fracDen: den, N, k, answer };
         }
 
+        // "Найти число" делит ту же пару пулов (denPool/kPool) с "Дробь от числа", но там ответ —
+        // den × k, а не num × k. Поскольку знаменатель правильной дроби всегда БОЛЬШЕ числителя,
+        // финальное умножение здесь систематически тяжелее (например, 36×13) — асимметрия,
+        // которую нужно отдельно ограничивать: не даём знаменателю и k одновременно быть
+        // двузначными, иначе итоговое умножение перестаёт решаться в уме.
+        function pickFindWholeCore(level) {
+            const denPool = FRAC_OF_NUM_DEN_POOL[level];
+            const kPool = FRAC_OF_NUM_K_POOL[level];
+            let den, num, k, guard = 0;
+            do {
+                den = denPool[randInt(0, denPool.length - 1)];
+                num = randFracProper(den);
+                k = kPool[randInt(0, kPool.length - 1)];
+                guard++;
+            } while (den >= 10 && k >= 10 && guard < 30);
+            if (den >= 10 && k >= 10) {
+                // гарантированный фолбэк — принудительно берём однозначное k из пула
+                const smallK = kPool.filter(x => x < 10);
+                k = smallK.length ? smallK[randInt(0, smallK.length - 1)] : 9;
+            }
+            return { num, den, k };
+        }
+
         function generateFindWholeProblem(level) {
-            const { num, den, k } = pickFracOfNumberCore(level);
+            const { num, den, k } = pickFindWholeCore(level);
             const knownValue = num * k;
             const answer = den * k; // искомое целое число X
             return { isFraction: true, opKey: 'findWhole', level, fracNum: num, fracDen: den, knownValue, k, answer };
@@ -1524,8 +1661,16 @@
 
         // Единая функция отображения: для 5★ — смешанное число, для остальных — обычная дробь.
         // Применяется одинаково и к правильному ответу, и к дистракторам, и к операндам условия.
-        function renderFracValue(frac, level) {
-            if (level === 5) {
+        // wrapNegative по умолчанию false — отдельно стоящие значения (варианты ответа) никогда
+        // не оборачиваются в скобки. Скобки применяются только ко второму операнду выражения,
+        // и только если он отрицателен — так минус-знак не путается со знаком операции.
+        // asMixed — явный флаг "показать как смешанное число", а НЕ признак уровня сложности.
+        // Раньше смешанный вид включался неявно при level===5, но теперь обычная арифметика
+        // (+,-,×,÷) на 5★ дробей больше не использует смешанные числа вообще — только два
+        // специальных режима ("В смешанное число"/"В неправильную дробь") явно запрашивают
+        // нужный вид независимо от того, какая сложность была использована при генерации чисел.
+        function renderFracValue(frac, asMixed, wrapNegative = false) {
+            if (asMixed) {
                 const m = toMixedParts(frac);
                 const signPrefix = m.sign < 0 ? '−' : '';
                 let inner;
@@ -1537,19 +1682,284 @@
                     inner = fracStackHtml(m.remNum, m.den);
                 }
                 const body = `<span class="frac-display">${signPrefix}${inner}</span>`;
-                return frac.num < 0 ? `<span class="frac-paren">(</span>${body}<span class="frac-paren">)</span>` : body;
+                return (wrapNegative && frac.num < 0) ? `<span class="frac-paren">(</span>${body}<span class="frac-paren">)</span>` : body;
             }
             if (frac.den === 1) {
-                return frac.num < 0 ? `<span class="frac-paren">(</span>${frac.num}<span class="frac-paren">)</span>` : `${frac.num}`;
+                return (wrapNegative && frac.num < 0) ? `<span class="frac-paren">(</span>${frac.num}<span class="frac-paren">)</span>` : `${frac.num}`;
             }
             const sign = frac.num < 0 ? '−' : '';
             const body = `<span class="frac-display">${sign}${fracStackHtml(Math.abs(frac.num), frac.den)}</span>`;
-            return frac.num < 0 ? `<span class="frac-paren">(</span>${body}<span class="frac-paren">)</span>` : body;
+            return (wrapNegative && frac.num < 0) ? `<span class="frac-paren">(</span>${body}<span class="frac-paren">)</span>` : body;
         }
 
         const FRAC_OP_SYMBOL = { add: '+', sub: '−', mul: '×', div: '÷' };
         function buildFractionQuestionHtml(f1, f2, opKey, level) {
-            return `<span class="frac-row">${renderFracValue(f1, level)}<span class="frac-op-symbol">${FRAC_OP_SYMBOL[opKey]}</span>${renderFracValue(f2, level)}</span>`;
+            // Обычная арифметика +/-/×/÷ больше никогда не показывает смешанные числа
+            // (даже на 5★) — asMixed всегда false здесь.
+            if ((opKey === 'add' || opKey === 'sub') && f2.num < 0) {
+                const flippedOp = opKey === 'add' ? 'sub' : 'add';
+                const absF2 = { num: -f2.num, den: f2.den };
+                return `<span class="frac-row">${renderFracValue(f1, false, false)}<span class="frac-op-symbol">${FRAC_OP_SYMBOL[flippedOp]}</span>${renderFracValue(absF2, false, false)}</span>`;
+            }
+            return `<span class="frac-row">${renderFracValue(f1, false, false)}<span class="frac-op-symbol">${FRAC_OP_SYMBOL[opKey]}</span>${renderFracValue(f2, false, true)}</span>`;
+        }
+
+        // ===================== ДЕСЯТИЧНЫЕ ДРОБИ: АРИФМЕТИКА =====================
+        // Десятичное число хранится как {intVal, dp}: значение = intVal / 10^dp.
+        // Вся арифметика идёт через целые числа — никаких ошибок плавающей точки (0.1+0.2 и т.п.).
+        function stripTrailingZeros(d) {
+            let { intVal, dp } = d;
+            while (dp > 0 && intVal % 10 === 0) { intVal = intVal / 10; dp--; }
+            return { intVal, dp };
+        }
+        // Сложение/вычитание: результат НЕ сокращаем — сохраняем "естественную" точность
+        // (максимум точности операндов), это педагогически важно для сложения/вычитания в столбик.
+        function decAdd(d1, d2) {
+            const commonDp = Math.max(d1.dp, d2.dp);
+            const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
+            const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
+            return { intVal: v1 + v2, dp: commonDp };
+        }
+        function decSub(d1, d2) {
+            const commonDp = Math.max(d1.dp, d2.dp);
+            const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
+            const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
+            return { intVal: v1 - v2, dp: commonDp };
+        }
+        // Умножение: "сырой" продукт (dp1+dp2, без сокращения) — нужен операнду "делимое" в делении,
+        // и сокращённая версия — используется как окончательный ОТВЕТ (убираем случайные лишние нули)
+        function decMulRaw(d1, d2) { return { intVal: d1.intVal * d2.intVal, dp: d1.dp + d2.dp }; }
+        function decMul(d1, d2) { return stripTrailingZeros(decMulRaw(d1, d2)); }
+
+        function decKey(d) { return `${d.intVal}_${d.dp}`; }
+
+        function decToString(d, wrapNegative = false) {
+            const isNeg = d.intVal < 0;
+            const absVal = Math.abs(d.intVal);
+            let str;
+            if (d.dp === 0) {
+                str = `${absVal}`;
+            } else {
+                const s = String(absVal).padStart(d.dp + 1, '0');
+                str = `${s.slice(0, s.length - d.dp)}.${s.slice(s.length - d.dp)}`;
+            }
+            const signedStr = isNeg ? `-${str}` : str;
+            return (wrapNegative && isNeg) ? `(${signedStr})` : signedStr;
+        }
+
+        function randDecimalMagnitude(dp, maxWhole) {
+            const whole = randInt(0, maxWhole);
+            const frac = randInt(0, Math.pow(10, dp) - 1);
+            return { intVal: whole * Math.pow(10, dp) + frac, dp };
+        }
+        // Для умножения/деления множитель/частное/делитель, случайно оказавшийся ровно нулём
+        // (целая часть 0 и все дробные цифры 0), даёт тривиальный "0 × x = 0" — бесполезно для
+        // тренировки. Эта версия гарантирует ненулевое значение.
+        function randDecimalMagnitudeNonZero(dp, maxWhole) {
+            let d, guard = 0;
+            do {
+                d = randDecimalMagnitude(dp, maxWhole);
+                guard++;
+            } while (d.intVal === 0 && guard < 10);
+            if (d.intVal === 0) d.intVal = 1; // гарантированный фолбэк
+            return d;
+        }
+
+        const signBagsDecimal = { add: createSignBag(), sub: createSignBag(), mul: createSignBag(), div: createSignBag() };
+
+        // Пулы по уровням: для +/− иногда специально разное число знаков после запятой (часть сложности)
+        // Сложение/вычитание — сложность растёт плавно: сначала величина целой части,
+        // потом количество знаков после запятой, и только на старших уровнях — их сочетание.
+        const ADD_SUB_DECIMAL_POOLS = {
+            1: { dpOptions: [[1, 1]], maxWhole: 9 },
+            2: { dpOptions: [[1, 1]], maxWhole: 20 },
+            3: { dpOptions: [[2, 2]], maxWhole: 20 },
+            4: { dpOptions: [[1, 2], [2, 1]], maxWhole: 30 },
+            5: { dpOptions: [[1, 2], [2, 1]], maxWhole: 50 }
+        };
+
+        // Умножение — числа всегда маленькие (целая часть максимум двузначная), сложность растёт
+        // через то, сколько знаков после запятой нужно верно расставить в ответе, а не через
+        // сам процесс умножения. dpA/dpB — пулы для "первого по роли" и "второго по роли" множителя,
+        // роли случайно распределяются между первой и второй позицией в примере.
+        const MUL_DECIMAL_LEVELS = {
+            1: { maxWhole: 4, dpAOptions: [1], dpBOptions: [0, 1] },
+            2: { maxWhole: 4, dpAOptions: [1, 2], dpBOptions: [0] },
+            3: { maxWhole: 9, dpAOptions: [1], dpBOptions: [0, 1] },
+            4: { maxWhole: 9, dpAOptions: [1, 2], dpBOptions: [0] },
+            5: { maxWhole: 5, dpAOptions: [0, 1, 2], dpBOptions: [0, 1] }
+        };
+        // Деление устроено зеркально умножению — те же правила применяются к частному и делителю,
+        // а делимое строится их перемножением (поэтому тоже остаётся маленьким и точным).
+        const DIV_DECIMAL_LEVELS = {
+            1: { maxWhole: 4, dpAOptions: [1], dpBOptions: [0, 1] },
+            2: { maxWhole: 4, dpAOptions: [1, 2], dpBOptions: [0] },
+            3: { maxWhole: 9, dpAOptions: [1], dpBOptions: [0, 1] },
+            4: { maxWhole: 9, dpAOptions: [1, 2], dpBOptions: [0] },
+            5: { maxWhole: 5, dpAOptions: [0, 1, 2], dpBOptions: [0, 1] }
+        };
+
+        // Выбирает пару (dp1, dp2) по конфигу уровня, гарантируя, что хотя бы одно число
+        // дробное (не даёт обеим позициям случайно оказаться целыми одновременно)
+        function pickMulDivDpPair(cfg) {
+            let dpA, dpB, guard = 0;
+            do {
+                dpA = cfg.dpAOptions[randInt(0, cfg.dpAOptions.length - 1)];
+                dpB = cfg.dpBOptions[randInt(0, cfg.dpBOptions.length - 1)];
+                guard++;
+            } while (dpA === 0 && dpB === 0 && guard < 10);
+            if (dpA === 0 && dpB === 0) dpA = 1; // гарантированный фолбэк
+
+            // случайно решаем, какая позиция (первая/вторая) получит какую роль
+            return Math.random() < 0.5 ? [dpA, dpB] : [dpB, dpA];
+        }
+
+        function genDecAddSub(opKey, level, isNegative) {
+            const pool = ADD_SUB_DECIMAL_POOLS[level];
+            const [dp1, dp2] = pool.dpOptions[randInt(0, pool.dpOptions.length - 1)];
+            let d1 = randDecimalMagnitude(dp1, pool.maxWhole);
+            let d2 = randDecimalMagnitude(dp2, pool.maxWhole);
+
+            if (isNegative) {
+                const [s1, s2] = nextSignPair(signBagsDecimal[opKey]);
+                d1 = { intVal: d1.intVal * s1, dp: d1.dp };
+                d2 = { intVal: d2.intVal * s2, dp: d2.dp };
+            } else if (opKey === 'sub') {
+                // гарантируем неотрицательный результат — сравниваем через общий масштаб
+                const commonDp = Math.max(d1.dp, d2.dp);
+                const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
+                const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
+                if (v1 < v2) { const t = d1; d1 = d2; d2 = t; }
+            }
+
+            const answer = opKey === 'add' ? decAdd(d1, d2) : decSub(d1, d2);
+            return { isDecimal: true, opKey, level, d1, d2, answer };
+        }
+
+        function genDecMul(level, isNegative) {
+            const cfg = MUL_DECIMAL_LEVELS[level];
+            const [dp1, dp2] = pickMulDivDpPair(cfg);
+            let d1 = randDecimalMagnitudeNonZero(dp1, cfg.maxWhole);
+            let d2 = randDecimalMagnitudeNonZero(dp2, cfg.maxWhole);
+            if (isNegative) {
+                const [s1, s2] = nextSignPair(signBagsDecimal.mul);
+                d1 = { intVal: d1.intVal * s1, dp: d1.dp };
+                d2 = { intVal: d2.intVal * s2, dp: d2.dp };
+            }
+            const answer = decMul(d1, d2);
+            return { isDecimal: true, opKey: 'mul', level, d1, d2, answer };
+        }
+
+        function genDecDiv(level, isNegative) {
+            const cfg = DIV_DECIMAL_LEVELS[level];
+            const [dpQ, dpD] = pickMulDivDpPair(cfg);
+            let quotient = randDecimalMagnitudeNonZero(dpQ, cfg.maxWhole);
+            let divisor = randDecimalMagnitudeNonZero(dpD, cfg.maxWhole);
+
+            if (isNegative) {
+                const [s1, s2] = nextSignPair(signBagsDecimal.div); // s1 — знак частного, s2 — знак делителя
+                quotient = { intVal: quotient.intVal * s1, dp: quotient.dp };
+                divisor = { intVal: divisor.intVal * s2, dp: divisor.dp };
+            }
+
+            const dividend = decMulRaw(quotient, divisor); // делимое — операнд условия, не сокращаем его dp
+            return { isDecimal: true, opKey: 'div', level, d1: dividend, d2: divisor, answer: quotient };
+        }
+
+        function generateDecimalProblem(opKey, level, isNegative) {
+            if (opKey === 'add' || opKey === 'sub') return genDecAddSub(opKey, level, isNegative);
+            if (opKey === 'mul') return genDecMul(level, isNegative);
+            return genDecDiv(level, isNegative);
+        }
+
+        function buildDecimalQuestionText(d1, d2, opKey) {
+            const OP_SYMBOL = { add: '+', sub: '-', mul: '×', div: '÷' };
+            if ((opKey === 'add' || opKey === 'sub') && d2.intVal < 0) {
+                const flippedOp = opKey === 'add' ? 'sub' : 'add';
+                const absD2 = { intVal: -d2.intVal, dp: d2.dp };
+                return `${decToString(d1, false)} ${OP_SYMBOL[flippedOp]} ${decToString(absD2, false)}`;
+            }
+            return `${decToString(d1, false)} ${OP_SYMBOL[opKey]} ${decToString(d2, true)}`;
+        }
+
+        function pushDec(arr, cand, correctAnswer, used, isNegative) {
+            if (!cand) return;
+            let { intVal, dp } = cand;
+            if (!Number.isFinite(intVal) || !Number.isFinite(dp) || dp < 0 || dp > 6) return;
+            if (!isNegative && intVal < 0) return;
+            if (intVal === correctAnswer.intVal && dp === correctAnswer.dp) return;
+            const key = decKey({ intVal, dp });
+            if (used.has(key)) return;
+            used.add(key);
+            arr.push({ intVal, dp });
+        }
+
+        function buildDecimalDistractors(opKey, d1, d2, correctAnswer, isNegative, count) {
+            const used = new Set([decKey(correctAnswer)]);
+
+            // ===== ПРИОРИТЕТ 1: самые частые реальные ошибки =====
+            let priority = [];
+            if (isNegative && correctAnswer.intVal !== 0) {
+                pushDec(priority, { intVal: -correctAnswer.intVal, dp: correctAnswer.dp }, correctAnswer, used, isNegative);
+            }
+            // "Сдвинули запятую" — умножили/поделили на 10 по ошибке (очень частая ошибка)
+            pushDec(priority, { intVal: correctAnswer.intVal, dp: correctAnswer.dp - 1 }, correctAnswer, used, isNegative);
+            pushDec(priority, { intVal: correctAnswer.intVal, dp: correctAnswer.dp + 1 }, correctAnswer, used, isNegative);
+            priority = shuffleArray(priority).slice(0, 2);
+
+            // ===== ПРИОРИТЕТ 2: типовые структурные ошибки по операциям =====
+            let structural = [];
+            if (opKey === 'add' || opKey === 'sub') {
+                if (d1.dp !== d2.dp) {
+                    // "Забыли выровнять запятую" — сложили/вычли сырые intVal без масштабирования
+                    const rawCombined = opKey === 'add' ? d1.intVal + d2.intVal : d1.intVal - d2.intVal;
+                    pushDec(structural, { intVal: rawCombined, dp: Math.max(d1.dp, d2.dp) }, correctAnswer, used, isNegative);
+                }
+                // "Перепутали операцию" (сложили вместо вычли и наоборот)
+                const commonDp = Math.max(d1.dp, d2.dp);
+                const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
+                const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
+                const wrongOp = opKey === 'add' ? (v1 - v2) : (v1 + v2);
+                pushDec(structural, { intVal: wrongOp, dp: commonDp }, correctAnswer, used, isNegative);
+            } else if (opKey === 'mul') {
+                // "Неверное количество знаков после запятой" — сырой продукт, но не тот dp
+                const rawProduct = d1.intVal * d2.intVal;
+                pushDec(structural, { intVal: rawProduct, dp: d1.dp + d2.dp - 1 }, correctAnswer, used, isNegative);
+                pushDec(structural, { intVal: rawProduct, dp: d1.dp + d2.dp + 1 }, correctAnswer, used, isNegative);
+                // "Сложили вместо того чтобы умножить"
+                const commonDp = Math.max(d1.dp, d2.dp);
+                const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
+                const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
+                pushDec(structural, { intVal: v1 + v2, dp: commonDp }, correctAnswer, used, isNegative);
+            } else if (opKey === 'div') {
+                // "Перемножили вместо того чтобы разделить"
+                pushDec(structural, { intVal: d1.intVal * d2.intVal, dp: d1.dp + d2.dp }, correctAnswer, used, isNegative);
+            }
+
+            const result = [];
+            for (const v of priority) { if (result.length >= count) break; result.push(v); }
+            for (const v of shuffleArray(structural)) { if (result.length >= count) break; result.push(v); }
+
+            // случайный фолбэк, масштаб — от величины ответа
+            let guard = 0;
+            while (result.length < count && guard < 200) {
+                guard++;
+                const dp = correctAnswer.dp;
+                const deltaMax = Math.max(3, Math.round(Math.abs(correctAnswer.intVal) * 0.2));
+                let delta = randInt(-deltaMax, deltaMax);
+                if (delta === 0) delta = 1;
+                const val = correctAnswer.intVal + delta;
+                if (!isNegative && val < 0) continue;
+                pushDec(result, { intVal: val, dp }, correctAnswer, used, isNegative);
+            }
+            let widen = 1;
+            while (result.length < count) {
+                widen++;
+                const sign = (isNegative && Math.random() < 0.5) ? -1 : 1;
+                pushDec(result, { intVal: correctAnswer.intVal + sign * widen, dp: correctAnswer.dp }, correctAnswer, used, isNegative);
+            }
+
+            return result;
         }
 
         // ===================== ИГРОВАЯ ЛОГИКА (минимальная) =====================
@@ -1639,14 +2049,14 @@
                 if (opKey === 'simplify') {
                     const problem = generateSimplifyProblem(level);
                     correctAnswer = problem.answer;
-                    questionEl.innerHTML = `<span class="compound-question"><span class="task-label">Сократи дробь:</span><span class="frac-row">${renderFracValue(problem.given, 1)}</span></span>`;
+                    questionEl.innerHTML = `<span class="compound-question"><span class="task-label">Сократи дробь:</span><span class="frac-row">${renderFracValue(problem.given, false)}</span></span>`;
 
                     const fakeFracs = buildSimplifyDistractors(problem.given, correctAnswer, 3, problem.m);
                     const options = shuffleArray([correctAnswer, ...fakeFracs]);
                     options.forEach(opt => {
                         const btn = document.createElement('button');
                         btn.className = 'btn-answer';
-                        btn.innerHTML = renderFracValue(opt, 1);
+                        btn.innerHTML = renderFracValue(opt, false);
                         btn.onclick = (e) => checkAnswer(opt, e);
                         grid.appendChild(btn);
                     });
@@ -1657,19 +2067,22 @@
                 if (opKey === 'toMixed' || opKey === 'toImproper') {
                     const problem = opKey === 'toMixed' ? generateToMixedProblem(level) : generateToImproperProblem(level);
                     correctAnswer = problem.answer;
-                    const questionRenderLevel = problem.direction === 'toMixed' ? 1 : 5;
-                    const answerRenderLevel = problem.direction === 'toMixed' ? 5 : 1;
+                    // Явный флаг "показать как смешанное число" — независимо от уровня сложности:
+                    // при переводе В смешанное условие (неправильная дробь) остаётся обычным,
+                    // а ответ (смешанное число) — да; при переводе В неправильную — наоборот.
+                    const questionAsMixed = problem.direction === 'toImproper';
+                    const answerAsMixed = problem.direction === 'toMixed';
                     const label = problem.direction === 'toMixed'
                         ? 'Переведи в смешанное число:'
                         : 'Переведи в неправильную дробь:';
-                    questionEl.innerHTML = `<span class="compound-question"><span class="task-label">${label}</span><span class="frac-row">${renderFracValue(problem.given, questionRenderLevel)}</span></span>`;
+                    questionEl.innerHTML = `<span class="compound-question"><span class="task-label">${label}</span><span class="frac-row">${renderFracValue(problem.given, questionAsMixed)}</span></span>`;
 
                     const fakeFracs = buildMixedConvertDistractors(problem, 3);
                     const options = shuffleArray([correctAnswer, ...fakeFracs]);
                     options.forEach(opt => {
                         const btn = document.createElement('button');
                         btn.className = 'btn-answer';
-                        btn.innerHTML = renderFracValue(opt, answerRenderLevel);
+                        btn.innerHTML = renderFracValue(opt, answerAsMixed);
                         btn.onclick = (e) => checkAnswer(opt, e);
                         grid.appendChild(btn);
                     });
@@ -1680,7 +2093,7 @@
                 if (opKey === 'fracOfNumber') {
                     const problem = generateFracOfNumberProblem(level);
                     correctAnswer = problem.answer;
-                    const fracHtml = renderFracValue({ num: problem.fracNum, den: problem.fracDen }, 1);
+                    const fracHtml = renderFracValue({ num: problem.fracNum, den: problem.fracDen }, false);
                     questionEl.innerHTML = `<span class="compound-question"><span class="task-label">Найди дробь от числа:</span><span class="frac-row">${fracHtml}<span class="frac-op-symbol">от ${problem.N}</span></span></span>`;
 
                     const fakeNums = buildFracOfNumberDistractors(problem, 3);
@@ -1699,7 +2112,7 @@
                 if (opKey === 'findWhole') {
                     const problem = generateFindWholeProblem(level);
                     correctAnswer = problem.answer;
-                    const fracHtml = renderFracValue({ num: problem.fracNum, den: problem.fracDen }, 1);
+                    const fracHtml = renderFracValue({ num: problem.fracNum, den: problem.fracDen }, false);
                     questionEl.innerHTML = `<span class="compound-question"><span class="task-label">Найди число, если известно:</span><span class="frac-row">${fracHtml}<span class="frac-op-symbol">от него = ${problem.knownValue}</span></span></span>`;
 
                     const fakeNums = buildFindWholeDistractors(problem, 3);
@@ -1724,7 +2137,25 @@
                 options.forEach(opt => {
                     const btn = document.createElement('button');
                     btn.className = 'btn-answer';
-                    btn.innerHTML = renderFracValue(opt, level);
+                    btn.innerHTML = renderFracValue(opt, false); // обычная арифметика больше не показывает смешанные числа
+                    btn.onclick = (e) => checkAnswer(opt, e);
+                    grid.appendChild(btn);
+                });
+                return;
+            }
+
+            // ===== ДЕСЯТИЧНЫЕ ДРОБИ: простой текстовый рендер (как у целых чисел) =====
+            if (exampleConfig.category === 'decimal') {
+                const problem = generateDecimalProblem(opKey, level, isNegative);
+                correctAnswer = problem.answer;
+                questionEl.innerText = buildDecimalQuestionText(problem.d1, problem.d2, opKey);
+
+                const fakeDecs = buildDecimalDistractors(opKey, problem.d1, problem.d2, correctAnswer, isNegative, 3);
+                const options = shuffleArray([correctAnswer, ...fakeDecs]);
+                options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn-answer';
+                    btn.innerText = decToString(opt, false);
                     btn.onclick = (e) => checkAnswer(opt, e);
                     grid.appendChild(btn);
                 });
@@ -1839,10 +2270,14 @@
                 clickY = rect.top + rect.height / 2;
             }
 
-            // Для дробей сравнение идёт по точному совпадению num/den (структурное, не математическое) —
-            // несокращённая, но математически равная дробь должна засчитываться как ОШИБКА.
+            // Для дробей и десятичных сравнение идёт по точному структурному совпадению
+            // (num/den или intVal/dp), а не по математическому равенству — несокращённая дробь
+            // или число со сдвинутой запятой должны засчитываться как ОШИБКА.
             const isCorrect = (correctAnswer && typeof correctAnswer === 'object')
-                ? (chosen && typeof chosen === 'object' && chosen.num === correctAnswer.num && chosen.den === correctAnswer.den)
+                ? (chosen && typeof chosen === 'object' && (
+                    ('num' in correctAnswer && chosen.num === correctAnswer.num && chosen.den === correctAnswer.den) ||
+                    ('intVal' in correctAnswer && chosen.intVal === correctAnswer.intVal && chosen.dp === correctAnswer.dp)
+                  ))
                 : (chosen === correctAnswer);
 
             if (isCorrect) {
