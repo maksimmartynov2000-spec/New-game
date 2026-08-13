@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Орден Счёта: Математическая Цитадель</title>
+    <title>Математическая Цитадель</title>
+    <meta name="apple-mobile-web-app-title" content="Математическая Цитадель">
     <style>
         * {
             box-sizing: border-box;
@@ -137,7 +138,8 @@
             padding-top: calc(4px + env(safe-area-inset-top));
         }
         header {
-            display: flex; justify-content: center; padding: 10px;
+            display: flex; justify-content: center; align-items: center;
+            padding: 8px;
             padding-left: calc(8px + env(safe-area-inset-left));
             padding-right: calc(8px + env(safe-area-inset-right));
             width: 100%;
@@ -149,6 +151,74 @@
         }
         .res-label { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; }
         .res-val { font-size: clamp(1rem, 4vw, 1.4rem); font-weight: bold; margin-top: 2px; white-space: nowrap; }
+
+        /* ===== Мини-превью пазла в шапке — крупное, как в образце ===== */
+        .puzzle-mini { cursor: pointer; padding: 2px; }
+        .puzzle-mini:active { transform: scale(0.98); }
+        .puzzle-mini-thumb {
+            width: clamp(160px, 52vw, 250px); height: clamp(160px, 52vw, 250px);
+            border-radius: 14px; overflow: hidden;
+            border: 1px solid rgba(255, 215, 0, 0.3); background: #0b0e18;
+            box-shadow: 0 0 14px rgba(255, 215, 0, 0.14);
+        }
+        .puzzle-mini-thumb svg { width: 100%; height: 100%; display: block; }
+        .puzzle-mini-status { display: none; }
+
+        /* ===== Коллекция собранных пазлов ===== */
+        .collection-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-bottom: 14px; }
+        .collection-item { aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; position: relative; border: 2px solid rgba(255,255,255,0.12); background: #0b0e18; }
+        .collection-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .collection-item.locked img { filter: grayscale(1) brightness(0.25); }
+        .collection-item.locked::after {
+            content: '?'; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+            font-size: 2rem; color: rgba(255,255,255,0.35); font-weight: bold;
+        }
+        .collection-item.unlocked { border-color: rgba(255, 215, 0, 0.5); box-shadow: 0 0 14px rgba(255,215,0,0.2); }
+
+        /* ===== Полноэкранные окна пазла/коллекции ===== */
+        .puzzle-modal {
+            position: fixed; inset: 0; background: rgba(2, 3, 8, 0.94); z-index: 250;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            padding: 18px; padding-top: calc(18px + env(safe-area-inset-top));
+            padding-bottom: calc(18px + env(safe-area-inset-bottom));
+            overflow-y: auto;
+        }
+        .puzzle-modal.active { display: flex; }
+        .puzzle-modal-inner { width: 100%; max-width: 420px; display: flex; flex-direction: column; align-items: center; position: relative; }
+        .puzzle-close {
+            position: absolute; top: -6px; right: 0; background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.18); color: #fff; width: 34px; height: 34px;
+            border-radius: 50%; font-size: 1rem; cursor: pointer; z-index: 5;
+        }
+        .puzzle-modal-title { color: var(--gold); font-size: 1.1rem; font-weight: bold; margin-bottom: 12px; text-align: center; }
+        .puzzle-big-thumb {
+            width: 100%; aspect-ratio: 1 / 1; border-radius: 16px; overflow: hidden;
+            border: 2px solid rgba(255, 215, 0, 0.28); box-shadow: 0 0 35px rgba(0,0,0,0.55);
+            background: #0b0e18;
+        }
+        .puzzle-big-thumb svg { width: 100%; height: 100%; display: block; }
+        .puzzle-complete-panel { display: none; flex-direction: column; align-items: center; gap: 10px; margin-top: 16px; text-align: center; width: 100%; }
+        .puzzle-complete-panel.show { display: flex; }
+        .puzzle-complete-panel p.title-line { color: var(--gold); font-size: 1.15rem; font-weight: bold; }
+        .puzzle-complete-panel .stats-line { color: #94a3b8; font-size: 0.85rem; }
+        .puzzle-complete-img {
+            width: 100%; max-width: 280px; aspect-ratio: 1 / 1; object-fit: cover;
+            border-radius: 14px; border: 2px solid rgba(255, 215, 0, 0.35);
+            box-shadow: 0 0 25px rgba(0,0,0,0.5);
+        }
+        .collection-added-line { color: #34d399; font-size: 0.9rem; font-weight: bold; }
+        .btn-save-puzzle {
+            background: linear-gradient(45deg, #0284c7, #06b6d4); border: none; color: white;
+            padding: 13px 24px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.95rem;
+            width: 100%; max-width: 300px;
+        }
+        .btn-save-puzzle:active { transform: scale(0.97); }
+        .btn-restart-puzzle {
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: white;
+            padding: 11px 24px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
+            width: 100%; max-width: 300px;
+        }
+        .puzzle-save-hint { color: #64748b; font-size: 0.72rem; margin-top: -2px; }
 
         .game-space {
             flex: 1; position: relative; display: flex; flex-direction: column;
@@ -189,6 +259,8 @@
             background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.3);
             color: white; padding: 14px; border-radius: 12px; font-size: 1.25rem; font-weight: bold;
             cursor: pointer; position: relative; transition: background 0.1s, transform 0.1s;
+            min-height: 64px; display: flex; align-items: center; justify-content: center;
+            text-align: center; line-height: 1.15;
         }
         .btn-answer:active { transform: scale(0.95); background: rgba(6, 182, 212, 0.2); }
 
@@ -239,20 +311,27 @@
         @media (max-height: 600px) {
             .math-box { padding: 8px; max-width: 320px; }
             .math-question { font-size: 1.6rem; margin-bottom: 6px; }
-            .btn-answer { padding: 8px; font-size: 1.1rem; }
+            .btn-answer { padding: 8px; font-size: 1.1rem; min-height: 52px; }
+            .puzzle-mini-thumb { width: clamp(130px, 42vw, 200px); height: clamp(130px, 42vw, 200px); }
         }
     </style>
 </head>
 <body>
 
+    <!-- Общие SVG-ресурсы пазла: картинка + все 100 clip-path кусочков. Переиспользуются
+         и в мини-превью в шапке, и в большом окне пазла — без дублирования картинки. -->
+    <svg width="0" height="0" style="position:absolute;">
+        <defs id="puzzleDefs">
+            <image id="puzzleFullImg" href="" x="0" y="0" width="1000" height="1000"></image>
+        </defs>
+    </svg>
+
     <!-- Экран настройки генерации примеров -->
     <div class="modal-screen" id="configScreen">
-        <p style="color: var(--royal); font-size: 0.8rem; letter-spacing: 1px; margin-bottom: 4px; text-transform: uppercase;">⚔️ Орден Счёта: Математическая Цитадель</p>
         <h1 class="start-title">🔮 Настройка Испытаний</h1>
 
         <!-- ШАГ 1: только выбор категории -->
         <div id="categoryStepScreen" style="width:100%; display:flex; flex-direction:column; align-items:center;">
-            <p class="start-subtitle">Выберите, с какими числами будет работать Орден</p>
             <div class="config-container">
                 <div class="config-section">
                     <div class="category-select-row" id="categorySelectRow">
@@ -266,8 +345,7 @@
 
         <!-- ШАГ 2: остальная настройка, открывается после выбора категории -->
         <div id="restStepScreen" style="display:none; width:100%; flex-direction:column; align-items:center;">
-            <button id="btnBackToCategory" style="background:none; border:none; color:#94a3b8; font-size:0.85rem; margin-bottom:8px; cursor:pointer; text-decoration:underline;">← Назад к выбору категории</button>
-            <p class="start-subtitle" id="restStepSubtitle">Определите, какими примерами Орден будет проверять ваш разум</p>
+            <button id="btnBackToCategory" style="align-self:flex-start; background:none; border:none; color:#94a3b8; font-size:0.95rem; margin-bottom:8px; margin-left:4px; cursor:pointer; line-height:1;">◀️ назад</button>
             <div class="config-container">
                 <div class="config-section">
                     <div class="config-section-title">1️⃣ Вид чисел</div>
@@ -294,7 +372,6 @@
                             <button class="btn-op frac-only-op" data-op="toMixed">🔼 В смешанное число</button>
                             <button class="btn-op frac-only-op" data-op="toImproper">🔽 В неправильную дробь</button>
                             <button class="btn-op frac-only-op" data-op="fracOfNumber">🎯 Дробь от числа</button>
-                            <button class="btn-op frac-only-op" data-op="findWhole">🔎 Найти число</button>
                         </div>
                     </div>
                 </div>
@@ -310,11 +387,20 @@
     </div>
 
     <div class="top-panel-wrapper">
-        <div class="game-clock-bar" id="gameClock">⏳ Время Эпохи: 00:00</div>
+        <div class="game-clock-bar" id="gameClock">⏳ Время Эпохи: <span id="clockTimeText">00:00</span> &nbsp;·&nbsp; 🪙 <span id="val-gold">0</span></div>
         <header>
-            <div class="resource-card">
-                <div class="res-label">🪙 Таланты</div>
-                <div class="res-val" id="val-gold">0</div>
+            <div class="puzzle-mini" id="puzzleMiniBtn">
+                <div class="puzzle-mini-thumb">
+                    <svg viewBox="0 0 1000 1000" id="miniPuzzleSvg">
+                        <rect width="1000" height="1000" fill="#0b0e18"></rect>
+                        <g id="miniPiecesGroup"></g>
+                        <g id="miniSeamGroup" opacity="0.45"></g>
+                    </svg>
+                </div>
+                <div class="puzzle-mini-status">
+                    <span id="puzzleMiniCount">0/100</span>
+                    <span class="puzzle-collection-badge" id="puzzleCollectionBadge">🏆 0/3</span>
+                </div>
             </div>
         </header>
     </div>
@@ -340,7 +426,7 @@
 
     <div class="control-panel">
         <button class="btn-final" id="btn-exam">
-            <span class="name">🏆 СДАТЬ ВЕЛИКИЙ ЭКЗАМЕН 🏆</span>
+            <span class="name">⚔️ Завершить испытание</span>
         </button>
     </div>
 
@@ -350,15 +436,50 @@
         <button style="margin-top:30px; padding:12px 25px; background:var(--gold); border:none; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="location.reload()">Начать заново</button>
     </div>
 
+    <!-- Полноэкранное окно пазла -->
+    <div class="puzzle-modal" id="puzzleModal">
+        <div class="puzzle-modal-inner">
+            <button class="puzzle-close" id="puzzleCloseBtn">✕</button>
+            <div id="puzzleLiveSection">
+                <div class="puzzle-modal-title">🧩 Пазл собирается: <span id="puzzleModalCount">0/100</span></div>
+                <div class="puzzle-big-thumb">
+                    <svg viewBox="0 0 1000 1000" id="bigPuzzleSvg">
+                        <rect width="1000" height="1000" fill="#0b0e18"></rect>
+                        <g id="bigPiecesGroup"></g>
+                        <g id="bigSeamGroup" opacity="0.5"></g>
+                    </svg>
+                </div>
+            </div>
+            <div class="puzzle-complete-panel" id="puzzleCompletePanel">
+                <p class="title-line">🎉 Пазл собран полностью!</p>
+                <img class="puzzle-complete-img" id="puzzleCompleteImg" alt="Собранный пазл">
+                <p class="stats-line" id="puzzleCompleteStats"></p>
+                <p class="collection-added-line" id="collectionAddedLine">🏆 Добавлено в коллекцию!</p>
+                <button class="btn-save-puzzle" id="btnViewCollection">🖼️ Моя коллекция</button>
+                <button class="btn-restart-puzzle" id="btnContinuePlaying">▶️ Продолжить игру</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Окно коллекции собранных пазлов -->
+    <div class="puzzle-modal" id="collectionModal">
+        <div class="puzzle-modal-inner">
+            <button class="puzzle-close" id="collectionCloseBtn">✕</button>
+            <div class="puzzle-modal-title">🏆 Моя коллекция: <span id="collectionCountLabel">0/3</span></div>
+            <div class="collection-grid" id="collectionGrid"></div>
+            <div class="puzzle-save-hint">Собери все картинки — после этого они снова начнут попадаться</div>
+        </div>
+    </div>
+
     <script>
         // ===================== НАСТРОЙКА ГЕНЕРАЦИИ ПРИМЕРОВ =====================
         const OP_LABELS = {
             add: '➕ Сложение', sub: '➖ Вычитание', mul: '✖️ Умножение', div: '➗ Деление',
             simplify: '➗ Сокращение', toMixed: '🔼 В смешанное число', toImproper: '🔽 В неправильную дробь',
-            fracOfNumber: '🎯 Дробь от числа', findWhole: '🔎 Найти число'
+            fracOfNumber: '🎯 Дробь от числа'
         };
-        const OP_ORDER = ['add', 'sub', 'mul', 'div', 'simplify', 'toMixed', 'toImproper', 'fracOfNumber', 'findWhole'];
-        const FRAC_ONLY_OPS = ['simplify', 'toMixed', 'toImproper', 'fracOfNumber', 'findWhole'];
+        const OP_ORDER = ['add', 'sub', 'mul', 'div', 'simplify', 'toMixed', 'toImproper', 'fracOfNumber'];
+        const FRAC_ONLY_OPS = ['simplify', 'toMixed', 'toImproper', 'fracOfNumber'];
 
         let exampleConfig = {
             category: null,        // 'integer' | 'fraction'
@@ -410,7 +531,7 @@
             });
         });
 
-        // Особые режимы дробей (Сокращение / В смешанное / В неправильную / Дробь от числа / Найти число)
+        // Особые режимы дробей (Сокращение / В смешанное / В неправильную / Дробь от числа)
         // всегда работают только с положительными числами. Если выбраны "Отрицательные числа" —
         // эти кнопки гаснут (как неактивная кнопка "Продолжить") и автоматически снимаются с выбора.
         function updateFracOnlyOpAvailability() {
@@ -515,15 +636,42 @@
         function randSign() { return Math.random() < 0.5 ? -1 : 1; }
         function fmt(n) { return n < 0 ? `(${n})` : `${n}`; }
 
-        // Для +/- со вторым отрицательным операндом не пишем "5 + (-6)", а сразу переворачиваем
-        // оператор и показываем модуль: "5 - 6". Для ×/÷ такого преобразования не существует —
-        // там второй отрицательный операнд по-прежнему берётся в скобки (см. fmt выше).
-        function formatAddSubText(n1, opSymbol, n2) {
+        // Для +/- со вторым отрицательным операндом обычно не пишем "5 + (-6)", а сразу
+        // переворачиваем оператор и показываем модуль: "5 - 6". НО на 5★ это явление —
+        // "двойной знак" — намеренно оставляем как есть ("5 + (-6)"), это элемент сложности
+        // именно старшего уровня (нужно распознать и разобрать двойной знак).
+        function formatAddSubText(n1, opSymbol, n2, keepDoubleSign) {
             if (n2 < 0) {
+                if (keepDoubleSign) {
+                    return `${n1} ${opSymbol} (${n2})`;
+                }
                 const flipped = opSymbol === '+' ? '-' : '+';
                 return `${n1} ${flipped} ${Math.abs(n2)}`;
             }
             return `${n1} ${opSymbol} ${n2}`;
+        }
+
+        // --- ВЫБОР КОМБИНАЦИИ ЗНАКОВ (отрицательный режим целых чисел) ---
+        // Раньше использовался равномерный "мешок" (все 4 комбинации по 25%). Теперь — взвешенный
+        // выбор: "оба положительных" (++) — редкость, не больше 5% (в режиме "отрицательные числа"
+        // такие примеры выглядят как случайно попавшие туда простые положительные примеры).
+        // Для сложения/вычитания на 5★ дополнительно смещаем в сторону "двойных знаков"
+        // (второй операнд отрицательный — тот случай, где виден перевёрнутый оператор).
+        function pickIntegerSignCombo(opKey, level) {
+            const r = Math.random();
+            if ((opKey === 'add' || opKey === 'sub') && level === 5) {
+                if (r < 0.05) return '++';
+                if (r < 0.20) return '-+';
+                if (r < 0.60) return '+-';
+                return '--';
+            }
+            if (r < 0.05) return '++';
+            if (r < 0.3667) return '+-';
+            if (r < 0.6834) return '-+';
+            return '--';
+        }
+        function comboToSigns(combo) {
+            return [combo[0] === '+' ? 1 : -1, combo[1] === '+' ? 1 : -1];
         }
 
         // --- ОБЩИЕ ТАБЛИЦЫ СЛОЖНОСТИ (единые для + и - режимов чисел) ---
@@ -536,8 +684,12 @@
             5: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         };
         const QUOTIENT_MAX = { 1: 5, 2: 10, 3: 15, 4: 25, 5: 50 };
-        const DIV_ZERO_CHANCE = 0.10; // фиксированная доля примеров "деление на 0", не зависит от таблиц
-        const MUL_ZERO_CHANCE = 0.08; // управляемая доля "умножения на 0" — не зависит от таблиц/диапазонов
+        const DIV_ZERO_CHANCE = 0.10; // фиксированная доля примеров "деление на 0", не зависит от таблиц (положительный режим)
+        const MUL_ZERO_CHANCE = 0.08; // управляемая доля "умножения на 0" — не зависит от таблиц/диапазонов (положительный режим)
+        // В отрицательном режиме доля примеров с нулём (умножение на 0, деление на/в 0) снижена —
+        // не больше 5% суммарно, как и для остальных "нулевых" случаев
+        const MUL_ZERO_CHANCE_NEG = 0.04;
+        const DIV_ZERO_CHANCE_NEG = 0.04;
         const MUL_TABLE = {
             1: [1, 2, 5, 10],
             2: [1, 2, 3, 4, 5, 10],
@@ -554,12 +706,6 @@
             const token = bag.queue.pop();
             return [token[0] === '+' ? 1 : -1, token[1] === '+' ? 1 : -1];
         }
-        const signBags = {
-            add: createSignBag(),
-            sub: createSignBag(),
-            mul: createSignBag(),
-            div: createSignBag()
-        };
 
         // --- ПОЛОЖИТЕЛЬНЫЕ ЧИСЛА ---
         function genAddPositive(level) {
@@ -620,32 +766,55 @@
         // --- ОТРИЦАТЕЛЬНЫЕ ЧИСЛА ---
         function genAddNegative(level) {
             const range = ADD_SUB_RANGE[level];
-            const [s1, s2] = nextSignPair(signBags.add);
-            const mag1 = randInt(0, range);
-            // при одинаковых знаках вклады складываются по модулю — магнитуду нужно ограничить,
-            // чтобы сумма гарантированно осталась в диапазоне без повторных попыток
-            const mag2 = (s1 === s2) ? randInt(0, range - mag1) : randInt(0, range);
+            const allowZero = Math.random() < 0.05; // нулевой операнд — редкость, не больше ~5%
+            const [s1, s2] = comboToSigns(pickIntegerSignCombo('add', level));
+            let mag1, mag2;
+            if (allowZero) {
+                mag1 = randInt(0, range);
+                mag2 = (s1 === s2) ? randInt(0, range - mag1) : randInt(0, range);
+            } else {
+                // Гарантированно ненулевые магнитуды: при одинаковых знаках оставляем магнитуде-1
+                // хотя бы 1 единицу диапазона про запас для магнитуды-2 (иначе на границе range
+                // остаток вычисляется как 0, и мы бы всё равно получили нулевой операнд)
+                if (s1 === s2) {
+                    mag1 = randInt(1, range - 1);
+                    mag2 = randInt(1, range - mag1);
+                } else {
+                    mag1 = randInt(1, range);
+                    mag2 = randInt(1, range);
+                }
+            }
             const n1 = s1 * mag1;
             const n2 = s2 * mag2;
-            return { text: formatAddSubText(n1, '+', n2), answer: n1 + n2, a: n1, b: n2 };
+            return { text: formatAddSubText(n1, '+', n2, level === 5), answer: n1 + n2, a: n1, b: n2 };
         }
 
         function genSubNegative(level) {
             const range = ADD_SUB_RANGE[level];
-            const [s1, s2] = nextSignPair(signBags.sub);
-            const mag1 = randInt(0, range);
-            // при разных знаках операндов их вклады в разность складываются по модулю —
-            // магнитуду нужно ограничить, чтобы результат остался в диапазоне
-            const mag2 = (s1 !== s2) ? randInt(0, range - mag1) : randInt(0, range);
+            const allowZero = Math.random() < 0.05;
+            const [s1, s2] = comboToSigns(pickIntegerSignCombo('sub', level));
+            let mag1, mag2;
+            if (allowZero) {
+                mag1 = randInt(0, range);
+                mag2 = (s1 !== s2) ? randInt(0, range - mag1) : randInt(0, range);
+            } else {
+                if (s1 !== s2) {
+                    mag1 = randInt(1, range - 1);
+                    mag2 = randInt(1, range - mag1);
+                } else {
+                    mag1 = randInt(1, range);
+                    mag2 = randInt(1, range);
+                }
+            }
             const n1 = s1 * mag1;
             const n2 = s2 * mag2;
-            return { text: formatAddSubText(n1, '-', n2), answer: n1 - n2, a: n1, b: n2 };
+            return { text: formatAddSubText(n1, '-', n2, level === 5), answer: n1 - n2, a: n1, b: n2 };
         }
 
         function genMulNegative(level) {
-            if (Math.random() < MUL_ZERO_CHANCE) {
+            if (Math.random() < MUL_ZERO_CHANCE_NEG) {
                 // Намеренный, управляемый случай "умножение на 0" — знак ненулевого множителя
-                // берём напрямую (не через мешок знаков), как и в аналогичном случае деления на 0
+                // берём напрямую (не через выбор комбинации), как и в аналогичном случае деления на 0
                 const maxOther = level <= 3 ? 10 : (level === 4 ? 20 : 99);
                 const other = randInt(1, maxOther) * randSign();
                 const zeroFirst = Math.random() < 0.5;
@@ -665,22 +834,23 @@
                 magA = randInt(10, 99);
                 magB = randInt(1, 10);
             }
-            const [s1, s2] = nextSignPair(signBags.mul);
+            const [s1, s2] = comboToSigns(pickIntegerSignCombo('mul', level));
             const a = magA * s1;
             const b = magB * s2;
             return { text: `${a} × ${fmt(b)}`, answer: a * b, a: a, b: b };
         }
 
         function genDivNegative(level) {
-            if (Math.random() < DIV_ZERO_CHANCE) {
+            if (Math.random() < DIV_ZERO_CHANCE_NEG) {
                 const dividendMag = randInt(1, Math.max(10, QUOTIENT_MAX[level] * 2));
                 const dividend = dividendMag * randSign();
                 return { text: `${dividend} ÷ 0`, answer: null, noSolution: true, a: dividend, b: 0 };
             }
             const pool = DIVISOR_POOL[level];
             const divisorMag = pool[randInt(0, pool.length - 1)];
-            const quotientMag = randInt(0, QUOTIENT_MAX[level]);
-            const [s1, s2] = nextSignPair(signBags.div); // s1 — знак делителя, s2 — знак частного
+            const allowZeroQuotient = Math.random() < 0.05; // нулевое частное — редкость, не больше ~5%
+            const quotientMag = allowZeroQuotient ? randInt(0, QUOTIENT_MAX[level]) : randInt(1, QUOTIENT_MAX[level]);
+            const [s1, s2] = comboToSigns(pickIntegerSignCombo('div', level)); // s1 — знак делителя, s2 — знак частного
             const divisor = divisorMag * s1;
             const quotient = quotientMag === 0 ? 0 : quotientMag * s2;
             const dividend = divisor * quotient;
@@ -1568,36 +1738,6 @@
             return { isFraction: true, opKey: 'fracOfNumber', level, fracNum: num, fracDen: den, N, k, answer };
         }
 
-        // "Найти число" делит ту же пару пулов (denPool/kPool) с "Дробь от числа", но там ответ —
-        // den × k, а не num × k. Поскольку знаменатель правильной дроби всегда БОЛЬШЕ числителя,
-        // финальное умножение здесь систематически тяжелее (например, 36×13) — асимметрия,
-        // которую нужно отдельно ограничивать: не даём знаменателю и k одновременно быть
-        // двузначными, иначе итоговое умножение перестаёт решаться в уме.
-        function pickFindWholeCore(level) {
-            const denPool = FRAC_OF_NUM_DEN_POOL[level];
-            const kPool = FRAC_OF_NUM_K_POOL[level];
-            let den, num, k, guard = 0;
-            do {
-                den = denPool[randInt(0, denPool.length - 1)];
-                num = randFracProper(den);
-                k = kPool[randInt(0, kPool.length - 1)];
-                guard++;
-            } while (den >= 10 && k >= 10 && guard < 30);
-            if (den >= 10 && k >= 10) {
-                // гарантированный фолбэк — принудительно берём однозначное k из пула
-                const smallK = kPool.filter(x => x < 10);
-                k = smallK.length ? smallK[randInt(0, smallK.length - 1)] : 9;
-            }
-            return { num, den, k };
-        }
-
-        function generateFindWholeProblem(level) {
-            const { num, den, k } = pickFindWholeCore(level);
-            const knownValue = num * k;
-            const answer = den * k; // искомое целое число X
-            return { isFraction: true, opKey: 'findWhole', level, fracNum: num, fracDen: den, knownValue, k, answer };
-        }
-
         // Общий помощник сборки числовых (не дробных) дистракторов — с приоритетными
         // "содержательными" кандидатами и случайным фолбэком без выхода за положительные значения
         function buildWholeNumberDistractors(priorityCandidates, answer, count) {
@@ -1638,18 +1778,6 @@
                 N - answer,                      // нашли "остаток" вместо самой доли
                 answer + k,                      // ошиблись на одну "долю" в бОльшую сторону
                 answer - k                       // ошиблись на одну "долю" в меньшую сторону
-            ];
-            return buildWholeNumberDistractors(candidates, answer, count);
-        }
-
-        function buildFindWholeDistractors(problem, count) {
-            const { fracNum, fracDen, knownValue, k, answer } = problem;
-            const candidates = [
-                knownValue,                                     // повторили данное число, забыли что-либо делать
-                k,                                               // взяли "единицу" за весь ответ
-                Math.round(knownValue * fracNum / fracDen),      // перепутали направление (умножили вместо деления)
-                answer + k,
-                answer - k
             ];
             return buildWholeNumberDistractors(candidates, answer, count);
         }
@@ -1712,19 +1840,21 @@
             while (dp > 0 && intVal % 10 === 0) { intVal = intVal / 10; dp--; }
             return { intVal, dp };
         }
-        // Сложение/вычитание: результат НЕ сокращаем — сохраняем "естественную" точность
-        // (максимум точности операндов), это педагогически важно для сложения/вычитания в столбик.
+        // Все результаты (и сложение/вычитание тоже) сокращаются — "2" вместо "2.0",
+        // "0.4" вместо "0.40". Раньше сложение/вычитание сознательно НЕ сокращались (в пользу
+        // "естественной" точности в столбик), но это привело к неестественным записям вроде
+        // "12.0 - 6.0" — решили в пользу простой, честной десятичной записи.
         function decAdd(d1, d2) {
             const commonDp = Math.max(d1.dp, d2.dp);
             const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
             const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
-            return { intVal: v1 + v2, dp: commonDp };
+            return stripTrailingZeros({ intVal: v1 + v2, dp: commonDp });
         }
         function decSub(d1, d2) {
             const commonDp = Math.max(d1.dp, d2.dp);
             const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
             const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
-            return { intVal: v1 - v2, dp: commonDp };
+            return stripTrailingZeros({ intVal: v1 - v2, dp: commonDp });
         }
         // Умножение: "сырой" продукт (dp1+dp2, без сокращения) — нужен операнду "делимое" в делении,
         // и сокращённая версия — используется как окончательный ОТВЕТ (убираем случайные лишние нули)
@@ -1734,6 +1864,7 @@
         function decKey(d) { return `${d.intVal}_${d.dp}`; }
 
         function decToString(d, wrapNegative = false) {
+            d = stripTrailingZeros(d); // защитное сокращение — decToString всегда показывает канонический вид
             const isNeg = d.intVal < 0;
             const absVal = Math.abs(d.intVal);
             let str;
@@ -1764,106 +1895,438 @@
             if (d.intVal === 0) d.intVal = 1; // гарантированный фолбэк
             return d;
         }
+        // Число с ГАРАНТИРОВАННО ненулевой дробной частью (после устранения лишних нулей это
+        // число не может выродиться в целое). Используется, чтобы не допустить пример вроде
+        // "12.0 - 6.0" — где оба числа на самом деле просто целые.
+        function randDecimalMagnitudeTrueDecimal(dp, maxWhole) {
+            if (dp === 0) return randDecimalMagnitude(0, maxWhole);
+            const whole = randInt(0, maxWhole);
+            const frac = randInt(1, Math.pow(10, dp) - 1); // гарантированно не 0
+            return { intVal: whole * Math.pow(10, dp) + frac, dp };
+        }
+        // Гарантирует, что хотя бы одно из двух чисел ПОСЛЕ устранения лишних нулей остаётся
+        // настоящей десятичной дробью — иначе "раздел десятичных дробей" мог выдать пример,
+        // где оба числа на самом деле целые (напр. 12.0 и 6.0 после сокращения — это просто 12 и 6).
+        // Вызывается ДО применения знака/перестановки, чтобы не нарушить остальную логику генерации.
+        function ensureAtLeastOneDecimalMagnitude(d1, d2, dp1, dp2, maxWhole1, maxWhole2) {
+            const s1 = stripTrailingZeros(d1);
+            const s2 = stripTrailingZeros(d2);
+            if (s1.dp > 0 || s2.dp > 0) return [d1, d2]; // всё в порядке
+            if (dp1 >= 1) return [randDecimalMagnitudeTrueDecimal(dp1, maxWhole1), d2];
+            if (dp2 >= 1) return [d1, randDecimalMagnitudeTrueDecimal(dp2, maxWhole2)];
+            return [d1, d2]; // оба изначально целые по замыслу уровня — не должно происходить
+        }
 
-        const signBagsDecimal = { add: createSignBag(), sub: createSignBag(), mul: createSignBag(), div: createSignBag() };
+        // Взвешенный выбор комбинации знаков для отрицательного режима десятичных дробей —
+        // "оба положительных" (++) редкость, не больше 5% (иначе в режиме "отрицательные числа"
+        // пятая часть примеров выглядела бы как случайно попавшие туда простые положительные).
+        function pickDecimalSignCombo() {
+            const r = Math.random();
+            if (r < 0.05) return '++';
+            if (r < 0.3667) return '+-';
+            if (r < 0.6834) return '-+';
+            return '--';
+        }
 
         // Пулы по уровням: для +/− иногда специально разное число знаков после запятой (часть сложности)
         // Сложение/вычитание — сложность растёт плавно: сначала величина целой части,
         // потом количество знаков после запятой, и только на старших уровнях — их сочетание.
         const ADD_SUB_DECIMAL_POOLS = {
-            1: { dpOptions: [[1, 1]], maxWhole: 9 },
-            2: { dpOptions: [[1, 1]], maxWhole: 20 },
-            3: { dpOptions: [[2, 2]], maxWhole: 20 },
+            1: { dpOptions: [[1, 1]], maxWhole: 4 },
+            2: { dpOptions: [[1, 1]], maxWhole: 9 },
+            3: { dpOptions: [[2, 2]], maxWhole: 1 },
             4: { dpOptions: [[1, 2], [2, 1]], maxWhole: 30 },
-            5: { dpOptions: [[1, 2], [2, 1]], maxWhole: 50 }
+            5: { dpOptions: [[1, 2], [2, 1]], maxWhole: 18 }
         };
 
-        // Умножение — числа всегда маленькие (целая часть максимум двузначная), сложность растёт
-        // через то, сколько знаков после запятой нужно верно расставить в ответе, а не через
-        // сам процесс умножения. dpA/dpB — пулы для "первого по роли" и "второго по роли" множителя,
-        // роли случайно распределяются между первой и второй позицией в примере.
-        const MUL_DECIMAL_LEVELS = {
-            1: { maxWhole: 4, dpAOptions: [1], dpBOptions: [0, 1] },
-            2: { maxWhole: 4, dpAOptions: [1, 2], dpBOptions: [0] },
-            3: { maxWhole: 9, dpAOptions: [1], dpBOptions: [0, 1] },
-            4: { maxWhole: 9, dpAOptions: [1, 2], dpBOptions: [0] },
-            5: { maxWhole: 5, dpAOptions: [0, 1, 2], dpBOptions: [0, 1] }
-        };
-        // Деление устроено зеркально умножению — те же правила применяются к частному и делителю,
-        // а делимое строится их перемножением (поэтому тоже остаётся маленьким и точным).
-        const DIV_DECIMAL_LEVELS = {
-            1: { maxWhole: 4, dpAOptions: [1], dpBOptions: [0, 1] },
-            2: { maxWhole: 4, dpAOptions: [1, 2], dpBOptions: [0] },
-            3: { maxWhole: 9, dpAOptions: [1], dpBOptions: [0, 1] },
-            4: { maxWhole: 9, dpAOptions: [1, 2], dpBOptions: [0] },
-            5: { maxWhole: 5, dpAOptions: [0, 1, 2], dpBOptions: [0, 1] }
-        };
+        // Умножение и деление — числа строятся по принципу "цифра + сдвиг запятой": сама
+        // арифметика (перемножаемые/делимые цифры) остаётся простой, а сложность растёт через
+        // то, где именно стоит запятая (0.7 / 7 / 70) и насколько "неочевидна" эта позиция.
+        // Редкость нуля как значения (не как "деление НА 0" — это осталось бы неопределённым
+        // и потребовало бы отдельного механизма "Нет решения"; здесь именно "0 как результат
+        // умножения на 0" / "0 как делимое") — единая для умножения и деления, ~0.5%.
+        const DEC_ZERO_VALUE_CHANCE = 0.005;
 
-        // Выбирает пару (dp1, dp2) по конфигу уровня, гарантируя, что хотя бы одно число
-        // дробное (не даёт обеим позициям случайно оказаться целыми одновременно)
-        function pickMulDivDpPair(cfg) {
-            let dpA, dpB, guard = 0;
-            do {
-                dpA = cfg.dpAOptions[randInt(0, cfg.dpAOptions.length - 1)];
-                dpB = cfg.dpBOptions[randInt(0, cfg.dpBOptions.length - 1)];
-                guard++;
-            } while (dpA === 0 && dpB === 0 && guard < 10);
-            if (dpA === 0 && dpB === 0) dpA = 1; // гарантированный фолбэк
+        // Максимальная цифра разряда, которая при умножении на m НЕ даёт переноса через десяток
+        function noCarryMaxDigit(m) { return Math.max(1, Math.floor(9 / m)); }
 
-            // случайно решаем, какая позиция (первая/вторая) получит какую роль
-            return Math.random() < 0.5 ? [dpA, dpB] : [dpB, dpA];
+        // Строит "многоразрядное" число (2-3 цифры) из цифр 0..maxDigit (первая цифра 1..maxDigit,
+        // чтобы не было ведущего нуля) — используется для конструкции "без переноса через разряд"
+        function buildNoCarryMultiDigit(maxDigit, numDigits) {
+            const digits = [randInt(1, maxDigit)];
+            for (let i = 1; i < numDigits; i++) digits.push(randInt(0, maxDigit));
+            return parseInt(digits.join(''), 10);
         }
 
-        function genDecAddSub(opKey, level, isNegative) {
-            const pool = ADD_SUB_DECIMAL_POOLS[level];
-            const [dp1, dp2] = pool.dpOptions[randInt(0, pool.dpOptions.length - 1)];
-            let d1 = randDecimalMagnitude(dp1, pool.maxWhole);
-            let d2 = randDecimalMagnitude(dp2, pool.maxWhole);
-
-            if (isNegative) {
-                const [s1, s2] = nextSignPair(signBagsDecimal[opKey]);
-                d1 = { intVal: d1.intVal * s1, dp: d1.dp };
-                d2 = { intVal: d2.intVal * s2, dp: d2.dp };
-            } else if (opKey === 'sub') {
-                // гарантируем неотрицательный результат — сравниваем через общий масштаб
-                const commonDp = Math.max(d1.dp, d2.dp);
-                const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
-                const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
-                if (v1 < v2) { const t = d1; d1 = d2; d2 = t; }
+        // ===== УМНОЖЕНИЕ: подбор величин по уровням (без учёта знака) =====
+        function pickDecMulMagnitudes(level) {
+            if (level === 1) {
+                // Строго таблица умножения (2-9), у каждого числа 0-1 знак после запятой,
+                // "оба 0 знаков" — редкость (<5%)
+                const a = randInt(2, 9), b = randInt(2, 9);
+                let dpA, dpB, guard = 0;
+                do { dpA = randInt(0, 1); dpB = randInt(0, 1); guard++; }
+                while (dpA === 0 && dpB === 0 && Math.random() < 0.95 && guard < 30);
+                return [{ intVal: a, dp: dpA }, { intVal: b, dp: dpB }];
             }
-
-            const answer = opKey === 'add' ? decAdd(d1, d2) : decSub(d1, d2);
-            return { isDecimal: true, opKey, level, d1, d2, answer };
+            if (level === 2) {
+                // Та же таблица, один 0-1 знак, другой 0-2 знака (роль случайна),
+                // "оба 0" — большая редкость (<2%)
+                const a = randInt(2, 9), b = randInt(2, 9);
+                let dpNarrow, dpWide, guard = 0;
+                do { dpNarrow = randInt(0, 1); dpWide = randInt(0, 2); guard++; }
+                while (dpNarrow === 0 && dpWide === 0 && Math.random() < 0.98 && guard < 30);
+                return Math.random() < 0.5
+                    ? [{ intVal: a, dp: dpNarrow }, { intVal: b, dp: dpWide }]
+                    : [{ intVal: a, dp: dpWide }, { intVal: b, dp: dpNarrow }];
+            }
+            if (level === 3) {
+                // Один 0-2 знака, другой 1-2 знака (никогда 0) — "оба 0" не встречается вообще
+                const a = randInt(2, 9), b = randInt(2, 9);
+                const dpWide = randInt(0, 2);
+                const dpNarrow = randInt(1, 2);
+                return Math.random() < 0.5
+                    ? [{ intVal: a, dp: dpWide }, { intVal: b, dp: dpNarrow }]
+                    : [{ intVal: a, dp: dpNarrow }, { intVal: b, dp: dpWide }];
+            }
+            if (level === 4) {
+                // "Без переноса через разряд": многоразрядное число (2-3 цифры), каждая цифра
+                // умножается на однозначный множитель без перехода через десяток
+                const multiplier = randInt(2, 9);
+                const maxDigit = noCarryMaxDigit(multiplier);
+                const bigNum = buildNoCarryMultiDigit(maxDigit, randInt(2, 3));
+                const dpBig = randInt(0, 3);
+                const dpMul = randInt(1, 2); // никогда 0
+                return Math.random() < 0.5
+                    ? [{ intVal: bigNum, dp: dpBig }, { intVal: multiplier, dp: dpMul }]
+                    : [{ intVal: multiplier, dp: dpMul }, { intVal: bigNum, dp: dpBig }];
+            }
+            // level 5: как на 4★ (без переноса) ЛИБО двузначное × однозначное С переходом через десяток
+            const dpWide = randInt(0, 3);
+            const dpNarrow = randInt(1, 3); // никогда 0
+            if (Math.random() < 0.5) {
+                const multiplier = randInt(2, 9);
+                const maxDigit = noCarryMaxDigit(multiplier);
+                const bigNum = buildNoCarryMultiDigit(maxDigit, randInt(2, 3));
+                return Math.random() < 0.5
+                    ? [{ intVal: bigNum, dp: dpWide }, { intVal: multiplier, dp: dpNarrow }]
+                    : [{ intVal: multiplier, dp: dpNarrow }, { intVal: bigNum, dp: dpWide }];
+            }
+            const twoDigit = randInt(10, 99);
+            const oneDigit = randInt(2, 9);
+            return Math.random() < 0.5
+                ? [{ intVal: twoDigit, dp: dpWide }, { intVal: oneDigit, dp: dpNarrow }]
+                : [{ intVal: oneDigit, dp: dpNarrow }, { intVal: twoDigit, dp: dpWide }];
         }
 
         function genDecMul(level, isNegative) {
-            const cfg = MUL_DECIMAL_LEVELS[level];
-            const [dp1, dp2] = pickMulDivDpPair(cfg);
-            let d1 = randDecimalMagnitudeNonZero(dp1, cfg.maxWhole);
-            let d2 = randDecimalMagnitudeNonZero(dp2, cfg.maxWhole);
+            if (Math.random() < DEC_ZERO_VALUE_CHANCE) {
+                // Редкий (~0.5%) случай: один множитель — 0, ответ тоже 0.
+                // Вторая сторона ГАРАНТИРОВАННО десятичная (dp>=1), но не глубже, чем позволяет
+                // сам уровень — иначе на 1★ мог случайно проскочить пример с сотыми.
+                const otherMaxDp = level === 1 ? 1 : 2;
+                const other = { intVal: randInt(1, 9), dp: randInt(1, otherMaxDp) };
+                const zeroFirst = Math.random() < 0.5;
+                let d1 = zeroFirst ? { intVal: 0, dp: 0 } : other;
+                let d2 = zeroFirst ? other : { intVal: 0, dp: 0 };
+                if (isNegative) {
+                    const [s1, s2] = comboToSigns(pickDecimalSignCombo());
+                    d1 = { intVal: d1.intVal * s1, dp: d1.dp };
+                    d2 = { intVal: d2.intVal * s2, dp: d2.dp };
+                }
+                return { isDecimal: true, opKey: 'mul', level, d1, d2, answer: { intVal: 0, dp: 0 } };
+            }
+
+            let [d1, d2] = pickDecMulMagnitudes(level);
             if (isNegative) {
-                const [s1, s2] = nextSignPair(signBagsDecimal.mul);
+                const [s1, s2] = comboToSigns(pickDecimalSignCombo());
                 d1 = { intVal: d1.intVal * s1, dp: d1.dp };
                 d2 = { intVal: d2.intVal * s2, dp: d2.dp };
             }
+            d1 = stripTrailingZeros(d1);
+            d2 = stripTrailingZeros(d2);
             const answer = decMul(d1, d2);
             return { isDecimal: true, opKey: 'mul', level, d1, d2, answer };
         }
 
-        function genDecDiv(level, isNegative) {
-            const cfg = DIV_DECIMAL_LEVELS[level];
-            const [dpQ, dpD] = pickMulDivDpPair(cfg);
-            let quotient = randDecimalMagnitudeNonZero(dpQ, cfg.maxWhole);
-            let divisor = randDecimalMagnitudeNonZero(dpD, cfg.maxWhole);
+        // ===== ДЕЛЕНИЕ: подбор величин по уровням =====
+        // ВАЖНО: знаки после запятой задаются напрямую ДЕЛИМОМУ и ДЕЛИТЕЛЮ — то есть тем двум
+        // числам, которые реально видит ученик в условии (а не внутренней паре делитель/частное).
+        // Частное вычисляется из них так, чтобы деление оставалось точным. Математически: если
+        // делимое = (f1×f2) со сдвигом dpDividend, а делитель = f1 со сдвигом dpDivisor, то
+        // частное = f2 × 10^(dpDivisor − dpDividend) — всегда целочисленно по построению.
+        function buildDivisionPair(f1, f2, dpDividend, dpDivisor) {
+            const dpDiff = dpDivisor - dpDividend;
+            let qIntVal, qDp;
+            if (dpDiff >= 0) { qIntVal = f2 * Math.pow(10, dpDiff); qDp = 0; }
+            else { qIntVal = f2; qDp = -dpDiff; }
+            return {
+                dividend: { intVal: f1 * f2, dp: dpDividend },
+                divisor: { intVal: f1, dp: dpDivisor },
+                quotient: { intVal: qIntVal, dp: qDp }
+            };
+        }
 
-            if (isNegative) {
-                const [s1, s2] = nextSignPair(signBagsDecimal.div); // s1 — знак частного, s2 — знак делителя
-                quotient = { intVal: quotient.intVal * s1, dp: quotient.dp };
-                divisor = { intVal: divisor.intVal * s2, dp: divisor.dp };
+        function pickDecDivMagnitudes(level) {
+            if (level === 1) {
+                const f1 = randInt(2, 9), f2 = randInt(2, 9);
+                let dpA, dpB, guard = 0;
+                do { dpA = randInt(0, 1); dpB = randInt(0, 1); guard++; }
+                while (dpA === 0 && dpB === 0 && Math.random() < 0.95 && guard < 30);
+                // Частное >= 1 ВСЕГДА: делителю достаётся dp не меньше, чем делимому
+                // (математически это единственное условие, гарантирующее делимое >= делителя)
+                return buildDivisionPair(f1, f2, Math.min(dpA, dpB), Math.max(dpA, dpB));
+            }
+            if (level === 2) {
+                const f1 = randInt(2, 9), f2 = randInt(2, 9);
+                let dpNarrow, dpWide, guard = 0;
+                do { dpNarrow = randInt(0, 1); dpWide = randInt(0, 2); guard++; }
+                while (dpNarrow === 0 && dpWide === 0 && Math.random() < 0.98 && guard < 30);
+                return buildDivisionPair(f1, f2, Math.min(dpNarrow, dpWide), Math.max(dpNarrow, dpWide));
+            }
+            if (level === 3) {
+                const f1 = randInt(2, 9), f2 = randInt(2, 9);
+                const dpWide = randInt(0, 2);
+                const dpNarrow = randInt(1, 2); // никогда 0
+                return buildDivisionPair(f1, f2, Math.min(dpWide, dpNarrow), Math.max(dpWide, dpNarrow));
+            }
+            if (level === 4) {
+                // "Без переноса через разряд" — многоразрядный фактор (2-3 цифры) + однозначный.
+                // divisorMag ВСЕГДА играет роль делителя, bigMag ВСЕГДА формирует делимое/частное —
+                // переставляем только то, какой из них получает какой dp (не сами значения),
+                // иначе гарантия "без переноса" перестаёт быть корректной. Дополнительно делителю
+                // всегда достаётся dp не меньше, чем делимому — гарантия частное >= 1.
+                const divisorMag = randInt(2, 9);
+                const maxDigit = noCarryMaxDigit(divisorMag);
+                const bigMag = buildNoCarryMultiDigit(maxDigit, randInt(2, 3));
+                const dpBig = randInt(0, 3);
+                const dpSmall = randInt(1, 2); // никогда 0
+                return buildDivisionPair(divisorMag, bigMag, Math.min(dpBig, dpSmall), Math.max(dpBig, dpSmall));
+            }
+            // level 5: как на 4★ ЛИБО "любое двузначное делится на однозначное/двузначное без остатка".
+            // ДОПОЛНИТЕЛЬНО: на 5★ (и только здесь) иногда (~35%) допускаем частное < 1 — как
+            // отдельный, осознанно более сложный элемент (на 1-4★ частное всегда >= 1).
+            const dpWide = randInt(0, 3);
+            const dpNarrow = randInt(1, 3); // никогда 0
+            let dpDividend, dpDivisor;
+            if (Math.random() < 0.35) {
+                // не сортируем — допускаем делимое < делителя (частное < 1)
+                if (Math.random() < 0.5) { dpDividend = dpWide; dpDivisor = dpNarrow; }
+                else { dpDividend = dpNarrow; dpDivisor = dpWide; }
+            } else {
+                dpDividend = Math.min(dpWide, dpNarrow);
+                dpDivisor = Math.max(dpWide, dpNarrow);
+            }
+            if (Math.random() < 0.5) {
+                const divisorMag = randInt(2, 9);
+                const maxDigit = noCarryMaxDigit(divisorMag);
+                const bigMag = buildNoCarryMultiDigit(maxDigit, randInt(2, 3));
+                return buildDivisionPair(divisorMag, bigMag, dpDividend, dpDivisor);
+            }
+            // Подбираем пару так, чтобы их произведение было ровно двузначным (10-99) —
+            // "любое двузначное делится на однозначное или двузначное без остатка"
+            let a, b, product, guard = 0;
+            do {
+                const aIsTwoDigit = Math.random() < 0.4;
+                a = aIsTwoDigit ? randInt(10, 20) : randInt(2, 9);
+                b = randInt(2, 9);
+                product = a * b;
+                guard++;
+            } while ((product < 10 || product > 99) && guard < 30);
+            return Math.random() < 0.5
+                ? buildDivisionPair(a, b, dpDividend, dpDivisor)
+                : buildDivisionPair(b, a, dpDividend, dpDivisor);
+        }
+
+        function genDecDiv(level, isNegative) {
+            if (Math.random() < DEC_ZERO_VALUE_CHANCE) {
+                // Редкий (~0.5%) случай: делимое = 0 (частное тоже 0), делитель — обычное число,
+                // ГАРАНТИРОВАННО десятичное (dp>=1), но не глубже, чем позволяет сам уровень.
+                // НЕ "деление НА 0" (это было бы неопределено) — а "0 разделить на число".
+                const otherMaxDp = level === 1 ? 1 : 2;
+                let divisor = { intVal: randInt(1, 9), dp: randInt(1, otherMaxDp) };
+                if (isNegative) {
+                    const [s1] = comboToSigns(pickDecimalSignCombo());
+                    divisor = { intVal: divisor.intVal * s1, dp: divisor.dp };
+                }
+                divisor = stripTrailingZeros(divisor);
+                return { isDecimal: true, opKey: 'div', level, d1: { intVal: 0, dp: 0 }, d2: divisor, answer: { intVal: 0, dp: 0 } };
             }
 
-            const dividend = decMulRaw(quotient, divisor); // делимое — операнд условия, не сокращаем его dp
+            let dividend, divisor, quotient, guard = 0;
+            do {
+                const picked = pickDecDivMagnitudes(level);
+                dividend = picked.dividend;
+                divisor = picked.divisor;
+                quotient = picked.quotient;
+
+                if (divisor.intVal === 0) divisor = { intVal: 1, dp: divisor.dp };
+
+                if (isNegative) {
+                    const [s1, s2] = comboToSigns(pickDecimalSignCombo()); // s1 — знак делителя, s2 — знак делимого
+                    divisor = { intVal: divisor.intVal * s1, dp: divisor.dp };
+                    dividend = { intVal: dividend.intVal * s2, dp: dividend.dp };
+                    quotient = { intVal: quotient.intVal * s1 * s2, dp: quotient.dp };
+                }
+
+                divisor = stripTrailingZeros(divisor);
+                dividend = stripTrailingZeros(dividend);
+                quotient = stripTrailingZeros(quotient);
+                guard++;
+
+                // ВАЖНО: проверяем "оба 0" ПОСЛЕ сокращения — сокращение лишних нулей может
+                // незаметно обнулить задуманный dp (например, делимое 2×5=10 при dp=1 даёт "1.0",
+                // что сокращается до "1"), поэтому проверять нужно именно итоговый результат.
+                const bothZero = dividend.dp === 0 && divisor.dp === 0;
+                if (!bothZero) break;
+                const acceptRareBothZero = level === 1 ? Math.random() < 0.05
+                    : level === 2 ? Math.random() < 0.02
+                    : false; // 3-5★ — "оба 0" не должно происходить вообще
+                if (acceptRareBothZero) break;
+            } while (guard < 30);
+
             return { isDecimal: true, opKey: 'div', level, d1: dividend, d2: divisor, answer: quotient };
+        }
+
+        // 1★/2★/3★ сложения/вычитания: конструкция "без переноса/заёма через разряд" — каждый
+        // разряд (целые/десятые/сотые) обрабатывается независимо, без влияния на соседние.
+        // Для сложения — сумма цифр в каждом разряде <= 9; для вычитания — цифра вычитаемого <=
+        // цифры уменьшаемого в каждом разряде. Строится по МОДУЛЮ — знак применяется отдельно.
+        // dp=1 (только десятые) для 1★/2★, dp=2 (сотые) для 3★ — величина целой части задаётся maxWhole.
+        function genDecAddSubNoCarryBorrow(opKey, dp, maxWhole) {
+            const wholeA = randInt(0, maxWhole);
+            const digitsA = [randInt(1, 9)]; // десятые всегда ненулевые — гарантия "настоящей" дроби
+            for (let i = 1; i < dp; i++) digitsA.push(randInt(0, 9));
+
+            let wholeB;
+            const digitsB = [];
+            if (opKey === 'sub') {
+                wholeB = randInt(0, wholeA);
+                for (const d of digitsA) digitsB.push(randInt(0, d));
+            } else {
+                wholeB = randInt(0, Math.min(maxWhole, 9 - wholeA));
+                for (const d of digitsA) digitsB.push(randInt(0, 9 - d));
+            }
+
+            const scale = Math.pow(10, dp);
+            const fracA = parseInt(digitsA.join(''), 10);
+            const fracB = parseInt(digitsB.join(''), 10);
+            return [
+                { intVal: wholeA * scale + fracA, dp },
+                { intVal: wholeB * scale + fracB, dp }
+            ];
+        }
+
+        // 4★/5★ сложения/вычитания: разное число знаков после запятой (выравнивание) — главная
+        // тема уровня. Перенос/заём — управляемая вероятность (pNoCarryBorrow — доля "без"),
+        // и эта гарантия теперь распространяется НА ВСЕ разряды целиком (десятки/единицы тоже,
+        // не только дробную часть) — иначе "безопасный" по дроби пример мог споткнуться на
+        // переносе внутри целой части (напр. 23-8, где 3<8 в разряде единиц).
+        // Для ВЫЧИТАНИЯ, если заём есть, он возникает ИМЕННО из-за того, что у вычитаемого знаков
+        // после запятой больше, чем у уменьшаемого (а не из случайных цифр в совпадающих разрядах) —
+        // единственная и понятная причина, а не мешанина из нескольких заёмов подряд.
+        function genDecAddSub45(opKey, maxWhole, pNoCarryBorrow) {
+            const noCarryBorrow = Math.random() < pNoCarryBorrow;
+            const tensMax = Math.floor(maxWhole / 10);
+
+            if (opKey === 'sub') {
+                const dpMinuend = noCarryBorrow ? 2 : 1;
+                const dpSubtrahend = noCarryBorrow ? 1 : 2;
+
+                let wholeMinuend, wholeSubtrahend;
+                if (noCarryBorrow) {
+                    // Целая часть тоже безопасна по разрядам (десятки/единицы) — как и дробная
+                    const tensM = randInt(0, tensMax);
+                    const maxOnesM = (tensM === tensMax) ? Math.max(0, maxWhole - tensM * 10) : 9;
+                    const onesM = randInt(0, maxOnesM);
+                    const tensS = randInt(0, tensM);
+                    const onesS = randInt(0, onesM);
+                    wholeMinuend = tensM * 10 + onesM;
+                    wholeSubtrahend = tensS * 10 + onesS;
+                } else {
+                    wholeMinuend = randInt(0, maxWhole);
+                    wholeSubtrahend = randInt(0, wholeMinuend);
+                }
+                const tenthsMinuend = randInt(1, 9);
+
+                let intValMinuend, intValSubtrahend;
+                if (dpMinuend === 2) {
+                    // Уменьшаемому достаётся "лишняя" сотая — общий (десятые) разряд безопасен
+                    const tenthsSubtrahend = randInt(0, tenthsMinuend);
+                    const hundredthsMinuend = randInt(0, 9);
+                    intValMinuend = wholeMinuend * 100 + tenthsMinuend * 10 + hundredthsMinuend;
+                    intValSubtrahend = wholeSubtrahend * 10 + tenthsSubtrahend;
+                } else {
+                    // Вычитаемому достаётся "лишняя" сотая — это и есть причина заёма. Важно:
+                    // десятые вычитаемого берём СТРОГО МЕНЬШЕ (не <=), иначе на границе, когда
+                    // целая часть и десятые совпадают, "лишняя" сотая вычитаемого могла бы сделать
+                    // его больше уменьшаемого — некорректный отрицательный результат в позитивном режиме.
+                    const tenthsSubtrahend = randInt(0, tenthsMinuend - 1);
+                    const hundredthsSubtrahend = randInt(1, 9); // ненулевая — гарантирует сам заём
+                    intValMinuend = wholeMinuend * 10 + tenthsMinuend;
+                    intValSubtrahend = wholeSubtrahend * 100 + tenthsSubtrahend * 10 + hundredthsSubtrahend;
+                }
+                return [{ intVal: intValMinuend, dp: dpMinuend }, { intVal: intValSubtrahend, dp: dpSubtrahend }];
+            }
+
+            // Сложение: перенос не привязан к тому, у кого больше знаков — просто управляемая вероятность
+            const dp1 = Math.random() < 0.5 ? 1 : 2;
+            const dp2 = dp1 === 1 ? 2 : 1;
+
+            let whole1, whole2;
+            if (noCarryBorrow) {
+                const tens1 = randInt(0, tensMax);
+                const maxOnes1 = (tens1 === tensMax) ? Math.max(0, maxWhole - tens1 * 10) : 9;
+                const ones1 = randInt(0, maxOnes1);
+                whole1 = tens1 * 10 + ones1;
+                // Второе слагаемое: цифры одновременно НЕ дают переноса с первым И НЕ выходят
+                // за maxWhole само по себе (иначе оно могло стать куда крупнее заявленного уровня)
+                const tens2Max = Math.min(9 - tens1, tensMax);
+                const tens2 = randInt(0, tens2Max);
+                const maxOnes2 = Math.min(9 - ones1, (tens2 === tensMax) ? Math.max(0, maxWhole - tens2 * 10) : 9);
+                const ones2 = randInt(0, maxOnes2);
+                whole2 = tens2 * 10 + ones2;
+            } else {
+                whole1 = randInt(0, maxWhole);
+                whole2 = randInt(0, maxWhole);
+            }
+            const tenths1 = randInt(1, 9);
+            const tenths2 = noCarryBorrow ? randInt(0, 9 - tenths1) : randInt(0, 9);
+
+            let intVal1, intVal2;
+            if (dp1 === 2) {
+                const hundredths1 = randInt(0, 9);
+                intVal1 = whole1 * 100 + tenths1 * 10 + hundredths1;
+                intVal2 = whole2 * 10 + tenths2;
+            } else {
+                const hundredths2 = randInt(1, 9); // ненулевая — гарантия "настоящей" дроби у 2dp-стороны
+                intVal1 = whole1 * 10 + tenths1;
+                intVal2 = whole2 * 100 + tenths2 * 10 + hundredths2;
+            }
+            return [{ intVal: intVal1, dp: dp1 }, { intVal: intVal2, dp: dp2 }];
+        }
+
+        function genDecAddSub(opKey, level, isNegative) {
+            let d1, d2;
+            if (level === 1) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 1, ADD_SUB_DECIMAL_POOLS[1].maxWhole);
+            else if (level === 2) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 1, ADD_SUB_DECIMAL_POOLS[2].maxWhole);
+            else if (level === 3) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 2, ADD_SUB_DECIMAL_POOLS[3].maxWhole);
+            else if (level === 4) [d1, d2] = genDecAddSub45(opKey, ADD_SUB_DECIMAL_POOLS[4].maxWhole, 0.62);
+            else [d1, d2] = genDecAddSub45(opKey, ADD_SUB_DECIMAL_POOLS[5].maxWhole, 0.32);
+
+            if (isNegative) {
+                const [s1, s2] = comboToSigns(pickDecimalSignCombo());
+                d1 = { intVal: d1.intVal * s1, dp: d1.dp };
+                d2 = { intVal: d2.intVal * s2, dp: d2.dp };
+            }
+            // Во всех ветках выше (1-5★) неотрицательный результат для позитивного режима уже
+            // гарантирован самой конструкцией (уменьшаемое >= вычитаемого по построению) —
+            // отдельная перестановка операндов больше не требуется ни на одном уровне.
+
+            d1 = stripTrailingZeros(d1);
+            d2 = stripTrailingZeros(d2);
+            const answer = opKey === 'add' ? decAdd(d1, d2) : decSub(d1, d2);
+            return { isDecimal: true, opKey, level, d1, d2, answer };
         }
 
         function generateDecimalProblem(opKey, level, isNegative) {
@@ -1884,7 +2347,8 @@
 
         function pushDec(arr, cand, correctAnswer, used, isNegative) {
             if (!cand) return;
-            let { intVal, dp } = cand;
+            const stripped = stripTrailingZeros(cand);
+            let { intVal, dp } = stripped;
             if (!Number.isFinite(intVal) || !Number.isFinite(dp) || dp < 0 || dp > 6) return;
             if (!isNegative && intVal < 0) return;
             if (intVal === correctAnswer.intVal && dp === correctAnswer.dp) return;
@@ -1902,9 +2366,12 @@
             if (isNegative && correctAnswer.intVal !== 0) {
                 pushDec(priority, { intVal: -correctAnswer.intVal, dp: correctAnswer.dp }, correctAnswer, used, isNegative);
             }
-            // "Сдвинули запятую" — умножили/поделили на 10 по ошибке (очень частая ошибка)
-            pushDec(priority, { intVal: correctAnswer.intVal, dp: correctAnswer.dp - 1 }, correctAnswer, used, isNegative);
-            pushDec(priority, { intVal: correctAnswer.intVal, dp: correctAnswer.dp + 1 }, correctAnswer, used, isNegative);
+            // "Сдвинули запятую" — умножили/поделили на 10 по ошибке (очень частая ошибка).
+            // Берём только ОДНО направление за раз (не оба сразу) — иначе среди 3 вариантов
+            // сразу два оказываются "гигантский"/"крошечный" по сравнению с ответом, и набор
+            // выглядит как случайный разброс чисел совсем разного масштаба, а не правдоподобные ошибки.
+            const shiftDir = correctAnswer.dp === 0 ? 1 : (Math.random() < 0.5 ? -1 : 1);
+            pushDec(priority, { intVal: correctAnswer.intVal, dp: correctAnswer.dp + shiftDir }, correctAnswer, used, isNegative);
             priority = shuffleArray(priority).slice(0, 2);
 
             // ===== ПРИОРИТЕТ 2: типовые структурные ошибки по операциям =====
@@ -1922,10 +2389,11 @@
                 const wrongOp = opKey === 'add' ? (v1 - v2) : (v1 + v2);
                 pushDec(structural, { intVal: wrongOp, dp: commonDp }, correctAnswer, used, isNegative);
             } else if (opKey === 'mul') {
-                // "Неверное количество знаков после запятой" — сырой продукт, но не тот dp
+                // "Неверное количество знаков после запятой" — сырой продукт, но не тот dp.
+                // Тоже только ОДНО направление за раз — по той же причине, что и выше.
                 const rawProduct = d1.intVal * d2.intVal;
-                pushDec(structural, { intVal: rawProduct, dp: d1.dp + d2.dp - 1 }, correctAnswer, used, isNegative);
-                pushDec(structural, { intVal: rawProduct, dp: d1.dp + d2.dp + 1 }, correctAnswer, used, isNegative);
+                const mulShiftDir = Math.random() < 0.5 ? -1 : 1;
+                pushDec(structural, { intVal: rawProduct, dp: d1.dp + d2.dp + mulShiftDir }, correctAnswer, used, isNegative);
                 // "Сложили вместо того чтобы умножить"
                 const commonDp = Math.max(d1.dp, d2.dp);
                 const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
@@ -1962,6 +2430,445 @@
             return result;
         }
 
+        // ===================== ПАЗЛ: ГЕНЕРАЦИЯ КУСОЧКОВ (jigsaw) =====================
+        const PUZZLE_GRID = 10;
+        const PUZZLE_TOTAL = PUZZLE_GRID * PUZZLE_GRID; // 100
+        const PUZZLE_SIZE = 1000; // координатное пространство SVG
+        const PUZZLE_TILE = PUZZLE_SIZE / PUZZLE_GRID;
+        const PUZZLE_TAB = PUZZLE_TILE * 0.24; // высота "замка" пазла
+
+        // Случайное направление "замка" для каждой внутренней границы между кусочками.
+        // ampH[r][c] — граница между рядом r и r+1 в столбце c (горизонтальная линия, выступ по вертикали)
+        // ampV[r][c] — граница между столбцом c и c+1 в ряду r (вертикальная линия, выступ по горизонтали)
+        function buildAmpGrid(rows, cols) {
+            const g = [];
+            for (let i = 0; i < rows; i++) {
+                const row = [];
+                for (let j = 0; j < cols; j++) row.push(Math.random() < 0.5 ? -1 : 1);
+                g.push(row);
+            }
+            return g;
+        }
+        let ampH = buildAmpGrid(PUZZLE_GRID - 1, PUZZLE_GRID);
+        let ampV = buildAmpGrid(PUZZLE_GRID, PUZZLE_GRID - 1);
+
+        // Строит одну "выпуклость" замка от точки (x1,y1) до (x2,y2). amp=0 — обычная прямая линия
+        // (используется на внешней границе всего пазла). Кривая строится перпендикулярно
+        // направлению отрезка — то есть одно и то же значение amp даёт ИДЕАЛЬНО совпадающую
+        // границу у двух соседних кусочков (не нужно инвертировать знак у соседа).
+        function bumpSeg(x1, y1, x2, y2, amp) {
+            if (!amp) return `L ${x2} ${y2}`;
+            const dx = x2 - x1, dy = y2 - y1;
+            let px = 0, py = 0;
+            if (Math.abs(dx) >= Math.abs(dy)) { py = 1; } else { px = 1; }
+            const lerp = (t) => ({ x: x1 + dx * t, y: y1 + dy * t });
+            const p1 = lerp(0.35), p2 = lerp(0.5), p3 = lerp(0.65);
+            const P1 = { x: p1.x + px * amp * 0.9, y: p1.y + py * amp * 0.9 };
+            const P2 = { x: p2.x + px * amp * 1.18, y: p2.y + py * amp * 1.18 };
+            const P3 = { x: p3.x + px * amp * 0.9, y: p3.y + py * amp * 0.9 };
+            return `C ${P1.x} ${P1.y} ${P1.x} ${P1.y} ${P2.x} ${P2.y} C ${P3.x} ${P3.y} ${P3.x} ${P3.y} ${x2} ${y2}`;
+        }
+
+        function buildPiecePath(r, c) {
+            const x0 = c * PUZZLE_TILE, y0 = r * PUZZLE_TILE;
+            const w = PUZZLE_TILE, h = PUZZLE_TILE;
+            const ampTop = r === 0 ? 0 : ampH[r - 1][c] * PUZZLE_TAB;
+            const ampRight = c === PUZZLE_GRID - 1 ? 0 : ampV[r][c] * PUZZLE_TAB;
+            const ampBottom = r === PUZZLE_GRID - 1 ? 0 : ampH[r][c] * PUZZLE_TAB;
+            const ampLeft = c === 0 ? 0 : ampV[r][c - 1] * PUZZLE_TAB;
+
+            const p0 = { x: x0, y: y0 }, p1 = { x: x0 + w, y: y0 }, p2 = { x: x0 + w, y: y0 + h }, p3 = { x: x0, y: y0 + h };
+
+            let d = `M ${p0.x} ${p0.y} `;
+            d += bumpSeg(p0.x, p0.y, p1.x, p1.y, ampTop) + ' ';
+            d += bumpSeg(p1.x, p1.y, p2.x, p2.y, ampRight) + ' ';
+            d += bumpSeg(p2.x, p2.y, p3.x, p3.y, ampBottom) + ' ';
+            d += bumpSeg(p3.x, p3.y, p0.x, p0.y, ampLeft) + ' Z';
+            return d;
+        }
+
+        const PUZZLE_PIECE_PATHS = []; // [r][c] -> d-строка пути кусочка
+        for (let r = 0; r < PUZZLE_GRID; r++) {
+            const row = [];
+            for (let c = 0; c < PUZZLE_GRID; c++) row.push(buildPiecePath(r, c));
+            PUZZLE_PIECE_PATHS.push(row);
+        }
+
+        // Базовый список всех 100 клеток — порядок их появления перемешивается заново
+        // для каждого нового пазла в shufflePuzzleFillOrder() (см. startNewPuzzle), поэтому
+        // кусочки проявляются в случайных свободных местах, а не строчка за строчкой.
+        let PUZZLE_FILL_ORDER = [];
+        for (let r = 0; r < PUZZLE_GRID; r++) {
+            for (let c = 0; c < PUZZLE_GRID; c++) PUZZLE_FILL_ORDER.push([r, c]);
+        }
+        function shufflePuzzleFillOrder() {
+            PUZZLE_FILL_ORDER = shuffleArray(PUZZLE_FILL_ORDER);
+        }
+
+        const SVG_NS = 'http://www.w3.org/2000/svg';
+
+        // Ссылки на уже созданные DOM-элементы (path внутри clipPath и в группах швов),
+        // чтобы при смене картинки просто обновлять атрибут 'd', не пересоздавая узлы.
+        const clipPathEls = []; // [r][c] -> <path>
+        let seamPathElsMini = []; // [r][c] -> <path>
+        let seamPathElsBig = [];  // [r][c] -> <path>
+
+        // Добавляем в <defs> все 100 clipPath — один раз, переиспользуются везде по id.
+        function initPuzzleDefs() {
+            const defs = document.getElementById('puzzleDefs');
+            for (let r = 0; r < PUZZLE_GRID; r++) {
+                const row = [];
+                for (let c = 0; c < PUZZLE_GRID; c++) {
+                    const clip = document.createElementNS(SVG_NS, 'clipPath');
+                    clip.setAttribute('id', `piece-${r}-${c}`);
+                    const path = document.createElementNS(SVG_NS, 'path');
+                    path.setAttribute('d', PUZZLE_PIECE_PATHS[r][c]);
+                    clip.appendChild(path);
+                    defs.appendChild(clip);
+                    row.push(path);
+                }
+                clipPathEls.push(row);
+            }
+        }
+
+        // Тонкие контуры швов — рисуются один раз, всегда видны (и на пустых, и на собранных
+        // местах), создают ощущение "разрезанной на пазл" картинки даже когда всё собрано.
+        // Возвращает [r][c] -> <path>, чтобы потом можно было обновить их форму без пересоздания.
+        function renderSeamGroup(groupId) {
+            const g = document.getElementById(groupId);
+            const rows = [];
+            for (let r = 0; r < PUZZLE_GRID; r++) {
+                const row = [];
+                for (let c = 0; c < PUZZLE_GRID; c++) {
+                    const path = document.createElementNS(SVG_NS, 'path');
+                    path.setAttribute('d', PUZZLE_PIECE_PATHS[r][c]);
+                    path.setAttribute('fill', 'none');
+                    path.setAttribute('stroke', 'rgba(255,255,255,0.5)');
+                    path.setAttribute('stroke-width', '2.2');
+                    g.appendChild(path);
+                    row.push(path);
+                }
+                rows.push(row);
+            }
+            return rows;
+        }
+
+        // Перегенерирует случайную форму замков (для нового пазла) и обновляет все уже
+        // существующие DOM-узлы на месте — без пересоздания элементов.
+        function regeneratePieceShapes() {
+            ampH = buildAmpGrid(PUZZLE_GRID - 1, PUZZLE_GRID);
+            ampV = buildAmpGrid(PUZZLE_GRID, PUZZLE_GRID - 1);
+            for (let r = 0; r < PUZZLE_GRID; r++) {
+                for (let c = 0; c < PUZZLE_GRID; c++) {
+                    const d = buildPiecePath(r, c);
+                    PUZZLE_PIECE_PATHS[r][c] = d;
+                    clipPathEls[r][c].setAttribute('d', d);
+                    seamPathElsMini[r][c].setAttribute('d', d);
+                    seamPathElsBig[r][c].setAttribute('d', d);
+                }
+            }
+        }
+
+        function makePieceUse(r, c) {
+            const use = document.createElementNS(SVG_NS, 'use');
+            use.setAttribute('href', '#puzzleFullImg');
+            use.setAttributeNS('http://www.w3.org/1999/xlink', 'href', '#puzzleFullImg');
+            use.setAttribute('clip-path', `url(#piece-${r}-${c})`);
+            use.setAttribute('class', 'piece-use');
+            use.style.opacity = '0';
+            use.style.transition = 'opacity .3s ease';
+            return use;
+        }
+
+        let puzzleFilled = 0;
+        let puzzleRenderedCount = 0;
+        let puzzleCompleteTriggered = false;
+        let puzzlesCompletedCount = 0;
+        let currentPuzzleImageIndex = -1;
+        const miniUseRefs = [];
+        const bigUseRefs = [];
+
+        // Картинки лежат отдельными файлами в папке images/ рядом с этим HTML — так сам файл
+        // игры остаётся лёгким, а картинки браузер грузит по одной, как обычные файлы сайта
+        // (с кэшированием), а не одним гигантским текстовым блоком.
+        const PUZZLE_IMAGE_SRCS = [
+            'images/IMG_2427.png',
+            'images/IMG_2428.png',
+            'images/IMG_2429.png',
+            'images/IMG_2430.png',
+            'images/IMG_2431.png',
+            'images/IMG_2432.png',
+            'images/IMG_2433.png',
+            'images/IMG_2434.png',
+            'images/IMG_2436.png',
+            'images/IMG_2437.png',
+            'images/IMG_2438.png',
+            'images/IMG_2439.png',
+            'images/IMG_2440.png',
+            'images/IMG_2441.png',
+            'images/IMG_2442.png',
+            'images/IMG_2443.png',
+            'images/IMG_2444.png',
+            'images/IMG_2445.png',
+            'images/IMG_2446.png',
+            'images/IMG_2447.png'
+        ];
+
+        // ===== КОЛЛЕКЦИЯ СОБРАННЫХ ПАЗЛОВ =====
+        // Хранится в localStorage — переживает перезапуск приложения (важно для PWA,
+        // добавленного на экран телефона, и просто при закрытии/повторном открытии вкладки).
+        // Массив булевых значений по индексу картинки: true = уже собрана в текущем цикле.
+        const COLLECTION_STORAGE_KEY = 'mathCitadelPuzzleCollection_v1';
+
+        function loadCollectionArray() {
+            try {
+                const raw = localStorage.getItem(COLLECTION_STORAGE_KEY);
+                const arr = raw ? JSON.parse(raw) : [];
+                if (Array.isArray(arr) && arr.length === PUZZLE_IMAGE_SRCS.length) return arr;
+            } catch (e) { /* игнорируем повреждённые данные */ }
+            return new Array(PUZZLE_IMAGE_SRCS.length).fill(false);
+        }
+        function saveCollectionArray(arr) {
+            try { localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(arr)); } catch (e) { /* хранилище недоступно — молча пропускаем */ }
+        }
+        function collectionCollectedCount(arr) {
+            return arr.reduce((n, v) => n + (v ? 1 : 0), 0);
+        }
+        function updateCollectionBadge() {
+            const arr = loadCollectionArray();
+            document.getElementById('puzzleCollectionBadge').innerText =
+                `🏆 ${collectionCollectedCount(arr)}/${PUZZLE_IMAGE_SRCS.length}`;
+        }
+
+        function pickRandomPuzzleImageIndex(avoidIndex) {
+            if (PUZZLE_IMAGE_SRCS.length <= 1) return 0;
+
+            let collection = loadCollectionArray();
+            let candidates = [];
+            for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
+                if (!collection[i] && i !== avoidIndex) candidates.push(i);
+            }
+
+            if (candidates.length === 0) {
+                // Либо всё уже собрано, либо единственная несобранная картинка — та же,
+                // что мы хотим избежать повтора. В обоих случаях начинаем новый цикл коллекции.
+                collection = new Array(PUZZLE_IMAGE_SRCS.length).fill(false);
+                saveCollectionArray(collection);
+                updateCollectionBadge();
+                for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
+                    if (i !== avoidIndex) candidates.push(i);
+                }
+            }
+
+            return candidates[randInt(0, candidates.length - 1)];
+        }
+
+        // Полностью переключает пазл на новую случайную картинку: новая форма кусочков,
+        // сброшенный прогресс. Игра при этом не останавливается — только сам пазл обновляется.
+        function startNewPuzzle() {
+            const idx = pickRandomPuzzleImageIndex(currentPuzzleImageIndex);
+            currentPuzzleImageIndex = idx;
+            const imgEl = document.getElementById('puzzleFullImg');
+            imgEl.setAttribute('href', PUZZLE_IMAGE_SRCS[idx]);
+            imgEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', PUZZLE_IMAGE_SRCS[idx]);
+
+            regeneratePieceShapes();
+            shufflePuzzleFillOrder();
+
+            document.getElementById('miniPiecesGroup').innerHTML = '';
+            document.getElementById('bigPiecesGroup').innerHTML = '';
+            miniUseRefs.length = 0;
+            bigUseRefs.length = 0;
+            puzzleFilled = 0;
+            puzzleRenderedCount = 0;
+            puzzleCompleteTriggered = false;
+            document.getElementById('puzzleMiniCount').innerText = '0/100';
+            document.getElementById('puzzleModalCount').innerText = '0/100';
+            setPuzzleCompleteVisible(false);
+        }
+
+        function initPuzzle() {
+            initPuzzleDefs();
+            seamPathElsMini = renderSeamGroup('miniSeamGroup');
+            seamPathElsBig = renderSeamGroup('bigSeamGroup');
+            updateCollectionBadge();
+            startNewPuzzle();
+        }
+
+        function renderPuzzleProgress() {
+            document.getElementById('puzzleMiniCount').innerText = `${puzzleFilled}/100`;
+            document.getElementById('puzzleModalCount').innerText = `${puzzleFilled}/100`;
+
+            if (puzzleFilled > puzzleRenderedCount) {
+                for (let i = puzzleRenderedCount; i < puzzleFilled; i++) {
+                    const [r, c] = PUZZLE_FILL_ORDER[i];
+                    const miniUse = makePieceUse(r, c);
+                    const bigUse = makePieceUse(r, c);
+                    document.getElementById('miniPiecesGroup').appendChild(miniUse);
+                    document.getElementById('bigPiecesGroup').appendChild(bigUse);
+                    miniUseRefs[i] = miniUse;
+                    bigUseRefs[i] = bigUse;
+                    requestAnimationFrame(() => {
+                        miniUse.style.opacity = '1';
+                        bigUse.style.opacity = '1';
+                    });
+                }
+            } else if (puzzleFilled < puzzleRenderedCount) {
+                for (let i = puzzleRenderedCount - 1; i >= puzzleFilled; i--) {
+                    const miniUse = miniUseRefs[i], bigUse = bigUseRefs[i];
+                    if (miniUse) { miniUse.style.opacity = '0'; setTimeout(() => miniUse.remove(), 300); }
+                    if (bigUse) { bigUse.style.opacity = '0'; setTimeout(() => bigUse.remove(), 300); }
+                    miniUseRefs[i] = null; bigUseRefs[i] = null;
+                }
+            }
+            puzzleRenderedCount = puzzleFilled;
+        }
+
+        function addPuzzlePiece() {
+            if (puzzleFilled >= PUZZLE_TOTAL) return;
+            puzzleFilled++;
+            renderPuzzleProgress();
+            if (puzzleFilled === PUZZLE_TOTAL && !puzzleCompleteTriggered) {
+                puzzleCompleteTriggered = true;
+                onPuzzleComplete();
+            }
+        }
+
+        function removePuzzlePiecesOnMistake() {
+            if (puzzleFilled <= 0) return;
+            const remove = Math.ceil(puzzleFilled / 2);
+            puzzleFilled = Math.max(0, puzzleFilled - remove);
+            renderPuzzleProgress();
+        }
+
+        function openPuzzleModal() {
+            document.getElementById('puzzleModal').classList.add('active');
+        }
+        function closePuzzleModal() {
+            document.getElementById('puzzleModal').classList.remove('active');
+        }
+        // Показывает либо "живой" пазл в процессе сборки, либо экран с готовой картинкой —
+        // никогда не оба сразу, чтобы не путать пустой новый пазл с только что собранным.
+        function setPuzzleCompleteVisible(visible) {
+            document.getElementById('puzzleCompletePanel').classList.toggle('show', visible);
+            document.getElementById('puzzleLiveSection').style.display = visible ? 'none' : '';
+        }
+        document.getElementById('puzzleMiniBtn').addEventListener('click', openPuzzleModal);
+        document.getElementById('puzzleCloseBtn').addEventListener('click', closePuzzleModal);
+
+        // Снимок только что собранной картинки — независим от того, какой пазл стартует сейчас.
+        let lastCompletedSrc = null;
+        let lastCompletedPaths = null;
+
+        // Рисует картинку + тонкие линии швов на canvas и отдаёт результат как data URL —
+        // используется для превью в окне поздравления.
+        function renderSnapshotDataURL(src, paths, callback) {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = PUZZLE_SIZE;
+                    canvas.height = PUZZLE_SIZE;
+                    const ctx2 = canvas.getContext('2d');
+                    ctx2.drawImage(img, 0, 0, PUZZLE_SIZE, PUZZLE_SIZE);
+
+                    for (let r = 0; r < PUZZLE_GRID; r++) {
+                        for (let c = 0; c < PUZZLE_GRID; c++) {
+                            const p = new Path2D(paths[r][c]);
+                            // Тёмная тень шва — с лёгким размытием, чтобы линия выглядела как
+                            // настоящий вырезанный край, а не плоская чёрная черта
+                            ctx2.save();
+                            ctx2.shadowColor = 'rgba(0,0,0,0.65)';
+                            ctx2.shadowBlur = 3;
+                            ctx2.lineWidth = 4.5;
+                            ctx2.strokeStyle = 'rgba(0,0,0,0.55)';
+                            ctx2.stroke(p);
+                            ctx2.restore();
+                            // Светлый блик поверх — имитирует освещённую грань кусочка
+                            ctx2.lineWidth = 1.6;
+                            ctx2.strokeStyle = 'rgba(255,255,255,0.55)';
+                            ctx2.stroke(p);
+                        }
+                    }
+                    callback(canvas.toDataURL('image/jpeg', 0.92));
+                } catch (e) {
+                    // Canvas иногда отказывается отдавать данные (например, если браузер
+                    // посчитал картинку "чужеродной"). В этом случае просто показываем
+                    // саму картинку без эффекта швов — лучше без эффекта, чем совсем пусто.
+                    callback(src);
+                }
+            };
+            img.onerror = () => callback(src);
+            img.src = src;
+        }
+
+        function onPuzzleComplete() {
+            puzzlesCompletedCount++;
+            const completedIndex = currentPuzzleImageIndex;
+            const completedSrc = PUZZLE_IMAGE_SRCS[completedIndex];
+            const completedPaths = PUZZLE_PIECE_PATHS.map(row => row.slice());
+
+            // Отмечаем картинку собранной в коллекции — если собраны уже все, цикл сам
+            // сбросится при следующем выборе случайного пазла (см. pickRandomPuzzleImageIndex).
+            const collection = loadCollectionArray();
+            collection[completedIndex] = true;
+            saveCollectionArray(collection);
+            updateCollectionBadge();
+
+            // Сразу же запускаем новый случайный пазл — игра не останавливается,
+            // примеры продолжают идти как обычно.
+            startNewPuzzle();
+
+            lastCompletedSrc = completedSrc;
+            lastCompletedPaths = completedPaths;
+
+            const collectedCount = collectionCollectedCount(collection);
+            document.getElementById('puzzleCompleteStats').innerText =
+                `⏱️ Время: ${formatTime(totalSeconds)}  |  ✅ ${correctCount}  |  ❌ ${wrongCount}  |  🪙 ${Math.floor(state.gold).toLocaleString()}  |  🧩 Пазлов собрано: ${puzzlesCompletedCount}`;
+            document.getElementById('collectionAddedLine').innerText =
+                `🏆 Добавлено в коллекцию! (${collectedCount}/${PUZZLE_IMAGE_SRCS.length})`;
+
+            const imgEl = document.getElementById('puzzleCompleteImg');
+            imgEl.removeAttribute('src');
+            renderSnapshotDataURL(completedSrc, completedPaths, (dataUrl) => {
+                imgEl.src = dataUrl;
+            });
+
+            setPuzzleCompleteVisible(true);
+            openPuzzleModal();
+        }
+
+        // ===== ОКНО КОЛЛЕКЦИИ =====
+        function renderCollectionGrid() {
+            const collection = loadCollectionArray();
+            const grid = document.getElementById('collectionGrid');
+            grid.innerHTML = '';
+            for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
+                const unlocked = !!collection[i];
+                const item = document.createElement('div');
+                item.className = 'collection-item ' + (unlocked ? 'unlocked' : 'locked');
+                const img = document.createElement('img');
+                img.src = PUZZLE_IMAGE_SRCS[i];
+                item.appendChild(img);
+                grid.appendChild(item);
+            }
+            document.getElementById('collectionCountLabel').innerText =
+                `${collectionCollectedCount(collection)}/${PUZZLE_IMAGE_SRCS.length}`;
+        }
+        function openCollectionModal() {
+            renderCollectionGrid();
+            document.getElementById('collectionModal').classList.add('active');
+        }
+        function closeCollectionModal() {
+            document.getElementById('collectionModal').classList.remove('active');
+        }
+        document.getElementById('btnViewCollection').addEventListener('click', openCollectionModal);
+        document.getElementById('collectionCloseBtn').addEventListener('click', closeCollectionModal);
+
+        // "Продолжить игру" — просто закрывает окно поздравления, без перезагрузки страницы:
+        // новый пазл уже давно собирается в фоне, прогресс и таланты никуда не делись.
+        document.getElementById('btnContinuePlaying').addEventListener('click', closePuzzleModal);
+
         // ===================== ИГРОВАЯ ЛОГИКА (минимальная) =====================
         let gameActive = false;
         let totalSeconds = 0;
@@ -1996,6 +2903,7 @@
         function startGame() {
             gameActive = true;
             resizeCanvas();
+            initPuzzle();
             generateMath();
         }
 
@@ -2004,6 +2912,21 @@
             canvas.height = window.innerHeight;
         }
         window.addEventListener('resize', resizeCanvas);
+
+        // Защита от точного повтора примера подряд: запоминаем "подпись" последнего показанного
+        // условия и, если новое сгенерированное совпало с ним, перегенерируем (с ограничением
+        // попыток, чтобы не зациклиться, если пул примеров крайне мал).
+        let lastProblemSignature = null;
+        function generateUniqueProblem(generatorFn, sigFn) {
+            let problem, sig, guard = 0;
+            do {
+                problem = generatorFn();
+                sig = sigFn(problem);
+                guard++;
+            } while (sig === lastProblemSignature && guard < 8);
+            lastProblemSignature = sig;
+            return problem;
+        }
 
         function generateMath() {
             if (!gameActive) return;
@@ -2047,7 +2970,10 @@
 
                 // --- Режим "Сокращение": дана несокращённая дробь, выбрать сокращённый вид ---
                 if (opKey === 'simplify') {
-                    const problem = generateSimplifyProblem(level);
+                    const problem = generateUniqueProblem(
+                        () => generateSimplifyProblem(level),
+                        (p) => `frac|simplify|${p.given.num}_${p.given.den}`
+                    );
                     correctAnswer = problem.answer;
                     questionEl.innerHTML = `<span class="compound-question"><span class="task-label">Сократи дробь:</span><span class="frac-row">${renderFracValue(problem.given, false)}</span></span>`;
 
@@ -2065,7 +2991,10 @@
 
                 // --- Режимы "В смешанное число" / "В неправильную дробь" — два независимых направления ---
                 if (opKey === 'toMixed' || opKey === 'toImproper') {
-                    const problem = opKey === 'toMixed' ? generateToMixedProblem(level) : generateToImproperProblem(level);
+                    const problem = generateUniqueProblem(
+                        () => opKey === 'toMixed' ? generateToMixedProblem(level) : generateToImproperProblem(level),
+                        (p) => `frac|${opKey}|${p.given.num}_${p.given.den}`
+                    );
                     correctAnswer = problem.answer;
                     // Явный флаг "показать как смешанное число" — независимо от уровня сложности:
                     // при переводе В смешанное условие (неправильная дробь) остаётся обычным,
@@ -2091,7 +3020,10 @@
 
                 // --- Режим "Дробь от числа": найти значение дроби от целого числа ---
                 if (opKey === 'fracOfNumber') {
-                    const problem = generateFracOfNumberProblem(level);
+                    const problem = generateUniqueProblem(
+                        () => generateFracOfNumberProblem(level),
+                        (p) => `frac|fracOfNumber|${p.fracNum}_${p.fracDen}_${p.N}`
+                    );
                     correctAnswer = problem.answer;
                     const fracHtml = renderFracValue({ num: problem.fracNum, den: problem.fracDen }, false);
                     questionEl.innerHTML = `<span class="compound-question"><span class="task-label">Найди дробь от числа:</span><span class="frac-row">${fracHtml}<span class="frac-op-symbol">от ${problem.N}</span></span></span>`;
@@ -2108,27 +3040,11 @@
                     return;
                 }
 
-                // --- Режим "Найти число": по известной доле восстановить целое число ---
-                if (opKey === 'findWhole') {
-                    const problem = generateFindWholeProblem(level);
-                    correctAnswer = problem.answer;
-                    const fracHtml = renderFracValue({ num: problem.fracNum, den: problem.fracDen }, false);
-                    questionEl.innerHTML = `<span class="compound-question"><span class="task-label">Найди число, если известно:</span><span class="frac-row">${fracHtml}<span class="frac-op-symbol">от него = ${problem.knownValue}</span></span></span>`;
-
-                    const fakeNums = buildFindWholeDistractors(problem, 3);
-                    const options = shuffleArray([correctAnswer, ...fakeNums]);
-                    options.forEach(opt => {
-                        const btn = document.createElement('button');
-                        btn.className = 'btn-answer';
-                        btn.innerText = opt;
-                        btn.onclick = (e) => checkAnswer(opt, e);
-                        grid.appendChild(btn);
-                    });
-                    return;
-                }
-
                 // --- Обычная арифметика (+, −, ×, ÷) ---
-                const problem = generateFractionProblem(opKey, level, isNegative);
+                const problem = generateUniqueProblem(
+                    () => generateFractionProblem(opKey, level, isNegative),
+                    (p) => `frac|${opKey}|${p.f1.num}_${p.f1.den}|${p.f2.num}_${p.f2.den}`
+                );
                 correctAnswer = problem.answer;
                 questionEl.innerHTML = buildFractionQuestionHtml(problem.f1, problem.f2, opKey, level);
 
@@ -2146,7 +3062,10 @@
 
             // ===== ДЕСЯТИЧНЫЕ ДРОБИ: простой текстовый рендер (как у целых чисел) =====
             if (exampleConfig.category === 'decimal') {
-                const problem = generateDecimalProblem(opKey, level, isNegative);
+                const problem = generateUniqueProblem(
+                    () => generateDecimalProblem(opKey, level, isNegative),
+                    (p) => `dec|${opKey}|${p.d1.intVal}_${p.d1.dp}|${p.d2.intVal}_${p.d2.dp}`
+                );
                 correctAnswer = problem.answer;
                 questionEl.innerText = buildDecimalQuestionText(problem.d1, problem.d2, opKey);
 
@@ -2163,7 +3082,10 @@
             }
 
             // ===== ЦЕЛЫЕ ЧИСЛА: прежняя логика без изменений =====
-            const problem = generateProblem(opKey, level, isNegative);
+            const problem = generateUniqueProblem(
+                () => generateProblem(opKey, level, isNegative),
+                (p) => `int|${opKey}|${p.text}`
+            );
 
             questionEl.innerText = problem.text;
 
@@ -2306,6 +3228,7 @@
                 }
 
                 triggerAnniversaryEffects(correctCount);
+                addPuzzlePiece();
 
             } else {
                 wrongCount++;
@@ -2324,6 +3247,7 @@
 
                 spawnRewardText('Ошибка!', clickX, clickY, '#f87171', false);
                 buildSparks(10, '#ef4444');
+                removePuzzlePiecesOnMistake();
             }
             generateMath();
             updateUI();
@@ -2447,12 +3371,12 @@
         setInterval(() => {
             if (!gameActive) return;
             totalSeconds++;
-            document.getElementById('gameClock').innerText = `⏳ Время Эпохи: ${formatTime(totalSeconds)}`;
+            document.getElementById('clockTimeText').innerText = formatTime(totalSeconds);
         }, 1000);
 
         document.getElementById('btn-exam').addEventListener('click', () => {
             if (!gameActive) return;
-            const confirmed = confirm('Вы действительно хотите сдать экзамен? Игра завершится.');
+            const confirmed = confirm('Вы действительно хотите завершить испытание? Игра завершится.');
             if (!confirmed) return;
 
             gameActive = false;
