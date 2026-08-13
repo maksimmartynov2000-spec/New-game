@@ -387,7 +387,7 @@
     </div>
 
     <div class="top-panel-wrapper">
-        <div class="game-clock-bar" id="gameClock">⏳ Время Эпохи: <span id="clockTimeText">00:00</span> &nbsp;·&nbsp; 🪙 <span id="val-gold">0</span></div>
+        <div class="game-clock-bar" id="gameClock">⏳ Время Эпохи: <span id="clockTimeText">00:00</span></div>
         <header>
             <div class="puzzle-mini" id="puzzleMiniBtn">
                 <div class="puzzle-mini-thumb">
@@ -2824,7 +2824,7 @@
 
             const collectedCount = collectionCollectedCount(collection);
             document.getElementById('puzzleCompleteStats').innerText =
-                `⏱️ Время: ${formatTime(totalSeconds)}  |  ✅ ${correctCount}  |  ❌ ${wrongCount}  |  🪙 ${Math.floor(state.gold).toLocaleString()}  |  🧩 Пазлов собрано: ${puzzlesCompletedCount}`;
+                `⏱️ Время: ${formatTime(totalSeconds)}  |  ✅ ${correctCount}  |  ❌ ${wrongCount}  |  🧩 Пазлов собрано: ${puzzlesCompletedCount}`;
             document.getElementById('collectionAddedLine').innerText =
                 `🏆 Добавлено в коллекцию! (${collectedCount}/${PUZZLE_IMAGE_SRCS.length})`;
 
@@ -2866,7 +2866,7 @@
         document.getElementById('collectionCloseBtn').addEventListener('click', closeCollectionModal);
 
         // "Продолжить игру" — просто закрывает окно поздравления, без перезагрузки страницы:
-        // новый пазл уже давно собирается в фоне, прогресс и таланты никуда не делись.
+        // новый пазл уже давно собирается в фоне, прогресс никуда не делся.
         document.getElementById('btnContinuePlaying').addEventListener('click', closePuzzleModal);
 
         // ===================== ИГРОВАЯ ЛОГИКА (минимальная) =====================
@@ -2879,11 +2879,7 @@
         const comboStepBonus = 0.1;       // шаг усиления серии
 
         const state = {
-            gold: 0,
-            clickBase: 12,
-            combo: 0,
-            critChance: 0.05,
-            critMultiplier: 4.0
+            combo: 0
         };
 
         let correctAnswer = 0;
@@ -3208,24 +3204,14 @@
 
                 state.combo++;
                 let comboMultiplier = 1 + (state.combo * comboStepBonus);
-                let speedBonusPercent = 1 + (timeRemaining * 0.01 * speedBonusBaseFactor);
-                let isCrit = Math.random() < state.critChance;
-
-                let rewardGold = Math.floor(state.clickBase * comboMultiplier * speedBonusPercent * (isCrit ? state.critMultiplier : 1));
-                state.gold += rewardGold;
 
                 const badge = document.getElementById('comboBadge');
                 badge.style.display = 'inline-block';
                 badge.innerText = `Серия: 🔥 x${comboMultiplier.toFixed(1)}`;
                 if (state.combo >= 5) badge.classList.add('frenzy'); else badge.classList.remove('frenzy');
 
-                if (isCrit) {
-                    spawnRewardText(`⚡ КРИТ! +${rewardGold} 🪙`, clickX, clickY, 'var(--gold)', true);
-                    buildSparks(35, 'var(--gold)');
-                } else {
-                    spawnRewardText(`+${rewardGold} 🪙`, clickX, clickY, '#22d3ee', false);
-                    buildSparks(12, 'var(--cyan)');
-                }
+                spawnRewardText('Верно!', clickX, clickY, '#22d3ee', false);
+                buildSparks(12, 'var(--cyan)');
 
                 triggerAnniversaryEffects(correctCount);
                 addPuzzlePiece();
@@ -3250,7 +3236,6 @@
                 removePuzzlePiecesOnMistake();
             }
             generateMath();
-            updateUI();
         }
 
         function spawnRewardText(txt, x, y, color, isCrit) {
@@ -3364,10 +3349,6 @@
             return `${m}:${s}`;
         }
 
-        function updateUI() {
-            document.getElementById('val-gold').innerText = Math.floor(state.gold).toLocaleString();
-        }
-
         setInterval(() => {
             if (!gameActive) return;
             totalSeconds++;
@@ -3381,7 +3362,7 @@
 
             gameActive = false;
             document.getElementById('winDesc').innerText =
-                `⏱️ Время: ${formatTime(totalSeconds)}\n🪙 Талантов набрано: ${Math.floor(state.gold).toLocaleString()}\n✅ Верно: ${correctCount} | ❌ Ошибок: ${wrongCount}`;
+                `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${correctCount} | ❌ Ошибок: ${wrongCount}`;
             document.getElementById('winScreen').classList.add('active');
         });
     </script>
