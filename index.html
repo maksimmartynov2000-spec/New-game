@@ -2736,7 +2736,7 @@
 
         function removePuzzlePiecesOnMistake() {
             if (puzzleFilled <= 0) return;
-            const remove = Math.ceil(puzzleFilled / 2);
+            const remove = 10;
             puzzleFilled = Math.max(0, puzzleFilled - remove);
             renderPuzzleProgress();
         }
