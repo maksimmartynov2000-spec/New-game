@@ -174,6 +174,40 @@
             font-size: 2rem; color: rgba(255,255,255,0.35); font-weight: bold;
         }
         .collection-item.unlocked { border-color: rgba(255, 215, 0, 0.5); box-shadow: 0 0 14px rgba(255,215,0,0.2); }
+        .collection-item.unlocked { cursor: pointer; }
+        .collection-item.unlocked:active { transform: scale(0.96); }
+        .collection-item .item-caption {
+            position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 5px 4px;
+            background: linear-gradient(transparent, rgba(2,3,8,0.92));
+            color: #e2e8f0; font-size: 0.55rem; line-height: 1.15; text-align: center; font-weight: 600;
+        }
+
+        /* Карточка парадокса: на экране победы и в коллекции */
+        .paradox-card {
+            width: 100%; background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255, 215, 0, 0.25); border-radius: 14px;
+            padding: 13px 15px; text-align: left;
+        }
+        .paradox-name { color: var(--gold); font-size: 1.05rem; font-weight: bold; line-height: 1.25; }
+        .paradox-era { color: #64748b; font-size: 0.68rem; margin-top: 2px; letter-spacing: 0.03em; text-transform: uppercase; }
+        .paradox-hook {
+            color: #f1f5f9; font-size: 0.92rem; font-style: italic; line-height: 1.4;
+            margin-top: 9px; padding-left: 10px; border-left: 2px solid rgba(255, 215, 0, 0.5);
+        }
+        .paradox-body { color: #94a3b8; font-size: 0.82rem; line-height: 1.5; margin-top: 9px; }
+
+        /* Экран одного парадокса внутри окна коллекции */
+        .collection-detail { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+        .collection-detail.show { display: flex; }
+        .collection-detail img {
+            width: 100%; max-width: 260px; aspect-ratio: 1 / 1; object-fit: cover;
+            border-radius: 14px; border: 2px solid rgba(255, 215, 0, 0.35);
+        }
+        .btn-detail-back {
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: white;
+            padding: 11px 24px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
+            width: 100%; max-width: 300px;
+        }
 
         /* ===== Полноэкранные окна пазла/коллекции ===== */
         .puzzle-modal {
@@ -399,7 +433,7 @@
                 </div>
                 <div class="puzzle-mini-status">
                     <span id="puzzleMiniCount">0/100</span>
-                    <span class="puzzle-collection-badge" id="puzzleCollectionBadge">🏆 0/3</span>
+                    <span class="puzzle-collection-badge" id="puzzleCollectionBadge">🏆 0/20</span>
                 </div>
             </div>
         </header>
@@ -449,10 +483,17 @@
                         <g id="bigSeamGroup" opacity="0.5"></g>
                     </svg>
                 </div>
+                <button class="btn-save-puzzle" id="btnOpenCollectionLive" style="margin-top:14px;">🏆 Моя коллекция парадоксов</button>
             </div>
             <div class="puzzle-complete-panel" id="puzzleCompletePanel">
                 <p class="title-line">🎉 Пазл собран полностью!</p>
                 <img class="puzzle-complete-img" id="puzzleCompleteImg" alt="Собранный пазл">
+                <div class="paradox-card" id="completeParadoxCard">
+                    <div class="paradox-name" id="completeParadoxName"></div>
+                    <div class="paradox-era" id="completeParadoxEra"></div>
+                    <div class="paradox-hook" id="completeParadoxHook"></div>
+                    <div class="paradox-body" id="completeParadoxBody"></div>
+                </div>
                 <p class="stats-line" id="puzzleCompleteStats"></p>
                 <p class="collection-added-line" id="collectionAddedLine">🏆 Добавлено в коллекцию!</p>
                 <button class="btn-save-puzzle" id="btnViewCollection">🖼️ Моя коллекция</button>
@@ -465,9 +506,21 @@
     <div class="puzzle-modal" id="collectionModal">
         <div class="puzzle-modal-inner">
             <button class="puzzle-close" id="collectionCloseBtn">✕</button>
-            <div class="puzzle-modal-title">🏆 Моя коллекция: <span id="collectionCountLabel">0/3</span></div>
-            <div class="collection-grid" id="collectionGrid"></div>
-            <div class="puzzle-save-hint">Собери все картинки — после этого они снова начнут попадаться</div>
+            <div id="collectionListView">
+                <div class="puzzle-modal-title">🏆 Парадоксы математики: <span id="collectionCountLabel">0/20</span></div>
+                <div class="collection-grid" id="collectionGrid"></div>
+                <div class="puzzle-save-hint">Нажми на собранную картинку — узнаешь, что это за парадокс</div>
+            </div>
+            <div class="collection-detail" id="collectionDetail">
+                <img id="detailImg" alt="Парадокс">
+                <div class="paradox-card">
+                    <div class="paradox-name" id="detailName"></div>
+                    <div class="paradox-era" id="detailEra"></div>
+                    <div class="paradox-hook" id="detailHook"></div>
+                    <div class="paradox-body" id="detailBody"></div>
+                </div>
+                <button class="btn-detail-back" id="btnDetailBack">← К коллекции</button>
+            </div>
         </div>
     </div>
 
@@ -2614,6 +2667,133 @@
             'images/IMG_2447.png'
         ];
 
+        // ===== КОЛЛЕКЦИЯ №1: ПАРАДОКСЫ МАТЕМАТИКИ =====
+        // Порядок строго соответствует PUZZLE_IMAGE_SRCS: индекс картинки = индекс парадокса.
+        // hook — одна дерзкая строчка "в чём подвох", body — короткое объяснение без формул.
+        const PARADOXES = [
+            {
+                name: 'Ахиллес и черепаха',
+                era: 'Зенон Элейский, ~450 до н.э.',
+                hook: 'Самый быстрый бегун никогда не догонит черепаху.',
+                body: 'Пока Ахиллес добежит туда, где была черепаха, она уже чуть уползёт. И так бесконечно много раз. Разгадка: бесконечное число шагов помещается в конечное время — сумма 1 + ½ + ¼ + … не растёт бесконечно, а упирается в 2.'
+            },
+            {
+                name: 'Гранд-отель Гильберта',
+                era: 'Давид Гильберт, 1924',
+                hook: 'В отеле бесконечно много номеров, и все заняты. Мест — сколько угодно.',
+                body: 'Просим каждого гостя переехать в номер на 1 больше — первый освободился. Так можно поселить хоть автобус с бесконечностью гостей. У бесконечности «всё занято» и «есть места» уживаются спокойно.'
+            },
+            {
+                name: 'Парадокс Монти Холла',
+                era: 'Телешоу, 1975',
+                hook: 'Три двери, за одной приз. Поменять выбор — выгоднее ровно вдвое.',
+                body: 'Выбрал дверь — шанс 1/3. Ведущий (он знает, где что) открывает дверь с козой. Кажется, что теперь 50/50 — но нет: у оставшейся двери шанс 2/3. Меняй выбор всегда.'
+            },
+            {
+                name: 'Парадокс дней рождения',
+                era: 'Рихард фон Мизес, 1939',
+                hook: 'В компании из 23 человек шанс совпадения дней рождения — больше половины.',
+                body: 'Кажется, «365 дней, а нас всего 23». Но считать надо не людей, а пары: их 253. Совпадение ищем не с собой, а между всеми — и вероятность взлетает. При 70 людях совпадение почти гарантировано.'
+            },
+            {
+                name: 'Корабль Тесея',
+                era: 'Плутарх, I век',
+                hook: 'Заменили все доски по одной. Это тот же корабль или уже другой?',
+                body: 'А если из старых досок собрать второй корабль — какой настоящий? Строгого ответа нет: парадокс показывает, что «тот же самый» — не свойство предмета, а наше соглашение о том, что считать тождеством.'
+            },
+            {
+                name: 'Парадокс Банаха — Тарского',
+                era: 'Банах и Тарский, 1924',
+                hook: 'Шар можно разрезать на 5 частей и собрать из них два таких же шара.',
+                body: 'Причём без растягивания — только повороты и сдвиги. Фокус в том, что «части» — не ломтики, а бесконечно рваные множества, у которых объёма попросту не существует. С апельсином так не выйдет.'
+            },
+            {
+                name: 'Рог Гавриила',
+                era: 'Эванджелиста Торричелли, 1641',
+                hook: 'Фигура с бесконечной поверхностью и конечным объёмом.',
+                body: 'Бесконечно длинная воронка: краски, чтобы покрасить её снаружи, нужно бесконечно много, а чтобы залить внутрь — конечное ведро. Залил — значит, изнутри уже покрашено. Разгадка: у слоя краски есть толщина, а у математической поверхности — нет.'
+            },
+            {
+                name: 'Парадокс брадобрея',
+                era: 'Бертран Рассел, 1901',
+                hook: 'Брадобрей бреет всех, кто не бреется сам. А себя?',
+                body: 'Бреет — значит, не должен. Не бреет — значит, обязан. Это народная версия парадокса Рассела: множество всех множеств, не содержащих себя, разнесло наивную теорию множеств и заставило переписать основания математики.'
+            },
+            {
+                name: 'Парадокс дедушки',
+                era: 'Рене Баржавель, 1943',
+                hook: 'Отправился в прошлое и помешал своему рождению. Кто тогда отправился?',
+                body: 'Тест на логическую непротиворечивость времени. Варианты выхода: в прошлое попасть нельзя; история самосогласована и помешать не выйдет; либо возникает новая ветка вселенной, где ты — просто гость.'
+            },
+            {
+                name: 'Кот Шрёдингера',
+                era: 'Эрвин Шрёдингер, 1935',
+                hook: 'Кот в ящике жив и мёртв одновременно — пока не заглянешь.',
+                body: 'Шрёдингер придумал это как насмешку: если частица бывает в двух состояниях сразу, то и кот тоже. Насмешка прижилась и стала главной иллюстрацией суперпозиции. Кот, впрочем, всегда был против.'
+            },
+            {
+                name: 'Парадокс береговой линии',
+                era: 'Льюис Ричардсон, 1951',
+                hook: 'У береговой линии нет длины. Совсем.',
+                body: 'Мерь линейкой в километр — получишь одно число. Метровой — больше, ведь проявились изгибы. Сантиметровой — ещё больше. Длина растёт без предела. Отсюда выросли фракталы и дробная размерность.'
+            },
+            {
+                name: 'Парадокс Симпсона',
+                era: 'Эдвард Симпсон, 1951',
+                hook: 'Лекарство помогает мужчинам, помогает женщинам — и не помогает людям.',
+                body: 'Тренд, устойчивый в каждой группе, разворачивается наоборот, когда группы сложили вместе. Виноваты разные размеры групп. Поэтому «средние по больнице» цифры — лёгкий способ соврать честной статистикой.'
+            },
+            {
+                name: 'Парадокс кучи (сорит)',
+                era: 'Евбулид, IV век до н.э.',
+                hook: 'Убери из кучи песчинку — куча останется. Повторяй. Где она кончилась?',
+                body: 'Одна песчинка — не куча, миллион — куча, а границы нет ни на каком шаге. Парадокс не про песок, а про то, что обычные слова размыты, тогда как логика требует чёткого «да/нет». Отсюда — нечёткая логика.'
+            },
+            {
+                name: 'Парадокс неожиданной контрольной',
+                era: 'обсуждается с 1940-х',
+                hook: 'Учитель обещал внезапную контрольную на неделе. Логика доказала: её не будет.',
+                body: 'В пятницу она уже не внезапна — значит, не пятница. Тогда и не четверг, и так до понедельника. Ученик спокоен... и получает контрольную в среду, совершенно внезапно. Безупречное рассуждение с неверным выводом — общепринятого решения до сих пор нет.'
+            },
+            {
+                name: 'Санкт-Петербургский парадокс',
+                era: 'Даниил Бернулли, 1738',
+                hook: 'Игра с бесконечным средним выигрышем. Никто не отдаст за неё и сотни.',
+                body: 'Бросаем монету, пока не выпадет орёл, выигрыш каждый раз удваивается. Средний выигрыш — бесконечность, значит, играть стоит за любые деньги. Но люди платят копейки — и правы. Так родилась идея полезности: вторая сотня нужна нам меньше первой.'
+            },
+            {
+                name: 'Треугольник Пенроуза',
+                era: 'Оскар Рутерсвард, 1934',
+                hook: 'Фигура, безупречная в каждом углу и невозможная целиком.',
+                body: 'Любые две грани стыкуются идеально, а весь объект в трёхмерном пространстве существовать не может. Мозг честно достраивает глубину по местным подсказкам — и попадается. Из таких фигур выросла половина работ Эшера.'
+            },
+            {
+                name: 'Лента Мёбиуса',
+                era: 'Мёбиус и Листинг, 1858',
+                hook: 'У поверхности одна сторона и один край: муравей обойдёт всё, не переползая грань.',
+                body: 'Склей полоску бумаги, перекрутив один конец, — изнанка исчезнет. Разрежь вдоль посередине — получишь не две ленты, а одну длинную. Так начинается топология: форма важнее размеров.'
+            },
+            {
+                name: 'Теорема о бесконечных обезьянах',
+                era: 'Эмиль Борель, 1913',
+                hook: 'Обезьяна за печатной машинкой рано или поздно напечатает Шекспира.',
+                body: 'При бесконечном числе попыток вероятность любой конкретной последовательности стремится к единице. Математически — правда. Практически — на «Гамлета» не хватит ни возраста Вселенной, ни атомов в ней. Вот она, разница между «возможно» и «бывает».'
+            },
+            {
+                name: 'Парадокс близнецов',
+                era: 'Поль Ланжевен, 1911',
+                hook: 'Один брат слетал к звёздам и вернулся моложе второго.',
+                body: 'На околосветовой скорости время путешественника идёт медленнее. Почему не симметрично? Симметрию ломает разворот: ускорялся только один из братьев. Эффект реальный — его каждый день учитывают спутники GPS.'
+            },
+            {
+                name: 'Парадокс лжеца',
+                era: 'Евбулид, IV век до н.э.',
+                hook: '«Это утверждение ложно». Ну и как оно вам?',
+                body: 'Истинно — значит, ложно. Ложно — значит, истинно. Змея кусает свой хвост. Из попыток обезвредить эту фразу Гёдель вывел теоремы о неполноте: в любой достаточно богатой системе есть истины, которые она сама доказать не может.'
+            }
+        ];
+
+
         // ===== КОЛЛЕКЦИЯ СОБРАННЫХ ПАЗЛОВ =====
         // Хранится в localStorage — переживает перезапуск приложения (важно для PWA,
         // добавленного на экран телефона, и просто при закрытии/повторном открытии вкладки).
@@ -2823,6 +3003,16 @@
             lastCompletedPaths = completedPaths;
 
             const collectedCount = collectionCollectedCount(collection);
+
+            // Показываем, на какой парадокс была отсылка в только что собранной картинке
+            const px = PARADOXES[completedIndex];
+            if (px) {
+                document.getElementById('completeParadoxName').innerText = px.name;
+                document.getElementById('completeParadoxEra').innerText = px.era;
+                document.getElementById('completeParadoxHook').innerText = px.hook;
+                document.getElementById('completeParadoxBody').innerText = px.body;
+            }
+
             document.getElementById('puzzleCompleteStats').innerText =
                 `⏱️ Время: ${formatTime(totalSeconds)}  |  ✅ ${correctCount}  |  ❌ ${wrongCount}  |  🧩 Пазлов собрано: ${puzzlesCompletedCount}`;
             document.getElementById('collectionAddedLine').innerText =
@@ -2839,6 +3029,22 @@
         }
 
         // ===== ОКНО КОЛЛЕКЦИИ =====
+        function showCollectionList() {
+            document.getElementById('collectionListView').style.display = '';
+            document.getElementById('collectionDetail').classList.remove('show');
+        }
+        function showParadoxDetail(index) {
+            const px = PARADOXES[index];
+            if (!px) return;
+            document.getElementById('detailImg').src = PUZZLE_IMAGE_SRCS[index];
+            document.getElementById('detailName').innerText = px.name;
+            document.getElementById('detailEra').innerText = px.era;
+            document.getElementById('detailHook').innerText = px.hook;
+            document.getElementById('detailBody').innerText = px.body;
+            document.getElementById('collectionListView').style.display = 'none';
+            document.getElementById('collectionDetail').classList.add('show');
+        }
+
         function renderCollectionGrid() {
             const collection = loadCollectionArray();
             const grid = document.getElementById('collectionGrid');
@@ -2850,6 +3056,16 @@
                 const img = document.createElement('img');
                 img.src = PUZZLE_IMAGE_SRCS[i];
                 item.appendChild(img);
+
+                // Название парадокса подписываем только у собранных — у остальных
+                // это был бы спойлер к ещё не открытой картинке.
+                if (unlocked) {
+                    const cap = document.createElement('div');
+                    cap.className = 'item-caption';
+                    cap.innerText = (PARADOXES[i] && PARADOXES[i].name) || '';
+                    item.appendChild(cap);
+                    item.addEventListener('click', () => showParadoxDetail(i));
+                }
                 grid.appendChild(item);
             }
             document.getElementById('collectionCountLabel').innerText =
@@ -2857,12 +3073,15 @@
         }
         function openCollectionModal() {
             renderCollectionGrid();
+            showCollectionList();
             document.getElementById('collectionModal').classList.add('active');
         }
         function closeCollectionModal() {
             document.getElementById('collectionModal').classList.remove('active');
         }
         document.getElementById('btnViewCollection').addEventListener('click', openCollectionModal);
+        document.getElementById('btnOpenCollectionLive').addEventListener('click', openCollectionModal);
+        document.getElementById('btnDetailBack').addEventListener('click', showCollectionList);
         document.getElementById('collectionCloseBtn').addEventListener('click', closeCollectionModal);
 
         // "Продолжить игру" — просто закрывает окно поздравления, без перезагрузки страницы:
