@@ -297,6 +297,20 @@
             text-align: center; line-height: 1.15;
         }
         .btn-answer:active { transform: scale(0.95); background: rgba(6, 182, 212, 0.2); }
+        .btn-answer.locked { pointer-events: none; }
+        .btn-answer.locked:not(.btn-correct):not(.btn-wrong):not(.btn-almost) { opacity: 0.35; }
+        .btn-answer.btn-correct {
+            border-color: #10b981 !important; background: rgba(16, 185, 129, 0.22) !important;
+            box-shadow: 0 0 14px rgba(16, 185, 129, 0.5); opacity: 1 !important;
+        }
+        .btn-answer.btn-wrong {
+            border-color: #ef4444 !important; background: rgba(239, 68, 68, 0.22) !important;
+            opacity: 1 !important;
+        }
+        .btn-answer.btn-almost {
+            border-color: #f59e0b !important; background: rgba(245, 158, 11, 0.22) !important;
+            opacity: 1 !important;
+        }
 
         .floating-reward {
             position: fixed; pointer-events: none; font-weight: 900; font-size: 1.4rem; z-index: 300;
@@ -539,6 +553,7 @@
             numberType: null,     // 'positive' | 'negative'
             operations: {}        // { add: level(1-5), sub: level, ... } — только выбранные режимы
         };
+        const CONFIG_STORAGE_KEY = 'mathCitadelExampleConfig_v1';
 
         document.querySelectorAll('.btn-category').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -679,6 +694,8 @@
             const selectedOps = Object.keys(exampleConfig.operations);
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
             if (!exampleConfig.category || !exampleConfig.numberType || !allHaveDifficulty) return;
+
+            try { localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(exampleConfig)); } catch (e) { /* хранилище недоступно */ }
 
             document.getElementById('configScreen').style.display = 'none';
             startGame();
@@ -2820,6 +2837,30 @@
                 `🏆 ${collectionCollectedCount(arr)}/${PUZZLE_IMAGE_SRCS.length}`;
         }
 
+        // ===== ПРОГРЕСС ТЕКУЩЕГО ПАЗЛА =====
+        // Хранит только "какая картинка сейчас" и "сколько кусочков уже собрано" — сама форма
+        // кусочков (замки) и порядок их появления перегенерируются заново при каждой загрузке
+        // страницы, это чисто визуальные детали и не требуют сохранения.
+        const PUZZLE_PROGRESS_KEY = 'mathCitadelPuzzleProgress_v1';
+
+        function savePuzzleProgress() {
+            try {
+                localStorage.setItem(PUZZLE_PROGRESS_KEY, JSON.stringify({
+                    idx: currentPuzzleImageIndex, filled: puzzleFilled
+                }));
+            } catch (e) { /* хранилище недоступно — молча пропускаем */ }
+        }
+        function loadPuzzleProgress() {
+            try {
+                const raw = localStorage.getItem(PUZZLE_PROGRESS_KEY);
+                if (!raw) return null;
+                const obj = JSON.parse(raw);
+                if (!Number.isInteger(obj.idx) || obj.idx < 0 || obj.idx >= PUZZLE_IMAGE_SRCS.length) return null;
+                if (!Number.isInteger(obj.filled) || obj.filled < 0 || obj.filled >= PUZZLE_TOTAL) return null;
+                return obj;
+            } catch (e) { return null; }
+        }
+
         function pickRandomPuzzleImageIndex(avoidIndex) {
             if (PUZZLE_IMAGE_SRCS.length <= 1) return 0;
 
@@ -2865,6 +2906,31 @@
             document.getElementById('puzzleMiniCount').innerText = '0/100';
             document.getElementById('puzzleModalCount').innerText = '0/100';
             setPuzzleCompleteVisible(false);
+            savePuzzleProgress();
+        }
+
+        // Восстанавливает пазл после перезагрузки страницы: та же картинка, тот же прогресс.
+        // Форма кусочков и порядок их появления перегенерируются заново (визуал, не важно для
+        // "тот же ли это пазл") — важно только число собранных кусочков и какая это картинка.
+        function resumePuzzle(idx, filled) {
+            currentPuzzleImageIndex = idx;
+            const imgEl = document.getElementById('puzzleFullImg');
+            imgEl.setAttribute('href', PUZZLE_IMAGE_SRCS[idx]);
+            imgEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', PUZZLE_IMAGE_SRCS[idx]);
+
+            regeneratePieceShapes();
+            shufflePuzzleFillOrder();
+
+            document.getElementById('miniPiecesGroup').innerHTML = '';
+            document.getElementById('bigPiecesGroup').innerHTML = '';
+            miniUseRefs.length = 0;
+            bigUseRefs.length = 0;
+            puzzleRenderedCount = 0;
+            puzzleCompleteTriggered = false;
+            setPuzzleCompleteVisible(false);
+
+            puzzleFilled = filled;
+            renderPuzzleProgress();
         }
 
         function initPuzzle() {
@@ -2872,7 +2938,9 @@
             seamPathElsMini = renderSeamGroup('miniSeamGroup');
             seamPathElsBig = renderSeamGroup('bigSeamGroup');
             updateCollectionBadge();
-            startNewPuzzle();
+            const saved = loadPuzzleProgress();
+            if (saved) resumePuzzle(saved.idx, saved.filled);
+            else startNewPuzzle();
         }
 
         function renderPuzzleProgress() {
@@ -2908,6 +2976,7 @@
             if (puzzleFilled >= PUZZLE_TOTAL) return;
             puzzleFilled++;
             renderPuzzleProgress();
+            savePuzzleProgress();
             if (puzzleFilled === PUZZLE_TOTAL && !puzzleCompleteTriggered) {
                 puzzleCompleteTriggered = true;
                 onPuzzleComplete();
@@ -2916,9 +2985,10 @@
 
         function removePuzzlePiecesOnMistake() {
             if (puzzleFilled <= 0) return;
-            const remove = 5;
+            const remove = 2;
             puzzleFilled = Math.max(0, puzzleFilled - remove);
             renderPuzzleProgress();
+            savePuzzleProgress();
         }
 
         function openPuzzleModal() {
@@ -3101,6 +3171,20 @@
             combo: 0
         };
 
+        let answerLocked = false;          // блокирует повторный тап, пока показываем разбор ошибки
+        let currentIsFractionArith = false; // true только для +,-,×,÷ над дробями (нужно для проверки "забыл сократить")
+
+        // Единый ключ для сравнения ответа/дистрактора с кнопкой в DOM — работает для чисел,
+        // дробей {num,den}, десятичных {intVal,dp} и служебного значения 'NO_SOLUTION'.
+        function answerKey(v) {
+            if (v === 'NO_SOLUTION') return 'NS';
+            if (v && typeof v === 'object') {
+                if ('num' in v) return 'F' + v.num + '/' + v.den;
+                if ('intVal' in v) return 'D' + v.intVal + '_' + v.dp;
+            }
+            return 'N' + v;
+        }
+
         let correctAnswer = 0;
         let timeRemaining = 100;
         let timerInterval = null;
@@ -3145,6 +3229,7 @@
 
         function generateMath() {
             if (!gameActive) return;
+            currentIsFractionArith = false;
             clearInterval(timerInterval);
             timeRemaining = 100;
             document.getElementById('timerBar').style.width = '100%';
@@ -3198,6 +3283,7 @@
                         const btn = document.createElement('button');
                         btn.className = 'btn-answer';
                         btn.innerHTML = renderFracValue(opt, false);
+                        btn.dataset.key = answerKey(opt);
                         btn.onclick = (e) => checkAnswer(opt, e);
                         grid.appendChild(btn);
                     });
@@ -3227,6 +3313,7 @@
                         const btn = document.createElement('button');
                         btn.className = 'btn-answer';
                         btn.innerHTML = renderFracValue(opt, answerAsMixed);
+                        btn.dataset.key = answerKey(opt);
                         btn.onclick = (e) => checkAnswer(opt, e);
                         grid.appendChild(btn);
                     });
@@ -3249,6 +3336,7 @@
                         const btn = document.createElement('button');
                         btn.className = 'btn-answer';
                         btn.innerText = opt;
+                        btn.dataset.key = answerKey(opt);
                         btn.onclick = (e) => checkAnswer(opt, e);
                         grid.appendChild(btn);
                     });
@@ -3256,6 +3344,7 @@
                 }
 
                 // --- Обычная арифметика (+, −, ×, ÷) ---
+                currentIsFractionArith = true;
                 const problem = generateUniqueProblem(
                     () => generateFractionProblem(opKey, level, isNegative),
                     (p) => `frac|${opKey}|${p.f1.num}_${p.f1.den}|${p.f2.num}_${p.f2.den}`
@@ -3269,6 +3358,7 @@
                     const btn = document.createElement('button');
                     btn.className = 'btn-answer';
                     btn.innerHTML = renderFracValue(opt, false); // обычная арифметика больше не показывает смешанные числа
+                    btn.dataset.key = answerKey(opt);
                     btn.onclick = (e) => checkAnswer(opt, e);
                     grid.appendChild(btn);
                 });
@@ -3290,6 +3380,7 @@
                     const btn = document.createElement('button');
                     btn.className = 'btn-answer';
                     btn.innerText = decToString(opt, false);
+                    btn.dataset.key = answerKey(opt);
                     btn.onclick = (e) => checkAnswer(opt, e);
                     grid.appendChild(btn);
                 });
@@ -3313,6 +3404,7 @@
                     const b = document.createElement('button');
                     b.className = 'btn-answer';
                     b.innerText = optText;
+                    b.dataset.key = answerKey(optText === 'Нет решения' ? 'NO_SOLUTION' : Number(optText));
                     b.onclick = (e) => checkAnswer(optText === 'Нет решения' ? 'NO_SOLUTION' : Number(optText), e);
                     grid.appendChild(b);
                 });
@@ -3324,6 +3416,7 @@
                     const b = document.createElement('button');
                     b.className = 'btn-answer';
                     b.innerText = ans === 'NO_SOLUTION' ? 'Нет решения' : ans;
+                    b.dataset.key = answerKey(ans);
                     b.onclick = (e) => checkAnswer(ans, e);
                     grid.appendChild(b);
                 });
@@ -3397,12 +3490,13 @@
         }
 
         function checkAnswer(chosen, event) {
-            if (!gameActive) return;
+            if (!gameActive || answerLocked) return;
 
             let clickX = window.innerWidth / 2;
             let clickY = window.innerHeight / 2;
-            if (event && event.currentTarget) {
-                const rect = event.currentTarget.getBoundingClientRect();
+            const clickedBtn = event && event.currentTarget ? event.currentTarget : null;
+            if (clickedBtn) {
+                const rect = clickedBtn.getBoundingClientRect();
                 clickX = rect.left + rect.width / 2;
                 clickY = rect.top + rect.height / 2;
             }
@@ -3416,6 +3510,16 @@
                     ('intVal' in correctAnswer && chosen.intVal === correctAnswer.intVal && chosen.dp === correctAnswer.dp)
                   ))
                 : (chosen === correctAnswer);
+
+            // "Забыл сократить": только в обычной арифметике дробей, ответ математически совпадает
+            // с верным, но записан в другом (несокращённом) виде. Отдельный, более мягкий исход —
+            // не штраф за настоящую ошибку в счёте, а напоминание сократить результат.
+            const isUnreducedMatch = !isCorrect && currentIsFractionArith &&
+                chosen && typeof chosen === 'object' && 'num' in chosen &&
+                correctAnswer && typeof correctAnswer === 'object' && correctAnswer.den !== 0 &&
+                chosen.den !== 0 && chosen.num * correctAnswer.den === correctAnswer.num * chosen.den;
+
+            const allBtns = document.querySelectorAll('#answersGrid .btn-answer');
 
             if (isCorrect) {
                 correctCount++;
@@ -3435,6 +3539,24 @@
                 triggerAnniversaryEffects(correctCount);
                 addPuzzlePiece();
 
+                generateMath();
+                return;
+            }
+
+            // Дальше — оба "неверных" исхода (настоящая ошибка и "забыл сократить") останавливают
+            // таймер и на пару секунд показывают разбор, прежде чем перейти к следующему примеру.
+            answerLocked = true;
+            clearInterval(timerInterval);
+            allBtns.forEach(b => b.classList.add('locked'));
+
+            const correctKey = answerKey(correctAnswer);
+            allBtns.forEach(b => { if (b.dataset.key === correctKey) b.classList.add('btn-correct'); });
+
+            if (isUnreducedMatch) {
+                if (clickedBtn) clickedBtn.classList.add('btn-almost');
+                spawnRewardText('Почти! Не забудь сократить', clickX, clickY, '#f59e0b', false);
+                buildSparks(10, '#f59e0b');
+                // Пропускаем штраф за пазл и не портим статистику "Ошибки" — это не ошибка в счёте.
             } else {
                 wrongCount++;
                 document.getElementById('stat-wrong').innerText = wrongCount;
@@ -3450,11 +3572,16 @@
                     badge.style.display = 'none'; badge.classList.remove('frenzy');
                 }
 
+                if (clickedBtn) clickedBtn.classList.add('btn-wrong');
                 spawnRewardText('Ошибка!', clickX, clickY, '#f87171', false);
                 buildSparks(10, '#ef4444');
                 removePuzzlePiecesOnMistake();
             }
-            generateMath();
+
+            setTimeout(() => {
+                answerLocked = false;
+                generateMath();
+            }, isUnreducedMatch ? 1700 : 1400);
         }
 
         function spawnRewardText(txt, x, y, color, isCrit) {
@@ -3584,6 +3711,51 @@
                 `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${correctCount} | ❌ Ошибок: ${wrongCount}`;
             document.getElementById('winScreen').classList.add('active');
         });
+
+        // ===== ВОССТАНОВЛЕНИЕ НАСТРОЕК ПРИ ОТКРЫТИИ =====
+        // Не запускает игру автоматически — просто заранее заполняет экран настройки тем, что
+        // выбирали в прошлый раз, чтобы не собирать конфигурацию заново при каждом заходе.
+        // Ученик/репетитор всё ещё видит экран настройки и может изменить что угодно перед стартом.
+        function restoreSavedConfig() {
+            let saved;
+            try {
+                const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
+                if (!raw) return;
+                saved = JSON.parse(raw);
+            } catch (e) { return; }
+            if (!saved || !saved.category || !saved.numberType || !saved.operations) return;
+
+            exampleConfig.category = saved.category;
+            exampleConfig.numberType = saved.numberType;
+            exampleConfig.operations = { ...saved.operations };
+            // Защита от рассинхрона со старыми сохранениями: особые режимы дробей не должны
+            // просочиться в другую категорию (они существуют только для 'fraction').
+            if (saved.category !== 'fraction') {
+                FRAC_ONLY_OPS.forEach(op => delete exampleConfig.operations[op]);
+            }
+
+            document.querySelectorAll('.btn-category').forEach(b => {
+                b.classList.toggle('selected', b.getAttribute('data-value') === saved.category);
+            });
+            document.getElementById('fracSpecialBlock').style.display = saved.category === 'fraction' ? 'block' : 'none';
+
+            document.querySelectorAll('.btn-type').forEach(b => {
+                b.classList.toggle('selected', b.getAttribute('data-value') === saved.numberType);
+            });
+
+            document.querySelectorAll('.btn-op').forEach(b => {
+                b.classList.toggle('selected', b.getAttribute('data-op') in exampleConfig.operations);
+            });
+
+            updateFracOnlyOpAvailability();
+            renderDifficultyList(); // сама подсветит нужный уровень звёзд — читает exampleConfig.operations
+            updateConfigValidity();
+
+            // Категория уже выбрана — сразу показываем второй экран настройки, а не первый шаг.
+            document.getElementById('categoryStepScreen').style.display = 'none';
+            document.getElementById('restStepScreen').style.display = 'flex';
+        }
+        restoreSavedConfig();
     </script>
 </body>
 </html>
