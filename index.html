@@ -4064,6 +4064,14 @@
             document.getElementById('clockTimeText').innerText = formatTime(totalSeconds);
         }, 1000);
 
+        // Помимо точечных синхронизаций (пазл собран, выход, вкладка в фоне) — ещё и по таймеру.
+        // Закрывает разрыв, если ученик активно играет долго на одной вкладке, ничего не закрывая:
+        // без этого прогресс между редкими точками мог "отставать" от того, что видно на экране.
+        setInterval(() => {
+            if (!gameActive) return;
+            Progress.flush(); // без force — уйдёт на сервер, только если реально что-то изменилось
+        }, 20000);
+
         document.getElementById('btn-exam').addEventListener('click', () => {
             if (!gameActive) return;
             const confirmed = confirm('Вы действительно хотите завершить испытание? Игра завершится.');
