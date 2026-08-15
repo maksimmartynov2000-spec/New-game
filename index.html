@@ -364,6 +364,8 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
 
@@ -387,21 +389,34 @@
 
         <div id="codeNewResult" style="display:none; width:100%; max-width:420px; text-align:center; margin-top:6px;">
             <p style="color:#94a3b8; line-height:1.5;">Твой личный код — сохрани его, он открывает прогресс на любом устройстве:</p>
-            <div id="newCodeValue" style="font-size:2rem; font-weight:900; color:var(--gold); letter-spacing:2px; margin:16px 0;"></div>
+            <div id="newCodeValue" style="font-size:2rem; font-weight:900; color:var(--gold); letter-spacing:3px; margin:16px 0;"></div>
+            <canvas id="newCodeQR" style="display:block; margin:0 auto 16px; border-radius:12px; background:white; padding:10px;"></canvas>
+            <p style="color:#94a3b8; font-size:0.8rem; margin-bottom:14px;">Этот QR можно отсканировать на другом устройстве вместо ввода кода вручную.</p>
             <button class="btn-config-continue ready" onclick="confirmNewCode()">Понял, играть →</button>
         </div>
 
         <div style="width:100%; max-width:420px; margin-top:28px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.12); text-align:center;">
             <p style="color:#94a3b8; margin-bottom:10px;">Уже есть код от репетитора?</p>
-            <input id="codeInputField" type="text" placeholder="ЦИТ-XXXX" autocapitalize="characters"
+            <input id="codeInputField" type="text" placeholder="4K7M9P" autocapitalize="characters"
                    style="width:100%; padding:12px; text-align:center; text-transform:uppercase; font-size:1.1rem;
                           border-radius:10px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.07);
                           color:white; margin-bottom:10px; box-sizing:border-box;">
             <button class="btn-config-continue ready" style="background:rgba(255,255,255,0.1);" onclick="loginWithExistingCode()">Войти</button>
+            <button class="btn-config-continue ready" style="background:rgba(255,255,255,0.1); margin-top:8px;" onclick="openQrScanner()">📷 Сканировать QR-код</button>
             <p id="codeErrorMsg" style="display:none; color:#f87171; margin-top:10px; font-size:0.85rem;"></p>
             <p id="codeLoadingMsg" style="display:none; color:#94a3b8; margin-top:10px; font-size:0.85rem;">Проверяю код…</p>
         </div>
     </div>
+
+    <!-- Сканер QR-кода: свой экран поверх всего остального, включая вход по коду -->
+    <div id="qrScannerOverlay" style="display:none; position:fixed; inset:0; background:rgba(2,3,8,0.96);
+                                       z-index:280; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
+        <video id="qrVideo" playsinline muted style="width:100%; max-width:360px; border-radius:16px; background:#000;"></video>
+        <p id="qrScanStatus" style="color:#94a3b8; margin-top:16px; text-align:center; padding:0 20px;">Наведи камеру на QR-код</p>
+        <button style="margin-top:18px; padding:12px 26px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.22);
+                        color:white; border-radius:10px; font-weight:bold; cursor:pointer;" onclick="closeQrScanner()">Отмена</button>
+    </div>
+    <canvas id="qrScanCanvas" style="display:none;"></canvas>
 
     <!-- Экран настройки генерации примеров -->
     <div class="modal-screen" id="configScreen">
@@ -527,6 +542,13 @@
                     </svg>
                 </div>
                 <button class="btn-save-puzzle" id="btnOpenCollectionLive" style="margin-top:14px;">🏆 Моя коллекция парадоксов</button>
+                <button class="btn-save-puzzle" id="btnShowMyCode" style="margin-top:8px; background:rgba(255,255,255,0.08);">🔑 Мой код</button>
+            </div>
+            <div id="myCodePanel" style="display:none; text-align:center; padding:10px 0;">
+                <p style="color:#94a3b8; margin-bottom:10px;">Твой код для входа на другом устройстве:</p>
+                <div id="myCodeValue" style="font-size:1.9rem; font-weight:900; color:var(--gold); letter-spacing:3px; margin-bottom:14px;"></div>
+                <canvas id="myCodeQR" style="display:block; margin:0 auto 16px; border-radius:12px; background:white; padding:10px;"></canvas>
+                <button class="btn-save-puzzle" onclick="closeMyCodePanel()">← Назад к пазлу</button>
             </div>
             <div class="puzzle-complete-panel" id="puzzleCompletePanel">
                 <p class="title-line">🎉 Пазл собран полностью!</p>
@@ -3108,13 +3130,23 @@
             });
         }
 
-        // Формат ЦИТ-XXXX, без похожих на вид символов (0/O, 1/I), чтобы легко
-        // диктовать и переписывать с листа.
+        // 6 символов, без похожих на вид символов (0/O, 1/I) — легко продиктовать и ввести
+        // на любой раскладке клавиатуры, независимо от языка интерфейса.
         function generateStudentCode() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let s = '';
-            for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
-            return 'ЦИТ-' + s;
+            for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
+            return s;
+        }
+
+        // Общий рендер QR — используется и на регистрации, и в "Мой код" внутри игры.
+        function renderQrToCanvas(canvasId, text) {
+            const canvas = document.getElementById(canvasId);
+            if (!canvas || !window.QRCode) return;
+            QRCode.toCanvas(canvas, text, { width: 180, margin: 1 }, function (err) {
+                // Если библиотека не подгрузилась (нет сети) — просто не показываем картинку,
+                // сам код текстом всё равно виден и рабочий.
+            });
         }
 
         function startNewCodeFlow() {
@@ -3123,6 +3155,66 @@
             document.getElementById('codeNewResult').dataset.pendingCode = code;
             document.getElementById('codeNewBlock').style.display = 'none';
             document.getElementById('codeNewResult').style.display = 'block';
+            renderQrToCanvas('newCodeQR', code);
+        }
+
+        // ===== СКАНЕР QR-КОДА =====
+        // Читает код камерой вместо ввода вручную — полезно, когда код показывают
+        // с экрана одного устройства и сканируют на другом.
+        let qrStream = null;
+        let qrScanRAF = null;
+
+        async function openQrScanner() {
+            const overlay = document.getElementById('qrScannerOverlay');
+            const video = document.getElementById('qrVideo');
+            const statusEl = document.getElementById('qrScanStatus');
+            overlay.style.display = 'flex';
+            statusEl.innerText = 'Наведи камеру на QR-код';
+
+            if (!window.jsQR) {
+                statusEl.innerText = 'Сканер недоступен без интернета. Введи код вручную.';
+                return;
+            }
+            try {
+                qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                video.srcObject = qrStream;
+                await video.play();
+                qrScanRAF = requestAnimationFrame(scanQrFrame);
+            } catch (e) {
+                statusEl.innerText = 'Нет доступа к камере. Разреши доступ в настройках браузера или введи код вручную.';
+            }
+        }
+
+        function scanQrFrame() {
+            const video = document.getElementById('qrVideo');
+            const canvas = document.getElementById('qrScanCanvas');
+            if (!video.videoWidth) { qrScanRAF = requestAnimationFrame(scanQrFrame); return; }
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const result = jsQR(imageData.data, imageData.width, imageData.height);
+
+            if (result && result.data) {
+                onQrDetected(result.data.trim());
+                return;
+            }
+            qrScanRAF = requestAnimationFrame(scanQrFrame);
+        }
+
+        function closeQrScanner() {
+            if (qrScanRAF) cancelAnimationFrame(qrScanRAF);
+            qrScanRAF = null;
+            if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
+            document.getElementById('qrScannerOverlay').style.display = 'none';
+        }
+
+        function onQrDetected(text) {
+            closeQrScanner();
+            document.getElementById('codeInputField').value = text.toUpperCase();
+            loginWithExistingCode();
         }
 
         async function confirmNewCode() {
@@ -3504,6 +3596,26 @@
         }
         document.getElementById('btnViewCollection').addEventListener('click', openCollectionModal);
         document.getElementById('btnOpenCollectionLive').addEventListener('click', openCollectionModal);
+        document.getElementById('btnShowMyCode').addEventListener('click', openMyCodePanel);
+
+        function openMyCodePanel() {
+            const code = Progress.getCode();
+            if (!code) return; // играет анонимно, кода ещё нет
+            document.getElementById('myCodeValue').innerText = code;
+            renderQrToCanvas('myCodeQR', code);
+            document.getElementById('myCodePanel').style.display = 'block';
+            document.getElementById('puzzleModalCount').parentElement.style.display = 'none'; // скрываем заголовок пазла
+            document.querySelector('#puzzleLiveSection .puzzle-big-thumb').style.display = 'none';
+            document.getElementById('btnOpenCollectionLive').style.display = 'none';
+            document.getElementById('btnShowMyCode').style.display = 'none';
+        }
+        function closeMyCodePanel() {
+            document.getElementById('myCodePanel').style.display = 'none';
+            document.getElementById('puzzleModalCount').parentElement.style.display = '';
+            document.querySelector('#puzzleLiveSection .puzzle-big-thumb').style.display = '';
+            document.getElementById('btnOpenCollectionLive').style.display = '';
+            document.getElementById('btnShowMyCode').style.display = '';
+        }
         document.getElementById('btnDetailBack').addEventListener('click', showCollectionList);
         document.getElementById('collectionCloseBtn').addEventListener('click', closeCollectionModal);
 
