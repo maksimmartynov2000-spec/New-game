@@ -363,6 +363,7 @@
             .puzzle-mini-thumb { width: clamp(130px, 42vw, 200px); height: clamp(130px, 42vw, 200px); }
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -373,6 +374,34 @@
             <image id="puzzleFullImg" href="" x="0" y="0" width="1000" height="1000"></image>
         </defs>
     </svg>
+
+    <!-- Экран входа по коду ученика: показывается только пока код не сохранён на устройстве.
+         Сидит поверх экрана настройки (z-index выше) и блокирует его до входа. -->
+    <div class="modal-screen" id="codeScreen" style="z-index:210; display:none;">
+        <h1 class="start-title" style="font-size:1.6rem;">🏰 Вход в Цитадель</h1>
+
+        <div id="codeNewBlock" style="width:100%; max-width:420px; text-align:center;">
+            <p style="color:#94a3b8; margin-bottom:14px; line-height:1.5;">Похоже, ты здесь впервые.<br>Прогресс будет сохраняться и на других устройствах.</p>
+            <button class="btn-config-continue ready" onclick="startNewCodeFlow()">✨ Начать игру</button>
+        </div>
+
+        <div id="codeNewResult" style="display:none; width:100%; max-width:420px; text-align:center; margin-top:6px;">
+            <p style="color:#94a3b8; line-height:1.5;">Твой личный код — сохрани его, он открывает прогресс на любом устройстве:</p>
+            <div id="newCodeValue" style="font-size:2rem; font-weight:900; color:var(--gold); letter-spacing:2px; margin:16px 0;"></div>
+            <button class="btn-config-continue ready" onclick="confirmNewCode()">Понял, играть →</button>
+        </div>
+
+        <div style="width:100%; max-width:420px; margin-top:28px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.12); text-align:center;">
+            <p style="color:#94a3b8; margin-bottom:10px;">Уже есть код от репетитора?</p>
+            <input id="codeInputField" type="text" placeholder="ЦИТ-XXXX" autocapitalize="characters"
+                   style="width:100%; padding:12px; text-align:center; text-transform:uppercase; font-size:1.1rem;
+                          border-radius:10px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.07);
+                          color:white; margin-bottom:10px; box-sizing:border-box;">
+            <button class="btn-config-continue ready" style="background:rgba(255,255,255,0.1);" onclick="loginWithExistingCode()">Войти</button>
+            <p id="codeErrorMsg" style="display:none; color:#f87171; margin-top:10px; font-size:0.85rem;"></p>
+            <p id="codeLoadingMsg" style="display:none; color:#94a3b8; margin-top:10px; font-size:0.85rem;">Проверяю код…</p>
+        </div>
+    </div>
 
     <!-- Экран настройки генерации примеров -->
     <div class="modal-screen" id="configScreen">
@@ -3024,17 +3053,20 @@
                 // Контрольная точка синхронизации. Пока сервера нет — ничего не делает.
                 // Когда появится, здесь пойдёт отправка на сервер со слиянием,
                 // и НИ ОДНА строчка остального приложения не изменится.
-                async flush() {
-                    if (!remoteDriver || !dirty || !state.playerCode) return;
+                async flush(force) {
+                    if (!remoteDriver || !state.playerCode) return;
+                    if (!dirty && !force) return;
                     try {
                         const remote = normalize(await remoteDriver.read(state.playerCode));
                         state = mergeState(remote, state);
                         localDriver.write(state);
                         await remoteDriver.write(state.playerCode, state);
                         dirty = false;
+                        return true;
                     } catch (e) {
                         // Сеть недоступна — молча оставляем данные локально и попробуем позже.
                         // Игра при этом не должна ничего заметить.
+                        return false;
                     }
                 },
                 attachRemote(driver) { remoteDriver = driver; },
@@ -3043,6 +3075,109 @@
         })();
 
         Progress.init();
+
+        // =====================================================================
+        //  СИНХРОНИЗАЦИЯ С SUPABASE
+        // ---------------------------------------------------------------------
+        //  Таблица на сервере: citadel_progress (code text primary key, state jsonb,
+        //  updated_at timestamptz). Ключ ниже — публичный (anon), им нельзя ничего
+        //  сломать без знания конкретного кода ученика — это и есть весь "пароль".
+        // =====================================================================
+        const SUPABASE_URL = 'https://uxmhzwacdhckhmlvqonh.supabase.co';
+        const SUPABASE_ANON_KEY = 'sb_publishable_dAIiXea2B9CgxqlMANpQqg_1h_rhy_b';
+
+        let supabaseClient = null;
+        if (window.supabase) {
+            supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+            Progress.attachRemote({
+                async read(code) {
+                    const { data, error } = await supabaseClient
+                        .from('citadel_progress')
+                        .select('state')
+                        .eq('code', code)
+                        .maybeSingle();
+                    if (error) throw error;
+                    return data ? data.state : null;
+                },
+                async write(code, state) {
+                    const { error } = await supabaseClient
+                        .from('citadel_progress')
+                        .upsert({ code, state, updated_at: new Date().toISOString() });
+                    if (error) throw error;
+                }
+            });
+        }
+
+        // Формат ЦИТ-XXXX, без похожих на вид символов (0/O, 1/I), чтобы легко
+        // диктовать и переписывать с листа.
+        function generateStudentCode() {
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            let s = '';
+            for (let i = 0; i < 4; i++) s += chars[Math.floor(Math.random() * chars.length)];
+            return 'ЦИТ-' + s;
+        }
+
+        function startNewCodeFlow() {
+            const code = generateStudentCode();
+            document.getElementById('newCodeValue').innerText = code;
+            document.getElementById('codeNewResult').dataset.pendingCode = code;
+            document.getElementById('codeNewBlock').style.display = 'none';
+            document.getElementById('codeNewResult').style.display = 'block';
+        }
+
+        async function confirmNewCode() {
+            const code = document.getElementById('codeNewResult').dataset.pendingCode;
+            Progress.setCode(code);
+            document.getElementById('codeScreen').style.display = 'none';
+            await Progress.flush(true); // создаёт запись на сервере с текущим (пустым) прогрессом
+        }
+
+        async function loginWithExistingCode() {
+            const raw = document.getElementById('codeInputField').value.trim().toUpperCase();
+            const errEl = document.getElementById('codeErrorMsg');
+            const loadingEl = document.getElementById('codeLoadingMsg');
+            errEl.style.display = 'none';
+
+            if (!raw) { errEl.innerText = 'Введите код.'; errEl.style.display = 'block'; return; }
+            if (!supabaseClient) {
+                errEl.innerText = 'Нет соединения с сервером. Попробуйте позже.';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            loadingEl.style.display = 'block';
+            try {
+                const { data, error } = await supabaseClient
+                    .from('citadel_progress').select('state').eq('code', raw).maybeSingle();
+                loadingEl.style.display = 'none';
+                if (error) throw error;
+                if (!data) {
+                    errEl.innerText = 'Такой код не найден. Проверь написание.';
+                    errEl.style.display = 'block';
+                    return;
+                }
+                Progress.setCode(raw);
+                document.getElementById('codeScreen').style.display = 'none';
+                await Progress.flush(true);
+                // Прогресс с сервера мог быть больше локального — обновляем видимые счётчики.
+                updateCollectionBadge();
+            } catch (e) {
+                loadingEl.style.display = 'none';
+                errEl.innerText = 'Не удалось подключиться. Проверь интернет.';
+                errEl.style.display = 'block';
+            }
+        }
+
+        // Показывается один раз — пока на устройстве нет сохранённого кода.
+        // Если код уже есть, просто тихо синхронизируемся в фоне и не мешаем игре.
+        function bootCodeScreen() {
+            const existing = Progress.getCode();
+            if (existing) {
+                Progress.flush(true).then(() => updateCollectionBadge());
+                return;
+            }
+            document.getElementById('codeScreen').style.display = 'flex';
+        }
 
 
         // ===== КОЛЛЕКЦИЯ СОБРАННЫХ ПАЗЛОВ =====
@@ -3987,6 +4122,7 @@
             document.getElementById('restStepScreen').style.display = 'flex';
         }
         restoreSavedConfig();
+        bootCodeScreen();
     </script>
 </body>
 </html>
