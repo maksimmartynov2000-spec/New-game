@@ -104,21 +104,6 @@
         }
         .btn-config-continue.ready { opacity: 1; pointer-events: auto; }
 
-        .mode-select-col { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 450px; margin-top: 16px; }
-        .mode-select-col .btn-config-continue { margin-top: 0; }
-        .mode-sub { display: block; font-size: 0.7rem; font-weight: normal; opacity: 0.82; margin-top: 4px; }
-        .btn-mode-endless { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); }
-
-        .hall-progress-line { color: #94a3b8; font-size: 0.78rem; text-align: center; margin-bottom: 6px; letter-spacing: 0.02em; }
-        .shield-row { display: flex; gap: 6px; justify-content: center; margin-bottom: 10px; }
-        .shield-icon { font-size: 1.15rem; opacity: 0.22; filter: grayscale(1); transition: opacity 0.25s ease, filter 0.25s ease; }
-        .shield-icon.filled { opacity: 1; filter: none; }
-
-        #hallDots { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
-        .hall-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.15); }
-        .hall-dot.done { background: var(--gold); }
-        .hall-dot.next { width: 7px; height: 7px; background: rgba(255,255,255,0.15); border: 2px solid var(--cyan); }
-
         .category-select-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .btn-category {
             background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1);
@@ -445,16 +430,7 @@
                     <div class="config-hint">Для каждого выбранного режима — своя сложность</div>
                 </div>
             </div>
-            <div class="mode-select-col" id="modeSelectCol">
-                <button class="btn-config-continue btn-mode-run" id="btnStartRun" onclick="finishConfigRun()">
-                    🗺️ Экспедиция
-                    <span class="mode-sub">45 примеров · 7 залов · награда пазлом в конце</span>
-                </button>
-                <button class="btn-config-continue btn-mode-endless" id="btnStartEndless" onclick="finishConfigEndless()">
-                    🌊 Бесконечный поток
-                    <span class="mode-sub">без остановки, как раньше</span>
-                </button>
-            </div>
+            <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">⚔️ Начать испытание</button>
         </div>
     </div>
 
@@ -484,8 +460,6 @@
                 <div>✅ Верно: <span id="stat-correct" style="color:#10b981;">0</span></div>
                 <div>❌ Ошибки: <span id="stat-wrong" style="color:#ef4444;">0</span></div>
             </div>
-            <div class="hall-progress-line" id="hallProgressLine" style="display:none;"></div>
-            <div class="shield-row" id="shieldRow" style="display:none;"></div>
             <div class="badge-container">
                 <div class="combo-badge" id="comboBadge" style="display:none;">Серия: 🔥 х1.0</div>
                 <div class="speed-badge" id="speedBadge">Скорость: +0%</div>
@@ -508,25 +482,6 @@
         <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;">Экзамен сдан!</h1>
         <p id="winDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size: 1.1rem; white-space:pre-line;"></p>
         <button style="margin-top:30px; padding:12px 25px; background:var(--gold); border:none; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="location.reload()">Начать заново</button>
-    </div>
-
-    <!-- Пауза между залами экспедиции -->
-    <div class="win-screen" id="hallBreakScreen">
-        <h1 style="color:var(--cyan); font-size:1.8rem; margin-bottom:6px;" id="hallBreakTitle">Зал пройден!</h1>
-        <p id="hallBreakDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size:1rem;"></p>
-        <div id="hallDots"></div>
-        <button style="margin-top:10px; padding:12px 25px; background:var(--cyan); border:none; border-radius:8px; font-weight:bold; cursor:pointer; color:#04222a;" onclick="continueToNextHall()">Дальше →</button>
-    </div>
-
-    <!-- Итог полностью пройденной экспедиции -->
-    <div class="win-screen" id="runCompleteScreen">
-        <h1 style="color:var(--gold); font-size:2.1rem; margin-bottom:8px;">🗺️ Экспедиция завершена!</h1>
-        <div id="runCompleteShieldRow" style="display:flex; gap:6px; justify-content:center; margin-bottom:10px; font-size:1.5rem;"></div>
-        <p id="runCompleteDesc" style="padding:0 25px; color:#94a3b8; line-height:1.6; font-size:1.05rem; white-space:pre-line;"></p>
-        <div style="display:flex; flex-direction:column; gap:10px; margin-top:24px; width:100%; max-width:320px; padding:0 20px;">
-            <button style="padding:13px 20px; background:var(--gold); border:none; border-radius:10px; font-weight:bold; cursor:pointer;" onclick="startAnotherRun()">🗺️ Новая экспедиция</button>
-            <button style="padding:13px 20px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:white; border-radius:10px; font-weight:bold; cursor:pointer;" onclick="goToMenuFromRun()">🏠 В меню</button>
-        </div>
     </div>
 
     <!-- Полноэкранное окно пазла -->
@@ -598,24 +553,6 @@
             numberType: null,     // 'positive' | 'negative'
             operations: {}        // { add: level(1-5), sub: level, ... } — только выбранные режимы
         };
-        const CONFIG_STORAGE_KEY = 'mathCitadelExampleConfig_v1';
-
-        // ===================== РЕЖИМ "ЭКСПЕДИЦИЯ" (ЗАБЕГ) =====================
-        // Второй режим игры наравне с бесконечным потоком: фиксированные 45 примеров,
-        // разбитых на 7 залов, щит из 5 делений вместо мгновенного отъёма кусочков пазла
-        // за каждую ошибку, и единая награда в конце — сколько именно, зависит от того,
-        // на каком делении щита фикнишировал забег.
-        let gameMode = 'endless'; // 'endless' | 'run'
-        const HALL_SIZES = [5, 6, 6, 6, 7, 7, 8]; // 7 залов, сумма = 45
-        const RUN_TOTAL = HALL_SIZES.reduce((a, b) => a + b, 0);
-        const SHIELD_MAX = 5;
-        const SHIELD_REWARD_TABLE = [12, 14, 16, 19, 22, 25]; // индекс = финальный щит 0..5
-
-        let runHallIndex = 0;
-        let runIndexInHall = 0;
-        let runShield = SHIELD_MAX;
-        let runCorrectCount = 0;
-        let runWrongCount = 0;
 
         document.querySelectorAll('.btn-category').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -745,38 +682,22 @@
         }
 
         function updateConfigValidity() {
+            const btn = document.getElementById('btnConfigContinue');
             const selectedOps = Object.keys(exampleConfig.operations);
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
             const valid = !!exampleConfig.category && !!exampleConfig.numberType && allHaveDifficulty;
-            document.getElementById('btnStartRun').classList.toggle('ready', valid);
-            document.getElementById('btnStartEndless').classList.toggle('ready', valid);
+            if (valid) btn.classList.add('ready'); else btn.classList.remove('ready');
         }
 
-        function validateConfig() {
+        function finishConfig() {
             const selectedOps = Object.keys(exampleConfig.operations);
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
-            return !!exampleConfig.category && !!exampleConfig.numberType && allHaveDifficulty;
-        }
+            if (!exampleConfig.category || !exampleConfig.numberType || !allHaveDifficulty) return;
 
-        function persistConfig() {
-            try { localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(exampleConfig)); } catch (e) { /* хранилище недоступно */ }
-        }
+            Progress.setConfig(exampleConfig);
 
-        function finishConfigEndless() {
-            if (!validateConfig()) return;
-            persistConfig();
-            gameMode = 'endless';
             document.getElementById('configScreen').style.display = 'none';
             startGame();
-        }
-
-        function finishConfigRun() {
-            if (!validateConfig()) return;
-            persistConfig();
-            gameMode = 'run';
-            document.getElementById('configScreen').style.display = 'none';
-            startGame();
-            beginRun();
         }
 
         // ===================== ГЕНЕРАТОРЫ ПРИМЕРОВ =====================
@@ -2889,22 +2810,250 @@
         ];
 
 
+        // =====================================================================
+        //  ХРАНИЛИЩЕ ПРОГРЕССА
+        // ---------------------------------------------------------------------
+        //  Единственное место во всём приложении, которое знает, ГДЕ лежат данные.
+        //  Остальной код работает только через Progress.* и понятия не имеет,
+        //  локальное это хранилище или сервер.
+        //
+        //  Модель: локальное хранилище — быстрый кэш, сервер — источник правды.
+        //  Игра никогда не ждёт сеть: пишем всегда локально и мгновенно,
+        //  а на сервер отправляем на контрольных точках (см. Progress.flush).
+        //
+        //  Слияние конфликтов (телефон + планшет) решается тем, что весь прогресс
+        //  здесь ТОЛЬКО РАСТЁТ: решённых примеров не становится меньше, собранная
+        //  картинка не рассобирается, открытый скин не закрывается. Поэтому
+        //  слияние = максимум по счётчикам и объединение по спискам, и потерять
+        //  данные "последняя запись затёрла первую" структурно невозможно.
+        // =====================================================================
+        const Progress = (() => {
+            const LOCAL_KEY = 'mathCitadelState_v2';
+            const SCHEMA = 2;
+
+            // Пустое состояние. Всё, что должно переживать перезапуск, живёт здесь.
+            function emptyState() {
+                return {
+                    schema: SCHEMA,
+                    playerCode: null,      // код ученика; null = играет анонимно на этом устройстве
+                    updatedAt: 0,
+
+                    config: null,          // последняя выбранная настройка примеров
+
+                    // Прогресс текущего пазла: какая картинка и сколько кусочков собрано
+                    puzzle: { idx: null, filled: 0 },
+
+                    // Коллекции по id. Сейчас коллекция одна ('paradoxes'), но структура
+                    // сразу рассчитана на то, что их станет несколько.
+                    collections: { paradoxes: [] },
+
+                    // Накопительная статистика за всё время — на ней будут строиться
+                    // достижения, скины и учительские отчёты.
+                    totals: { correct: 0, wrong: 0, puzzlesCompleted: 0 },
+                    byTopic: {},           // { 'fraction:add': { correct: N, wrong: N }, ... }
+                    unlocks: []            // открытые скины/достижения, список строковых id
+                };
+            }
+
+            let state = emptyState();
+            let dirty = false;
+
+            // --- драйвер хранилища -------------------------------------------
+            // Пока реализован только локальный. Серверный подключается сюда же,
+            // не затрагивая остальное приложение.
+            const localDriver = {
+                read() {
+                    try {
+                        const raw = localStorage.getItem(LOCAL_KEY);
+                        return raw ? JSON.parse(raw) : null;
+                    } catch (e) { return null; }
+                },
+                write(s) {
+                    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(s)); } catch (e) { /* хранилище недоступно */ }
+                }
+            };
+            let remoteDriver = null; // будет назначен при подключении сервера
+
+            // --- слияние двух состояний --------------------------------------
+            function mergeState(a, b) {
+                if (!a) return b;
+                if (!b) return a;
+                const out = emptyState();
+
+                out.playerCode = b.playerCode || a.playerCode;
+                out.updatedAt = Math.max(a.updatedAt || 0, b.updatedAt || 0);
+
+                // Настройки — не прогресс, здесь честно побеждает более свежая запись.
+                out.config = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.config : a.config) || null;
+
+                // Кусочки пазла: если это одна и та же картинка — берём больший прогресс,
+                // если разные — берём тот, что записан позже.
+                if (a.puzzle && b.puzzle && a.puzzle.idx === b.puzzle.idx) {
+                    out.puzzle = { idx: a.puzzle.idx, filled: Math.max(a.puzzle.filled || 0, b.puzzle.filled || 0) };
+                } else {
+                    out.puzzle = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.puzzle : a.puzzle) || { idx: null, filled: 0 };
+                }
+
+                // Коллекции: объединение — собранное на одном устройстве остаётся собранным.
+                const ids = new Set([...Object.keys(a.collections || {}), ...Object.keys(b.collections || {})]);
+                out.collections = {};
+                ids.forEach(id => {
+                    const x = (a.collections && a.collections[id]) || [];
+                    const y = (b.collections && b.collections[id]) || [];
+                    const len = Math.max(x.length, y.length);
+                    const merged = new Array(len).fill(false);
+                    for (let i = 0; i < len; i++) merged[i] = !!x[i] || !!y[i];
+                    out.collections[id] = merged;
+                });
+
+                // Счётчики только растут — берём максимум.
+                out.totals = {
+                    correct: Math.max((a.totals && a.totals.correct) || 0, (b.totals && b.totals.correct) || 0),
+                    wrong: Math.max((a.totals && a.totals.wrong) || 0, (b.totals && b.totals.wrong) || 0),
+                    puzzlesCompleted: Math.max((a.totals && a.totals.puzzlesCompleted) || 0, (b.totals && b.totals.puzzlesCompleted) || 0)
+                };
+
+                const topics = new Set([...Object.keys(a.byTopic || {}), ...Object.keys(b.byTopic || {})]);
+                out.byTopic = {};
+                topics.forEach(t => {
+                    const x = (a.byTopic && a.byTopic[t]) || {};
+                    const y = (b.byTopic && b.byTopic[t]) || {};
+                    out.byTopic[t] = {
+                        correct: Math.max(x.correct || 0, y.correct || 0),
+                        wrong: Math.max(x.wrong || 0, y.wrong || 0)
+                    };
+                });
+
+                // Открытые скины — объединение, закрыть обратно нельзя.
+                out.unlocks = Array.from(new Set([...(a.unlocks || []), ...(b.unlocks || [])]));
+
+                return out;
+            }
+
+            // Приводит данные любой версии к текущей схеме. Отдельно переносит
+            // прогресс со старых ключей v1, чтобы у тех, кто уже играл, ничего не пропало.
+            function normalize(raw) {
+                if (!raw || typeof raw !== 'object') return null;
+                const s = Object.assign(emptyState(), raw);
+                s.schema = SCHEMA;
+                if (!s.puzzle || typeof s.puzzle !== 'object') s.puzzle = { idx: null, filled: 0 };
+                if (!s.collections || typeof s.collections !== 'object') s.collections = { paradoxes: [] };
+                if (!Array.isArray(s.collections.paradoxes)) s.collections.paradoxes = [];
+                if (!s.totals || typeof s.totals !== 'object') s.totals = { correct: 0, wrong: 0, puzzlesCompleted: 0 };
+                if (!s.byTopic || typeof s.byTopic !== 'object') s.byTopic = {};
+                if (!Array.isArray(s.unlocks)) s.unlocks = [];
+                return s;
+            }
+
+            function migrateFromV1() {
+                let found = false;
+                const s = emptyState();
+                try {
+                    const col = localStorage.getItem('mathCitadelPuzzleCollection_v1');
+                    if (col) { const arr = JSON.parse(col); if (Array.isArray(arr)) { s.collections.paradoxes = arr; found = true; } }
+                } catch (e) { /* пропускаем битые данные */ }
+                try {
+                    const pz = localStorage.getItem('mathCitadelPuzzleProgress_v1');
+                    if (pz) { const o = JSON.parse(pz); if (o && Number.isInteger(o.idx)) { s.puzzle = { idx: o.idx, filled: o.filled || 0 }; found = true; } }
+                } catch (e) { /* пропускаем битые данные */ }
+                try {
+                    const cf = localStorage.getItem('mathCitadelExampleConfig_v1');
+                    if (cf) { s.config = JSON.parse(cf); found = true; }
+                } catch (e) { /* пропускаем битые данные */ }
+                return found ? s : null;
+            }
+
+            function persistLocal() {
+                state.updatedAt = Date.now();
+                localDriver.write(state);
+                dirty = true;
+            }
+
+            return {
+                // Читает сохранённое состояние. Вызывается один раз при старте.
+                init() {
+                    const local = normalize(localDriver.read());
+                    state = local || migrateFromV1() || emptyState();
+                    if (!local) localDriver.write(state);
+                    return state;
+                },
+
+                get() { return state; },
+                getCode() { return state.playerCode; },
+                setCode(code) { state.playerCode = code || null; persistLocal(); },
+
+                // --- настройки ---
+                getConfig() { return state.config; },
+                setConfig(cfg) { state.config = cfg; persistLocal(); },
+
+                // --- текущий пазл ---
+                getPuzzle() { return state.puzzle; },
+                setPuzzle(idx, filled) { state.puzzle = { idx, filled }; persistLocal(); },
+
+                // --- коллекции ---
+                getCollection(id, size) {
+                    let arr = state.collections[id];
+                    if (!Array.isArray(arr) || arr.length !== size) {
+                        arr = new Array(size).fill(false);
+                        state.collections[id] = arr;
+                    }
+                    return arr;
+                },
+                setCollection(id, arr) { state.collections[id] = arr; persistLocal(); },
+
+                // --- статистика: единственная точка учёта каждого ответа ---
+                recordAnswer(topicKey, isCorrect) {
+                    if (isCorrect) state.totals.correct++; else state.totals.wrong++;
+                    if (topicKey) {
+                        const t = state.byTopic[topicKey] || (state.byTopic[topicKey] = { correct: 0, wrong: 0 });
+                        if (isCorrect) t.correct++; else t.wrong++;
+                    }
+                    persistLocal();
+                },
+                recordPuzzleCompleted() { state.totals.puzzlesCompleted++; persistLocal(); },
+
+                // --- скины и достижения ---
+                isUnlocked(id) { return state.unlocks.includes(id); },
+                unlock(id) {
+                    if (state.unlocks.includes(id)) return false;
+                    state.unlocks.push(id);
+                    persistLocal();
+                    return true;
+                },
+
+                // Контрольная точка синхронизации. Пока сервера нет — ничего не делает.
+                // Когда появится, здесь пойдёт отправка на сервер со слиянием,
+                // и НИ ОДНА строчка остального приложения не изменится.
+                async flush() {
+                    if (!remoteDriver || !dirty || !state.playerCode) return;
+                    try {
+                        const remote = normalize(await remoteDriver.read(state.playerCode));
+                        state = mergeState(remote, state);
+                        localDriver.write(state);
+                        await remoteDriver.write(state.playerCode, state);
+                        dirty = false;
+                    } catch (e) {
+                        // Сеть недоступна — молча оставляем данные локально и попробуем позже.
+                        // Игра при этом не должна ничего заметить.
+                    }
+                },
+                attachRemote(driver) { remoteDriver = driver; },
+                _merge: mergeState
+            };
+        })();
+
+        Progress.init();
+
+
         // ===== КОЛЛЕКЦИЯ СОБРАННЫХ ПАЗЛОВ =====
-        // Хранится в localStorage — переживает перезапуск приложения (важно для PWA,
-        // добавленного на экран телефона, и просто при закрытии/повторном открытии вкладки).
-        // Массив булевых значений по индексу картинки: true = уже собрана в текущем цикле.
-        const COLLECTION_STORAGE_KEY = 'mathCitadelPuzzleCollection_v1';
+        // Тонкие обёртки над Progress — остальной код продолжает звать привычные имена.
+        const PARADOX_COLLECTION_ID = 'paradoxes';
 
         function loadCollectionArray() {
-            try {
-                const raw = localStorage.getItem(COLLECTION_STORAGE_KEY);
-                const arr = raw ? JSON.parse(raw) : [];
-                if (Array.isArray(arr) && arr.length === PUZZLE_IMAGE_SRCS.length) return arr;
-            } catch (e) { /* игнорируем повреждённые данные */ }
-            return new Array(PUZZLE_IMAGE_SRCS.length).fill(false);
+            return Progress.getCollection(PARADOX_COLLECTION_ID, PUZZLE_IMAGE_SRCS.length);
         }
         function saveCollectionArray(arr) {
-            try { localStorage.setItem(COLLECTION_STORAGE_KEY, JSON.stringify(arr)); } catch (e) { /* хранилище недоступно — молча пропускаем */ }
+            Progress.setCollection(PARADOX_COLLECTION_ID, arr);
         }
         function collectionCollectedCount(arr) {
             return arr.reduce((n, v) => n + (v ? 1 : 0), 0);
@@ -2916,27 +3065,16 @@
         }
 
         // ===== ПРОГРЕСС ТЕКУЩЕГО ПАЗЛА =====
-        // Хранит только "какая картинка сейчас" и "сколько кусочков уже собрано" — сама форма
-        // кусочков (замки) и порядок их появления перегенерируются заново при каждой загрузке
-        // страницы, это чисто визуальные детали и не требуют сохранения.
-        const PUZZLE_PROGRESS_KEY = 'mathCitadelPuzzleProgress_v1';
-
+        // Хранится только "какая картинка сейчас" и "сколько кусочков собрано" — форма
+        // кусочков и порядок их появления перегенерируются заново при каждой загрузке.
         function savePuzzleProgress() {
-            try {
-                localStorage.setItem(PUZZLE_PROGRESS_KEY, JSON.stringify({
-                    idx: currentPuzzleImageIndex, filled: puzzleFilled
-                }));
-            } catch (e) { /* хранилище недоступно — молча пропускаем */ }
+            Progress.setPuzzle(currentPuzzleImageIndex, puzzleFilled);
         }
         function loadPuzzleProgress() {
-            try {
-                const raw = localStorage.getItem(PUZZLE_PROGRESS_KEY);
-                if (!raw) return null;
-                const obj = JSON.parse(raw);
-                if (!Number.isInteger(obj.idx) || obj.idx < 0 || obj.idx >= PUZZLE_IMAGE_SRCS.length) return null;
-                if (!Number.isInteger(obj.filled) || obj.filled < 0 || obj.filled >= PUZZLE_TOTAL) return null;
-                return obj;
-            } catch (e) { return null; }
+            const p = Progress.getPuzzle();
+            if (!p || !Number.isInteger(p.idx) || p.idx < 0 || p.idx >= PUZZLE_IMAGE_SRCS.length) return null;
+            if (!Number.isInteger(p.filled) || p.filled < 0 || p.filled >= PUZZLE_TOTAL) return null;
+            return { idx: p.idx, filled: p.filled };
         }
 
         function pickRandomPuzzleImageIndex(avoidIndex) {
@@ -3061,19 +3199,6 @@
             }
         }
 
-        // Разовая выдача сразу многих кусочков — награда за целиком пройденную экспедицию,
-        // а не по одному кусочку за пример, как в бесконечном потоке.
-        function addPuzzlePiecesBulk(n) {
-            if (n <= 0) return;
-            puzzleFilled = Math.min(PUZZLE_TOTAL, puzzleFilled + n);
-            renderPuzzleProgress();
-            savePuzzleProgress();
-            if (puzzleFilled === PUZZLE_TOTAL && !puzzleCompleteTriggered) {
-                puzzleCompleteTriggered = true;
-                onPuzzleComplete();
-            }
-        }
-
         function removePuzzlePiecesOnMistake() {
             if (puzzleFilled <= 0) return;
             const remove = 2;
@@ -3145,6 +3270,7 @@
 
         function onPuzzleComplete() {
             puzzlesCompletedCount++;
+            Progress.recordPuzzleCompleted();
             const completedIndex = currentPuzzleImageIndex;
             const completedSrc = PUZZLE_IMAGE_SRCS[completedIndex];
             const completedPaths = PUZZLE_PIECE_PATHS.map(row => row.slice());
@@ -3187,6 +3313,7 @@
 
             setPuzzleCompleteVisible(true);
             openPuzzleModal();
+            Progress.flush(); // контрольная точка синхронизации
         }
 
         // ===== ОКНО КОЛЛЕКЦИИ =====
@@ -3294,108 +3421,7 @@
             gameActive = true;
             resizeCanvas();
             initPuzzle();
-            if (gameMode !== 'run') generateMath();
-        }
-
-        // ===================== ЖИЗНЕННЫЙ ЦИКЛ ЭКСПЕДИЦИИ =====================
-        function renderShieldRow() {
-            const targets = [document.getElementById('shieldRow'), document.getElementById('runCompleteShieldRow')];
-            targets.forEach(row => {
-                if (!row) return;
-                row.innerHTML = '';
-                for (let i = 0; i < SHIELD_MAX; i++) {
-                    const span = document.createElement('span');
-                    span.className = 'shield-icon' + (i < runShield ? ' filled' : '');
-                    span.textContent = '🛡️';
-                    row.appendChild(span);
-                }
-            });
-        }
-        function renderHallProgressLine() {
-            document.getElementById('hallProgressLine').innerText =
-                `Зал ${runHallIndex + 1}/${HALL_SIZES.length} · Пример ${runIndexInHall + 1}/${HALL_SIZES[runHallIndex]}`;
-        }
-        function renderHallDots() {
-            const wrap = document.getElementById('hallDots');
-            wrap.innerHTML = '';
-            for (let i = 0; i < HALL_SIZES.length; i++) {
-                const d = document.createElement('span');
-                d.className = 'hall-dot' + (i <= runHallIndex ? ' done' : (i === runHallIndex + 1 ? ' next' : ''));
-                wrap.appendChild(d);
-            }
-        }
-
-        // Запускает новый забег (и первый в сессии, и повторный после "Новая экспедиция").
-        // Единственное место, которое вызывает generateMath() для старта режима "run".
-        function beginRun() {
-            runHallIndex = 0;
-            runIndexInHall = 0;
-            runShield = SHIELD_MAX;
-            runCorrectCount = 0;
-            runWrongCount = 0;
-            document.getElementById('shieldRow').style.display = 'flex';
-            document.getElementById('hallProgressLine').style.display = 'block';
-            renderShieldRow();
-            renderHallProgressLine();
             generateMath();
-        }
-
-        // Общая точка перехода "к следующему шагу" после ответа: в бесконечном потоке —
-        // это просто следующий пример, в забеге — ещё и учёт зала/конца экспедиции.
-        function advanceFlow() {
-            if (gameMode !== 'run') { generateMath(); return; }
-
-            runIndexInHall++;
-            const hallSize = HALL_SIZES[runHallIndex];
-
-            if (runIndexInHall < hallSize) {
-                renderHallProgressLine();
-                generateMath();
-                return;
-            }
-
-            if (runHallIndex < HALL_SIZES.length - 1) {
-                showHallBreak();
-            } else {
-                finishRun();
-            }
-        }
-
-        function showHallBreak() {
-            document.getElementById('hallBreakTitle').innerText = `Зал ${runHallIndex + 1} пройден!`;
-            document.getElementById('hallBreakDesc').innerText =
-                `✅ ${runCorrectCount} · ❌ ${runWrongCount} · 🛡️ Щит: ${runShield}/${SHIELD_MAX}`;
-            renderHallDots();
-            document.getElementById('hallBreakScreen').classList.add('active');
-        }
-        function continueToNextHall() {
-            document.getElementById('hallBreakScreen').classList.remove('active');
-            runHallIndex++;
-            runIndexInHall = 0;
-            renderHallProgressLine();
-            generateMath();
-        }
-
-        function finishRun() {
-            const pieces = SHIELD_REWARD_TABLE[runShield];
-            addPuzzlePiecesBulk(pieces);
-            renderShieldRow();
-
-            document.getElementById('runCompleteDesc').innerText =
-                `✅ Верно: ${runCorrectCount}  |  ❌ Ошибок: ${runWrongCount}\n🧩 Получено кусочков: +${pieces}`;
-
-            document.getElementById('shieldRow').style.display = 'none';
-            document.getElementById('hallProgressLine').style.display = 'none';
-            document.getElementById('runCompleteScreen').classList.add('active');
-        }
-
-        function startAnotherRun() {
-            document.getElementById('runCompleteScreen').classList.remove('active');
-            gameMode = 'run';
-            beginRun();
-        }
-        function goToMenuFromRun() {
-            location.reload();
         }
 
         function resizeCanvas() {
@@ -3713,9 +3739,17 @@
 
             const allBtns = document.querySelectorAll('#answersGrid .btn-answer');
 
+            // Единая точка учёта: пишем каждый ответ в накопительную статистику по теме.
+            // Отсюда потом вырастут достижения, скины и отчёт для репетитора.
+            // "Забыл сократить" считаем верным ответом по существу — счёт-то был правильный.
+            const topicKey = currentProblemMeta
+                ? `${currentProblemMeta.category}:${currentProblemMeta.opKey}`
+                : null;
+
             if (isCorrect) {
                 correctCount++;
                 document.getElementById('stat-correct').innerText = correctCount;
+                Progress.recordAnswer(topicKey, true);
 
                 state.combo++;
                 let comboMultiplier = 1 + (state.combo * comboStepBonus);
@@ -3729,11 +3763,9 @@
                 buildSparks(12, 'var(--cyan)');
 
                 triggerAnniversaryEffects(correctCount);
+                addPuzzlePiece();
 
-                if (gameMode === 'run') { runCorrectCount++; }
-                else { addPuzzlePiece(); }
-
-                advanceFlow();
+                generateMath();
                 return;
             }
 
@@ -3750,10 +3782,12 @@
                 if (clickedBtn) clickedBtn.classList.add('btn-almost');
                 spawnRewardText('Почти! Не забудь сократить', clickX, clickY, '#f59e0b', false);
                 buildSparks(10, '#f59e0b');
+                Progress.recordAnswer(topicKey, true);
                 // Пропускаем штраф за пазл и не портим статистику "Ошибки" — это не ошибка в счёте.
             } else {
                 wrongCount++;
                 document.getElementById('stat-wrong').innerText = wrongCount;
+                Progress.recordAnswer(topicKey, false);
 
                 state.combo = Math.floor(state.combo / 2);
                 const badge = document.getElementById('comboBadge');
@@ -3769,19 +3803,12 @@
                 if (clickedBtn) clickedBtn.classList.add('btn-wrong');
                 spawnRewardText('Ошибка!', clickX, clickY, '#f87171', false);
                 buildSparks(10, '#ef4444');
-
-                if (gameMode === 'run') {
-                    runWrongCount++;
-                    runShield = Math.max(0, runShield - 1);
-                    renderShieldRow();
-                } else {
-                    removePuzzlePiecesOnMistake();
-                }
+                removePuzzlePiecesOnMistake();
             }
 
             setTimeout(() => {
                 answerLocked = false;
-                advanceFlow();
+                generateMath();
             }, isUnreducedMatch ? 1700 : 1400);
         }
 
@@ -3904,24 +3931,21 @@
 
         document.getElementById('btn-exam').addEventListener('click', () => {
             if (!gameActive) return;
-            const isRun = gameMode === 'run';
-            const confirmMsg = isRun
-                ? 'Выйти сейчас? Экспедиция прервётся, и награда за неё не начислится.'
-                : 'Вы действительно хотите завершить испытание? Игра завершится.';
-            const confirmed = confirm(confirmMsg);
+            const confirmed = confirm('Вы действительно хотите завершить испытание? Игра завершится.');
             if (!confirmed) return;
 
             gameActive = false;
-            if (isRun) {
-                document.getElementById('winDesc').innerText =
-                    `Экспедиция прервана на зале ${runHallIndex + 1}/${HALL_SIZES.length}.\n` +
-                    `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${runCorrectCount} | ❌ Ошибок: ${runWrongCount}\n` +
-                    `Награда не начислена — пазл остался как был.`;
-            } else {
-                document.getElementById('winDesc').innerText =
-                    `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${correctCount} | ❌ Ошибок: ${wrongCount}`;
-            }
+            document.getElementById('winDesc').innerText =
+                `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${correctCount} | ❌ Ошибок: ${wrongCount}`;
             document.getElementById('winScreen').classList.add('active');
+            Progress.flush(); // контрольная точка синхронизации
+        });
+
+        // На телефоне вкладку часто закрывают не кнопкой, а свайпом, и события выгрузки
+        // при этом может не быть вовсе. visibilitychange срабатывает надёжнее всего —
+        // ловим момент, когда приложение уходит в фон, и отправляем накопленное.
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden') Progress.flush();
         });
 
         // ===== ВОССТАНОВЛЕНИЕ НАСТРОЕК ПРИ ОТКРЫТИИ =====
@@ -3929,12 +3953,7 @@
         // выбирали в прошлый раз, чтобы не собирать конфигурацию заново при каждом заходе.
         // Ученик/репетитор всё ещё видит экран настройки и может изменить что угодно перед стартом.
         function restoreSavedConfig() {
-            let saved;
-            try {
-                const raw = localStorage.getItem(CONFIG_STORAGE_KEY);
-                if (!raw) return;
-                saved = JSON.parse(raw);
-            } catch (e) { return; }
+            const saved = Progress.getConfig();
             if (!saved || !saved.category || !saved.numberType || !saved.operations) return;
 
             exampleConfig.category = saved.category;
