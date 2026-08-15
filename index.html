@@ -104,6 +104,21 @@
         }
         .btn-config-continue.ready { opacity: 1; pointer-events: auto; }
 
+        .mode-select-col { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 450px; margin-top: 16px; }
+        .mode-select-col .btn-config-continue { margin-top: 0; }
+        .mode-sub { display: block; font-size: 0.7rem; font-weight: normal; opacity: 0.82; margin-top: 4px; }
+        .btn-mode-endless { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18); }
+
+        .hall-progress-line { color: #94a3b8; font-size: 0.78rem; text-align: center; margin-bottom: 6px; letter-spacing: 0.02em; }
+        .shield-row { display: flex; gap: 6px; justify-content: center; margin-bottom: 10px; }
+        .shield-icon { font-size: 1.15rem; opacity: 0.22; filter: grayscale(1); transition: opacity 0.25s ease, filter 0.25s ease; }
+        .shield-icon.filled { opacity: 1; filter: none; }
+
+        #hallDots { display: flex; gap: 8px; justify-content: center; margin: 16px 0; }
+        .hall-dot { width: 9px; height: 9px; border-radius: 50%; background: rgba(255,255,255,0.15); }
+        .hall-dot.done { background: var(--gold); }
+        .hall-dot.next { width: 7px; height: 7px; background: rgba(255,255,255,0.15); border: 2px solid var(--cyan); }
+
         .category-select-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
         .btn-category {
             background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1);
@@ -430,7 +445,16 @@
                     <div class="config-hint">Для каждого выбранного режима — своя сложность</div>
                 </div>
             </div>
-            <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">⚔️ Начать испытание</button>
+            <div class="mode-select-col" id="modeSelectCol">
+                <button class="btn-config-continue btn-mode-run" id="btnStartRun" onclick="finishConfigRun()">
+                    🗺️ Экспедиция
+                    <span class="mode-sub">45 примеров · 7 залов · награда пазлом в конце</span>
+                </button>
+                <button class="btn-config-continue btn-mode-endless" id="btnStartEndless" onclick="finishConfigEndless()">
+                    🌊 Бесконечный поток
+                    <span class="mode-sub">без остановки, как раньше</span>
+                </button>
+            </div>
         </div>
     </div>
 
@@ -460,6 +484,8 @@
                 <div>✅ Верно: <span id="stat-correct" style="color:#10b981;">0</span></div>
                 <div>❌ Ошибки: <span id="stat-wrong" style="color:#ef4444;">0</span></div>
             </div>
+            <div class="hall-progress-line" id="hallProgressLine" style="display:none;"></div>
+            <div class="shield-row" id="shieldRow" style="display:none;"></div>
             <div class="badge-container">
                 <div class="combo-badge" id="comboBadge" style="display:none;">Серия: 🔥 х1.0</div>
                 <div class="speed-badge" id="speedBadge">Скорость: +0%</div>
@@ -480,8 +506,27 @@
 
     <div class="win-screen" id="winScreen">
         <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;">Экзамен сдан!</h1>
-        <p id="winDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size: 1.1rem;"></p>
+        <p id="winDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size: 1.1rem; white-space:pre-line;"></p>
         <button style="margin-top:30px; padding:12px 25px; background:var(--gold); border:none; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="location.reload()">Начать заново</button>
+    </div>
+
+    <!-- Пауза между залами экспедиции -->
+    <div class="win-screen" id="hallBreakScreen">
+        <h1 style="color:var(--cyan); font-size:1.8rem; margin-bottom:6px;" id="hallBreakTitle">Зал пройден!</h1>
+        <p id="hallBreakDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size:1rem;"></p>
+        <div id="hallDots"></div>
+        <button style="margin-top:10px; padding:12px 25px; background:var(--cyan); border:none; border-radius:8px; font-weight:bold; cursor:pointer; color:#04222a;" onclick="continueToNextHall()">Дальше →</button>
+    </div>
+
+    <!-- Итог полностью пройденной экспедиции -->
+    <div class="win-screen" id="runCompleteScreen">
+        <h1 style="color:var(--gold); font-size:2.1rem; margin-bottom:8px;">🗺️ Экспедиция завершена!</h1>
+        <div id="runCompleteShieldRow" style="display:flex; gap:6px; justify-content:center; margin-bottom:10px; font-size:1.5rem;"></div>
+        <p id="runCompleteDesc" style="padding:0 25px; color:#94a3b8; line-height:1.6; font-size:1.05rem; white-space:pre-line;"></p>
+        <div style="display:flex; flex-direction:column; gap:10px; margin-top:24px; width:100%; max-width:320px; padding:0 20px;">
+            <button style="padding:13px 20px; background:var(--gold); border:none; border-radius:10px; font-weight:bold; cursor:pointer;" onclick="startAnotherRun()">🗺️ Новая экспедиция</button>
+            <button style="padding:13px 20px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); color:white; border-radius:10px; font-weight:bold; cursor:pointer;" onclick="goToMenuFromRun()">🏠 В меню</button>
+        </div>
     </div>
 
     <!-- Полноэкранное окно пазла -->
@@ -554,6 +599,23 @@
             operations: {}        // { add: level(1-5), sub: level, ... } — только выбранные режимы
         };
         const CONFIG_STORAGE_KEY = 'mathCitadelExampleConfig_v1';
+
+        // ===================== РЕЖИМ "ЭКСПЕДИЦИЯ" (ЗАБЕГ) =====================
+        // Второй режим игры наравне с бесконечным потоком: фиксированные 45 примеров,
+        // разбитых на 7 залов, щит из 5 делений вместо мгновенного отъёма кусочков пазла
+        // за каждую ошибку, и единая награда в конце — сколько именно, зависит от того,
+        // на каком делении щита фикнишировал забег.
+        let gameMode = 'endless'; // 'endless' | 'run'
+        const HALL_SIZES = [5, 6, 6, 6, 7, 7, 8]; // 7 залов, сумма = 45
+        const RUN_TOTAL = HALL_SIZES.reduce((a, b) => a + b, 0);
+        const SHIELD_MAX = 5;
+        const SHIELD_REWARD_TABLE = [12, 14, 16, 19, 22, 25]; // индекс = финальный щит 0..5
+
+        let runHallIndex = 0;
+        let runIndexInHall = 0;
+        let runShield = SHIELD_MAX;
+        let runCorrectCount = 0;
+        let runWrongCount = 0;
 
         document.querySelectorAll('.btn-category').forEach(btn => {
             btn.addEventListener('click', () => {
@@ -683,22 +745,38 @@
         }
 
         function updateConfigValidity() {
-            const btn = document.getElementById('btnConfigContinue');
             const selectedOps = Object.keys(exampleConfig.operations);
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
             const valid = !!exampleConfig.category && !!exampleConfig.numberType && allHaveDifficulty;
-            if (valid) btn.classList.add('ready'); else btn.classList.remove('ready');
+            document.getElementById('btnStartRun').classList.toggle('ready', valid);
+            document.getElementById('btnStartEndless').classList.toggle('ready', valid);
         }
 
-        function finishConfig() {
+        function validateConfig() {
             const selectedOps = Object.keys(exampleConfig.operations);
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
-            if (!exampleConfig.category || !exampleConfig.numberType || !allHaveDifficulty) return;
+            return !!exampleConfig.category && !!exampleConfig.numberType && allHaveDifficulty;
+        }
 
+        function persistConfig() {
             try { localStorage.setItem(CONFIG_STORAGE_KEY, JSON.stringify(exampleConfig)); } catch (e) { /* хранилище недоступно */ }
+        }
 
+        function finishConfigEndless() {
+            if (!validateConfig()) return;
+            persistConfig();
+            gameMode = 'endless';
             document.getElementById('configScreen').style.display = 'none';
             startGame();
+        }
+
+        function finishConfigRun() {
+            if (!validateConfig()) return;
+            persistConfig();
+            gameMode = 'run';
+            document.getElementById('configScreen').style.display = 'none';
+            startGame();
+            beginRun();
         }
 
         // ===================== ГЕНЕРАТОРЫ ПРИМЕРОВ =====================
@@ -2983,6 +3061,19 @@
             }
         }
 
+        // Разовая выдача сразу многих кусочков — награда за целиком пройденную экспедицию,
+        // а не по одному кусочку за пример, как в бесконечном потоке.
+        function addPuzzlePiecesBulk(n) {
+            if (n <= 0) return;
+            puzzleFilled = Math.min(PUZZLE_TOTAL, puzzleFilled + n);
+            renderPuzzleProgress();
+            savePuzzleProgress();
+            if (puzzleFilled === PUZZLE_TOTAL && !puzzleCompleteTriggered) {
+                puzzleCompleteTriggered = true;
+                onPuzzleComplete();
+            }
+        }
+
         function removePuzzlePiecesOnMistake() {
             if (puzzleFilled <= 0) return;
             const remove = 2;
@@ -3203,7 +3294,108 @@
             gameActive = true;
             resizeCanvas();
             initPuzzle();
+            if (gameMode !== 'run') generateMath();
+        }
+
+        // ===================== ЖИЗНЕННЫЙ ЦИКЛ ЭКСПЕДИЦИИ =====================
+        function renderShieldRow() {
+            const targets = [document.getElementById('shieldRow'), document.getElementById('runCompleteShieldRow')];
+            targets.forEach(row => {
+                if (!row) return;
+                row.innerHTML = '';
+                for (let i = 0; i < SHIELD_MAX; i++) {
+                    const span = document.createElement('span');
+                    span.className = 'shield-icon' + (i < runShield ? ' filled' : '');
+                    span.textContent = '🛡️';
+                    row.appendChild(span);
+                }
+            });
+        }
+        function renderHallProgressLine() {
+            document.getElementById('hallProgressLine').innerText =
+                `Зал ${runHallIndex + 1}/${HALL_SIZES.length} · Пример ${runIndexInHall + 1}/${HALL_SIZES[runHallIndex]}`;
+        }
+        function renderHallDots() {
+            const wrap = document.getElementById('hallDots');
+            wrap.innerHTML = '';
+            for (let i = 0; i < HALL_SIZES.length; i++) {
+                const d = document.createElement('span');
+                d.className = 'hall-dot' + (i <= runHallIndex ? ' done' : (i === runHallIndex + 1 ? ' next' : ''));
+                wrap.appendChild(d);
+            }
+        }
+
+        // Запускает новый забег (и первый в сессии, и повторный после "Новая экспедиция").
+        // Единственное место, которое вызывает generateMath() для старта режима "run".
+        function beginRun() {
+            runHallIndex = 0;
+            runIndexInHall = 0;
+            runShield = SHIELD_MAX;
+            runCorrectCount = 0;
+            runWrongCount = 0;
+            document.getElementById('shieldRow').style.display = 'flex';
+            document.getElementById('hallProgressLine').style.display = 'block';
+            renderShieldRow();
+            renderHallProgressLine();
             generateMath();
+        }
+
+        // Общая точка перехода "к следующему шагу" после ответа: в бесконечном потоке —
+        // это просто следующий пример, в забеге — ещё и учёт зала/конца экспедиции.
+        function advanceFlow() {
+            if (gameMode !== 'run') { generateMath(); return; }
+
+            runIndexInHall++;
+            const hallSize = HALL_SIZES[runHallIndex];
+
+            if (runIndexInHall < hallSize) {
+                renderHallProgressLine();
+                generateMath();
+                return;
+            }
+
+            if (runHallIndex < HALL_SIZES.length - 1) {
+                showHallBreak();
+            } else {
+                finishRun();
+            }
+        }
+
+        function showHallBreak() {
+            document.getElementById('hallBreakTitle').innerText = `Зал ${runHallIndex + 1} пройден!`;
+            document.getElementById('hallBreakDesc').innerText =
+                `✅ ${runCorrectCount} · ❌ ${runWrongCount} · 🛡️ Щит: ${runShield}/${SHIELD_MAX}`;
+            renderHallDots();
+            document.getElementById('hallBreakScreen').classList.add('active');
+        }
+        function continueToNextHall() {
+            document.getElementById('hallBreakScreen').classList.remove('active');
+            runHallIndex++;
+            runIndexInHall = 0;
+            renderHallProgressLine();
+            generateMath();
+        }
+
+        function finishRun() {
+            const pieces = SHIELD_REWARD_TABLE[runShield];
+            addPuzzlePiecesBulk(pieces);
+            renderShieldRow();
+
+            document.getElementById('runCompleteDesc').innerText =
+                `✅ Верно: ${runCorrectCount}  |  ❌ Ошибок: ${runWrongCount}\n🧩 Получено кусочков: +${pieces}`;
+
+            document.getElementById('shieldRow').style.display = 'none';
+            document.getElementById('hallProgressLine').style.display = 'none';
+            document.getElementById('runCompleteScreen').classList.add('active');
+        }
+
+        function startAnotherRun() {
+            document.getElementById('runCompleteScreen').classList.remove('active');
+            gameMode = 'run';
+            beginRun();
+        }
+        function goToMenuFromRun() {
+            location.reload();
         }
 
         function resizeCanvas() {
@@ -3537,9 +3729,11 @@
                 buildSparks(12, 'var(--cyan)');
 
                 triggerAnniversaryEffects(correctCount);
-                addPuzzlePiece();
 
-                generateMath();
+                if (gameMode === 'run') { runCorrectCount++; }
+                else { addPuzzlePiece(); }
+
+                advanceFlow();
                 return;
             }
 
@@ -3575,12 +3769,19 @@
                 if (clickedBtn) clickedBtn.classList.add('btn-wrong');
                 spawnRewardText('Ошибка!', clickX, clickY, '#f87171', false);
                 buildSparks(10, '#ef4444');
-                removePuzzlePiecesOnMistake();
+
+                if (gameMode === 'run') {
+                    runWrongCount++;
+                    runShield = Math.max(0, runShield - 1);
+                    renderShieldRow();
+                } else {
+                    removePuzzlePiecesOnMistake();
+                }
             }
 
             setTimeout(() => {
                 answerLocked = false;
-                generateMath();
+                advanceFlow();
             }, isUnreducedMatch ? 1700 : 1400);
         }
 
@@ -3703,12 +3904,23 @@
 
         document.getElementById('btn-exam').addEventListener('click', () => {
             if (!gameActive) return;
-            const confirmed = confirm('Вы действительно хотите завершить испытание? Игра завершится.');
+            const isRun = gameMode === 'run';
+            const confirmMsg = isRun
+                ? 'Выйти сейчас? Экспедиция прервётся, и награда за неё не начислится.'
+                : 'Вы действительно хотите завершить испытание? Игра завершится.';
+            const confirmed = confirm(confirmMsg);
             if (!confirmed) return;
 
             gameActive = false;
-            document.getElementById('winDesc').innerText =
-                `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${correctCount} | ❌ Ошибок: ${wrongCount}`;
+            if (isRun) {
+                document.getElementById('winDesc').innerText =
+                    `Экспедиция прервана на зале ${runHallIndex + 1}/${HALL_SIZES.length}.\n` +
+                    `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${runCorrectCount} | ❌ Ошибок: ${runWrongCount}\n` +
+                    `Награда не начислена — пазл остался как был.`;
+            } else {
+                document.getElementById('winDesc').innerText =
+                    `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${correctCount} | ❌ Ошибок: ${wrongCount}`;
+            }
             document.getElementById('winScreen').classList.add('active');
         });
 
