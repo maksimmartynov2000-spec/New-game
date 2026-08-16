@@ -210,6 +210,25 @@
         .topic-bar-fill { height: 100%; border-radius: 3px; }
         .topic-pct { font-size: 0.78rem; color: #94a3b8; width: 38px; text-align: right; flex-shrink: 0; }
         .menu-empty { color: #64748b; font-size: 0.85rem; text-align: center; padding: 14px; line-height: 1.5; }
+        .list-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08); margin-bottom: 8px;
+        }
+        .list-row.active { border-color: var(--gold); background: rgba(255,215,0,0.08); }
+        .list-row-main { flex: 1; min-width: 0; }
+        .list-row-name { font-size: 0.9rem; font-weight: bold; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .list-row-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; font-family: monospace; letter-spacing: 1px; }
+        .list-row-badge {
+            font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
+            padding: 2px 7px; border-radius: 6px; background: rgba(6,182,212,0.15); color: var(--cyan);
+            flex-shrink: 0; white-space: nowrap;
+        }
+        .list-row-btn {
+            flex-shrink: 0; padding: 7px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: bold;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); color: white; cursor: pointer;
+        }
+        .list-row-btn:active { transform: scale(0.96); }
         .menu-btn {
             width: 100%; padding: 13px; margin-bottom: 8px; border-radius: 11px;
             background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.15);
@@ -449,8 +468,6 @@
         }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </head>
 <body>
 
@@ -475,8 +492,6 @@
         <div id="codeNewResult" style="display:none; width:100%; max-width:420px; text-align:center; margin-top:6px;">
             <p style="color:#94a3b8; line-height:1.5;">Твой личный код — сохрани его, он открывает прогресс на любом устройстве:</p>
             <div id="newCodeValue" style="font-size:2rem; font-weight:900; color:var(--gold); letter-spacing:3px; margin:16px 0;"></div>
-            <canvas id="newCodeQR" style="display:block; margin:0 auto 16px; border-radius:12px; background:white; padding:10px;"></canvas>
-            <p style="color:#94a3b8; font-size:0.8rem; margin-bottom:14px;">Этот QR можно отсканировать на другом устройстве вместо ввода кода вручную.</p>
             <button class="btn-config-continue ready" onclick="confirmNewCode()">Понял, играть →</button>
         </div>
 
@@ -487,21 +502,10 @@
                           border-radius:10px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.07);
                           color:white; margin-bottom:10px; box-sizing:border-box;">
             <button class="btn-config-continue ready" style="background:rgba(255,255,255,0.1);" onclick="loginWithExistingCode()">Войти</button>
-            <button class="btn-config-continue ready" style="background:rgba(255,255,255,0.1); margin-top:8px;" onclick="openQrScanner()">📷 Сканировать QR-код</button>
             <p id="codeErrorMsg" style="display:none; color:#f87171; margin-top:10px; font-size:0.85rem;"></p>
             <p id="codeLoadingMsg" style="display:none; color:#94a3b8; margin-top:10px; font-size:0.85rem;">Проверяю код…</p>
         </div>
     </div>
-
-    <!-- Сканер QR-кода: свой экран поверх всего остального, включая вход по коду -->
-    <div id="qrScannerOverlay" style="display:none; position:fixed; inset:0; background:rgba(2,3,8,0.96);
-                                       z-index:280; flex-direction:column; align-items:center; justify-content:center; padding:20px;">
-        <video id="qrVideo" playsinline muted style="width:100%; max-width:360px; border-radius:16px; background:#000;"></video>
-        <p id="qrScanStatus" style="color:#94a3b8; margin-top:16px; text-align:center; padding:0 20px;">Наведи камеру на QR-код</p>
-        <button style="margin-top:18px; padding:12px 26px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.22);
-                        color:white; border-radius:10px; font-weight:bold; cursor:pointer;" onclick="closeQrScanner()">Отмена</button>
-    </div>
-    <canvas id="qrScanCanvas" style="display:none;"></canvas>
 
     <!-- Главное меню: сводка прогресса, разбор по темам и быстрый доступ к разделам -->
     <div class="menu-overlay" id="menuOverlay">
@@ -542,7 +546,6 @@
         <div class="menu-stat-card" style="text-align:center;">
             <div class="menu-code-line" id="menuCodeVal">—</div>
             <div class="menu-stat-label" style="margin-top:6px;">Открывает прогресс на другом устройстве</div>
-            <canvas id="menuCodeQR" style="display:block; margin:12px auto 0; border-radius:10px; background:white; padding:8px;"></canvas>
         </div>
 
         <div style="margin-top:18px;">
@@ -561,13 +564,14 @@
         <button class="menu-btn" onclick="startMenuGoSettings()">⚙️ <span>Настройка испытаний</span></button>
         <button class="menu-btn" onclick="startMenuGoStats()">📊 <span>Статистика</span></button>
         <button class="menu-btn" onclick="startMenuGoAchievements()">🏅 <span>Достижения</span></button>
+        <button class="menu-btn" onclick="startMenuGoProfile()">👤 <span>Профиль</span></button>
     </div>
 
     <!-- Экран статистики: накопленный прогресс ученика -->
     <div class="modal-screen" id="statsScreen" style="z-index:230; display:none;">
         <button class="start-menu-btn" onclick="closeStatsScreen()" aria-label="Назад">◀️</button>
         <h1 class="start-title">📊 Статистика</h1>
-        <p class="start-subtitle">Прогресс ученика</p>
+        <p class="start-subtitle" id="statsSubtitle">Прогресс ученика</p>
         <div class="config-container">
             <div class="config-section">
                 <div class="menu-stat-grid">
@@ -621,6 +625,45 @@
                 </div>
             </div>
             <div class="menu-empty" style="margin-top:16px;">Раздел достижений скоро откроется —<br>здесь появятся награды и бейджи за твои успехи.</div>
+        </div>
+    </div>
+
+    <!-- Экран профиля: текущий аккаунт, профили на устройстве, ученики, сброс прогресса -->
+    <div class="modal-screen" id="profileScreen" style="z-index:230; display:none;">
+        <button class="start-menu-btn" onclick="closeProfileScreen()" aria-label="Назад">◀️</button>
+        <h1 class="start-title">👤 Профиль</h1>
+        <p class="start-subtitle" id="profileSubtitle">—</p>
+        <div class="config-container">
+            <div class="config-section">
+                <div class="config-section-title">Текущий аккаунт</div>
+                <div class="menu-stat-card" style="text-align:center;">
+                    <div class="menu-code-line" id="profileCodeVal">—</div>
+                    <div class="menu-stat-label" style="margin-top:6px;" id="profileTypeVal">Личный аккаунт</div>
+                </div>
+                <input id="profileLabelInput" type="text" placeholder="Имя ученика (необязательно)"
+                       style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
+                              background:rgba(255,255,255,0.06); color:white; box-sizing:border-box; text-align:center; font-size:0.95rem;">
+                <button class="menu-btn" style="margin-top:8px;" onclick="saveProfileLabel()">💾 <span>Сохранить имя</span></button>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-title">Профили на этом устройстве</div>
+                <div id="profileList"></div>
+                <button class="menu-btn" onclick="profileAddExisting()">🔑 <span>Добавить по коду</span></button>
+                <button class="menu-btn" onclick="profileAddNew()">✨ <span>Новый профиль</span></button>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-title">Мои ученики</div>
+                <div id="studentsBanner"></div>
+                <div id="studentsList"></div>
+                <button class="menu-btn" onclick="addStudent()">➕ <span>Добавить ученика</span></button>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-title">Опасная зона</div>
+                <button class="menu-btn danger" onclick="confirmHardReset()">🗑️ <span>Сбросить прогресс (новая игра)</span></button>
+            </div>
         </div>
     </div>
 
@@ -757,7 +800,6 @@
             <div id="myCodePanel" style="display:none; text-align:center; padding:10px 0;">
                 <p style="color:#94a3b8; margin-bottom:10px;">Твой код для входа на другом устройстве:</p>
                 <div id="myCodeValue" style="font-size:1.9rem; font-weight:900; color:var(--gold); letter-spacing:3px; margin-bottom:14px;"></div>
-                <canvas id="myCodeQR" style="display:block; margin:0 auto 16px; border-radius:12px; background:white; padding:10px;"></canvas>
                 <button class="btn-save-puzzle" onclick="closeMyCodePanel()">← Назад к пазлу</button>
             </div>
             <div class="puzzle-complete-panel" id="puzzleCompletePanel">
@@ -3089,7 +3131,7 @@
         //  данные "последняя запись затёрла первую" структурно невозможно.
         // =====================================================================
         const Progress = (() => {
-            const LOCAL_KEY = 'mathCitadelState_v2';
+            const LOCAL_KEY = 'mathCitadelState_v3';
             const SCHEMA = 2;
 
             // Пустое состояние. Всё, что должно переживать перезапуск, живёт здесь.
@@ -3098,6 +3140,10 @@
                     schema: SCHEMA,
                     playerCode: null,      // код ученика; null = играет анонимно на этом устройстве
                     updatedAt: 0,
+
+                    profileLabel: '',      // имя, которое видно только на этом устройстве и в списке учеников
+                    accountType: 'self',   // 'self' — завёл себе сам; 'linked' — код выдал репетитор
+                    ownerCode: null,       // для accountType 'linked' — код репетитора, который выдал этот код
 
                     config: null,          // последняя выбранная настройка примеров
 
@@ -3119,9 +3165,15 @@
             let state = emptyState();
             let dirty = false;
 
+            // Локальный кэш ВСЕХ профилей, что когда-либо были активны на этом устройстве —
+            // так два ребёнка на одном айпаде могут переключаться между своими аккаунтами,
+            // не теряя офлайн-копию прогресса друг друга. Ключ — код профиля.
+            let profiles = {};
+
             // --- драйвер хранилища -------------------------------------------
             // Пока реализован только локальный. Серверный подключается сюда же,
-            // не затрагивая остальное приложение.
+            // не затрагивая остальное приложение. Хранит не одно состояние, а конверт
+            // { activeCode, profiles } — все известные устройству профили разом.
             const localDriver = {
                 read() {
                     try {
@@ -3129,8 +3181,8 @@
                         return raw ? JSON.parse(raw) : null;
                     } catch (e) { return null; }
                 },
-                write(s) {
-                    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(s)); } catch (e) { /* хранилище недоступно */ }
+                write(envelope) {
+                    try { localStorage.setItem(LOCAL_KEY, JSON.stringify(envelope)); } catch (e) { /* хранилище недоступно */ }
                 }
             };
             let remoteDriver = null; // будет назначен при подключении сервера
@@ -3143,6 +3195,11 @@
 
                 out.playerCode = b.playerCode || a.playerCode;
                 out.updatedAt = Math.max(a.updatedAt || 0, b.updatedAt || 0);
+
+                // Имя, тип аккаунта и владелец — не прогресс, тут тоже побеждает более свежая запись.
+                out.profileLabel = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.profileLabel : a.profileLabel) || '';
+                out.accountType = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.accountType : a.accountType) || 'self';
+                out.ownerCode = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.ownerCode : a.ownerCode) || null;
 
                 // Настройки — не прогресс, здесь честно побеждает более свежая запись.
                 out.config = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.config : a.config) || null;
@@ -3203,7 +3260,19 @@
                 if (!s.totals || typeof s.totals !== 'object') s.totals = { correct: 0, wrong: 0, puzzlesCompleted: 0 };
                 if (!s.byTopic || typeof s.byTopic !== 'object') s.byTopic = {};
                 if (!Array.isArray(s.unlocks)) s.unlocks = [];
+                if (typeof s.profileLabel !== 'string') s.profileLabel = '';
+                if (s.accountType !== 'linked') s.accountType = 'self';
+                if (typeof s.ownerCode !== 'string') s.ownerCode = null;
                 return s;
+            }
+
+            function migrateFromV2() {
+                // Старое хранилище (до профилей) держало одно плоское состояние под
+                // отдельным ключом — переносим его как первый профиль на устройстве.
+                try {
+                    const raw = localStorage.getItem('mathCitadelState_v2');
+                    return raw ? normalize(JSON.parse(raw)) : null;
+                } catch (e) { return null; }
             }
 
             function migrateFromV1() {
@@ -3226,22 +3295,128 @@
 
             function persistLocal() {
                 state.updatedAt = Date.now();
-                localDriver.write(state);
+                if (state.playerCode) profiles[state.playerCode] = state;
+                localDriver.write({ activeCode: state.playerCode, profiles });
                 dirty = true;
+            }
+
+            // Переключение активного профиля: откладывает текущий в кэш, поднимает
+            // уже известный устройству профиль или заводит новый с нужными метками.
+            function doSwitch(code, opts) {
+                if (!code) return;
+                if (state.playerCode && state.playerCode !== code) profiles[state.playerCode] = state;
+                if (profiles[code]) {
+                    state = profiles[code];
+                } else {
+                    const s = emptyState();
+                    s.playerCode = code;
+                    if (opts) {
+                        if (opts.accountType) s.accountType = opts.accountType;
+                        if (opts.ownerCode) s.ownerCode = opts.ownerCode;
+                        if (opts.profileLabel) s.profileLabel = opts.profileLabel;
+                    }
+                    state = s;
+                    profiles[code] = state;
+                }
+                persistLocal();
             }
 
             return {
                 // Читает сохранённое состояние. Вызывается один раз при старте.
                 init() {
-                    const local = normalize(localDriver.read());
-                    state = local || migrateFromV1() || emptyState();
-                    if (!local) localDriver.write(state);
+                    const envelope = localDriver.read();
+                    if (envelope && envelope.profiles && typeof envelope.profiles === 'object') {
+                        profiles = {};
+                        Object.keys(envelope.profiles).forEach(code => {
+                            const n = normalize(envelope.profiles[code]);
+                            if (n) { n.playerCode = code; profiles[code] = n; }
+                        });
+                        state = (envelope.activeCode && profiles[envelope.activeCode]) || emptyState();
+                    } else {
+                        const legacy = migrateFromV2() || migrateFromV1();
+                        state = legacy || emptyState();
+                        if (state.playerCode) profiles[state.playerCode] = state;
+                        persistLocal();
+                    }
                     return state;
                 },
 
                 get() { return state; },
                 getCode() { return state.playerCode; },
-                setCode(code) { state.playerCode = code || null; persistLocal(); },
+                setCode(code) { doSwitch(code); },
+
+                // --- профили на этом устройстве ---
+                switchTo(code, opts) { doSwitch(code, opts); },
+                listProfiles() {
+                    return Object.keys(profiles).map(code => ({
+                        code,
+                        label: profiles[code].profileLabel || '',
+                        accountType: profiles[code].accountType || 'self',
+                        active: code === state.playerCode
+                    }));
+                },
+                forgetProfile(code) {
+                    if (!code || code === state.playerCode) return false;
+                    delete profiles[code];
+                    persistLocal();
+                    return true;
+                },
+                setProfileLabel(label) { state.profileLabel = label || ''; persistLocal(); },
+                getProfileLabel() { return state.profileLabel || ''; },
+
+                // --- тип аккаунта ---
+                setAccountType(type, ownerCode) {
+                    state.accountType = (type === 'linked') ? 'linked' : 'self';
+                    state.ownerCode = ownerCode || null;
+                    persistLocal();
+                },
+                getAccountType() { return state.accountType || 'self'; },
+                getOwnerCode() { return state.ownerCode || null; },
+
+                // Готовое состояние для НОВОГО профиля, не становясь его текущим владельцем —
+                // нужно тренеру, чтобы завести ученика, не переключаясь на его аккаунт.
+                freshState(code, opts) {
+                    const s = emptyState();
+                    s.playerCode = code;
+                    s.updatedAt = Date.now();
+                    if (opts) {
+                        if (opts.accountType) s.accountType = opts.accountType;
+                        if (opts.ownerCode) s.ownerCode = opts.ownerCode;
+                        if (opts.profileLabel) s.profileLabel = opts.profileLabel;
+                    }
+                    return s;
+                },
+
+                // Читает чужое состояние с сервера, не трогая текущий активный профиль —
+                // для просмотра статистики ученика без входа под его кодом.
+                async fetchForeignState(code) {
+                    if (!remoteDriver || !code) return null;
+                    try { return normalize(await remoteDriver.read(code)); }
+                    catch (e) { return null; }
+                },
+
+                // Полный сброс прогресса текущего профиля — тот же код, чистые счётчики.
+                // В отличие от flush(), НЕ сливается со старым состоянием на сервере:
+                // слияние "прогресс только растёт" иначе немедленно вернуло бы всё обратно.
+                async hardReset() {
+                    const code = state.playerCode;
+                    const keep = {
+                        profileLabel: state.profileLabel,
+                        accountType: state.accountType,
+                        ownerCode: state.ownerCode,
+                        config: state.config
+                    };
+                    state = emptyState();
+                    state.playerCode = code;
+                    Object.assign(state, keep);
+                    if (code) profiles[code] = state;
+                    persistLocal();
+                    if (remoteDriver && code) {
+                        try { await remoteDriver.write(code, state); dirty = false; return true; }
+                        catch (e) { return false; }
+                    }
+                    return true;
+                },
 
                 // --- настройки ---
                 getConfig() { return state.config; },
@@ -3291,7 +3466,8 @@
                     try {
                         const remote = normalize(await remoteDriver.read(state.playerCode));
                         state = mergeState(remote, state);
-                        localDriver.write(state);
+                        profiles[state.playerCode] = state; // merge вернул новый объект — обновляем кэш
+                        localDriver.write({ activeCode: state.playerCode, profiles });
                         await remoteDriver.write(state.playerCode, state);
                         dirty = false;
                         return true;
@@ -3349,87 +3525,18 @@
             return s;
         }
 
-        // Общий рендер QR — используется и на регистрации, и в "Мой код" внутри игры.
-        function renderQrToCanvas(canvasId, text) {
-            const canvas = document.getElementById(canvasId);
-            if (!canvas || !window.QRCode) return;
-            QRCode.toCanvas(canvas, text, { width: 180, margin: 1 }, function (err) {
-                // Если библиотека не подгрузилась (нет сети) — просто не показываем картинку,
-                // сам код текстом всё равно виден и рабочий.
-            });
-        }
-
         function startNewCodeFlow() {
             const code = generateStudentCode();
             document.getElementById('newCodeValue').innerText = code;
             document.getElementById('codeNewResult').dataset.pendingCode = code;
             document.getElementById('codeNewBlock').style.display = 'none';
             document.getElementById('codeNewResult').style.display = 'block';
-            renderQrToCanvas('newCodeQR', code);
-        }
-
-        // ===== СКАНЕР QR-КОДА =====
-        // Читает код камерой вместо ввода вручную — полезно, когда код показывают
-        // с экрана одного устройства и сканируют на другом.
-        let qrStream = null;
-        let qrScanRAF = null;
-
-        async function openQrScanner() {
-            const overlay = document.getElementById('qrScannerOverlay');
-            const video = document.getElementById('qrVideo');
-            const statusEl = document.getElementById('qrScanStatus');
-            overlay.style.display = 'flex';
-            statusEl.innerText = 'Наведи камеру на QR-код';
-
-            if (!window.jsQR) {
-                statusEl.innerText = 'Сканер недоступен без интернета. Введи код вручную.';
-                return;
-            }
-            try {
-                qrStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                video.srcObject = qrStream;
-                await video.play();
-                qrScanRAF = requestAnimationFrame(scanQrFrame);
-            } catch (e) {
-                statusEl.innerText = 'Нет доступа к камере. Разреши доступ в настройках браузера или введи код вручную.';
-            }
-        }
-
-        function scanQrFrame() {
-            const video = document.getElementById('qrVideo');
-            const canvas = document.getElementById('qrScanCanvas');
-            if (!video.videoWidth) { qrScanRAF = requestAnimationFrame(scanQrFrame); return; }
-
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-            const result = jsQR(imageData.data, imageData.width, imageData.height);
-
-            if (result && result.data) {
-                onQrDetected(result.data.trim());
-                return;
-            }
-            qrScanRAF = requestAnimationFrame(scanQrFrame);
-        }
-
-        function closeQrScanner() {
-            if (qrScanRAF) cancelAnimationFrame(qrScanRAF);
-            qrScanRAF = null;
-            if (qrStream) { qrStream.getTracks().forEach(t => t.stop()); qrStream = null; }
-            document.getElementById('qrScannerOverlay').style.display = 'none';
-        }
-
-        function onQrDetected(text) {
-            closeQrScanner();
-            document.getElementById('codeInputField').value = text.toUpperCase();
-            loginWithExistingCode();
         }
 
         async function confirmNewCode() {
             const code = document.getElementById('codeNewResult').dataset.pendingCode;
             Progress.setCode(code);
+            Progress.setAccountType('self', null);
             document.getElementById('codeScreen').style.display = 'none';
             await Progress.flush(true); // создаёт запись на сервере с текущим (пустым) прогрессом
         }
@@ -3849,7 +3956,6 @@
 
             const code = Progress.getCode();
             document.getElementById('menuCodeVal').innerText = code || '—';
-            if (code) renderQrToCanvas('menuCodeQR', code);
         }
 
         // Разбор точности по темам: самое слабое место сверху, чтобы сразу было видно,
@@ -3908,14 +4014,23 @@
 
         function startMenuGoStats() {
             closeStartMenu();
+            statsReturnTo = null;
             renderStatsScreen();
             document.getElementById('statsScreen').style.display = 'flex';
         }
+        // Куда вернуться со статистики: null — на стартовый экран, 'profile' — в профиль
+        // (когда смотрим статистику ученика, а не свою собственную).
+        let statsReturnTo = null;
         function closeStatsScreen() {
             document.getElementById('statsScreen').style.display = 'none';
+            if (statsReturnTo === 'profile') openProfileScreen();
         }
-        function renderStatsScreen() {
-            const st = Progress.get();
+        // foreignState/foreignLabel — для просмотра статистики ученика без входа под его кодом.
+        function renderStatsScreen(foreignState, foreignLabel) {
+            const st = foreignState || Progress.get();
+            document.getElementById('statsSubtitle').innerText = foreignState
+                ? `Ученик: ${foreignLabel || st.playerCode || '—'}`
+                : 'Прогресс ученика';
             const correct = st.totals.correct || 0;
             const wrong = st.totals.wrong || 0;
             const total = correct + wrong;
@@ -3932,6 +4047,175 @@
         }
         function closeAchievementsScreen() {
             document.getElementById('achievementsScreen').style.display = 'none';
+        }
+
+        // ===================== ПРОФИЛЬ =====================
+        const ACCOUNT_TYPE_LABELS = { self: '🎓 Личный аккаунт', linked: '📚 Ученик по коду репетитора' };
+
+        function startMenuGoProfile() {
+            closeStartMenu();
+            openProfileScreen();
+        }
+        function openProfileScreen() {
+            renderProfileScreen();
+            document.getElementById('profileScreen').style.display = 'flex';
+        }
+        function closeProfileScreen() {
+            document.getElementById('profileScreen').style.display = 'none';
+        }
+
+        function renderProfileScreen() {
+            const code = Progress.getCode();
+            const type = Progress.getAccountType();
+            const owner = Progress.getOwnerCode();
+            document.getElementById('profileCodeVal').innerText = code || '—';
+            document.getElementById('profileSubtitle').innerText = Progress.getProfileLabel() || 'Управление аккаунтом';
+            document.getElementById('profileTypeVal').innerText =
+                type === 'linked' ? `${ACCOUNT_TYPE_LABELS.linked} ${owner || ''}` : ACCOUNT_TYPE_LABELS.self;
+            document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
+            renderProfileList();
+            document.getElementById('studentsBanner').innerHTML = '';
+            renderStudentsList();
+        }
+
+        function saveProfileLabel() {
+            const val = document.getElementById('profileLabelInput').value.trim();
+            Progress.setProfileLabel(val);
+            Progress.flush(true);
+            renderProfileScreen();
+        }
+
+        // --- Профили на устройстве ---
+        function renderProfileList() {
+            const wrap = document.getElementById('profileList');
+            const list = Progress.listProfiles();
+            if (!list.length) { wrap.innerHTML = '<div class="menu-empty">Профилей пока нет.</div>'; return; }
+            wrap.innerHTML = '';
+            list.forEach(p => {
+                const row = document.createElement('div');
+                row.className = 'list-row' + (p.active ? ' active' : '');
+                row.innerHTML = `
+                    <div class="list-row-main">
+                        <div class="list-row-name"></div>
+                        <div class="list-row-sub"></div>
+                    </div>
+                    ${p.active ? '<span class="list-row-badge">Сейчас</span>' : '<button class="list-row-btn">Войти</button>'}
+                `;
+                row.querySelector('.list-row-name').innerText = p.label || 'Без имени';
+                row.querySelector('.list-row-sub').innerText = p.code;
+                if (!p.active) {
+                    row.querySelector('.list-row-btn').addEventListener('click', () => switchProfileAndReload(p.code));
+                }
+                wrap.appendChild(row);
+            });
+        }
+
+        async function profileAddExisting() {
+            const raw = (prompt('Код профиля (например, 4K7M9P):') || '').trim().toUpperCase();
+            if (!raw) return;
+            if (!supabaseClient) { alert('Нет соединения с сервером.'); return; }
+            const { data, error } = await supabaseClient.from('citadel_progress').select('state').eq('code', raw).maybeSingle();
+            if (error || !data) { alert('Такой код не найден. Проверь написание.'); return; }
+            switchProfileAndReload(raw);
+        }
+
+        function profileAddNew() {
+            const code = generateStudentCode();
+            Progress.switchTo(code, { accountType: 'self' });
+            Progress.flush(true).then(() => location.reload());
+        }
+
+        // Переключение профиля меняет всё на экране (пазл, статистику, настройки) —
+        // проще и надёжнее перезагрузить страницу, чем вручную обновлять десяток виджетов.
+        function switchProfileAndReload(code) {
+            Progress.switchTo(code);
+            Progress.flush(true).then(() => location.reload());
+        }
+
+        // --- Мои ученики ---
+        async function fetchMyStudents() {
+            const myCode = Progress.getCode();
+            if (!myCode || !supabaseClient) return [];
+            const { data, error } = await supabaseClient
+                .from('citadel_progress')
+                .select('code, state')
+                .eq('state->>ownerCode', myCode);
+            if (error || !data) return [];
+            return data.map(row => ({ code: row.code, state: row.state || {} }));
+        }
+
+        async function renderStudentsList() {
+            const wrap = document.getElementById('studentsList');
+            wrap.innerHTML = '<div class="menu-empty">Загружаю…</div>';
+            const students = await fetchMyStudents();
+            if (!students.length) {
+                wrap.innerHTML = '<div class="menu-empty">Пока нет учеников.<br>Добавь первого кнопкой ниже.</div>';
+                return;
+            }
+            wrap.innerHTML = '';
+            students.forEach(s => {
+                const st = s.state || {};
+                const totals = st.totals || { correct: 0, wrong: 0 };
+                const total = (totals.correct || 0) + (totals.wrong || 0);
+                const pct = total > 0 ? Math.round((totals.correct || 0) / total * 100) + '%' : '—';
+                const row = document.createElement('div');
+                row.className = 'list-row';
+                row.innerHTML = `
+                    <div class="list-row-main">
+                        <div class="list-row-name"></div>
+                        <div class="list-row-sub"></div>
+                    </div>
+                    <button class="list-row-btn">Смотреть</button>
+                `;
+                row.querySelector('.list-row-name').innerText = st.profileLabel || s.code;
+                row.querySelector('.list-row-sub').innerText = `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}`;
+                row.querySelector('.list-row-btn').addEventListener('click', () => viewStudentStats(s.code, st));
+                wrap.appendChild(row);
+            });
+        }
+
+        function viewStudentStats(code, state) {
+            statsReturnTo = 'profile';
+            closeProfileScreen();
+            renderStatsScreen(state, state.profileLabel || code);
+            document.getElementById('statsScreen').style.display = 'flex';
+        }
+
+        async function addStudent() {
+            if (!supabaseClient) { alert('Нет соединения с сервером.'); return; }
+            const myCode = Progress.getCode();
+            if (!myCode) { alert('Сначала войди под своим кодом.'); return; }
+            const label = (prompt('Имя ученика (необязательно):') || '').trim();
+            const code = generateStudentCode();
+            const fresh = Progress.freshState(code, { accountType: 'linked', ownerCode: myCode, profileLabel: label });
+            try {
+                const { error } = await supabaseClient
+                    .from('citadel_progress')
+                    .upsert({ code, state: fresh, updated_at: new Date().toISOString() });
+                if (error) throw error;
+                const banner = document.getElementById('studentsBanner');
+                banner.innerHTML = '';
+                const box = document.createElement('div');
+                box.className = 'menu-stat-card';
+                box.style.textAlign = 'center';
+                box.style.marginBottom = '10px';
+                box.innerHTML = `<div class="menu-code-line"></div><div class="menu-stat-label" style="margin-top:6px;">Код нового ученика — передай его, чтобы он вошёл</div>`;
+                box.querySelector('.menu-code-line').innerText = code;
+                banner.appendChild(box);
+                renderStudentsList();
+            } catch (e) {
+                alert('Не удалось создать ученика. Проверь интернет.');
+            }
+        }
+
+        // --- Сброс прогресса ---
+        async function confirmHardReset() {
+            const code = Progress.getCode();
+            if (!code) return;
+            const ok = confirm('Точно сбросить весь прогресс этого профиля? Решённые примеры, пазл и коллекция обнулятся. Код останется тот же. Отменить это нельзя.');
+            if (!ok) return;
+            await Progress.hardReset();
+            location.reload();
         }
 
         // Смена настроек без перезагрузки: пазл и весь накопленный прогресс остаются на месте,
@@ -3958,7 +4242,6 @@
             const code = Progress.getCode();
             if (!code) return; // играет анонимно, кода ещё нет
             document.getElementById('myCodeValue').innerText = code;
-            renderQrToCanvas('myCodeQR', code);
             document.getElementById('myCodePanel').style.display = 'block';
             document.getElementById('puzzleModalCount').parentElement.style.display = 'none'; // скрываем заголовок пазла
             document.querySelector('#puzzleLiveSection .puzzle-big-thumb').style.display = 'none';
