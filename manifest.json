@@ -1,6 +1,6 @@
 {
-  "name": "Numeon",
-  "short_name": "Numeon",
+  "name": "Ключ",
+  "short_name": "Ключ",
   "description": "Математические испытания, коллекция пазлов и прогресс ученика",
   "start_url": "./index.html",
   "display": "standalone",
