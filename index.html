@@ -147,6 +147,16 @@
         }
         .clock-menu-btn:active { transform: translateY(-50%) scale(0.94); }
 
+        .start-menu-btn {
+            position: absolute; left: 16px;
+            top: calc(16px + env(safe-area-inset-top));
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,215,0,0.35);
+            color: var(--gold); font-size: 1.1rem; line-height: 1;
+            width: 40px; height: 40px; border-radius: 10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; z-index: 5;
+        }
+        .start-menu-btn:active { transform: scale(0.94); }
+
         /* ===== ГЛАВНОЕ МЕНЮ ===== */
         .menu-overlay {
             position: fixed; inset: 0; background: rgba(3, 5, 12, 0.97);
@@ -531,8 +541,83 @@
         </div>
     </div>
 
+    <!-- Меню стартового экрана: быстрый доступ к коллекции, настройкам, статистике и достижениям -->
+    <div class="menu-overlay" id="startMenuOverlay">
+        <div class="menu-head">
+            <span class="menu-title">☰ Меню</span>
+            <button class="menu-close" onclick="closeStartMenu()">✕</button>
+        </div>
+        <div class="menu-section-label">Разделы</div>
+        <button class="menu-btn" onclick="startMenuGoCollection()">🧩 <span>Коллекция пазлов</span></button>
+        <button class="menu-btn" onclick="startMenuGoSettings()">⚙️ <span>Настройка испытаний</span></button>
+        <button class="menu-btn" onclick="startMenuGoStats()">📊 <span>Статистика</span></button>
+        <button class="menu-btn" onclick="startMenuGoAchievements()">🏅 <span>Достижения</span></button>
+    </div>
+
+    <!-- Экран статистики: накопленный прогресс ученика -->
+    <div class="modal-screen" id="statsScreen" style="z-index:230; display:none;">
+        <button class="start-menu-btn" onclick="closeStatsScreen()" aria-label="Назад">◀️</button>
+        <h1 class="start-title">📊 Статистика</h1>
+        <p class="start-subtitle">Прогресс ученика</p>
+        <div class="config-container">
+            <div class="config-section">
+                <div class="menu-stat-grid">
+                    <div class="menu-stat-card">
+                        <div class="menu-stat-value" id="statsSolvedVal">0</div>
+                        <div class="menu-stat-label">✅ Решено примеров</div>
+                    </div>
+                    <div class="menu-stat-card">
+                        <div class="menu-stat-value" id="statsAccuracyVal">—</div>
+                        <div class="menu-stat-label">🎯 Точность</div>
+                    </div>
+                    <div class="menu-stat-card">
+                        <div class="menu-stat-value" id="statsWrongVal">0</div>
+                        <div class="menu-stat-label">❌ Ошибок</div>
+                    </div>
+                    <div class="menu-stat-card">
+                        <div class="menu-stat-value" id="statsPuzzlesVal">0</div>
+                        <div class="menu-stat-label">🧩 Пазлов собрано</div>
+                    </div>
+                </div>
+            </div>
+            <div class="config-section">
+                <div class="config-section-title">История по темам</div>
+                <div id="statsTopicList"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Экран достижений: заглушка в едином стиле — логику наград предстоит добавить отдельно -->
+    <div class="modal-screen" id="achievementsScreen" style="z-index:230; display:none;">
+        <button class="start-menu-btn" onclick="closeAchievementsScreen()" aria-label="Назад">◀️</button>
+        <h1 class="start-title">🏅 Достижения</h1>
+        <p class="start-subtitle">Награды за успехи</p>
+        <div class="config-container">
+            <div class="config-section" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="menu-stat-card" style="opacity:0.45;">
+                    <div class="menu-stat-value" style="font-size:1.8rem;">🥇</div>
+                    <div class="menu-stat-label">Скоро</div>
+                </div>
+                <div class="menu-stat-card" style="opacity:0.45;">
+                    <div class="menu-stat-value" style="font-size:1.8rem;">🔥</div>
+                    <div class="menu-stat-label">Скоро</div>
+                </div>
+                <div class="menu-stat-card" style="opacity:0.45;">
+                    <div class="menu-stat-value" style="font-size:1.8rem;">🎯</div>
+                    <div class="menu-stat-label">Скоро</div>
+                </div>
+                <div class="menu-stat-card" style="opacity:0.45;">
+                    <div class="menu-stat-value" style="font-size:1.8rem;">💯</div>
+                    <div class="menu-stat-label">Скоро</div>
+                </div>
+            </div>
+            <div class="menu-empty" style="margin-top:16px;">Раздел достижений скоро откроется —<br>здесь появятся награды и бейджи за твои успехи.</div>
+        </div>
+    </div>
+
     <!-- Экран настройки генерации примеров -->
     <div class="modal-screen" id="configScreen">
+        <button class="start-menu-btn" id="btnOpenStartMenu" aria-label="Меню">☰</button>
         <h1 class="start-title">🔮 Настройка Испытаний</h1>
 
         <!-- ШАГ 1: только выбор категории -->
@@ -3761,8 +3846,8 @@
         // Разбор точности по темам: самое слабое место сверху, чтобы сразу было видно,
         // над чем стоит поработать. Темы с совсем малым числом попыток не показываем —
         // на двух примерах процент ничего не значит и только вводит в заблуждение.
-        function renderTopicBreakdown(byTopic) {
-            const wrap = document.getElementById('menuTopicList');
+        function renderTopicBreakdown(byTopic, targetId = 'menuTopicList') {
+            const wrap = document.getElementById(targetId);
             const MIN_ATTEMPTS = 5;
 
             const rows = Object.keys(byTopic).map(key => {
@@ -3798,6 +3883,47 @@
 
         function menuGoCollection() { closeMainMenu(); openCollectionModal(); }
         function menuGoPuzzle() { closeMainMenu(); openPuzzleModal(); }
+
+        // ===================== МЕНЮ СТАРТОВОГО ЭКРАНА =====================
+        document.getElementById('btnOpenStartMenu').addEventListener('click', openStartMenu);
+
+        function openStartMenu() {
+            document.getElementById('startMenuOverlay').classList.add('open');
+        }
+        function closeStartMenu() {
+            document.getElementById('startMenuOverlay').classList.remove('open');
+        }
+        function startMenuGoCollection() { closeStartMenu(); openCollectionModal(); }
+        // Пункт ведёт на текущий экран настройки испытаний — он уже под меню, просто закрываем.
+        function startMenuGoSettings() { closeStartMenu(); }
+
+        function startMenuGoStats() {
+            closeStartMenu();
+            renderStatsScreen();
+            document.getElementById('statsScreen').style.display = 'flex';
+        }
+        function closeStatsScreen() {
+            document.getElementById('statsScreen').style.display = 'none';
+        }
+        function renderStatsScreen() {
+            const st = Progress.get();
+            const correct = st.totals.correct || 0;
+            const wrong = st.totals.wrong || 0;
+            const total = correct + wrong;
+            document.getElementById('statsSolvedVal').innerText = total;
+            document.getElementById('statsAccuracyVal').innerText = total > 0 ? Math.round(correct / total * 100) + '%' : '—';
+            document.getElementById('statsWrongVal').innerText = wrong;
+            document.getElementById('statsPuzzlesVal').innerText = st.totals.puzzlesCompleted || 0;
+            renderTopicBreakdown(st.byTopic || {}, 'statsTopicList');
+        }
+
+        function startMenuGoAchievements() {
+            closeStartMenu();
+            document.getElementById('achievementsScreen').style.display = 'flex';
+        }
+        function closeAchievementsScreen() {
+            document.getElementById('achievementsScreen').style.display = 'none';
+        }
 
         // Смена настроек без перезагрузки: пазл и весь накопленный прогресс остаются на месте,
         // сбрасываются только счётчики текущей сессии.
