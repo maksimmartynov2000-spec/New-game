@@ -638,7 +638,7 @@
                 <button class="menu-btn" onclick="profileAddExisting()">🔑 <span>Добавить по логину</span></button>
             </div>
 
-            <div class="config-section">
+            <div class="config-section" id="studentsSection">
                 <div class="config-section-title">Мои ученики</div>
                 <div id="studentsBanner"></div>
                 <div id="studentsList"></div>
@@ -4026,8 +4026,18 @@
                 type === 'linked' ? `${ACCOUNT_TYPE_LABELS.linked} ${owner || ''}` : ACCOUNT_TYPE_LABELS.self;
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
             renderProfileList();
-            document.getElementById('studentsBanner').innerHTML = '';
-            renderStudentsList();
+
+            // Заводить учеников может только сам репетитор (self) — сервер тоже это
+            // проверяет (см. миграцию), но прятать кнопку у ученика правильнее, чем
+            // показывать её и потом объяснять отказ.
+            const studentsSection = document.getElementById('studentsSection');
+            if (type === 'linked') {
+                studentsSection.style.display = 'none';
+            } else {
+                studentsSection.style.display = '';
+                document.getElementById('studentsBanner').innerHTML = '';
+                renderStudentsList();
+            }
         }
 
         function saveProfileLabel() {
@@ -4162,6 +4172,7 @@
                 if (!data || !data.ok) {
                     const messages = {
                         tutor_auth_failed: 'Не удалось подтвердить твой пароль — попробуй войти заново.',
+                        not_a_tutor: 'Добавлять учеников может только репетитор.',
                         code_taken: 'Этот код уже занят, придумай другой.',
                         password_too_short: 'Пароль слишком короткий — минимум 4 символа.'
                     };

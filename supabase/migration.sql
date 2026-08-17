@@ -95,10 +95,18 @@ set search_path = public, extensions
 as $$
 declare
   v_tutor_hash text;
+  v_tutor_type text;
 begin
-  select password_hash into v_tutor_hash from citadel_progress where code = p_tutor_code;
+  select password_hash, state->>'accountType' into v_tutor_hash, v_tutor_type
+  from citadel_progress where code = p_tutor_code;
   if v_tutor_hash is null or v_tutor_hash <> crypt(p_tutor_password, v_tutor_hash) then
     return jsonb_build_object('ok', false, 'error', 'tutor_auth_failed');
+  end if;
+  -- Заводить учеников может только сам репетитор (self), не ученик другого репетитора —
+  -- без этой проверки любой действующий логин+пароль (в т.ч. ученика) мог завести
+  -- себе собственных "учеников".
+  if v_tutor_type = 'linked' then
+    return jsonb_build_object('ok', false, 'error', 'not_a_tutor');
   end if;
   if p_student_code is null or length(p_student_code) < 3 then
     return jsonb_build_object('ok', false, 'error', 'code_too_short');
