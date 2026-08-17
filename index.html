@@ -68,13 +68,6 @@
             letter-spacing: 0.5px; margin-bottom: 10px; font-weight: bold;
             border-bottom: 1px solid rgba(6, 182, 212, 0.2); padding-bottom: 5px;
         }
-        .type-select-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .btn-type {
-            background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1);
-            border-radius: 12px; padding: 12px 8px; color: white; text-align: center;
-            font-size: 0.85rem; font-weight: bold; cursor: pointer;
-        }
-        .btn-type.selected { border-color: var(--cyan); background: rgba(6, 182, 212, 0.15); box-shadow: 0 0 12px rgba(6, 182, 212, 0.35); }
         .op-select-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .frac-special-block {
             margin-top: 10px; padding: 10px; border: 1px dashed rgba(168, 85, 247, 0.35);
@@ -113,7 +106,7 @@
         }
         .btn-config-continue.ready { opacity: 1; pointer-events: auto; }
 
-        .category-select-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .category-select-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .btn-category {
             background: rgba(255,255,255,0.03); border: 2px solid rgba(255,255,255,0.1);
             border-radius: 14px; padding: 14px 4px; color: white; text-align: center;
@@ -671,9 +664,10 @@
             <div class="config-container">
                 <div class="config-section">
                     <div class="category-select-row" id="categorySelectRow">
-                        <button class="btn-category" data-value="integer">🔢 Целые числа</button>
-                        <button class="btn-category" data-value="decimal">🔟 Десятичные дроби</button>
-                        <button class="btn-category" data-value="fraction">🧮 Дроби</button>
+                        <button class="btn-category" data-value="integer" data-sign="positive">🔵 Целые положительные</button>
+                        <button class="btn-category" data-value="integer" data-sign="negative">🔴 Целые отрицательные</button>
+                        <button class="btn-category" data-value="decimal" data-sign="positive">🔟 Десятичные дроби</button>
+                        <button class="btn-category" data-value="fraction" data-sign="positive">🧮 Дроби</button>
                     </div>
                 </div>
             </div>
@@ -684,15 +678,7 @@
             <button id="btnBackToCategory" style="align-self:flex-start; background:none; border:none; color:#94a3b8; font-size:0.95rem; margin-bottom:8px; margin-left:4px; cursor:pointer; line-height:1;">◀️ назад</button>
             <div class="config-container">
                 <div class="config-section">
-                    <div class="config-section-title">1️⃣ Вид чисел</div>
-                    <div class="type-select-row" id="typeSelectRow">
-                        <button class="btn-type" data-value="positive">🔵 Положительные числа</button>
-                        <button class="btn-type" data-value="negative">🔴 Отрицательные числа</button>
-                    </div>
-                </div>
-
-                <div class="config-section">
-                    <div class="config-section-title">2️⃣ Режимы вычислений</div>
+                    <div class="config-section-title">1️⃣ Режимы вычислений</div>
                     <div class="op-select-grid" id="opSelectGrid">
                         <button class="btn-op" data-op="add">➕ Сложение</button>
                         <button class="btn-op" data-op="sub">➖ Вычитание</button>
@@ -713,7 +699,7 @@
                 </div>
 
                 <div class="config-section" id="difficultyContainer" style="display:none;">
-                    <div class="config-section-title">3️⃣ Сложность по режимам</div>
+                    <div class="config-section-title">2️⃣ Сложность по режимам</div>
                     <div id="difficultyList"></div>
                     <div class="config-hint">Для каждого выбранного режима — своя сложность</div>
                 </div>
@@ -851,17 +837,23 @@
             operations: {}        // { add: level(1-5), sub: level, ... } — только выбранные режимы
         };
 
+        // Каждая из 4 кнопок сама несёт и категорию, и знак (data-value/data-sign) —
+        // десятичные и обыкновенные дроби всегда положительные, поэтому у них знак
+        // просто зашит в кнопку и отдельного шага выбора знака для них не существует.
         document.querySelectorAll('.btn-category').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.btn-category').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
                 const newCategory = btn.getAttribute('data-value');
+                const newSign = btn.getAttribute('data-sign');
                 const categoryChanged = exampleConfig.category !== newCategory;
 
                 // Сбрасываем выбор режимов и сложности только если категория РЕАЛЬНО изменилась —
                 // семантика различается между целыми/дробями/десятичными, оставлять старый выбор
-                // небезопасно. Но если вернулись назад и выбрали ту же категорию — прогресс сохраняем.
+                // небезопасно. Смена знака внутри целых чисел режимы не трогает — набор действий
+                // (сложение/вычитание/умножение/деление) у них общий независимо от знака.
                 exampleConfig.category = newCategory;
+                exampleConfig.numberType = newSign;
                 if (categoryChanged) {
                     exampleConfig.operations = {};
                     document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('selected'));
@@ -883,16 +875,6 @@
         document.getElementById('btnBackToCategory').addEventListener('click', () => {
             document.getElementById('restStepScreen').style.display = 'none';
             document.getElementById('categoryStepScreen').style.display = 'flex';
-        });
-
-        document.querySelectorAll('.btn-type').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.btn-type').forEach(b => b.classList.remove('selected'));
-                btn.classList.add('selected');
-                exampleConfig.numberType = btn.getAttribute('data-value');
-                updateFracOnlyOpAvailability();
-                updateConfigValidity();
-            });
         });
 
         // Особые режимы дробей (Сокращение / В смешанное / В неправильную / Дробь от числа)
@@ -4892,7 +4874,10 @@
             if (!saved || !saved.category || !saved.numberType || !saved.operations) return;
 
             exampleConfig.category = saved.category;
-            exampleConfig.numberType = saved.numberType;
+            // Десятичные и обыкновенные дроби всегда положительные — если в старом сохранении
+            // (до этого правила) затесались отрицательные, тихо поправляем на положительные,
+            // а не оставляем невозможную комбинацию.
+            exampleConfig.numberType = (saved.category !== 'integer') ? 'positive' : saved.numberType;
             exampleConfig.operations = { ...saved.operations };
             // Защита от рассинхрона со старыми сохранениями: особые режимы дробей не должны
             // просочиться в другую категорию (они существуют только для 'fraction').
@@ -4901,13 +4886,11 @@
             }
 
             document.querySelectorAll('.btn-category').forEach(b => {
-                b.classList.toggle('selected', b.getAttribute('data-value') === saved.category);
+                b.classList.toggle('selected',
+                    b.getAttribute('data-value') === exampleConfig.category &&
+                    b.getAttribute('data-sign') === exampleConfig.numberType);
             });
             document.getElementById('fracSpecialBlock').style.display = saved.category === 'fraction' ? 'block' : 'none';
-
-            document.querySelectorAll('.btn-type').forEach(b => {
-                b.classList.toggle('selected', b.getAttribute('data-value') === saved.numberType);
-            });
 
             document.querySelectorAll('.btn-op').forEach(b => {
                 b.classList.toggle('selected', b.getAttribute('data-op') in exampleConfig.operations);
