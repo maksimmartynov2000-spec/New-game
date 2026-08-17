@@ -479,31 +479,25 @@
         </defs>
     </svg>
 
-    <!-- Экран входа по коду ученика: показывается только пока код не сохранён на устройстве.
-         Сидит поверх экрана настройки (z-index выше) и блокирует его до входа. -->
+    <!-- Экран входа по коду и паролю: показывается только пока на устройстве нет сохранённого
+         входа. Сидит поверх экрана настройки (z-index выше) и блокирует его до входа.
+         Свободной регистрации нет — код и пароль выдаёт репетитор. -->
     <div class="modal-screen" id="codeScreen" style="z-index:210; display:none;">
         <h1 class="start-title" style="font-size:1.6rem;">🏰 Вход в Цитадель</h1>
 
-        <div id="codeNewBlock" style="width:100%; max-width:420px; text-align:center;">
-            <p style="color:#94a3b8; margin-bottom:14px; line-height:1.5;">Похоже, ты здесь впервые.<br>Прогресс будет сохраняться и на других устройствах.</p>
-            <button class="btn-config-continue ready" onclick="startNewCodeFlow()">✨ Начать игру</button>
-        </div>
-
-        <div id="codeNewResult" style="display:none; width:100%; max-width:420px; text-align:center; margin-top:6px;">
-            <p style="color:#94a3b8; line-height:1.5;">Твой личный код — сохрани его, он открывает прогресс на любом устройстве:</p>
-            <div id="newCodeValue" style="font-size:2rem; font-weight:900; color:var(--gold); letter-spacing:3px; margin:16px 0;"></div>
-            <button class="btn-config-continue ready" onclick="confirmNewCode()">Понял, играть →</button>
-        </div>
-
-        <div style="width:100%; max-width:420px; margin-top:28px; padding-top:24px; border-top:1px solid rgba(255,255,255,0.12); text-align:center;">
-            <p style="color:#94a3b8; margin-bottom:10px;">Уже есть код от репетитора?</p>
-            <input id="codeInputField" type="text" placeholder="4K7M9P" autocapitalize="characters"
+        <div style="width:100%; max-width:420px; text-align:center;">
+            <p style="color:#94a3b8; margin-bottom:14px; line-height:1.5;">Введи код и пароль, которые тебе дал репетитор.</p>
+            <input id="codeInputField" type="text" placeholder="Код" autocapitalize="characters"
                    style="width:100%; padding:12px; text-align:center; text-transform:uppercase; font-size:1.1rem;
                           border-radius:10px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.07);
                           color:white; margin-bottom:10px; box-sizing:border-box;">
-            <button class="btn-config-continue ready" style="background:rgba(255,255,255,0.1);" onclick="loginWithExistingCode()">Войти</button>
+            <input id="passwordInputField" type="password" placeholder="Пароль"
+                   style="width:100%; padding:12px; text-align:center; font-size:1.1rem;
+                          border-radius:10px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.07);
+                          color:white; margin-bottom:10px; box-sizing:border-box;">
+            <button class="btn-config-continue ready" onclick="loginWithExistingCode()">Войти</button>
             <p id="codeErrorMsg" style="display:none; color:#f87171; margin-top:10px; font-size:0.85rem;"></p>
-            <p id="codeLoadingMsg" style="display:none; color:#94a3b8; margin-top:10px; font-size:0.85rem;">Проверяю код…</p>
+            <p id="codeLoadingMsg" style="display:none; color:#94a3b8; margin-top:10px; font-size:0.85rem;">Проверяю…</p>
         </div>
     </div>
 
@@ -644,13 +638,13 @@
                        style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
                               background:rgba(255,255,255,0.06); color:white; box-sizing:border-box; text-align:center; font-size:0.95rem;">
                 <button class="menu-btn" style="margin-top:8px;" onclick="saveProfileLabel()">💾 <span>Сохранить имя</span></button>
+                <button class="menu-btn" id="btnChangePassword" style="margin-top:8px;" onclick="changeOwnPassword()">🔒 <span>Сменить пароль</span></button>
             </div>
 
             <div class="config-section">
                 <div class="config-section-title">Профили на этом устройстве</div>
                 <div id="profileList"></div>
                 <button class="menu-btn" onclick="profileAddExisting()">🔑 <span>Добавить по коду</span></button>
-                <button class="menu-btn" onclick="profileAddNew()">✨ <span>Новый профиль</span></button>
             </div>
 
             <div class="config-section">
@@ -3170,6 +3164,11 @@
             // не теряя офлайн-копию прогресса друг друга. Ключ — код профиля.
             let profiles = {};
 
+            // Пароли профилей на этом устройстве — ТОЛЬКО локально, никогда не уходят
+            // в синхронизируемое состояние. Нужны, чтобы каждый запрос к серверу (в т.ч.
+            // тихие фоновые flush()) мог подтвердить, что это действительно владелец кода.
+            let passwords = {};
+
             // --- драйвер хранилища -------------------------------------------
             // Пока реализован только локальный. Серверный подключается сюда же,
             // не затрагивая остальное приложение. Хранит не одно состояние, а конверт
@@ -3296,15 +3295,17 @@
             function persistLocal() {
                 state.updatedAt = Date.now();
                 if (state.playerCode) profiles[state.playerCode] = state;
-                localDriver.write({ activeCode: state.playerCode, profiles });
+                localDriver.write({ activeCode: state.playerCode, profiles, passwords });
                 dirty = true;
             }
 
             // Переключение активного профиля: откладывает текущий в кэш, поднимает
             // уже известный устройству профиль или заводит новый с нужными метками.
-            function doSwitch(code, opts) {
+            // password — обязателен для нового профиля, иначе им нельзя будет синхронизироваться.
+            function doSwitch(code, password, opts) {
                 if (!code) return;
                 if (state.playerCode && state.playerCode !== code) profiles[state.playerCode] = state;
+                if (password) passwords[code] = password;
                 if (profiles[code]) {
                     state = profiles[code];
                 } else {
@@ -3331,6 +3332,7 @@
                             const n = normalize(envelope.profiles[code]);
                             if (n) { n.playerCode = code; profiles[code] = n; }
                         });
+                        passwords = (envelope.passwords && typeof envelope.passwords === 'object') ? envelope.passwords : {};
                         state = (envelope.activeCode && profiles[envelope.activeCode]) || emptyState();
                     } else {
                         const legacy = migrateFromV2() || migrateFromV1();
@@ -3343,10 +3345,13 @@
 
                 get() { return state; },
                 getCode() { return state.playerCode; },
-                setCode(code) { doSwitch(code); },
+                getPassword() { return passwords[state.playerCode] || null; },
+                setPassword(pw) { if (state.playerCode) { passwords[state.playerCode] = pw; persistLocal(); } },
 
                 // --- профили на этом устройстве ---
-                switchTo(code, opts) { doSwitch(code, opts); },
+                // code+password должны быть уже проверены сервером (через login/create_student)
+                // до вызова этой функции — сама она чужие пароли не проверяет.
+                switchTo(code, password, opts) { doSwitch(code, password, opts); },
                 listProfiles() {
                     return Object.keys(profiles).map(code => ({
                         code,
@@ -3358,6 +3363,7 @@
                 forgetProfile(code) {
                     if (!code || code === state.playerCode) return false;
                     delete profiles[code];
+                    delete passwords[code];
                     persistLocal();
                     return true;
                 },
@@ -3372,28 +3378,6 @@
                 },
                 getAccountType() { return state.accountType || 'self'; },
                 getOwnerCode() { return state.ownerCode || null; },
-
-                // Готовое состояние для НОВОГО профиля, не становясь его текущим владельцем —
-                // нужно тренеру, чтобы завести ученика, не переключаясь на его аккаунт.
-                freshState(code, opts) {
-                    const s = emptyState();
-                    s.playerCode = code;
-                    s.updatedAt = Date.now();
-                    if (opts) {
-                        if (opts.accountType) s.accountType = opts.accountType;
-                        if (opts.ownerCode) s.ownerCode = opts.ownerCode;
-                        if (opts.profileLabel) s.profileLabel = opts.profileLabel;
-                    }
-                    return s;
-                },
-
-                // Читает чужое состояние с сервера, не трогая текущий активный профиль —
-                // для просмотра статистики ученика без входа под его кодом.
-                async fetchForeignState(code) {
-                    if (!remoteDriver || !code) return null;
-                    try { return normalize(await remoteDriver.read(code)); }
-                    catch (e) { return null; }
-                },
 
                 // Полный сброс прогресса текущего профиля — тот же код, чистые счётчики.
                 // В отличие от flush(), НЕ сливается со старым состоянием на сервере:
@@ -3412,7 +3396,7 @@
                     if (code) profiles[code] = state;
                     persistLocal();
                     if (remoteDriver && code) {
-                        try { await remoteDriver.write(code, state); dirty = false; return true; }
+                        try { await remoteDriver.write(code, passwords[code], state); dirty = false; return true; }
                         catch (e) { return false; }
                     }
                     return true;
@@ -3462,13 +3446,15 @@
                 // и НИ ОДНА строчка остального приложения не изменится.
                 async flush(force) {
                     if (!remoteDriver || !state.playerCode) return;
+                    const password = passwords[state.playerCode];
+                    if (!password) return; // без пароля синхронизироваться нельзя — ждём входа
                     if (!dirty && !force) return;
                     try {
-                        const remote = normalize(await remoteDriver.read(state.playerCode));
+                        const remote = normalize(await remoteDriver.read(state.playerCode, password));
                         state = mergeState(remote, state);
                         profiles[state.playerCode] = state; // merge вернул новый объект — обновляем кэш
-                        localDriver.write({ activeCode: state.playerCode, profiles });
-                        await remoteDriver.write(state.playerCode, state);
+                        localDriver.write({ activeCode: state.playerCode, profiles, passwords });
+                        await remoteDriver.write(state.playerCode, password, state);
                         dirty = false;
                         return true;
                     } catch (e) {
@@ -3487,9 +3473,10 @@
         // =====================================================================
         //  СИНХРОНИЗАЦИЯ С SUPABASE
         // ---------------------------------------------------------------------
-        //  Таблица на сервере: citadel_progress (code text primary key, state jsonb,
-        //  updated_at timestamptz). Ключ ниже — публичный (anon), им нельзя ничего
-        //  сломать без знания конкретного кода ученика — это и есть весь "пароль".
+        //  Таблица citadel_progress (code, password_hash, state, updated_at) недоступна
+        //  напрямую этому ключу — он публичный (anon) и просто открывает доступ к RPC-функциям
+        //  (login/save_state/create_student/...), которые сами проверяют пароль на стороне базы
+        //  и хранят его только как bcrypt-хеш. См. supabase/migration.sql.
         // =====================================================================
         const SUPABASE_URL = 'https://uxmhzwacdhckhmlvqonh.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_dAIiXea2B9CgxqlMANpQqg_1h_rhy_b';
@@ -3498,56 +3485,42 @@
         if (window.supabase) {
             supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             Progress.attachRemote({
-                async read(code) {
-                    const { data, error } = await supabaseClient
-                        .from('citadel_progress')
-                        .select('state')
-                        .eq('code', code)
-                        .maybeSingle();
+                // login() проверяет код+пароль на стороне базы и отдаёт state только при совпадении —
+                // используется и для входа, и для тихих фоновых пересинхронизаций.
+                async read(code, password) {
+                    const { data, error } = await supabaseClient.rpc('login', { p_code: code, p_password: password });
                     if (error) throw error;
-                    return data ? data.state : null;
+                    if (!data || !data.ok) throw new Error(data && data.error || 'auth_failed');
+                    return data.state;
                 },
-                async write(code, state) {
-                    const { error } = await supabaseClient
-                        .from('citadel_progress')
-                        .upsert({ code, state, updated_at: new Date().toISOString() });
+                async write(code, password, state) {
+                    const { data, error } = await supabaseClient.rpc('save_state', {
+                        p_code: code, p_password: password, p_state: state
+                    });
                     if (error) throw error;
+                    if (!data) throw new Error('save_failed');
                 }
             });
         }
 
-        // 6 символов, без похожих на вид символов (0/O, 1/I) — легко продиктовать и ввести
-        // на любой раскладке клавиатуры, независимо от языка интерфейса.
-        function generateStudentCode() {
+        // Случайная заготовка кода — репетитор её видит как подсказку в поле ввода
+        // и может стереть/заменить на что-то своё (TAYA67, ANTON25...). Не единственный
+        // способ получить код, просто чтобы не выдумывать с нуля каждый раз.
+        function suggestCode() {
             const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
             let s = '';
             for (let i = 0; i < 6; i++) s += chars[Math.floor(Math.random() * chars.length)];
             return s;
         }
 
-        function startNewCodeFlow() {
-            const code = generateStudentCode();
-            document.getElementById('newCodeValue').innerText = code;
-            document.getElementById('codeNewResult').dataset.pendingCode = code;
-            document.getElementById('codeNewBlock').style.display = 'none';
-            document.getElementById('codeNewResult').style.display = 'block';
-        }
-
-        async function confirmNewCode() {
-            const code = document.getElementById('codeNewResult').dataset.pendingCode;
-            Progress.setCode(code);
-            Progress.setAccountType('self', null);
-            document.getElementById('codeScreen').style.display = 'none';
-            await Progress.flush(true); // создаёт запись на сервере с текущим (пустым) прогрессом
-        }
-
         async function loginWithExistingCode() {
-            const raw = document.getElementById('codeInputField').value.trim().toUpperCase();
+            const raw = document.getElementById('codeInputField').value.trim();
+            const pw = document.getElementById('passwordInputField').value;
             const errEl = document.getElementById('codeErrorMsg');
             const loadingEl = document.getElementById('codeLoadingMsg');
             errEl.style.display = 'none';
 
-            if (!raw) { errEl.innerText = 'Введите код.'; errEl.style.display = 'block'; return; }
+            if (!raw || !pw) { errEl.innerText = 'Введите код и пароль.'; errEl.style.display = 'block'; return; }
             if (!supabaseClient) {
                 errEl.innerText = 'Нет соединения с сервером. Попробуйте позже.';
                 errEl.style.display = 'block';
@@ -3556,19 +3529,17 @@
 
             loadingEl.style.display = 'block';
             try {
-                const { data, error } = await supabaseClient
-                    .from('citadel_progress').select('state').eq('code', raw).maybeSingle();
+                const { data, error } = await supabaseClient.rpc('login', { p_code: raw, p_password: pw });
                 loadingEl.style.display = 'none';
                 if (error) throw error;
-                if (!data) {
-                    errEl.innerText = 'Такой код не найден. Проверь написание.';
+                if (!data || !data.ok) {
+                    errEl.innerText = 'Неверный код или пароль.';
                     errEl.style.display = 'block';
                     return;
                 }
-                Progress.setCode(raw);
+                Progress.switchTo(raw, pw);
                 document.getElementById('codeScreen').style.display = 'none';
                 await Progress.flush(true);
-                // Прогресс с сервера мог быть больше локального — обновляем видимые счётчики.
                 updateCollectionBadge();
             } catch (e) {
                 loadingEl.style.display = 'none';
@@ -3577,11 +3548,12 @@
             }
         }
 
-        // Показывается один раз — пока на устройстве нет сохранённого кода.
-        // Если код уже есть, просто тихо синхронизируемся в фоне и не мешаем игре.
+        // Показывается, пока на устройстве нет сохранённого входа (код+пароль).
+        // Если оба уже есть, просто тихо синхронизируемся в фоне и не мешаем игре.
         function bootCodeScreen() {
             const existing = Progress.getCode();
-            if (existing) {
+            const pw = Progress.getPassword();
+            if (existing && pw) {
                 Progress.flush(true).then(() => updateCollectionBadge());
                 return;
             }
@@ -4073,6 +4045,8 @@
             document.getElementById('profileTypeVal').innerText =
                 type === 'linked' ? `${ACCOUNT_TYPE_LABELS.linked} ${owner || ''}` : ACCOUNT_TYPE_LABELS.self;
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
+            // Пароль ученику меняет только репетитор (см. "Мои ученики" → 🔑) — сам он не может.
+            document.getElementById('btnChangePassword').style.display = type === 'linked' ? 'none' : '';
             renderProfileList();
             document.getElementById('studentsBanner').innerHTML = '';
             renderStudentsList();
@@ -4104,44 +4078,50 @@
                 row.querySelector('.list-row-name').innerText = p.label || 'Без имени';
                 row.querySelector('.list-row-sub').innerText = p.code;
                 if (!p.active) {
-                    row.querySelector('.list-row-btn').addEventListener('click', () => switchProfileAndReload(p.code));
+                    row.querySelector('.list-row-btn').addEventListener('click', () => profileLoginTo(p.code));
                 }
                 wrap.appendChild(row);
             });
         }
 
+        // Общий вход по коду+паролю: проверяет через RPC, потом переключает профиль и
+        // перезагружает страницу — проще и надёжнее, чем вручную обновлять десяток виджетов.
+        async function loginAndSwitch(code, password) {
+            if (!supabaseClient) { alert('Нет соединения с сервером.'); return false; }
+            const { data, error } = await supabaseClient.rpc('login', { p_code: code, p_password: password });
+            if (error || !data || !data.ok) { alert('Неверный код или пароль.'); return false; }
+            Progress.switchTo(code, password);
+            await Progress.flush(true);
+            location.reload();
+            return true;
+        }
+
+        // Уже известный профиль на этом устройстве — пароль спрашиваем заново, если он
+        // почему-то не сохранился локально (например, после очистки данных браузера).
+        async function profileLoginTo(code) {
+            const pw = Progress.getPassword() || prompt(`Пароль для ${code}:`) || '';
+            if (!pw) return;
+            loginAndSwitch(code, pw);
+        }
+
         async function profileAddExisting() {
-            const raw = (prompt('Код профиля (например, 4K7M9P):') || '').trim().toUpperCase();
+            const raw = (prompt('Код профиля:') || '').trim();
             if (!raw) return;
-            if (!supabaseClient) { alert('Нет соединения с сервером.'); return; }
-            const { data, error } = await supabaseClient.from('citadel_progress').select('state').eq('code', raw).maybeSingle();
-            if (error || !data) { alert('Такой код не найден. Проверь написание.'); return; }
-            switchProfileAndReload(raw);
-        }
-
-        function profileAddNew() {
-            const code = generateStudentCode();
-            Progress.switchTo(code, { accountType: 'self' });
-            Progress.flush(true).then(() => location.reload());
-        }
-
-        // Переключение профиля меняет всё на экране (пазл, статистику, настройки) —
-        // проще и надёжнее перезагрузить страницу, чем вручную обновлять десяток виджетов.
-        function switchProfileAndReload(code) {
-            Progress.switchTo(code);
-            Progress.flush(true).then(() => location.reload());
+            const pw = prompt('Пароль:') || '';
+            if (!pw) return;
+            loginAndSwitch(raw, pw);
         }
 
         // --- Мои ученики ---
         async function fetchMyStudents() {
             const myCode = Progress.getCode();
-            if (!myCode || !supabaseClient) return [];
-            const { data, error } = await supabaseClient
-                .from('citadel_progress')
-                .select('code, state')
-                .eq('state->>ownerCode', myCode);
-            if (error || !data) return [];
-            return data.map(row => ({ code: row.code, state: row.state || {} }));
+            const myPw = Progress.getPassword();
+            if (!myCode || !myPw || !supabaseClient) return [];
+            const { data, error } = await supabaseClient.rpc('list_my_students', {
+                p_tutor_code: myCode, p_tutor_password: myPw
+            });
+            if (error || !data || !data.ok) return [];
+            return data.students || [];
         }
 
         async function renderStudentsList() {
@@ -4165,11 +4145,13 @@
                         <div class="list-row-name"></div>
                         <div class="list-row-sub"></div>
                     </div>
-                    <button class="list-row-btn">Смотреть</button>
+                    <button class="list-row-btn" data-act="view">Смотреть</button>
+                    <button class="list-row-btn" data-act="pw">🔑</button>
                 `;
                 row.querySelector('.list-row-name').innerText = st.profileLabel || s.code;
                 row.querySelector('.list-row-sub').innerText = `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}`;
-                row.querySelector('.list-row-btn').addEventListener('click', () => viewStudentStats(s.code, st));
+                row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, st));
+                row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
                 wrap.appendChild(row);
             });
         }
@@ -4184,27 +4166,86 @@
         async function addStudent() {
             if (!supabaseClient) { alert('Нет соединения с сервером.'); return; }
             const myCode = Progress.getCode();
-            if (!myCode) { alert('Сначала войди под своим кодом.'); return; }
+            const myPw = Progress.getPassword();
+            if (!myCode || !myPw) { alert('Сначала войди под своим кодом.'); return; }
+
+            const code = (prompt('Код ученика (6–20 символов, можно своё имя+число):', suggestCode()) || '').trim();
+            if (!code) return;
+            const password = prompt('Пароль ученику (минимум 4 символа):') || '';
+            if (!password) return;
             const label = (prompt('Имя ученика (необязательно):') || '').trim();
-            const code = generateStudentCode();
-            const fresh = Progress.freshState(code, { accountType: 'linked', ownerCode: myCode, profileLabel: label });
+
             try {
-                const { error } = await supabaseClient
-                    .from('citadel_progress')
-                    .upsert({ code, state: fresh, updated_at: new Date().toISOString() });
+                const { data, error } = await supabaseClient.rpc('create_student', {
+                    p_tutor_code: myCode, p_tutor_password: myPw,
+                    p_student_code: code, p_student_password: password, p_label: label
+                });
                 if (error) throw error;
+                if (!data || !data.ok) {
+                    const messages = {
+                        tutor_auth_failed: 'Не удалось подтвердить твой пароль — попробуй войти заново.',
+                        code_taken: 'Этот код уже занят, придумай другой.',
+                        password_too_short: 'Пароль слишком короткий — минимум 4 символа.'
+                    };
+                    alert(messages[data && data.error] || 'Не удалось создать ученика.');
+                    return;
+                }
                 const banner = document.getElementById('studentsBanner');
                 banner.innerHTML = '';
                 const box = document.createElement('div');
                 box.className = 'menu-stat-card';
                 box.style.textAlign = 'center';
                 box.style.marginBottom = '10px';
-                box.innerHTML = `<div class="menu-code-line"></div><div class="menu-stat-label" style="margin-top:6px;">Код нового ученика — передай его, чтобы он вошёл</div>`;
+                box.innerHTML = `<div class="menu-code-line"></div><div class="menu-stat-label" style="margin-top:6px;">Код и пароль ученика — передай их, чтобы он вошёл</div>`;
                 box.querySelector('.menu-code-line').innerText = code;
                 banner.appendChild(box);
                 renderStudentsList();
             } catch (e) {
                 alert('Не удалось создать ученика. Проверь интернет.');
+            }
+        }
+
+        async function resetStudentPassword(code) {
+            const myCode = Progress.getCode();
+            const myPw = Progress.getPassword();
+            const newPw = prompt(`Новый пароль для ${code} (минимум 4 символа):`) || '';
+            if (!newPw) return;
+            try {
+                const { data, error } = await supabaseClient.rpc('reset_student_password', {
+                    p_tutor_code: myCode, p_tutor_password: myPw,
+                    p_student_code: code, p_new_password: newPw
+                });
+                if (error) throw error;
+                if (!data || !data.ok) { alert('Не удалось сменить пароль.'); return; }
+                alert(`Новый пароль для ${code}: ${newPw}`);
+            } catch (e) {
+                alert('Не удалось подключиться. Проверь интернет.');
+            }
+        }
+
+        // Есть только у self-аккаунтов — сервер сам отклонит вызов для linked-аккаунта,
+        // даже если кто-то дёрнет эту функцию из консоли браузера в обход интерфейса.
+        async function changeOwnPassword() {
+            const code = Progress.getCode();
+            const oldPw = Progress.getPassword() || prompt('Текущий пароль:') || '';
+            if (!oldPw) return;
+            const newPw = prompt('Новый пароль (минимум 4 символа):') || '';
+            if (!newPw) return;
+            try {
+                const { data, error } = await supabaseClient.rpc('change_own_password', {
+                    p_code: code, p_old_password: oldPw, p_new_password: newPw
+                });
+                if (error) throw error;
+                if (!data || !data.ok) {
+                    alert(data && data.error === 'not_allowed'
+                        ? 'Пароль ученика меняет только репетитор.'
+                        : 'Не удалось сменить пароль — проверь текущий пароль.');
+                    return;
+                }
+                Progress.setPassword(newPw);
+                alert('Пароль изменён.');
+            } catch (e) {
+                alert('Не удалось подключиться. Проверь интернет.');
             }
         }
 
