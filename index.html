@@ -630,13 +630,12 @@
                        style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
                               background:rgba(255,255,255,0.06); color:white; box-sizing:border-box; text-align:center; font-size:0.95rem;">
                 <button class="menu-btn" style="margin-top:8px;" onclick="saveProfileLabel()">💾 <span>Сохранить имя</span></button>
-                <button class="menu-btn" id="btnChangePassword" style="margin-top:8px;" onclick="changeOwnPassword()">🔒 <span>Сменить пароль</span></button>
             </div>
 
             <div class="config-section">
                 <div class="config-section-title">Профили на этом устройстве</div>
                 <div id="profileList"></div>
-                <button class="menu-btn" onclick="profileAddExisting()">🔑 <span>Добавить по коду</span></button>
+                <button class="menu-btn" onclick="profileAddExisting()">🔑 <span>Добавить по логину</span></button>
             </div>
 
             <div class="config-section">
@@ -4026,8 +4025,6 @@
             document.getElementById('profileTypeVal').innerText =
                 type === 'linked' ? `${ACCOUNT_TYPE_LABELS.linked} ${owner || ''}` : ACCOUNT_TYPE_LABELS.self;
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
-            // Пароль ученику меняет только репетитор (см. "Мои ученики" → 🔑) — сам он не может.
-            document.getElementById('btnChangePassword').style.display = type === 'linked' ? 'none' : '';
             renderProfileList();
             document.getElementById('studentsBanner').innerHTML = '';
             renderStudentsList();
@@ -4086,7 +4083,7 @@
         }
 
         async function profileAddExisting() {
-            const raw = (prompt('Код профиля:') || '').trim();
+            const raw = (prompt('Логин профиля:') || '').trim();
             if (!raw) return;
             const pw = prompt('Пароль:') || '';
             if (!pw) return;
@@ -4148,9 +4145,9 @@
             if (!supabaseClient) { alert('Нет соединения с сервером.'); return; }
             const myCode = Progress.getCode();
             const myPw = Progress.getPassword();
-            if (!myCode || !myPw) { alert('Сначала войди под своим кодом.'); return; }
+            if (!myCode || !myPw) { alert('Сначала войди под своим логином.'); return; }
 
-            const code = (prompt('Код ученика (6–20 символов, можно своё имя+число):', suggestCode()) || '').trim();
+            const code = (prompt('Логин ученика (6–20 символов, можно своё имя+число):', suggestCode()) || '').trim();
             if (!code) return;
             const password = prompt('Пароль ученику (минимум 4 символа):') || '';
             if (!password) return;
@@ -4199,32 +4196,6 @@
                 if (error) throw error;
                 if (!data || !data.ok) { alert('Не удалось сменить пароль.'); return; }
                 alert(`Новый пароль для ${code}: ${newPw}`);
-            } catch (e) {
-                alert('Не удалось подключиться. Проверь интернет.');
-            }
-        }
-
-        // Есть только у self-аккаунтов — сервер сам отклонит вызов для linked-аккаунта,
-        // даже если кто-то дёрнет эту функцию из консоли браузера в обход интерфейса.
-        async function changeOwnPassword() {
-            const code = Progress.getCode();
-            const oldPw = Progress.getPassword() || prompt('Текущий пароль:') || '';
-            if (!oldPw) return;
-            const newPw = prompt('Новый пароль (минимум 4 символа):') || '';
-            if (!newPw) return;
-            try {
-                const { data, error } = await supabaseClient.rpc('change_own_password', {
-                    p_code: code, p_old_password: oldPw, p_new_password: newPw
-                });
-                if (error) throw error;
-                if (!data || !data.ok) {
-                    alert(data && data.error === 'not_allowed'
-                        ? 'Пароль ученика меняет только репетитор.'
-                        : 'Не удалось сменить пароль — проверь текущий пароль.');
-                    return;
-                }
-                Progress.setPassword(newPw);
-                alert('Пароль изменён.');
             } catch (e) {
                 alert('Не удалось подключиться. Проверь интернет.');
             }
