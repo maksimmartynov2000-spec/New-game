@@ -215,6 +215,49 @@ begin
 end;
 $$;
 
+-- 11. Удалить СВОЙ аккаунт целиком (не только прогресс).
+create or replace function delete_own_account(p_code text, p_password text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_hash text;
+begin
+  select password_hash into v_hash from citadel_progress where code = p_code;
+  if v_hash is null or v_hash <> crypt(p_password, v_hash) then
+    return jsonb_build_object('ok', false, 'error', 'bad_credentials');
+  end if;
+  delete from citadel_progress where code = p_code;
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
+-- 12. Репетитор удаляет СВОЕГО ученика целиком (проверяет владение через ownerCode).
+create or replace function delete_student(p_tutor_code text, p_tutor_password text, p_student_code text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  v_tutor_hash text;
+  v_owner text;
+begin
+  select password_hash into v_tutor_hash from citadel_progress where code = p_tutor_code;
+  if v_tutor_hash is null or v_tutor_hash <> crypt(p_tutor_password, v_tutor_hash) then
+    return jsonb_build_object('ok', false, 'error', 'tutor_auth_failed');
+  end if;
+  select state->>'ownerCode' into v_owner from citadel_progress where code = p_student_code;
+  if v_owner is null or v_owner <> p_tutor_code then
+    return jsonb_build_object('ok', false, 'error', 'not_your_student');
+  end if;
+  delete from citadel_progress where code = p_student_code;
+  return jsonb_build_object('ok', true);
+end;
+$$;
+
 -- =====================================================================
 --  Закрываем прямой доступ к таблице — всё общение только через функции
 --  выше (они помечены SECURITY DEFINER и поэтому продолжают работать).
@@ -244,3 +287,5 @@ grant execute on function create_student(text, text, text, text, text) to anon;
 grant execute on function list_my_students(text, text) to anon;
 grant execute on function reset_student_password(text, text, text, text) to anon;
 grant execute on function change_own_password(text, text, text) to anon;
+grant execute on function delete_own_account(text, text) to anon;
+grant execute on function delete_student(text, text, text) to anon;
