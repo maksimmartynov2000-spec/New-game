@@ -4919,46 +4919,10 @@
             if (document.visibilityState === 'hidden') Progress.flush();
         });
 
-        // ===== ВОССТАНОВЛЕНИЕ НАСТРОЕК ПРИ ОТКРЫТИИ =====
-        // Не запускает игру автоматически — просто заранее заполняет экран настройки тем, что
-        // выбирали в прошлый раз, чтобы не собирать конфигурацию заново при каждом заходе.
-        // Ученик/репетитор всё ещё видит экран настройки и может изменить что угодно перед стартом.
-        function restoreSavedConfig() {
-            const saved = Progress.getConfig();
-            if (!saved || !saved.category || !saved.numberType || !saved.operations) return;
-
-            exampleConfig.category = saved.category;
-            // Десятичные и обыкновенные дроби всегда положительные — если в старом сохранении
-            // (до этого правила) затесались отрицательные, тихо поправляем на положительные,
-            // а не оставляем невозможную комбинацию.
-            exampleConfig.numberType = (saved.category !== 'integer') ? 'positive' : saved.numberType;
-            exampleConfig.operations = { ...saved.operations };
-            // Защита от рассинхрона со старыми сохранениями: особые режимы дробей не должны
-            // просочиться в другую категорию (они существуют только для 'fraction').
-            if (saved.category !== 'fraction') {
-                FRAC_ONLY_OPS.forEach(op => delete exampleConfig.operations[op]);
-            }
-
-            document.querySelectorAll('.btn-category').forEach(b => {
-                b.classList.toggle('selected',
-                    b.getAttribute('data-value') === exampleConfig.category &&
-                    b.getAttribute('data-sign') === exampleConfig.numberType);
-            });
-            document.getElementById('fracSpecialBlock').style.display = saved.category === 'fraction' ? 'block' : 'none';
-
-            document.querySelectorAll('.btn-op').forEach(b => {
-                b.classList.toggle('selected', b.getAttribute('data-op') in exampleConfig.operations);
-            });
-
-            updateFracOnlyOpAvailability();
-            renderDifficultyList(); // сама подсветит нужный уровень звёзд — читает exampleConfig.operations
-            updateConfigValidity();
-
-            // Категория уже выбрана — сразу показываем второй экран настройки, а не первый шаг.
-            document.getElementById('categoryStepScreen').style.display = 'none';
-            document.getElementById('restStepScreen').style.display = 'flex';
-        }
-        restoreSavedConfig();
+        // Экран настройки испытания всегда открывается заново, с первого шага — не
+        // подставляем прошлый выбор режимов/сложности, ученик/репетитор выбирает
+        // заново каждый раз (Progress.setConfig() всё ещё сохраняет последний выбор
+        // в state — это часть схемы синхронизации, но на экран он больше не влияет).
         bootCodeScreen();
     </script>
 </body>
