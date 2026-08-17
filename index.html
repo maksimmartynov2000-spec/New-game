@@ -648,6 +648,7 @@
             <div class="config-section">
                 <div class="config-section-title">Опасная зона</div>
                 <button class="menu-btn danger" onclick="confirmHardReset()">🗑️ <span>Сбросить прогресс (новая игра)</span></button>
+                <button class="menu-btn danger" style="margin-top:8px;" onclick="confirmDeleteOwnAccount()">⚠️ <span>Удалить профиль полностью</span></button>
             </div>
         </div>
     </div>
@@ -3350,6 +3351,11 @@
                     persistLocal();
                     return true;
                 },
+                // Полностью стирает локальное хранилище этого устройства — для случая,
+                // когда сам аккаунт удалён на сервере и хранить его кэш больше незачем.
+                wipeAllLocal() {
+                    try { localStorage.removeItem(LOCAL_KEY); } catch (e) { /* хранилище недоступно */ }
+                },
                 setProfileLabel(label) { state.profileLabel = label || ''; persistLocal(); },
                 getProfileLabel() { return state.profileLabel || ''; },
 
@@ -4138,11 +4144,13 @@
                     </div>
                     <button class="list-row-btn" data-act="view">Смотреть</button>
                     <button class="list-row-btn" data-act="pw">🔑</button>
+                    <button class="list-row-btn" data-act="del">🗑️</button>
                 `;
                 row.querySelector('.list-row-name').innerText = st.profileLabel || s.code;
                 row.querySelector('.list-row-sub').innerText = `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}`;
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, st));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
+                row.querySelector('[data-act="del"]').addEventListener('click', () => deleteStudentAccount(s.code));
                 wrap.appendChild(row);
             });
         }
@@ -4215,6 +4223,25 @@
             }
         }
 
+        async function deleteStudentAccount(code) {
+            const myCode = Progress.getCode();
+            const myPw = Progress.getPassword();
+            const ok = confirm(`Точно удалить ученика «${code}» насовсем? Весь его прогресс и логин пропадут без возможности восстановить.`);
+            if (!ok) return;
+            try {
+                const { data, error } = await supabaseClient.rpc('delete_student', {
+                    p_tutor_code: myCode, p_tutor_password: myPw, p_student_code: code
+                });
+                if (error) throw error;
+                if (!data || !data.ok) { alert('Не удалось удалить ученика.'); return; }
+                Progress.forgetProfile(code); // если он был и в списке профилей на этом устройстве
+                renderStudentsList();
+                renderProfileList();
+            } catch (e) {
+                alert('Не удалось подключиться. Проверь интернет.');
+            }
+        }
+
         // --- Сброс прогресса ---
         async function confirmHardReset() {
             const code = Progress.getCode();
@@ -4223,6 +4250,27 @@
             if (!ok) return;
             await Progress.hardReset();
             location.reload();
+        }
+
+        // Необратимо: удаляет саму запись на сервере, не только прогресс. Просит
+        // повторно ввести логин текстом — обычного confirm() тут маловато для того,
+        // что нельзя отменить.
+        async function confirmDeleteOwnAccount() {
+            const code = Progress.getCode();
+            const pw = Progress.getPassword();
+            if (!code || !pw) return;
+            const typed = prompt(`Это удалит профиль «${code}» насовсем — весь прогресс и сам логин, без возможности восстановить. Чтобы подтвердить, введи логин ещё раз:`);
+            if (typed === null) return;
+            if (typed !== code) { alert('Логин не совпадает — отменено.'); return; }
+            try {
+                const { data, error } = await supabaseClient.rpc('delete_own_account', { p_code: code, p_password: pw });
+                if (error) throw error;
+                if (!data || !data.ok) { alert('Не удалось удалить профиль.'); return; }
+                Progress.wipeAllLocal();
+                location.reload();
+            } catch (e) {
+                alert('Не удалось подключиться. Проверь интернет.');
+            }
         }
 
         // Смена настроек без перезагрузки: пазл и весь накопленный прогресс остаются на месте,
