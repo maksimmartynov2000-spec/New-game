@@ -3326,6 +3326,9 @@
                 get() { return state; },
                 getCode() { return state.playerCode; },
                 getPassword() { return passwords[state.playerCode] || null; },
+                // Пароль ЛЮБОГО известного устройству профиля, не только активного —
+                // нужен при переключении на другой уже знакомый профиль.
+                getPasswordFor(code) { return passwords[code] || null; },
                 setPassword(pw) { if (state.playerCode) { passwords[state.playerCode] = pw; persistLocal(); } },
 
                 // --- профили на этом устройстве ---
@@ -4087,7 +4090,7 @@
         // Уже известный профиль на этом устройстве — пароль спрашиваем заново, если он
         // почему-то не сохранился локально (например, после очистки данных браузера).
         async function profileLoginTo(code) {
-            const pw = Progress.getPassword() || prompt(`Пароль для ${code}:`) || '';
+            const pw = Progress.getPasswordFor(code) || prompt(`Пароль для ${code}:`) || '';
             if (!pw) return;
             loginAndSwitch(code, pw);
         }
