@@ -6,7 +6,9 @@
 --  код и пароль репетитора.
 -- =====================================================================
 
--- 1. Хеширование паролей (bcrypt через pgcrypto)
+-- 1. Хеширование паролей (bcrypt через pgcrypto). На Supabase это расширение
+--    ставится в схему extensions, а не public — поэтому ниже у всех функций
+--    в search_path явно добавлена и extensions, иначе crypt()/gen_salt() не найдутся.
 create extension if not exists pgcrypto;
 
 -- 2. Поле для хеша пароля. Сам пароль в базе никогда не хранится как текст.
@@ -45,7 +47,7 @@ create or replace function login(p_code text, p_password text)
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_row citadel_progress%rowtype;
@@ -67,7 +69,7 @@ create or replace function save_state(p_code text, p_password text, p_state json
 returns boolean
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_hash text;
@@ -89,7 +91,7 @@ create or replace function create_student(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_tutor_hash text;
@@ -132,7 +134,7 @@ create or replace function list_my_students(p_tutor_code text, p_tutor_password 
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_tutor_hash text;
@@ -157,7 +159,7 @@ create or replace function reset_student_password(
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_tutor_hash text;
@@ -184,7 +186,7 @@ create or replace function change_own_password(p_code text, p_old_password text,
 returns jsonb
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_hash text;
