@@ -3177,19 +3177,25 @@
                 out.updatedAt = Math.max(a.updatedAt || 0, b.updatedAt || 0);
 
                 // Имя, тип аккаунта и владелец — не прогресс, тут тоже побеждает более свежая запись.
-                out.profileLabel = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.profileLabel : a.profileLabel) || '';
-                out.accountType = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.accountType : a.accountType) || 'self';
-                out.ownerCode = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.ownerCode : a.ownerCode) || null;
+                // Строго ">" (не ">="): при первом входе на новый код на устройстве локальная
+                // заготовка тоже стартует с updatedAt=0 — ровно как только что созданный сервером
+                // аккаунт ученика. При ничьей должен побеждать сервер, иначе пустая локальная
+                // заготовка (accountType:'self' по умолчанию) затирает настоящие accountType/
+                // ownerCode/имя, которые репетитор задал при создании — и это ещё и пишется
+                // обратно на сервер при следующем flush(), реально портя запись.
+                out.profileLabel = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.profileLabel : a.profileLabel) || '';
+                out.accountType = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.accountType : a.accountType) || 'self';
+                out.ownerCode = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.ownerCode : a.ownerCode) || null;
 
                 // Настройки — не прогресс, здесь честно побеждает более свежая запись.
-                out.config = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.config : a.config) || null;
+                out.config = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.config : a.config) || null;
 
                 // Кусочки пазла: если это одна и та же картинка — берём больший прогресс,
                 // если разные — берём тот, что записан позже.
                 if (a.puzzle && b.puzzle && a.puzzle.idx === b.puzzle.idx) {
                     out.puzzle = { idx: a.puzzle.idx, filled: Math.max(a.puzzle.filled || 0, b.puzzle.filled || 0) };
                 } else {
-                    out.puzzle = ((b.updatedAt || 0) >= (a.updatedAt || 0) ? b.puzzle : a.puzzle) || { idx: null, filled: 0 };
+                    out.puzzle = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.puzzle : a.puzzle) || { idx: null, filled: 0 };
                 }
 
                 // Коллекции: объединение — собранное на одном устройстве остаётся собранным.
@@ -3300,7 +3306,15 @@
                     state = s;
                     profiles[code] = state;
                 }
-                persistLocal();
+                // Не через persistLocal() — это просто переключение, не реальное изменение
+                // данных, и оно не должно штамповать updatedAt=Date.now() на свежую пустую
+                // заготовку. Если бы штамповало — заготовка (accountType:'self' по умолчанию)
+                // выглядела бы "новее" настоящих данных с сервера при первом же flush() после
+                // входа в только что созданный репетитором аккаунт (там updatedAt=0) и затирала
+                // бы их — ровно так и произошло с студенческим аккаунтом, который "потерял"
+                // привязку к репетитору после первого входа.
+                localDriver.write({ activeCode: state.playerCode, profiles, passwords });
+                dirty = true;
             }
 
             return {
