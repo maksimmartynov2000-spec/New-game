@@ -59,6 +59,10 @@
         @supports (justify-content: safe center) {
             .modal-screen { justify-content: safe center; }
         }
+        /* Экран прокручивается сам (overflow-y выше), поэтому сжимать содержимое ему нельзя:
+           по умолчанию флекс-колонка ужимает детей, когда они не влезают, и блоки начинают
+           наезжать друг на друга вместо того, чтобы уехать вниз под прокрутку. */
+        .modal-screen > * { flex-shrink: 0; }
         /* Боковые отступы держат заголовок подальше от кнопки ☰/◀️ в углу —
            без них при крупном шрифте перенесённый текст заезжает под кнопку. */
         .start-title { color: var(--gold); font-size: 1.8rem; text-align: center; margin-bottom: 5px; text-shadow: 0 0 10px rgba(255,215,0,0.2); padding: 0 54px; }
@@ -132,6 +136,58 @@
         .ach-main { display: flex; flex-direction: column; min-width: 0; }
         .ach-title { font-size: 0.88rem; font-weight: bold; color: #f1f5f9; }
         .ach-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
+
+        /* ===== ЛИСТ ОТЧЁТА ДЛЯ РОДИТЕЛЕЙ =====
+           Светлый намеренно: его отправляют скриншотом человеку, который в приложение
+           не заходит и игрового контекста не знает. Тёмный игровой экран в переписке
+           читается плохо и выглядит как скрин из игры, а не как отчёт о занятиях. */
+        .report-sheet {
+            width: 100%; max-width: 450px; background: #ffffff; color: #1e293b;
+            border-radius: 14px; padding: 18px; box-sizing: border-box;
+            font-size: 0.9rem; line-height: 1.45;
+        }
+        .report-head { border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; margin-bottom: 14px; }
+        .report-title { font-size: 1.25rem; font-weight: 800; color: #0f172a; }
+        .report-period { font-size: 0.82rem; color: #64748b; margin-top: 2px; }
+        .report-block { margin-bottom: 16px; }
+        .report-block:last-child { margin-bottom: 0; }
+        .report-block-title {
+            font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.06em; color: #0284c7; margin-bottom: 8px;
+        }
+        .report-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .report-cell {
+            background: #f1f5f9; border-radius: 10px; padding: 10px; text-align: center;
+        }
+        .report-cell b { display: block; font-size: 1.35rem; color: #0f172a; line-height: 1.15; }
+        .report-cell span { font-size: 0.72rem; color: #64748b; }
+        .report-metric {
+            display: flex; align-items: baseline; gap: 8px;
+            padding: 7px 0; border-bottom: 1px solid #f1f5f9;
+        }
+        .report-metric:last-child { border-bottom: none; }
+        .report-metric-name { flex: 1; color: #475569; font-size: 0.85rem; }
+        .report-metric-val { font-weight: 700; color: #0f172a; white-space: nowrap; }
+        .report-metric-val .arrow { font-weight: 800; margin-left: 4px; }
+        .report-metric-val .arrow.up { color: #059669; }
+        .report-metric-val .arrow.down { color: #dc2626; }
+        /* Недельный график: чистый CSS, никаких библиотек */
+        .report-chart { display: flex; align-items: flex-end; gap: 6px; height: 76px; margin-top: 12px; }
+        .rep-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+        .rep-bar-space { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+        .rep-bar { width: 100%; background: #38bdf8; border-radius: 4px 4px 0 0; min-height: 2px; }
+        .rep-bar-label { font-size: 0.6rem; color: #94a3b8; margin-top: 4px; white-space: nowrap; }
+        .rep-bar-val { font-size: 0.62rem; color: #475569; font-weight: 700; margin-bottom: 2px; }
+        .report-topic {
+            display: flex; align-items: center; gap: 8px; padding: 6px 0;
+        }
+        .report-topic-name { flex: 1; font-size: 0.85rem; color: #334155; }
+        .report-topic-pct { font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+        .report-sub-head { font-size: 0.74rem; font-weight: 700; color: #64748b; margin: 8px 0 2px; }
+        .report-ach { font-size: 0.85rem; color: #334155; padding: 4px 0; }
+        .report-note { font-size: 0.72rem; color: #94a3b8; margin-top: 8px; }
+        .report-comment { font-size: 0.88rem; color: #334155; white-space: pre-wrap; }
+        .report-empty { font-size: 0.82rem; color: #94a3b8; }
         .btn-config-continue {
             width: 100%; max-width: 450px; background: linear-gradient(45deg, #0284c7, #06b6d4);
             border: none; color: white; padding: 15px; font-size: 1.05rem;
@@ -661,6 +717,66 @@
         <p class="start-subtitle" id="achievementsSubtitle">Награды за успехи</p>
         <div class="config-container">
             <div id="achievementsList"></div>
+        </div>
+    </div>
+
+    <!-- Отчёт для родителей: намеренно светлый и «документный», а не игровой —
+         его отправляют скриншотом человеку, который в приложение не заходит. -->
+    <div class="modal-screen" id="reportScreen" style="z-index:240; display:none;">
+        <button class="start-menu-btn" onclick="closeReportScreen()" aria-label="Назад">◀️</button>
+        <h1 class="start-title">📄 Отчёт</h1>
+        <p class="start-subtitle">Для родителей</p>
+
+        <div class="config-container">
+            <div class="period-row" id="reportPeriodRow">
+                <button class="btn-period" data-period="7">7 дней</button>
+                <button class="btn-period selected" data-period="30">30 дней</button>
+                <button class="btn-period" data-period="90">90 дней</button>
+            </div>
+        </div>
+
+        <!-- Сам лист отчёта -->
+        <div class="report-sheet" id="reportSheet">
+            <div class="report-head">
+                <div class="report-title" id="reportName">—</div>
+                <div class="report-period" id="reportPeriod">—</div>
+            </div>
+
+            <div class="report-block">
+                <div class="report-block-title">Занятия</div>
+                <div class="report-grid">
+                    <div class="report-cell"><b id="repDays">0</b><span>дней занимался</span></div>
+                    <div class="report-cell"><b id="repTime">0 м</b><span>всего времени</span></div>
+                    <div class="report-cell"><b id="repStreak">0</b><span>дней подряд</span></div>
+                    <div class="report-cell"><b id="repSolved">0</b><span>примеров решено</span></div>
+                </div>
+            </div>
+
+            <div class="report-block" id="repProgressBlock">
+                <div class="report-block-title">Динамика за период</div>
+                <div id="repProgressRows"></div>
+                <div class="report-chart" id="repChart"></div>
+                <div class="report-note" id="repProgressNote"></div>
+            </div>
+
+            <div class="report-block" id="repTopicsBlock">
+                <div class="report-block-title">Темы</div>
+                <div id="repTopics"></div>
+            </div>
+
+            <div class="report-block" id="repAchBlock">
+                <div class="report-block-title">Достижения за период</div>
+                <div id="repAch"></div>
+            </div>
+
+            <div class="report-block" id="repNoteBlock">
+                <div class="report-block-title">Комментарий репетитора</div>
+                <div class="report-comment" id="repNoteText"></div>
+            </div>
+        </div>
+
+        <div class="config-container" style="margin-top:12px;">
+            <button class="menu-btn" onclick="editReportNote()">✏️ <span>Написать комментарий</span></button>
         </div>
     </div>
 
@@ -3205,7 +3321,12 @@
                     // Значение — компактная корзина, см. emptyDay().
                     daily: {},
 
-                    unlocks: {}            // достижения: { id: 'ГГГГ-ММ-ДД' } — дата первого получения
+                    unlocks: {},           // достижения: { id: 'ГГГГ-ММ-ДД' } — дата первого получения
+
+                    // Заметки репетитора об учениках: { кодУченика: текст }. Лежат в аккаунте
+                    // РЕПЕТИТОРА, а не ученика — это рабочая запись преподавателя, и ученик
+                    // не должен её видеть, открыв своё приложение.
+                    studentNotes: {}
                 };
             }
 
@@ -3301,6 +3422,11 @@
 
                 // Настройки — не прогресс, здесь честно побеждает более свежая запись.
                 out.config = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.config : a.config) || null;
+
+                // Заметки об учениках — тоже не прогресс, а текст: побеждает более свежая
+                // запись целиком. Сливать пословно нечего, а склеивать две версии одной
+                // заметки было бы хуже, чем взять ту, что писали последней.
+                out.studentNotes = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.studentNotes : a.studentNotes) || {};
 
                 // Кусочки пазла: если это одна и та же картинка — берём больший прогресс,
                 // если разные — берём тот, что записан позже.
@@ -3436,6 +3562,7 @@
                 });
                 pruneDaily(s.daily);
                 s.unlocks = toUnlockMap(s.unlocks);
+                if (!s.studentNotes || typeof s.studentNotes !== 'object' || Array.isArray(s.studentNotes)) s.studentNotes = {};
                 if (typeof s.profileLabel !== 'string') s.profileLabel = '';
                 if (s.accountType !== 'linked') s.accountType = 'self';
                 if (typeof s.ownerCode !== 'string') s.ownerCode = null;
@@ -3690,6 +3817,15 @@
                 // --- журнал по дням ---
                 getDaily() { return state.daily || {}; },
                 dayKey(d) { return dayKey(d); },
+
+                // --- заметки репетитора об учениках ---
+                getStudentNote(code) { return (state.studentNotes || {})[code] || ''; },
+                setStudentNote(code, text) {
+                    if (!code) return;
+                    if (!state.studentNotes || typeof state.studentNotes !== 'object') state.studentNotes = {};
+                    if (text) state.studentNotes[code] = text; else delete state.studentNotes[code];
+                    persistLocal();
+                },
 
                 // --- скины и достижения ---
                 isUnlocked(id) { return Object.prototype.hasOwnProperty.call(state.unlocks || {}, id); },
@@ -4635,6 +4771,222 @@
             });
         }
 
+        // ===================== ОТЧЁТ ДЛЯ РОДИТЕЛЕЙ =====================
+        // Считается из того же журнала по дням, что и статистика, но подаётся иначе:
+        // сначала усилие (то, что зависит от ребёнка), потом результат, и формулировки
+        // от достигнутого, а не от провалов — это документ для родителя, а не разбор ошибок.
+        let reportPeriod = 30;
+        let reportStudent = null;   // { code, label, state }
+
+        document.getElementById('reportPeriodRow').addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-period');
+            if (!btn) return;
+            reportPeriod = Number(btn.getAttribute('data-period'));
+            renderReport();
+        });
+
+        async function openReportFor(code, summary) {
+            const st = await fetchStudentState(code, summary && summary.state);
+            if (!st) { alert('Не удалось загрузить данные ученика.'); return; }
+            reportStudent = { code, label: (summary && summary.label) || st.profileLabel || code, state: st };
+            closeProfileScreen();
+            renderReport();
+            document.getElementById('reportScreen').style.display = 'flex';
+        }
+        function closeReportScreen() {
+            document.getElementById('reportScreen').style.display = 'none';
+            openProfileScreen();
+        }
+
+        function editReportNote() {
+            if (!reportStudent) return;
+            const cur = Progress.getStudentNote(reportStudent.code);
+            const text = prompt('Комментарий для родителей (что отметить, над чем работаем):', cur);
+            if (text === null) return;
+            Progress.setStudentNote(reportStudent.code, text.trim());
+            Progress.flush(true);
+            renderReport();
+        }
+
+        function renderReport() {
+            if (!reportStudent) return;
+            const st = reportStudent.state;
+            const daily = st.daily || {};
+            const today = Progress.dayKey();
+            const fromKey = shiftDayKey(today, -(reportPeriod - 1));
+
+            document.querySelectorAll('#reportPeriodRow .btn-period').forEach(b => {
+                b.classList.toggle('selected', Number(b.getAttribute('data-period')) === reportPeriod);
+            });
+
+            const cur = aggregateDaily(daily, fromKey, today);
+            document.getElementById('reportName').innerText = reportStudent.label;
+            document.getElementById('reportPeriod').innerText =
+                `${formatDayKeyHuman(fromKey)} — ${formatDayKeyHuman(today)}`;
+
+            // --- Занятия ---
+            document.getElementById('repDays').innerText = `${cur.days} / ${reportPeriod}`;
+            document.getElementById('repTime').innerText = formatDuration(cur.s);
+            document.getElementById('repStreak').innerText = longestStreak(daily, fromKey, today);
+            document.getElementById('repSolved').innerText = cur.c + cur.w;
+
+            // --- Динамика: первая половина периода против второй ---
+            // Сравниваем именно половины, а не первый день с последним: один неудачный
+            // день иначе переворачивал бы всю картину.
+            const midKey = shiftDayKey(fromKey, Math.floor(reportPeriod / 2) - 1);
+            const firstHalf = aggregateDaily(daily, fromKey, midKey);
+            const secondHalf = aggregateDaily(daily, shiftDayKey(midKey, 1), today);
+            const rows = document.getElementById('repProgressRows');
+            const note = document.getElementById('repProgressNote');
+            rows.innerHTML = '';
+            note.innerText = '';
+
+            const MIN_HALF = 15; // ниже этого сравнение половин — просто шум
+            const addMetric = (name, value, arrowHtml) => {
+                const el = document.createElement('div');
+                el.className = 'report-metric';
+                el.innerHTML = `<span class="report-metric-name"></span><span class="report-metric-val"></span>`;
+                el.querySelector('.report-metric-name').innerText = name;
+                el.querySelector('.report-metric-val').innerHTML = value + (arrowHtml || '');
+                rows.appendChild(el);
+            };
+
+            const accA = accuracyPct(firstHalf.c, firstHalf.w, MIN_HALF);
+            const accB = accuracyPct(secondHalf.c, secondHalf.w, MIN_HALF);
+            const accTotal = accuracyPct(cur.c, cur.w, 1);
+            if (accA !== null && accB !== null) {
+                const d = accB - accA;
+                const cls = d >= 0 ? 'up' : 'down';
+                const sign = d > 0 ? '+' : '';
+                addMetric('Точность', `${accA}% → ${accB}%`,
+                    d !== 0 ? ` <span class="arrow ${cls}">${sign}${d}</span>` : '');
+            } else if (accTotal !== null) {
+                addMetric('Точность', `${accTotal}%`, '');
+            }
+
+            const spA = firstHalf.mc >= MIN_HALF ? firstHalf.ms / firstHalf.mc / 1000 : null;
+            const spB = secondHalf.mc >= MIN_HALF ? secondHalf.ms / secondHalf.mc / 1000 : null;
+            if (spA !== null && spB !== null) {
+                const d = spB - spA;
+                const cls = d <= 0 ? 'up' : 'down';
+                addMetric('Скорость ответа', `${spA.toFixed(1)} с → ${spB.toFixed(1)} с`,
+                    Math.abs(d) >= 0.1 ? ` <span class="arrow ${cls}">${d < 0 ? '−' : '+'}${Math.abs(d).toFixed(1)} с</span>` : '');
+            } else if (cur.mc > 0) {
+                addMetric('Скорость ответа', `${(cur.ms / cur.mc / 1000).toFixed(1)} с`, '');
+            }
+
+            // Подпись зависит от того, что реально удалось показать: обещать "средние за
+            // период" там, где не выведено ни одной строки, — значит сбить читателя с толку.
+            if (!rows.children.length) {
+                note.innerText = 'За этот период занятий не было.';
+            } else if (accA === null || accB === null) {
+                note.innerText = 'Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.';
+            }
+
+            // --- Недельный график: сколько решено и с какой точностью ---
+            renderReportChart(daily, fromKey, today);
+
+            // --- Темы: сначала уверенные, потом те, что в работе ---
+            const topics = Object.keys(cur.t).map(key => {
+                const v = cur.t[key];
+                const attempts = (v[0] || 0) + (v[1] || 0);
+                return { key, attempts, pct: attempts > 0 ? Math.round(v[0] / attempts * 100) : 0 };
+            }).filter(r => r.attempts >= 5).sort((a, b) => b.pct - a.pct);
+
+            const tWrap = document.getElementById('repTopics');
+            tWrap.innerHTML = '';
+            if (!topics.length) {
+                tWrap.innerHTML = '<div class="report-empty">За этот период данных по темам пока мало.</div>';
+            } else {
+                const strong = topics.filter(t => t.pct >= 85);
+                const working = topics.filter(t => t.pct < 85);
+                const section = (title, list) => {
+                    if (!list.length) return;
+                    const h = document.createElement('div');
+                    h.className = 'report-sub-head';
+                    h.innerText = title;
+                    tWrap.appendChild(h);
+                    list.forEach(t => {
+                        const row = document.createElement('div');
+                        row.className = 'report-topic';
+                        row.innerHTML = `<span class="report-topic-name"></span><span class="report-topic-pct"></span>`;
+                        row.querySelector('.report-topic-name').innerText = `${topicLabel(t.key)} · ${t.attempts}`;
+                        const pctEl = row.querySelector('.report-topic-pct');
+                        pctEl.innerText = t.pct + '%';
+                        pctEl.style.color = t.pct >= 85 ? '#059669' : (t.pct >= 65 ? '#d97706' : '#dc2626');
+                        tWrap.appendChild(row);
+                    });
+                };
+                section('Уверенно', strong);
+                section('В работе', working);
+            }
+
+            // --- Достижения, полученные внутри периода ---
+            const titles = {};
+            ACHIEVEMENTS.forEach(a => { titles[a.id] = `${a.icon} ${a.title}`; });
+            const unlocks = st.unlocks || {};
+            const earned = Object.keys(unlocks)
+                .filter(id => { const d = unlocks[id]; return d && d !== '?' && d >= fromKey && d <= today; })
+                .map(id => id.indexOf('master:') === 0
+                    ? `⭐ Освоено: ${topicLabel(id.slice('master:'.length))}`
+                    : (titles[id] || null))
+                .filter(Boolean);
+            const aWrap = document.getElementById('repAch');
+            aWrap.innerHTML = '';
+            if (!earned.length) {
+                aWrap.innerHTML = '<div class="report-empty">В этот период новых достижений не было.</div>';
+            } else {
+                earned.forEach(t => {
+                    const el = document.createElement('div');
+                    el.className = 'report-ach';
+                    el.innerText = t;
+                    aWrap.appendChild(el);
+                });
+            }
+
+            // --- Комментарий репетитора ---
+            const noteText = Progress.getStudentNote(reportStudent.code);
+            const nEl = document.getElementById('repNoteText');
+            nEl.innerText = noteText || 'Комментарий не добавлен.';
+            nEl.className = noteText ? 'report-comment' : 'report-empty';
+        }
+
+        // Недельные столбики: высота — сколько решено, подпись — точность за неделю.
+        function renderReportChart(daily, fromKey, toKey) {
+            const chart = document.getElementById('repChart');
+            chart.innerHTML = '';
+            const weeks = [];
+            let cursor = fromKey;
+            while (cursor <= toKey) {
+                const end = shiftDayKey(cursor, 6);
+                const wEnd = end > toKey ? toKey : end;
+                weeks.push({ from: cursor, to: wEnd, agg: aggregateDaily(daily, cursor, wEnd) });
+                cursor = shiftDayKey(wEnd, 1);
+            }
+            const maxSolved = Math.max(1, ...weeks.map(w => w.agg.c + w.agg.w));
+            if (!weeks.some(w => (w.agg.c + w.agg.w) > 0)) { chart.style.display = 'none'; return; }
+            chart.style.display = 'flex';
+
+            weeks.forEach((w, i) => {
+                const solved = w.agg.c + w.agg.w;
+                const pct = accuracyPct(w.agg.c, w.agg.w, 5);
+                const wrap = document.createElement('div');
+                wrap.className = 'rep-bar-wrap';
+                wrap.innerHTML = `
+                    <span class="rep-bar-val"></span>
+                    <span class="rep-bar-space"><span class="rep-bar"></span></span>
+                    <span class="rep-bar-label"></span>`;
+                wrap.querySelector('.rep-bar-val').innerText = pct === null ? '' : pct + '%';
+                const bar = wrap.querySelector('.rep-bar');
+                bar.style.height = Math.round(solved / maxSolved * 100) + '%';
+                // Цвет столбика — по точности за эту неделю, чтобы динамика читалась с одного взгляда
+                bar.style.background = pct === null ? '#cbd5e1'
+                    : (pct >= 85 ? '#059669' : (pct >= 65 ? '#f59e0b' : '#ef4444'));
+                wrap.querySelector('.rep-bar-label').innerText = `${i + 1} нед`;
+                chart.appendChild(wrap);
+            });
+        }
+
         function startMenuGoAchievements() {
             closeStartMenu();
             renderAchievementsScreen();
@@ -4889,6 +5241,7 @@
                         <div class="list-row-sub"></div>
                     </div>
                     <button class="list-row-btn" data-act="view">Смотреть</button>
+                    <button class="list-row-btn" data-act="report">📄</button>
                     <button class="list-row-btn" data-act="pw">🔑</button>
                     <button class="list-row-btn" data-act="del">🗑️</button>
                 `;
@@ -4896,6 +5249,7 @@
                 row.querySelector('.list-row-sub').innerText =
                     `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}${seen ? ' · ' + seen : ''}`;
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));
+                row.querySelector('[data-act="report"]').addEventListener('click', () => openReportFor(s.code, s));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
                 row.querySelector('[data-act="del"]').addEventListener('click', () => deleteStudentAccount(s.code));
                 wrap.appendChild(row);
