@@ -106,6 +106,20 @@
         }
         .btn-star.selected { background: rgba(255, 215, 0, 0.18); border-color: var(--gold); color: var(--gold); }
         .config-hint { font-size: 0.72rem; color: #64748b; margin-top: 4px; }
+
+        /* Переключатель периода на экране статистики */
+        .period-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .btn-period {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 9px; padding: 9px 4px; color: #94a3b8; text-align: center;
+            font-size: 0.8rem; font-weight: bold; cursor: pointer; white-space: nowrap;
+        }
+        .btn-period.selected { background: rgba(6,182,212,0.15); border-color: var(--cyan); color: var(--cyan); }
+        /* Стрелка динамики рядом с подписью показателя. Пишется только когда данных
+           реально хватает на сравнение — иначе поле остаётся пустым. */
+        .stat-delta { font-size: 0.72rem; font-weight: bold; margin-left: 5px; white-space: nowrap; }
+        .stat-delta.up { color: #10b981; }
+        .stat-delta.down { color: #ef4444; }
         .btn-config-continue {
             width: 100%; max-width: 450px; background: linear-gradient(45deg, #0284c7, #06b6d4);
             border: none; color: white; padding: 15px; font-size: 1.05rem;
@@ -561,25 +575,35 @@
         <button class="menu-btn" onclick="startMenuGoProfile()">👤 <span>Профиль</span></button>
     </div>
 
-    <!-- Экран статистики: накопленный прогресс ученика -->
+    <!-- Экран статистики: занятия и результат за выбранный период -->
     <div class="modal-screen" id="statsScreen" style="z-index:230; display:none;">
         <button class="start-menu-btn" onclick="closeStatsScreen()" aria-label="Назад">◀️</button>
         <h1 class="start-title">📊 Статистика</h1>
         <p class="start-subtitle" id="statsSubtitle">Прогресс ученика</p>
         <div class="config-container">
             <div class="config-section">
+                <div class="period-row" id="statsPeriodRow">
+                    <button class="btn-period" data-period="7">7 дней</button>
+                    <button class="btn-period selected" data-period="30">30 дней</button>
+                    <button class="btn-period" data-period="all">Всё время</button>
+                </div>
+                <div class="config-hint" id="statsPeriodHint"></div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-title">Занятия</div>
                 <div class="menu-stat-grid">
                     <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsSolvedVal">0</div>
-                        <div class="menu-stat-label">✅ Решено примеров</div>
+                        <div class="menu-stat-value" id="statsDaysVal">0</div>
+                        <div class="menu-stat-label">📅 Дней занимался</div>
                     </div>
                     <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsAccuracyVal">—</div>
-                        <div class="menu-stat-label">🎯 Точность</div>
+                        <div class="menu-stat-value" id="statsTimeVal">0м</div>
+                        <div class="menu-stat-label">⏱️ Всего времени</div>
                     </div>
                     <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsWrongVal">0</div>
-                        <div class="menu-stat-label">❌ Ошибок</div>
+                        <div class="menu-stat-value" id="statsStreakVal">0</div>
+                        <div class="menu-stat-label">🔥 Дней подряд</div>
                     </div>
                     <div class="menu-stat-card">
                         <div class="menu-stat-value" id="statsPuzzlesVal">0</div>
@@ -587,8 +611,32 @@
                     </div>
                 </div>
             </div>
+
             <div class="config-section">
-                <div class="config-section-title">История по темам</div>
+                <div class="config-section-title">Результат</div>
+                <div class="menu-stat-grid">
+                    <div class="menu-stat-card">
+                        <div class="menu-stat-value" id="statsSolvedVal">0</div>
+                        <div class="menu-stat-label">✅ Решено примеров</div>
+                    </div>
+                    <div class="menu-stat-card">
+                        <div class="menu-stat-value" id="statsAccuracyVal">—</div>
+                        <div class="menu-stat-label">🎯 Точность<span class="stat-delta" id="statsAccuracyDelta"></span></div>
+                    </div>
+                    <div class="menu-stat-card">
+                        <div class="menu-stat-value" id="statsSpeedVal">—</div>
+                        <div class="menu-stat-label">⚡ Скорость ответа<span class="stat-delta" id="statsSpeedDelta"></span></div>
+                    </div>
+                    <div class="menu-stat-card">
+                        <div class="menu-stat-value" id="statsWrongVal">0</div>
+                        <div class="menu-stat-label">❌ Ошибок</div>
+                    </div>
+                </div>
+                <div class="config-hint" id="statsAlmostHint"></div>
+            </div>
+
+            <div class="config-section">
+                <div class="config-section-title" id="statsTopicTitle">По темам за период</div>
                 <div id="statsTopicList"></div>
             </div>
         </div>
@@ -4207,20 +4255,210 @@
             document.getElementById('statsScreen').style.display = 'none';
             if (statsReturnTo === 'profile') openProfileScreen();
         }
+        // ===================== РАБОТА С ЖУРНАЛОМ ПО ДНЯМ =====================
+        // Всё, что считает периоды, работает с ЛЮБЫМ состоянием — своим или ученика,
+        // поэтому те же функции используются и в статистике, и в отчёте для родителей.
+
+        function shiftDayKey(key, deltaDays) {
+            const [y, m, d] = key.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            dt.setDate(dt.getDate() + deltaDays);
+            return Progress.dayKey(dt);
+        }
+        function isActiveDay(d) {
+            return !!d && (((d.c || 0) + (d.w || 0)) > 0 || (d.s || 0) > 0);
+        }
+
+        // Суммирует дни журнала за период [fromKey, toKey] включительно.
+        // fromKey = null означает "с самого начала".
+        function aggregateDaily(daily, fromKey, toKey) {
+            const out = { days: 0, c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {} };
+            Object.keys(daily || {}).forEach(k => {
+                if ((fromKey && k < fromKey) || (toKey && k > toKey)) return;
+                const d = daily[k];
+                if (!d) return;
+                if (isActiveDay(d)) out.days++;
+                ['c', 'w', 'a', 's', 'p', 'ms', 'mc'].forEach(f => { out[f] += d[f] || 0; });
+                Object.keys(d.t || {}).forEach(tk => {
+                    const slot = out.t[tk] || (out.t[tk] = [0, 0, 0]);
+                    const v = d.t[tk] || [];
+                    slot[0] += v[0] || 0; slot[1] += v[1] || 0; slot[2] += v[2] || 0;
+                });
+            });
+            return out;
+        }
+
+        // Самая длинная череда дней подряд внутри периода.
+        function longestStreak(daily, fromKey, toKey) {
+            const active = Object.keys(daily || {})
+                .filter(k => (!fromKey || k >= fromKey) && (!toKey || k <= toKey) && isActiveDay(daily[k]))
+                .sort();
+            let best = 0, cur = 0, prev = null;
+            active.forEach(k => {
+                cur = (prev && shiftDayKey(prev, 1) === k) ? cur + 1 : 1;
+                if (cur > best) best = cur;
+                prev = k;
+            });
+            return best;
+        }
+
+        function earliestDayKey(daily) {
+            const keys = Object.keys(daily || {}).sort();
+            return keys.length ? keys[0] : null;
+        }
+
+        function formatDuration(seconds) {
+            const total = Math.max(0, Math.round(seconds || 0));
+            const h = Math.floor(total / 3600);
+            const m = Math.round((total % 3600) / 60);
+            if (h > 0) return `${h} ч ${m} м`;
+            if (m > 0) return `${m} м`;
+            return total > 0 ? '<1 м' : '0 м';
+        }
+        function formatDayKeyHuman(key) {
+            if (!key) return '';
+            const [y, m, d] = key.split('-').map(Number);
+            return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+        }
+
+        // Периодные счётчики [верно, ошибок, почти] → та же форма, что у пожизненного byTopic,
+        // чтобы разбор по темам рисовался одной и той же функцией.
+        function periodTopicsToByTopic(t) {
+            const out = {};
+            Object.keys(t || {}).forEach(k => {
+                const v = t[k] || [];
+                out[k] = { correct: v[0] || 0, wrong: v[1] || 0, almost: v[2] || 0 };
+            });
+            return out;
+        }
+
+        // Точность в процентах или null, если попыток слишком мало, чтобы число что-то значило.
+        function accuracyPct(correct, wrong, minAttempts) {
+            const total = (correct || 0) + (wrong || 0);
+            if (total < (minAttempts || 1)) return null;
+            return Math.round((correct || 0) / total * 100);
+        }
+
+        // ===================== ЭКРАН СТАТИСТИКИ =====================
+        // Какой период показан сейчас: 7 | 30 | 'all'. Живёт снаружи, чтобы перерисовка
+        // по кнопке периода не теряла, чью статистику мы вообще смотрим.
+        let statsPeriod = 30;
+        let statsViewState = null;   // null = своя статистика; иначе состояние ученика
+        let statsViewLabel = '';
+
+        document.getElementById('statsPeriodRow').addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-period');
+            if (!btn) return;
+            const p = btn.getAttribute('data-period');
+            statsPeriod = (p === 'all') ? 'all' : Number(p);
+            renderStatsScreen(statsViewState, statsViewLabel);
+        });
+
         // foreignState/foreignLabel — для просмотра статистики ученика без входа под его кодом.
         function renderStatsScreen(foreignState, foreignLabel) {
+            statsViewState = foreignState || null;
+            statsViewLabel = foreignLabel || '';
+
             const st = foreignState || Progress.get();
+            const daily = st.daily || {};
             document.getElementById('statsSubtitle').innerText = foreignState
                 ? `Ученик: ${foreignLabel || st.playerCode || '—'}`
                 : 'Прогресс ученика';
-            const correct = st.totals.correct || 0;
-            const wrong = st.totals.wrong || 0;
-            const total = correct + wrong;
-            document.getElementById('statsSolvedVal').innerText = total;
-            document.getElementById('statsAccuracyVal').innerText = total > 0 ? Math.round(correct / total * 100) + '%' : '—';
+
+            document.querySelectorAll('#statsPeriodRow .btn-period').forEach(b => {
+                const p = b.getAttribute('data-period');
+                b.classList.toggle('selected', (p === 'all') ? statsPeriod === 'all' : Number(p) === statsPeriod);
+            });
+
+            const today = Progress.dayKey();
+            const isAll = statsPeriod === 'all';
+            const fromKey = isAll ? null : shiftDayKey(today, -(statsPeriod - 1));
+            const cur = aggregateDaily(daily, fromKey, today);
+
+            // --- Занятия: всегда из журнала, даже в режиме "всё время" ---
+            document.getElementById('statsDaysVal').innerText = cur.days;
+            document.getElementById('statsTimeVal').innerText = formatDuration(cur.s);
+            document.getElementById('statsStreakVal').innerText = longestStreak(daily, fromKey, today);
+
+            // --- Результат ---
+            // В режиме "всё время" берём пожизненные totals/byTopic, а не журнал: журнал
+            // ведётся только с момента, когда его добавили, и выдавать его за всю историю
+            // было бы враньём. За 7/30 дней — наоборот, только журнал.
+            let solved, wrong, accuracy, puzzles, topicSource;
+            if (isAll) {
+                const correct = st.totals.correct || 0;
+                wrong = st.totals.wrong || 0;
+                solved = correct + wrong;
+                accuracy = accuracyPct(correct, wrong, 1);
+                puzzles = st.totals.puzzlesCompleted || 0;
+                topicSource = st.byTopic || {};
+            } else {
+                solved = cur.c + cur.w;
+                wrong = cur.w;
+                accuracy = accuracyPct(cur.c, cur.w, 1);
+                puzzles = cur.p;
+                topicSource = periodTopicsToByTopic(cur.t);
+            }
+            document.getElementById('statsSolvedVal').innerText = solved;
             document.getElementById('statsWrongVal').innerText = wrong;
-            document.getElementById('statsPuzzlesVal').innerText = st.totals.puzzlesCompleted || 0;
-            renderTopicBreakdown(st.byTopic || {}, 'statsTopicList');
+            document.getElementById('statsPuzzlesVal').innerText = puzzles;
+            document.getElementById('statsAccuracyVal').innerText = accuracy === null ? '—' : accuracy + '%';
+
+            const avgSec = cur.mc > 0 ? (cur.ms / cur.mc / 1000) : null;
+            document.getElementById('statsSpeedVal').innerText = avgSec === null ? '—' : avgSec.toFixed(1) + ' с';
+
+            // --- Динамика: сравнение с предыдущим таким же по длине периодом ---
+            // Только для 7/30 дней (у "всего времени" нет предыдущего периода) и только
+            // когда данных хватает в обоих — иначе стрелка красивая, но врущая.
+            const accDeltaEl = document.getElementById('statsAccuracyDelta');
+            const speedDeltaEl = document.getElementById('statsSpeedDelta');
+            accDeltaEl.className = 'stat-delta';
+            speedDeltaEl.className = 'stat-delta';
+            accDeltaEl.innerText = '';
+            speedDeltaEl.innerText = '';
+
+            if (!isAll) {
+                const prevTo = shiftDayKey(fromKey, -1);
+                const prevFrom = shiftDayKey(prevTo, -(statsPeriod - 1));
+                const prev = aggregateDaily(daily, prevFrom, prevTo);
+                const MIN = 10;
+
+                const curAcc = accuracyPct(cur.c, cur.w, MIN);
+                const prevAcc = accuracyPct(prev.c, prev.w, MIN);
+                if (curAcc !== null && prevAcc !== null && curAcc !== prevAcc) {
+                    const d = curAcc - prevAcc;
+                    accDeltaEl.className = 'stat-delta ' + (d > 0 ? 'up' : 'down');
+                    accDeltaEl.innerText = (d > 0 ? '↑ +' : '↓ ') + d;
+                }
+                if (cur.mc >= MIN && prev.mc >= MIN) {
+                    const curS = cur.ms / cur.mc / 1000;
+                    const prevS = prev.ms / prev.mc / 1000;
+                    const d = curS - prevS;
+                    // Быстрее — это меньше секунд, поэтому зелёным подсвечивается
+                    // отрицательная разница, а не положительная.
+                    if (Math.abs(d) >= 0.2) {
+                        speedDeltaEl.className = 'stat-delta ' + (d < 0 ? 'up' : 'down');
+                        speedDeltaEl.innerText = (d < 0 ? '↑ ' : '↓ ') + Math.abs(d).toFixed(1) + ' с';
+                    }
+                }
+            }
+
+            // --- "Почти": верный счёт, но забыли сократить — отдельный диагноз ---
+            const almost = isAll ? aggregateDaily(daily, null, today).a : cur.a;
+            document.getElementById('statsAlmostHint').innerText = almost > 0
+                ? `«Почти» (посчитал верно, но забыл сократить): ${almost}`
+                : '';
+
+            // --- По темам ---
+            document.getElementById('statsTopicTitle').innerText =
+                isAll ? 'По темам за всё время' : 'По темам за период';
+            renderTopicBreakdown(topicSource, 'statsTopicList');
+
+            // --- С какого дня вообще есть дневник ---
+            const first = earliestDayKey(daily);
+            document.getElementById('statsPeriodHint').innerText = first
+                ? `Дневник занятий ведётся с ${formatDayKeyHuman(first)}.`
+                : 'Дневник занятий начнётся с первого решённого примера.';
         }
 
         function startMenuGoAchievements() {
