@@ -120,6 +120,18 @@
         .stat-delta { font-size: 0.72rem; font-weight: bold; margin-left: 5px; white-space: nowrap; }
         .stat-delta.up { color: #10b981; }
         .stat-delta.down { color: #ef4444; }
+
+        /* Достижения */
+        .ach-row {
+            display: flex; align-items: center; gap: 11px;
+            padding: 10px 11px; border-radius: 11px; margin-bottom: 7px;
+            background: rgba(255, 215, 0, 0.07); border: 1px solid rgba(255, 215, 0, 0.22);
+        }
+        .ach-row.locked { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); opacity: 0.55; }
+        .ach-icon { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
+        .ach-main { display: flex; flex-direction: column; min-width: 0; }
+        .ach-title { font-size: 0.88rem; font-weight: bold; color: #f1f5f9; }
+        .ach-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
         .btn-config-continue {
             width: 100%; max-width: 450px; background: linear-gradient(45deg, #0284c7, #06b6d4);
             border: none; color: white; padding: 15px; font-size: 1.05rem;
@@ -642,31 +654,13 @@
         </div>
     </div>
 
-    <!-- Экран достижений: заглушка в едином стиле — логику наград предстоит добавить отдельно -->
+    <!-- Экран достижений -->
     <div class="modal-screen" id="achievementsScreen" style="z-index:230; display:none;">
         <button class="start-menu-btn" onclick="closeAchievementsScreen()" aria-label="Назад">◀️</button>
         <h1 class="start-title">🏅 Достижения</h1>
-        <p class="start-subtitle">Награды за успехи</p>
+        <p class="start-subtitle" id="achievementsSubtitle">Награды за успехи</p>
         <div class="config-container">
-            <div class="config-section" style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                <div class="menu-stat-card" style="opacity:0.45;">
-                    <div class="menu-stat-value" style="font-size:1.8rem;">🥇</div>
-                    <div class="menu-stat-label">Скоро</div>
-                </div>
-                <div class="menu-stat-card" style="opacity:0.45;">
-                    <div class="menu-stat-value" style="font-size:1.8rem;">🔥</div>
-                    <div class="menu-stat-label">Скоро</div>
-                </div>
-                <div class="menu-stat-card" style="opacity:0.45;">
-                    <div class="menu-stat-value" style="font-size:1.8rem;">🎯</div>
-                    <div class="menu-stat-label">Скоро</div>
-                </div>
-                <div class="menu-stat-card" style="opacity:0.45;">
-                    <div class="menu-stat-value" style="font-size:1.8rem;">💯</div>
-                    <div class="menu-stat-label">Скоро</div>
-                </div>
-            </div>
-            <div class="menu-empty" style="margin-top:16px;">Раздел достижений скоро откроется —<br>здесь появятся награды и бейджи за твои успехи.</div>
+            <div id="achievementsList"></div>
         </div>
     </div>
 
@@ -3201,7 +3195,7 @@
 
                     // Накопительная статистика за всё время — на ней будут строиться
                     // достижения, скины и учительские отчёты.
-                    totals: { correct: 0, wrong: 0, puzzlesCompleted: 0 },
+                    totals: { correct: 0, wrong: 0, puzzlesCompleted: 0, bestCombo: 0 },
                     byTopic: {},           // { 'fraction:add': { correct: N, wrong: N }, ... }
 
                     // Журнал по дням — единственное место, где вообще есть измерение времени.
@@ -3332,7 +3326,8 @@
                 out.totals = {
                     correct: Math.max((a.totals && a.totals.correct) || 0, (b.totals && b.totals.correct) || 0),
                     wrong: Math.max((a.totals && a.totals.wrong) || 0, (b.totals && b.totals.wrong) || 0),
-                    puzzlesCompleted: Math.max((a.totals && a.totals.puzzlesCompleted) || 0, (b.totals && b.totals.puzzlesCompleted) || 0)
+                    puzzlesCompleted: Math.max((a.totals && a.totals.puzzlesCompleted) || 0, (b.totals && b.totals.puzzlesCompleted) || 0),
+                    bestCombo: Math.max((a.totals && a.totals.bestCombo) || 0, (b.totals && b.totals.bestCombo) || 0)
                 };
 
                 const topics = new Set([...Object.keys(a.byTopic || {}), ...Object.keys(b.byTopic || {})]);
@@ -3426,7 +3421,8 @@
                 if (!s.puzzle || typeof s.puzzle !== 'object') s.puzzle = { idx: null, filled: 0 };
                 if (!s.collections || typeof s.collections !== 'object') s.collections = { paradoxes: [] };
                 if (!Array.isArray(s.collections.paradoxes)) s.collections.paradoxes = [];
-                if (!s.totals || typeof s.totals !== 'object') s.totals = { correct: 0, wrong: 0, puzzlesCompleted: 0 };
+                if (!s.totals || typeof s.totals !== 'object') s.totals = { correct: 0, wrong: 0, puzzlesCompleted: 0, bestCombo: 0 };
+                if (typeof s.totals.bestCombo !== 'number') s.totals.bestCombo = 0;
                 if (!s.byTopic || typeof s.byTopic !== 'object') s.byTopic = {};
                 if (!s.daily || typeof s.daily !== 'object' || Array.isArray(s.daily)) s.daily = {};
                 // Каждая корзина дня добивается до полного набора полей: данные могли прийти
@@ -3670,6 +3666,14 @@
                 recordPuzzleCompleted() {
                     state.totals.puzzlesCompleted++;
                     touchDay().p++;
+                    persistLocal();
+                },
+                // Рекорд серии верных ответов. Живёт в состоянии профиля, а не в переменной
+                // модуля: на общем устройстве переменная не сбрасывалась бы при смене профиля,
+                // и следующий ученик получил бы достижения за серию предыдущего.
+                recordCombo(n) {
+                    if (!(n > (state.totals.bestCombo || 0))) return;
+                    state.totals.bestCombo = n;
                     persistLocal();
                 },
                 // Секунды за игрой. Вызывается раз в секунду, поэтому на диск пишем не каждый
@@ -4461,12 +4465,245 @@
                 : 'Дневник занятий начнётся с первого решённого примера.';
         }
 
+        // ===================== ДОСТИЖЕНИЯ =====================
+        // Принцип набора: награждаем за то, что мы действительно хотим вырастить.
+        // Чистый объём ("реши 1000") поощряет долбёжку, а пожизненная точность наказывает
+        // за трудное начало навсегда и учит избегать сложных тем, чтобы не портить процент.
+        // Поэтому объём — только одна из пяти групп, а основной вес у регулярности,
+        // освоения конкретной темы и роста относительно самого себя.
+
+        // Сколько последних попыток по теме считаем "текущей формой" ученика.
+        const MASTERY_WINDOW = 30;
+        const MASTERY_PCT = 90;
+
+        // Свежее окно по теме: идём по дням от сегодняшнего назад, пока не наберём
+        // нужное число попыток. Это именно "как он решает сейчас", а не среднее за всё время.
+        function recentTopicWindow(daily, topicKey, wantAttempts) {
+            const keys = Object.keys(daily || {}).sort().reverse();
+            let c = 0, w = 0;
+            for (const k of keys) {
+                const v = (daily[k] && daily[k].t) ? daily[k].t[topicKey] : null;
+                if (!v) continue;
+                c += v[0] || 0; w += v[1] || 0;
+                if (c + w >= wantAttempts) break;
+            }
+            return { c, w, attempts: c + w };
+        }
+
+        // Череда дней подряд, заканчивающаяся сегодня или вчера. "Вчера" засчитываем,
+        // чтобы серия не выглядела оборванной до того, как ученик сел заниматься сегодня.
+        function currentStreak(daily) {
+            const today = Progress.dayKey();
+            let cursor = isActiveDay(daily[today]) ? today : shiftDayKey(today, -1);
+            if (!isActiveDay(daily[cursor])) return 0;
+            let n = 0;
+            while (isActiveDay(daily[cursor])) { n++; cursor = shiftDayKey(cursor, -1); }
+            return n;
+        }
+
+        function topicLabel(key) {
+            const [cat, op] = String(key).split(':');
+            return `${CATEGORY_LABELS[cat] || cat} · ${(OP_LABELS[op] || op).replace(/^\S+\s/, '')}`;
+        }
+
+        // Определения достижений. check(ctx) → true, если заслужено.
+        // Порядок важен только для отрисовки.
+        const ACHIEVEMENTS = [
+            // --- Регулярность: главное, что влияет на результат ---
+            { id: 'streak3', icon: '🔥', group: 'Регулярность', title: 'Три дня подряд',
+              hint: 'Позанимайся 3 дня подряд', check: c => c.streak >= 3 },
+            { id: 'streak7', icon: '🔥', group: 'Регулярность', title: 'Неделя без пропусков',
+              hint: 'Позанимайся 7 дней подряд', check: c => c.streak >= 7 },
+            { id: 'streak14', icon: '🔥', group: 'Регулярность', title: 'Две недели подряд',
+              hint: 'Позанимайся 14 дней подряд', check: c => c.streak >= 14 },
+            { id: 'month10', icon: '📅', group: 'Регулярность', title: 'Десять дней за месяц',
+              hint: 'Позанимайся в 10 разных дней за 30 дней', check: c => c.last30.days >= 10 },
+
+            // --- Рост относительно себя: соревнование с собой, а не с планкой ---
+            { id: 'growAccuracy', icon: '📈', group: 'Личный рост', title: 'Стал точнее',
+              hint: 'Подними точность за 30 дней на 10 пунктов',
+              check: c => c.accNow !== null && c.accPrev !== null && (c.accNow - c.accPrev) >= 10 },
+            { id: 'growSpeed', icon: '⚡', group: 'Личный рост', title: 'Стал быстрее',
+              hint: 'Отвечай в среднем на 1,5 секунды быстрее, чем в прошлом месяце',
+              check: c => c.speedNow !== null && c.speedPrev !== null && (c.speedPrev - c.speedNow) >= 1.5 },
+
+            // --- Серии внутри занятия ---
+            { id: 'combo10', icon: '🎯', group: 'Меткость', title: 'Десять подряд',
+              hint: '10 верных ответов подряд', check: c => c.bestCombo >= 10 },
+            { id: 'combo25', icon: '🏹', group: 'Меткость', title: 'Двадцать пять подряд',
+              hint: '25 верных ответов подряд', check: c => c.bestCombo >= 25 },
+
+            // --- Широта: попробовать разное, а не сидеть в одной теме ---
+            { id: 'allFracModes', icon: '🧮', group: 'Кругозор', title: 'Все особые режимы дробей',
+              hint: 'Попробуй сокращение, оба перевода и дробь от числа',
+              check: c => FRAC_ONLY_OPS.every(op => c.triedTopics.has(`fraction:${op}`)) },
+            { id: 'allCategories', icon: '🌍', group: 'Кругозор', title: 'Все виды чисел',
+              hint: 'Порешай целые, десятичные и обыкновенные дроби',
+              check: c => ['integer', 'decimal', 'fraction'].every(cat =>
+                  [...c.triedTopics].some(k => k.startsWith(cat + ':'))) },
+
+            // --- Юбилеи: объём. Приятно, но это только одна группа из пяти ---
+            { id: 'solved100', icon: '💯', group: 'Юбилеи', title: '100 верных ответов',
+              hint: 'Реши верно 100 примеров', check: c => c.lifetimeCorrect >= 100 },
+            { id: 'solved500', icon: '🥈', group: 'Юбилеи', title: '500 верных ответов',
+              hint: 'Реши верно 500 примеров', check: c => c.lifetimeCorrect >= 500 },
+            { id: 'solved1000', icon: '🥇', group: 'Юбилеи', title: '1000 верных ответов',
+              hint: 'Реши верно 1000 примеров', check: c => c.lifetimeCorrect >= 1000 },
+
+            // --- Пазлы ---
+            { id: 'puzzle1', icon: '🧩', group: 'Коллекция', title: 'Первый пазл собран',
+              hint: 'Собери свой первый пазл', check: c => c.puzzles >= 1 },
+            { id: 'puzzle5', icon: '🖼️', group: 'Коллекция', title: 'Пять пазлов',
+              hint: 'Собери 5 пазлов', check: c => c.puzzles >= 5 }
+        ];
+
+        // Собирает всё, что нужно проверкам, один раз — чтобы каждая не считала заново.
+        function buildAchievementContext(st) {
+            const daily = st.daily || {};
+            const today = Progress.dayKey();
+            const from30 = shiftDayKey(today, -29);
+            const prevTo = shiftDayKey(from30, -1);
+            const prevFrom = shiftDayKey(prevTo, -29);
+            const last30 = aggregateDaily(daily, from30, today);
+            const prev30 = aggregateDaily(daily, prevFrom, prevTo);
+
+            const triedTopics = new Set();
+            Object.keys(st.byTopic || {}).forEach(k => {
+                const t = st.byTopic[k];
+                if (((t.correct || 0) + (t.wrong || 0)) > 0) triedTopics.add(k);
+            });
+
+            return {
+                daily, last30, triedTopics,
+                streak: currentStreak(daily),
+                lifetimeCorrect: (st.totals && st.totals.correct) || 0,
+                puzzles: (st.totals && st.totals.puzzlesCompleted) || 0,
+                bestCombo: (st.totals && st.totals.bestCombo) || 0,
+                accNow: accuracyPct(last30.c, last30.w, 20),
+                accPrev: accuracyPct(prev30.c, prev30.w, 20),
+                speedNow: last30.mc >= 20 ? last30.ms / last30.mc / 1000 : null,
+                speedPrev: prev30.mc >= 20 ? prev30.ms / prev30.mc / 1000 : null
+            };
+        }
+
+        // Освоенные темы — динамические достижения вида master:<тема>. Отдельным списком,
+        // потому что их состав зависит от того, что ученик вообще решал.
+        function masteredTopics(st) {
+            const daily = st.daily || {};
+            const out = [];
+            Object.keys(st.byTopic || {}).forEach(key => {
+                const win = recentTopicWindow(daily, key, MASTERY_WINDOW);
+                if (win.attempts >= MASTERY_WINDOW) {
+                    const pct = Math.round(win.c / win.attempts * 100);
+                    if (pct >= MASTERY_PCT) out.push({ key, pct });
+                }
+            });
+            return out;
+        }
+
+        // Проверяет все достижения и выдаёт новые. Возвращает список только что открытых.
+        function evaluateAchievements() {
+            const st = Progress.get();
+            if (!st) return [];
+            const ctx = buildAchievementContext(st);
+            const fresh = [];
+            ACHIEVEMENTS.forEach(a => {
+                if (Progress.isUnlocked(a.id)) return;
+                let ok = false;
+                try { ok = !!a.check(ctx); } catch (e) { ok = false; }
+                if (ok && Progress.unlock(a.id)) fresh.push(a);
+            });
+            masteredTopics(st).forEach(m => {
+                const id = 'master:' + m.key;
+                if (Progress.isUnlocked(id)) return;
+                if (Progress.unlock(id)) {
+                    fresh.push({ id, icon: '⭐', group: 'Освоенные темы',
+                        title: 'Освоено: ' + topicLabel(m.key) });
+                }
+            });
+            return fresh;
+        }
+
+        // Показывает всплывашку о новом достижении прямо в игре.
+        function announceAchievements(list) {
+            list.forEach((a, i) => {
+                setTimeout(() => {
+                    spawnRewardText(`${a.icon} ${a.title}`, window.innerWidth / 2,
+                        window.innerHeight / 2 - 90, 'var(--gold)', true);
+                    buildSparks(18, 'var(--gold)');
+                }, 260 * i);
+            });
+        }
+
         function startMenuGoAchievements() {
             closeStartMenu();
+            renderAchievementsScreen();
             document.getElementById('achievementsScreen').style.display = 'flex';
         }
         function closeAchievementsScreen() {
             document.getElementById('achievementsScreen').style.display = 'none';
+        }
+
+        function renderAchievementsScreen() {
+            const st = Progress.get();
+            evaluateAchievements(); // подтягиваем то, что заслужено, но ещё не отмечено
+            const unlocks = Progress.getUnlocks();
+
+            // Динамические "освоенные темы" — из уже выданных, а не пересчитанные заново:
+            // тема, освоенная когда-то, остаётся освоенной, даже если сейчас просела.
+            const masterIds = Object.keys(unlocks).filter(id => id.indexOf('master:') === 0);
+            const items = ACHIEVEMENTS.map(a => ({
+                icon: a.icon, title: a.title, hint: a.hint, group: a.group,
+                date: unlocks[a.id] || null, earned: Object.prototype.hasOwnProperty.call(unlocks, a.id)
+            })).concat(masterIds.map(id => ({
+                icon: '⭐', title: 'Освоено: ' + topicLabel(id.slice('master:'.length)),
+                hint: '', group: 'Освоенные темы', date: unlocks[id], earned: true
+            })));
+
+            const earned = items.filter(i => i.earned);
+            const locked = items.filter(i => !i.earned);
+
+            document.getElementById('achievementsSubtitle').innerText =
+                `Получено ${earned.length} из ${items.length}`;
+
+            const wrap = document.getElementById('achievementsList');
+            wrap.innerHTML = '';
+
+            if (!earned.length) {
+                const empty = document.createElement('div');
+                empty.className = 'menu-empty';
+                empty.innerHTML = 'Пока ни одного достижения.<br>Позанимайся — они начнут открываться.';
+                wrap.appendChild(empty);
+            }
+
+            const render = (list, dim) => {
+                list.forEach(i => {
+                    const row = document.createElement('div');
+                    row.className = 'ach-row' + (dim ? ' locked' : '');
+                    row.innerHTML = `
+                        <span class="ach-icon"></span>
+                        <span class="ach-main">
+                            <span class="ach-title"></span>
+                            <span class="ach-sub"></span>
+                        </span>`;
+                    row.querySelector('.ach-icon').innerText = i.icon;
+                    row.querySelector('.ach-title').innerText = i.title;
+                    row.querySelector('.ach-sub').innerText = dim
+                        ? (i.hint || '')
+                        : (i.date && i.date !== '?' ? 'Получено ' + formatDayKeyHuman(i.date) : 'Получено');
+                    wrap.appendChild(row);
+                });
+            };
+
+            render(earned, false);
+            if (locked.length) {
+                const head = document.createElement('div');
+                head.className = 'config-section-title';
+                head.style.marginTop = '16px';
+                head.innerText = 'Ещё не открыто';
+                wrap.appendChild(head);
+                render(locked, true);
+            }
         }
 
         // ===================== ПРОФИЛЬ =====================
@@ -5210,6 +5447,7 @@
                 Progress.recordAnswer(topicKey, 'correct', elapsedMs);
 
                 state.combo++;
+                Progress.recordCombo(state.combo);
                 let comboMultiplier = 1 + (state.combo * comboStepBonus);
 
                 const badge = document.getElementById('comboBadge');
@@ -5222,6 +5460,10 @@
 
                 triggerAnniversaryEffects(correctCount);
                 addPuzzlePiece();
+
+                // Проверяем награды до перехода к следующему примеру, чтобы всплывашка
+                // о новом достижении успела показаться поверх текущего экрана.
+                announceAchievements(evaluateAchievements());
 
                 generateMath();
                 return;
