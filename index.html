@@ -555,6 +555,38 @@
         .btn-win.secondary { background: rgba(255,255,255,0.1); color: var(--text-light); border: 1px solid rgba(255,255,255,0.25); }
         .btn-win:active { transform: scale(0.96); }
 
+        /* ===== РАЗБОР ОШИБОК ===== */
+        .mistake-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 12px; margin-bottom: 10px;
+        }
+        .mistake-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+        .mistake-topic { flex: 1; font-size: 0.72rem; color: #94a3b8; }
+        .mistake-tag {
+            font-size: 0.66rem; font-weight: bold; padding: 3px 8px; border-radius: 20px;
+            text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+        }
+        .mistake-tag.wrong { background: rgba(239,68,68,0.15); color: #f87171; }
+        .mistake-tag.almost { background: rgba(245,158,11,0.15); color: #fbbf24; }
+        .mistake-question {
+            text-align: center; font-size: 1.5rem; font-weight: bold; color: var(--text-light);
+            padding: 8px 0 12px; line-height: 1.3;
+        }
+        .mistake-options { display: grid; grid-template-columns: 1fr 1fr; gap: 7px; }
+        .mistake-opt {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 9px; padding: 8px 6px; text-align: center;
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+        }
+        .mistake-opt.is-correct { border-color: #10b981; background: rgba(16,185,129,0.12); }
+        .mistake-opt.is-wrong { border-color: #ef4444; background: rgba(239,68,68,0.12); }
+        .mistake-opt.is-almost { border-color: #f59e0b; background: rgba(245,158,11,0.12); }
+        .mistake-opt-val { font-size: 0.95rem; font-weight: bold; color: #e2e8f0; }
+        .mistake-opt-mark { font-size: 0.62rem; color: #94a3b8; }
+        .mistake-opt.is-correct .mistake-opt-mark { color: #10b981; font-weight: bold; }
+        .mistake-opt.is-wrong .mistake-opt-mark { color: #f87171; font-weight: bold; }
+        .mistake-opt.is-almost .mistake-opt-mark { color: #fbbf24; font-weight: bold; }
+
         @media (max-height: 600px) {
             .math-box { padding: 8px; max-width: 320px; }
             .math-question { font-size: 1.6rem; margin-bottom: 6px; }
@@ -936,8 +968,21 @@
         <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;">Экзамен сдан!</h1>
         <p id="winDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size: 1.1rem; white-space:pre-line;"></p>
         <div class="win-actions">
+            <button class="btn-win secondary" id="btnWinMistakes" onclick="openMistakesScreen()" style="display:none;">📋 Разбор ошибок</button>
+        </div>
+        <div class="win-actions">
             <button class="btn-win" onclick="winGoHome()">🏠 На главную</button>
             <button class="btn-win secondary" onclick="winGoMenu()">☰ Меню</button>
+        </div>
+    </div>
+
+    <!-- Разбор ошибок за испытание. Живёт только до ухода с экрана "Экзамен сдан!". -->
+    <div class="modal-screen" id="mistakesScreen" style="z-index:250; display:none;">
+        <button class="start-menu-btn" onclick="closeMistakesScreen()" aria-label="Назад">◀️</button>
+        <h1 class="start-title">📋 Разбор ошибок</h1>
+        <p class="start-subtitle" id="mistakesSubtitle">—</p>
+        <div class="config-container">
+            <div id="mistakesList"></div>
         </div>
     </div>
 
@@ -5498,6 +5543,8 @@
         // а счётчики сессии мы и так обнуляем.
         function winLeaveToConfig() {
             document.getElementById('winScreen').classList.remove('active');
+            document.getElementById('mistakesScreen').style.display = 'none';
+            sessionMistakes = []; // ушли с экрана итогов — разбор больше не храним
             resetSessionCounters();
             resetConfigScreen();
             Progress.flush();
@@ -5579,8 +5626,105 @@
         let bgFlashState = 0;
         let isUltimateStorm = false;
 
+        // ===================== РАЗБОР ОШИБОК =====================
+        // Живёт только в памяти и только на время одного испытания: посмотрел разбор на экране
+        // "Экзамен сдан!" — и всё, дальше не храним. На сервер не уходит, в Progress не пишется.
+        let sessionMistakes = [];
+
+        // Снимок примера в момент неверного ответа. Условие и варианты берём готовыми из DOM
+        // (innerHTML), потому что дроби — это разметка, а не текст: пересобирать её заново
+        // значило бы дублировать всю логику отрисовки ради того же результата.
+        function rememberMistake(clickedBtn, isAlmost) {
+            try {
+                const questionHtml = document.getElementById('mathQuestion').innerHTML;
+                const chosenKey = clickedBtn ? clickedBtn.dataset.key : null;
+                const correctKey = answerKey(correctAnswer);
+                const options = [...document.querySelectorAll('#answersGrid .btn-answer')].map(b => ({
+                    html: b.innerHTML,
+                    key: b.dataset.key
+                }));
+                const meta = currentProblemMeta || {};
+                sessionMistakes.push({
+                    n: correctCount + wrongCount + sessionMistakes.length + 1,
+                    questionHtml, options, chosenKey, correctKey,
+                    isAlmost: !!isAlmost,
+                    topic: meta.category ? `${CATEGORY_LABELS[meta.category] || meta.category} · ${(OP_LABELS[meta.opKey] || meta.opKey || '').replace(/^\S+\s/, '')}` : '',
+                    level: meta.level || null
+                });
+            } catch (e) {
+                // Разбор — вспомогательная функция: если снимок почему-то не собрался,
+                // это не повод ронять сам ответ на пример.
+            }
+        }
+
+        function openMistakesScreen() {
+            renderMistakesScreen();
+            document.getElementById('mistakesScreen').style.display = 'flex';
+        }
+        function closeMistakesScreen() {
+            document.getElementById('mistakesScreen').style.display = 'none';
+        }
+
+        function renderMistakesScreen() {
+            const wrap = document.getElementById('mistakesList');
+            const sub = document.getElementById('mistakesSubtitle');
+            wrap.innerHTML = '';
+
+            if (!sessionMistakes.length) {
+                sub.innerText = 'Ошибок не было';
+                wrap.innerHTML = '<div class="menu-empty">Ни одной ошибки за испытание.<br>Так держать!</div>';
+                return;
+            }
+            // "Почти" и настоящая ошибка — разные исходы, в подписи не сливаем их в одну цифру.
+            const real = sessionMistakes.filter(m => !m.isAlmost).length;
+            const almost = sessionMistakes.length - real;
+            sub.innerText = almost > 0
+                ? `Ошибок: ${real} · «почти»: ${almost}`
+                : `Ошибок: ${real}`;
+
+            sessionMistakes.forEach(m => {
+                const card = document.createElement('div');
+                card.className = 'mistake-card';
+
+                const head = document.createElement('div');
+                head.className = 'mistake-head';
+                head.innerHTML = `<span class="mistake-topic"></span><span class="mistake-tag"></span>`;
+                head.querySelector('.mistake-topic').innerText =
+                    m.topic + (m.level ? ` · ${m.level}★` : '');
+                const tag = head.querySelector('.mistake-tag');
+                tag.innerText = m.isAlmost ? 'не сократил' : 'ошибка';
+                tag.classList.add(m.isAlmost ? 'almost' : 'wrong');
+                card.appendChild(head);
+
+                const q = document.createElement('div');
+                q.className = 'mistake-question';
+                q.innerHTML = m.questionHtml; // наша собственная разметка примера
+                card.appendChild(q);
+
+                const grid = document.createElement('div');
+                grid.className = 'mistake-options';
+                m.options.forEach(o => {
+                    const opt = document.createElement('div');
+                    opt.className = 'mistake-opt';
+                    if (o.key === m.correctKey) opt.classList.add('is-correct');
+                    if (o.key === m.chosenKey && o.key !== m.correctKey) {
+                        opt.classList.add(m.isAlmost ? 'is-almost' : 'is-wrong');
+                    }
+                    opt.innerHTML = `<span class="mistake-opt-val"></span><span class="mistake-opt-mark"></span>`;
+                    opt.querySelector('.mistake-opt-val').innerHTML = o.html;
+                    opt.querySelector('.mistake-opt-mark').innerText =
+                        (o.key === m.correctKey) ? '✓ верно'
+                        : (o.key === m.chosenKey) ? 'твой ответ'
+                        : '';
+                    grid.appendChild(opt);
+                });
+                card.appendChild(grid);
+                wrap.appendChild(card);
+            });
+        }
         function startGame() {
             gameActive = true;
+            sessionMistakes = []; // новое испытание — разбор начинается с чистого листа
             resizeCanvas();
             initPuzzle();
             generateMath();
@@ -5940,6 +6084,12 @@
 
             // Дальше — оба "неверных" исхода (настоящая ошибка и "забыл сократить") останавливают
             // таймер и на пару секунд показывают разбор, прежде чем перейти к следующему примеру.
+            //
+            // Здесь же складываем карточку примера для разбора в конце испытания. Снимок берём
+            // ДО того, как ниже навешиваются классы btn-correct/btn-wrong/locked: нам нужно
+            // содержимое кнопок, а не их подсветка — раскрашивать будем сами на своём экране.
+            rememberMistake(clickedBtn, isUnreducedMatch);
+
             answerLocked = true;
             clearInterval(timerInterval);
             allBtns.forEach(b => b.classList.add('locked'));
@@ -6118,6 +6268,12 @@
             gameActive = false;
             document.getElementById('winDesc').innerText =
                 `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${correctCount} | ❌ Ошибок: ${wrongCount}`;
+
+            // Кнопка разбора появляется, только если разбирать действительно есть что
+            const mistakesBtn = document.getElementById('btnWinMistakes');
+            mistakesBtn.style.display = sessionMistakes.length ? '' : 'none';
+            mistakesBtn.innerText = `📋 Разбор ошибок (${sessionMistakes.length})`;
+
             document.getElementById('winScreen').classList.add('active');
             Progress.flush(); // контрольная точка синхронизации
         });
