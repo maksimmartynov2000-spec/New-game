@@ -5198,6 +5198,43 @@
             return t;
         }
 
+        // Идентификатор ступени лесенки: '<ключ темы>:<лесенка><ступень>', например
+        // 'integer+:add:1:s3'. Общие достижения ('streak7') под это не подходят — там нет
+        // двоеточия; легаси 'master:fraction:add' тоже, там на конце не цифра.
+        const LADDER_ID_RE = /^(.+):([sac])([1-5])$/;
+
+        // Когда тема взяла сводный ранг. Ступень N считается взятой в день, когда её добрала
+        // ПОСЛЕДНЯЯ из трёх лесенок, — до этого сводного ранга ещё нет по определению.
+        // Считается из уже сохранённых ступеней, отдельно нигде не хранится.
+        function compositePromotions(unlocks) {
+            const byTopic = {};
+            Object.keys(unlocks || {}).forEach(id => {
+                const m = LADDER_ID_RE.exec(id);
+                if (!m) return;
+                const t = byTopic[m[1]] || (byTopic[m[1]] = {});
+                const slot = t[m[3]] || (t[m[3]] = {});
+                slot[m[2]] = unlocks[id];
+            });
+            const out = [];
+            Object.keys(byTopic).forEach(topicKey => {
+                Object.keys(byTopic[topicKey]).forEach(tier => {
+                    const slot = byTopic[topicKey][tier];
+                    const dates = ['s', 'a', 'c'].map(l => slot[l]).filter(d => d && d !== '?');
+                    if (dates.length < 3) return; // не все три лесенки взяли эту ступень
+                    dates.sort();
+                    out.push({ topicKey, tier: Number(tier), date: dates[dates.length - 1] });
+                });
+            });
+            return out;
+        }
+
+        function pluralSteps(n) {
+            const d10 = n % 10, d100 = n % 100;
+            if (d10 === 1 && d100 !== 11) return 'ступень';
+            if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return 'ступени';
+            return 'ступеней';
+        }
+
         // Сводный ранг темы — минимум из трёх лесенок.
         function topicCompositeTier(unlocks, topicKey) {
             return Math.min(
@@ -5229,10 +5266,13 @@
                 const target = Math.min(ladderTierByMetrics(l.id, m, p.level), cap);
                 for (let t = earned + 1; t <= target; t++) {
                     if (Progress.unlock(`${topicKey}:${l.id}${t}`)) {
+                        // Название темы здесь намеренно не пишем: всплывашка появляется прямо
+                        // над примером, который ученик только что решил, — тема и так перед
+                        // глазами, а длинная строка заняла бы полэкрана.
                         fresh.push({
                             id: `${topicKey}:${l.id}${t}`,
                             icon: TIER_ICONS[t],
-                            title: `${TIER_NAMES[t]} · ${l.name} — ${topicLabelWithLevel(topicKey)}`
+                            title: `${TIER_NAMES[t]} · ${l.name}`
                         });
                     }
                 }
@@ -5542,20 +5582,41 @@
             }
 
             // --- Достижения, полученные внутри периода ---
+            // Ступени лесенок сюда идут НЕ поштучно: три лесенки × пять ступеней на каждой
+            // из тем дали бы родителю простыню из полутора десятков строк за месяц. Показываем
+            // взятие сводного ранга темы — это и есть настоящая веха («тема взята на серебро»),
+            // а отдельные ступени сворачиваем в одну строку счётчиком.
             const titles = {};
             ACHIEVEMENTS.forEach(a => { titles[a.id] = `${a.icon} ${a.title}`; });
             const unlocks = st.unlocks || {};
+            const inPeriod = (d) => d && d !== '?' && d >= fromKey && d <= today;
+
             const earned = Object.keys(unlocks)
-                .filter(id => { const d = unlocks[id]; return d && d !== '?' && d >= fromKey && d <= today; })
+                .filter(id => inPeriod(unlocks[id]) && !LADDER_ID_RE.test(id))
                 .map(id => id.indexOf('master:') === 0
                     ? `⭐ Освоено: ${topicLabel(id.slice('master:'.length))}`
                     : (titles[id] || null))
                 .filter(Boolean);
+
+            compositePromotions(unlocks)
+                .filter(p => inPeriod(p.date))
+                .sort((x, y) => y.tier - x.tier)
+                .forEach(p => {
+                    earned.push(`${TIER_ICONS[p.tier]} ${topicLabelWithLevel(p.topicKey)} — ${TIER_NAMES[p.tier]}`);
+                });
+
+            // Ступени, которые ранга ещё не дали, — одной строкой, чтобы прогресс не пропал
+            const stepCount = Object.keys(unlocks)
+                .filter(id => inPeriod(unlocks[id]) && LADDER_ID_RE.test(id)).length;
+
             const aWrap = document.getElementById('repAch');
             aWrap.innerHTML = '';
-            if (!earned.length) {
+            if (!earned.length && !stepCount) {
                 aWrap.innerHTML = '<div class="report-empty">В этот период новых достижений не было.</div>';
             } else {
+                if (stepCount) {
+                    earned.push(`📈 Продвижение по лесенкам тем: ${stepCount} ${pluralSteps(stepCount)}`);
+                }
                 earned.forEach(t => {
                     const el = document.createElement('div');
                     el.className = 'report-ach';
