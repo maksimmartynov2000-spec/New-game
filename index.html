@@ -3155,8 +3155,56 @@
                     // достижения, скины и учительские отчёты.
                     totals: { correct: 0, wrong: 0, puzzlesCompleted: 0 },
                     byTopic: {},           // { 'fraction:add': { correct: N, wrong: N }, ... }
-                    unlocks: []            // открытые скины/достижения, список строковых id
+
+                    // Журнал по дням — единственное место, где вообще есть измерение времени.
+                    // Без него нельзя ответить ни на один вопрос вида "а что изменилось за месяц":
+                    // totals/byTopic выше пожизненные и только растут, из них динамику не достать.
+                    // Ключ — локальная (не UTC) дата 'ГГГГ-ММ-ДД', см. dayKey().
+                    // Значение — компактная корзина, см. emptyDay().
+                    daily: {},
+
+                    unlocks: {}            // достижения: { id: 'ГГГГ-ММ-ДД' } — дата первого получения
                 };
+            }
+
+            // Корзина одного дня. Поля короткие намеренно: этот объект уходит на сервер
+            // при каждом сохранении, и на длинной дистанции размер начинает иметь значение.
+            //   c  — верных ответов
+            //   w  — ошибок
+            //   a  — "почти" (посчитал верно, но забыл сократить) — в c тоже попадает
+            //   s  — секунд за игрой
+            //   p  — собрано пазлов
+            //   ms — суммарное время раздумий на верных ответах, мс
+            //   mc — сколько ответов попало в ms (чтобы считать среднее)
+            //   t  — по темам: { 'fraction:add': [верно, ошибок, почти] }
+            function emptyDay() {
+                return { c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {} };
+            }
+
+            // Дата ПО МЕСТНОМУ ВРЕМЕНИ, а не по UTC. toISOString() здесь был бы багом:
+            // у нас вечерние занятия уехали бы в "завтра", и серии дней подряд врали бы.
+            function dayKey(d) {
+                const dt = d || new Date();
+                const m = String(dt.getMonth() + 1).padStart(2, '0');
+                const day = String(dt.getDate()).padStart(2, '0');
+                return `${dt.getFullYear()}-${m}-${day}`;
+            }
+
+            // Сколько дней журнала храним. Считаем только дни с занятиями, так что 400 —
+            // это заметно больше года реальной практики. Старое просто отбрасываем:
+            // "за всё время" живёт в totals/byTopic и не подчищается никогда, поэтому
+            // подчистка журнала не может испортить итоговые цифры.
+            //
+            // Месячных сводок специально НЕТ. Они дали бы риск двойного счёта: устройство,
+            // которое ещё не знает о сводке, вернуло бы при слиянии уже свёрнутый день,
+            // и период посчитался бы дважды. Все периоды считаем на лету из daily.
+            const DAILY_KEEP_DAYS = 400;
+            function pruneDaily(daily) {
+                const keys = Object.keys(daily);
+                if (keys.length <= DAILY_KEEP_DAYS) return daily;
+                keys.sort(); // 'ГГГГ-ММ-ДД' сортируется как строка правильно
+                for (let i = 0; i < keys.length - DAILY_KEEP_DAYS; i++) delete daily[keys[i]];
+                return daily;
             }
 
             let state = emptyState();
@@ -3250,9 +3298,74 @@
                     };
                 });
 
-                // Открытые скины — объединение, закрыть обратно нельзя.
-                out.unlocks = Array.from(new Set([...(a.unlocks || []), ...(b.unlocks || [])]));
+                // Журнал по дням: объединяем дни, а внутри одного дня берём максимум по
+                // каждому счётчику — ровно та же логика "только растёт", что и у totals.
+                //
+                // Компромисс, который стоит назвать вслух: если ребёнок занимался в один и тот
+                // же день и на телефоне, и на планшете, максимум возьмёт больший из двух, а не
+                // сумму, — то есть день слегка недосчитается. Это выбрано осознанно: сложение
+                // здесь некорректно, потому что слияние повторяется (при каждом flush), и одни
+                // и те же ответы складывались бы снова и снова, надувая статистику. Лучше чуть
+                // занизить, чем показать родителю цифры, которых не было.
+                const days = new Set([...Object.keys(a.daily || {}), ...Object.keys(b.daily || {})]);
+                out.daily = {};
+                days.forEach(k => {
+                    const x = (a.daily && a.daily[k]) || {};
+                    const y = (b.daily && b.daily[k]) || {};
+                    const bucket = emptyDay();
+                    ['c', 'w', 'a', 's', 'p', 'ms', 'mc'].forEach(f => {
+                        bucket[f] = Math.max(x[f] || 0, y[f] || 0);
+                    });
+                    const tk = new Set([...Object.keys(x.t || {}), ...Object.keys(y.t || {})]);
+                    tk.forEach(key => {
+                        const p = (x.t && x.t[key]) || [];
+                        const q = (y.t && y.t[key]) || [];
+                        bucket.t[key] = [
+                            Math.max(p[0] || 0, q[0] || 0),
+                            Math.max(p[1] || 0, q[1] || 0),
+                            Math.max(p[2] || 0, q[2] || 0)
+                        ];
+                    });
+                    out.daily[k] = bucket;
+                });
+                pruneDaily(out.daily);
 
+                // Достижения — объединение, снять обратно нельзя. При конфликте дат побеждает
+                // более РАННЯЯ: первое получение и есть правда, второе устройство про него
+                // просто ещё не знало.
+                out.unlocks = {};
+                const ua = toUnlockMap(a.unlocks), ub = toUnlockMap(b.unlocks);
+                new Set([...Object.keys(ua), ...Object.keys(ub)]).forEach(id => {
+                    const known = [ua[id], ub[id]]
+                        .filter(d => typeof d === 'string' && d && d !== UNKNOWN_UNLOCK_DATE);
+                    out.unlocks[id] = known.length ? known.sort()[0] : UNKNOWN_UNLOCK_DATE;
+                });
+
+                return out;
+            }
+
+            // Дата получения может быть неизвестна (достижение пришло из старого формата-массива).
+            // Важно, что это НЕ пустая строка: пустое значение пережило бы merge, но потерялось
+            // бы при следующем JSON.stringify по дороге на сервер — и достижение просто исчезло
+            // бы у ученика. Явный маркер переживает сериализацию.
+            const UNKNOWN_UNLOCK_DATE = '?';
+
+            // unlocks раньше был массивом id, стал словарём { id: дата }. Приводим любой
+            // из двух видов к словарю. Риска тут нет ровно потому, что в старом формате
+            // ничего никогда не записывалось — все существующие массивы пустые.
+            function toUnlockMap(u) {
+                if (!u) return {};
+                if (Array.isArray(u)) {
+                    const out = {};
+                    u.forEach(id => { if (typeof id === 'string') out[id] = UNKNOWN_UNLOCK_DATE; });
+                    return out;
+                }
+                if (typeof u !== 'object') return {};
+                const out = {};
+                Object.keys(u).forEach(id => {
+                    const d = u[id];
+                    out[id] = (typeof d === 'string' && d) ? d : UNKNOWN_UNLOCK_DATE;
+                });
                 return out;
             }
 
@@ -3267,7 +3380,18 @@
                 if (!Array.isArray(s.collections.paradoxes)) s.collections.paradoxes = [];
                 if (!s.totals || typeof s.totals !== 'object') s.totals = { correct: 0, wrong: 0, puzzlesCompleted: 0 };
                 if (!s.byTopic || typeof s.byTopic !== 'object') s.byTopic = {};
-                if (!Array.isArray(s.unlocks)) s.unlocks = [];
+                if (!s.daily || typeof s.daily !== 'object' || Array.isArray(s.daily)) s.daily = {};
+                // Каждая корзина дня добивается до полного набора полей: данные могли прийти
+                // с более старой версии, где части счётчиков (или всего дня) ещё не было.
+                Object.keys(s.daily).forEach(k => {
+                    const raw = s.daily[k];
+                    if (!raw || typeof raw !== 'object') { delete s.daily[k]; return; }
+                    const bucket = Object.assign(emptyDay(), raw);
+                    bucket.t = (raw.t && typeof raw.t === 'object' && !Array.isArray(raw.t)) ? raw.t : {};
+                    s.daily[k] = bucket;
+                });
+                pruneDaily(s.daily);
+                s.unlocks = toUnlockMap(s.unlocks);
                 if (typeof s.profileLabel !== 'string') s.profileLabel = '';
                 if (s.accountType !== 'linked') s.accountType = 'self';
                 if (typeof s.ownerCode !== 'string') s.ownerCode = null;
@@ -3307,6 +3431,20 @@
                 localDriver.write({ activeCode: state.playerCode, profiles, passwords });
                 dirty = true;
             }
+
+            // Корзина сегодняшнего дня, создаётся при первом обращении за день.
+            function touchDay() {
+                if (!state.daily || typeof state.daily !== 'object') state.daily = {};
+                const k = dayKey();
+                if (!state.daily[k]) {
+                    state.daily[k] = emptyDay();
+                    pruneDaily(state.daily);
+                }
+                return state.daily[k];
+            }
+
+            // Счётчик для recordSecond() — чтобы не писать на диск каждую секунду.
+            let secondsSincePersist = 0;
 
             // Переключение активного профиля: откладывает текущий в кэш, поднимает
             // уже известный устройству профиль или заводит новый с нужными метками.
@@ -3447,21 +3585,68 @@
                 setCollection(id, arr) { state.collections[id] = arr; persistLocal(); },
 
                 // --- статистика: единственная точка учёта каждого ответа ---
-                recordAnswer(topicKey, isCorrect) {
-                    if (isCorrect) state.totals.correct++; else state.totals.wrong++;
+                // outcome: 'correct' | 'almost' | 'wrong'. 'almost' — это "посчитал верно,
+                // но забыл сократить": в пожизненные totals/byTopic он, как и раньше, идёт
+                // как верный ответ (счёт-то был правильный), и дополнительно попадает в
+                // отдельный дневной счётчик — это отдельный диагноз, а не ошибка в счёте.
+                // Булево значение тоже принимается — на случай старых вызовов.
+                // elapsedMs — сколько ученик думал; учитывается только у верных ответов,
+                // время неверного ответа — шум (быстрый случайный тык считался бы "скоростью").
+                recordAnswer(topicKey, outcome, elapsedMs) {
+                    const kind = (outcome === true) ? 'correct'
+                        : (outcome === false) ? 'wrong'
+                        : outcome;
+                    const isRight = (kind === 'correct' || kind === 'almost');
+
+                    if (isRight) state.totals.correct++; else state.totals.wrong++;
                     if (topicKey) {
                         const t = state.byTopic[topicKey] || (state.byTopic[topicKey] = { correct: 0, wrong: 0 });
-                        if (isCorrect) t.correct++; else t.wrong++;
+                        if (isRight) t.correct++; else t.wrong++;
                     }
+
+                    const day = touchDay();
+                    if (isRight) day.c++; else day.w++;
+                    if (kind === 'almost') day.a++;
+                    if (isRight && Number.isFinite(elapsedMs) && elapsedMs > 0) {
+                        day.ms += Math.round(elapsedMs);
+                        day.mc++;
+                    }
+                    if (topicKey) {
+                        const slot = day.t[topicKey] || (day.t[topicKey] = [0, 0, 0]);
+                        if (isRight) slot[0]++; else slot[1]++;
+                        if (kind === 'almost') slot[2]++;
+                    }
+
                     persistLocal();
                 },
-                recordPuzzleCompleted() { state.totals.puzzlesCompleted++; persistLocal(); },
+                recordPuzzleCompleted() {
+                    state.totals.puzzlesCompleted++;
+                    touchDay().p++;
+                    persistLocal();
+                },
+                // Секунды за игрой. Вызывается раз в секунду, поэтому на диск пишем не каждый
+                // раз, а раз в 10 секунд: JSON.stringify всего состояния ежесекундно — заметная
+                // и совершенно лишняя работа. Потерять при внезапном закрытии можно максимум
+                // 9 секунд, что для статистики занятий несущественно.
+                recordSecond() {
+                    touchDay().s++;
+                    secondsSincePersist++;
+                    if (secondsSincePersist >= 10) { secondsSincePersist = 0; persistLocal(); }
+                    else { dirty = true; }
+                },
+
+                // --- журнал по дням ---
+                getDaily() { return state.daily || {}; },
+                dayKey(d) { return dayKey(d); },
 
                 // --- скины и достижения ---
-                isUnlocked(id) { return state.unlocks.includes(id); },
+                isUnlocked(id) { return Object.prototype.hasOwnProperty.call(state.unlocks || {}, id); },
+                unlockedAt(id) { return (state.unlocks || {})[id] || null; },
+                getUnlocks() { return state.unlocks || {}; },
                 unlock(id) {
-                    if (state.unlocks.includes(id)) return false;
-                    state.unlocks.push(id);
+                    if (!state.unlocks || typeof state.unlocks !== 'object') state.unlocks = {};
+                    if (Object.prototype.hasOwnProperty.call(state.unlocks, id)) return false;
+                    state.unlocks[id] = dayKey();
                     persistLocal();
                     return true;
                 },
@@ -4150,11 +4335,61 @@
             const myCode = Progress.getCode();
             const myPw = Progress.getPassword();
             if (!myCode || !myPw || !supabaseClient) return [];
-            const { data, error } = await supabaseClient.rpc('list_my_students', {
+
+            // Сначала пробуем лёгкий список (только имя + итоги + когда заходил).
+            // Старый list_my_students тянет ПОЛНОЕ состояние каждого ученика вместе
+            // с журналом занятий, а список открывается при каждом заходе в профиль.
+            const light = await supabaseClient.rpc('list_my_students_summary', {
                 p_tutor_code: myCode, p_tutor_password: myPw
             });
-            if (error || !data || !data.ok) return [];
-            return data.students || [];
+            if (!light.error && light.data && light.data.ok) {
+                return (light.data.students || []).map(s => ({
+                    code: s.code,
+                    label: s.label || '',
+                    totals: s.totals || { correct: 0, wrong: 0 },
+                    updatedAt: s.updatedAt || null
+                }));
+            }
+
+            // Откат на старый путь: функции ещё нет в базе (SQL не запущен) — приложение
+            // должно продолжать работать, просто чуть тяжелее.
+            const full = await supabaseClient.rpc('list_my_students', {
+                p_tutor_code: myCode, p_tutor_password: myPw
+            });
+            if (full.error || !full.data || !full.data.ok) return [];
+            return (full.data.students || []).map(s => ({
+                code: s.code,
+                label: (s.state && s.state.profileLabel) || '',
+                totals: (s.state && s.state.totals) || { correct: 0, wrong: 0 },
+                updatedAt: null,
+                state: s.state || null // пригодится, если get_student_state тоже недоступна
+            }));
+        }
+
+        // Полное состояние одного ученика — с журналом по дням. Тянем только когда
+        // реально открываем его статистику или отчёт, а не для отрисовки списка.
+        async function fetchStudentState(code, fallbackState) {
+            const myCode = Progress.getCode();
+            const myPw = Progress.getPassword();
+            if (!myCode || !myPw || !supabaseClient) return fallbackState || null;
+            const res = await supabaseClient.rpc('get_student_state', {
+                p_tutor_code: myCode, p_tutor_password: myPw, p_student_code: code
+            });
+            if (!res.error && res.data && res.data.ok) return res.data.state || null;
+            return fallbackState || null; // функции ещё нет в базе — берём что есть
+        }
+
+        // "Был(а) в приложении" — понятная человеку подпись вместо голой даты.
+        function lastSeenText(iso) {
+            if (!iso) return '';
+            const then = new Date(iso);
+            if (isNaN(then.getTime())) return '';
+            const days = Math.floor((Date.now() - then.getTime()) / 86400000);
+            if (days <= 0) return 'сегодня';
+            if (days === 1) return 'вчера';
+            if (days < 7) return `${days} дн. назад`;
+            if (days < 30) return `${Math.floor(days / 7)} нед. назад`;
+            return then.toLocaleDateString('ru-RU');
         }
 
         async function renderStudentsList() {
@@ -4167,10 +4402,10 @@
             }
             wrap.innerHTML = '';
             students.forEach(s => {
-                const st = s.state || {};
-                const totals = st.totals || { correct: 0, wrong: 0 };
+                const totals = s.totals || { correct: 0, wrong: 0 };
                 const total = (totals.correct || 0) + (totals.wrong || 0);
                 const pct = total > 0 ? Math.round((totals.correct || 0) / total * 100) + '%' : '—';
+                const seen = lastSeenText(s.updatedAt);
                 const row = document.createElement('div');
                 row.className = 'list-row';
                 row.innerHTML = `
@@ -4182,19 +4417,22 @@
                     <button class="list-row-btn" data-act="pw">🔑</button>
                     <button class="list-row-btn" data-act="del">🗑️</button>
                 `;
-                row.querySelector('.list-row-name').innerText = st.profileLabel || s.code;
-                row.querySelector('.list-row-sub').innerText = `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}`;
-                row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, st));
+                row.querySelector('.list-row-name').innerText = s.label || s.code;
+                row.querySelector('.list-row-sub').innerText =
+                    `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}${seen ? ' · ' + seen : ''}`;
+                row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
                 row.querySelector('[data-act="del"]').addEventListener('click', () => deleteStudentAccount(s.code));
                 wrap.appendChild(row);
             });
         }
 
-        function viewStudentStats(code, state) {
+        async function viewStudentStats(code, summary) {
+            const state = await fetchStudentState(code, summary && summary.state);
+            if (!state) { alert('Не удалось загрузить статистику ученика.'); return; }
             statsReturnTo = 'profile';
             closeProfileScreen();
-            renderStatsScreen(state, state.profileLabel || code);
+            renderStatsScreen(state, (summary && summary.label) || state.profileLabel || code);
             document.getElementById('statsScreen').style.display = 'flex';
         }
 
@@ -4384,6 +4622,9 @@
         let timeRemaining = 100;
         let timerInterval = null;
         let currentProblemMeta = null;
+        // Момент показа текущего примера. Скорость ответа — самая честная метрика того,
+        // что навык доведён до автоматизма, а не пересчитывается каждый раз с нуля.
+        let questionShownAt = 0;
 
         const canvas = document.getElementById('cityCanvas');
         const ctx = canvas.getContext('2d');
@@ -4427,6 +4668,7 @@
             currentIsFractionArith = false;
             clearInterval(timerInterval);
             timeRemaining = 100;
+            questionShownAt = Date.now(); // отсюда считается, сколько ученик думал над примером
             document.getElementById('timerBar').style.width = '100%';
 
             const baseDurationSeconds = 100 / 7.5; // ~13.33с
@@ -4722,11 +4964,12 @@
             const topicKey = currentProblemMeta
                 ? `${currentProblemMeta.category}:${currentProblemMeta.opKey}`
                 : null;
+            const elapsedMs = questionShownAt ? (Date.now() - questionShownAt) : 0;
 
             if (isCorrect) {
                 correctCount++;
                 document.getElementById('stat-correct').innerText = correctCount;
-                Progress.recordAnswer(topicKey, true);
+                Progress.recordAnswer(topicKey, 'correct', elapsedMs);
 
                 state.combo++;
                 let comboMultiplier = 1 + (state.combo * comboStepBonus);
@@ -4759,12 +5002,12 @@
                 if (clickedBtn) clickedBtn.classList.add('btn-almost');
                 spawnRewardText('Почти! Не забудь сократить', clickX, clickY, '#f59e0b', false);
                 buildSparks(10, '#f59e0b');
-                Progress.recordAnswer(topicKey, true);
+                Progress.recordAnswer(topicKey, 'almost', elapsedMs);
                 // Пропускаем штраф за пазл и не портим статистику "Ошибки" — это не ошибка в счёте.
             } else {
                 wrongCount++;
                 document.getElementById('stat-wrong').innerText = wrongCount;
-                Progress.recordAnswer(topicKey, false);
+                Progress.recordAnswer(topicKey, 'wrong', elapsedMs);
 
                 state.combo = Math.floor(state.combo / 2);
                 const badge = document.getElementById('comboBadge');
@@ -4903,6 +5146,7 @@
         setInterval(() => {
             if (!gameActive) return;
             totalSeconds++;
+            Progress.recordSecond(); // сколько времени реально занимались — для отчёта родителям
             document.getElementById('clockTimeText').innerText = formatTime(totalSeconds);
         }, 1000);
 
