@@ -151,6 +151,31 @@
         .ach-title { font-size: 0.88rem; font-weight: bold; color: #f1f5f9; }
         .ach-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
 
+        /* Лесенки по темам */
+        .ladder-card {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 11px; margin-bottom: 9px;
+        }
+        .ladder-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+        .ladder-topic { flex: 1; font-size: 0.85rem; font-weight: bold; color: #f1f5f9; }
+        .ladder-rank { font-size: 0.75rem; color: #64748b; white-space: nowrap; }
+        .ladder-rank.has-rank { color: var(--gold); font-weight: bold; }
+        .ladder-row {
+            display: grid; grid-template-columns: 18px 1fr auto auto; gap: 6px;
+            align-items: center; padding: 4px 0; font-size: 0.75rem;
+        }
+        .ladder-row.blocked { opacity: 0.5; }
+        .ladder-icon { font-size: 0.85rem; }
+        .ladder-name { color: #94a3b8; }
+        .ladder-tier { font-size: 0.85rem; }
+        .ladder-now { color: #e2e8f0; font-weight: bold; white-space: nowrap; }
+        .ladder-goal {
+            grid-column: 2 / -1; font-size: 0.66rem; color: #64748b; margin-top: -2px;
+        }
+        .ladder-league { margin-top: 7px; font-size: 0.72rem; color: #64748b; }
+        .ladder-league.in { color: #fbbf24; font-weight: bold; }
+        .ladder-league.super { color: var(--royal); font-weight: bold; }
+
         /* Карточка прошедшей эпохи */
         .epoch-card {
             background: rgba(168, 85, 247, 0.06); border: 1px solid rgba(168, 85, 247, 0.28);
@@ -804,7 +829,16 @@
         <h1 class="start-title">🏅 Достижения</h1>
         <p class="start-subtitle" id="achievementsSubtitle">Награды за успехи</p>
         <div class="config-container">
+            <div class="config-section-title">Общие</div>
             <div id="achievementsList"></div>
+        </div>
+        <div class="config-container" id="ladderSection" style="margin-top:12px; display:none;">
+            <div class="config-section-title">Ранги по темам</div>
+            <div class="config-hint" style="margin-bottom:10px;">
+                Три лесенки на каждую тему. Пока не собрана бронза во всех трёх, серебро
+                не откроется нигде — расти приходится равномерно.
+            </div>
+            <div id="ladderList"></div>
         </div>
     </div>
 
@@ -5076,22 +5110,147 @@
         // Поэтому объём — только одна из пяти групп, а основной вес у регулярности,
         // освоения конкретной темы и роста относительно самого себя.
 
-        // Сколько последних попыток по теме считаем "текущей формой" ученика.
-        const MASTERY_WINDOW = 30;
-        const MASTERY_PCT = 90;
+        // ===== ЛЕСЕНКИ ПО ТЕМАМ =====
+        // На каждую тему (с учётом знака и уровня) — три лесенки по пять ступеней и сводный
+        // ранг. Сводный не хранится, а выводится как минимум из трёх: так он не может
+        // разойтись с ними ни при каком слиянии.
+        const TIER_NAMES = ['—', 'Бронза', 'Серебро', 'Золото', 'Алмаз', 'Легенда'];
+        const TIER_ICONS = ['', '🥉', '🥈', '🥇', '💎', '👑'];
+        const LADDERS = [
+            { id: 's', icon: '⚡', name: 'Скорость' },
+            { id: 'a', icon: '🎯', name: 'Точность' },
+            { id: 'c', icon: '🔢', name: 'Количество' }
+        ];
+        const COUNT_TIERS = [100, 250, 500, 750, 1000];       // верных ответов по теме, за всё время
+        const ACCURACY_TIERS = [75, 80, 85, 90, 95];          // процент за последнюю сотню
+        const SPEED_BASE_TIERS = [13, 11, 9, 7, 5];           // секунд на ответ, за последнюю сотню
+
+        // Пороги скорости растут вместе со сложностью: 13 секунд на "3 + 5" и на
+        // "5/12 + 7/18" — это несопоставимые требования, а одинаковая планка сделала бы
+        // выгодным сидеть на самой лёгкой теме. +2 секунды за каждую звезду сложности.
+        // База в 13 секунд не случайна: ровно столько длится таймер примера в игре,
+        // то есть бронза — это "успел, пока шкала не кончилась".
+        function speedTiersFor(level) {
+            const add = 2 * (Math.max(1, level || 1) - 1);
+            return SPEED_BASE_TIERS.map(t => t + add);
+        }
+
+        // Сколько последних попыток считаем "текущей формой".
+        const LADDER_WINDOW = 100;
+        // Меньше этого числа попыток в окне — процент и среднее время слишком шумные,
+        // чтобы на них что-то выдавать. Порог ниже бронзы по количеству (100), поэтому
+        // скорость и точность всё равно могут открыться раньше объёма.
+        const LADDER_MIN_SAMPLE = 30;
 
         // Свежее окно по теме: идём по дням от сегодняшнего назад, пока не наберём
         // нужное число попыток. Это именно "как он решает сейчас", а не среднее за всё время.
+        // Возвращает и время (поля 3-4), но оно есть только у записей моложе 30 дней —
+        // у более старых хвост отрезан, см. trimTopicSpeed.
         function recentTopicWindow(daily, topicKey, wantAttempts) {
             const keys = Object.keys(daily || {}).sort().reverse();
-            let c = 0, w = 0;
+            let c = 0, w = 0, ms = 0, mc = 0;
             for (const k of keys) {
                 const v = (daily[k] && daily[k].t) ? daily[k].t[topicKey] : null;
                 if (!v) continue;
                 c += v[0] || 0; w += v[1] || 0;
+                ms += v[3] || 0; mc += v[4] || 0;
                 if (c + w >= wantAttempts) break;
             }
-            return { c, w, attempts: c + w };
+            return { c, w, attempts: c + w, ms, mc };
+        }
+
+        // Всё, что нужно лесенкам одной темы.
+        function topicMetrics(st, topicKey) {
+            const lifetime = (st.byTopic || {})[topicKey] || { correct: 0, wrong: 0 };
+            const win = recentTopicWindow(st.daily || {}, topicKey, LADDER_WINDOW);
+            return {
+                count: lifetime.correct || 0,
+                attempts: win.attempts,
+                accuracy: win.attempts > 0 ? Math.round(win.c / win.attempts * 100) : null,
+                speedSec: win.mc > 0 ? (win.ms / win.mc / 1000) : null,
+                speedSamples: win.mc
+            };
+        }
+
+        // Какая ступень заслужена ПО ФАКТУ (без учёта блокировки).
+        function ladderTierByMetrics(ladderId, m, level) {
+            let t = 0;
+            if (ladderId === 'c') {
+                COUNT_TIERS.forEach((v, i) => { if (m.count >= v) t = i + 1; });
+                return t;
+            }
+            if (ladderId === 'a') {
+                if (m.attempts < LADDER_MIN_SAMPLE || m.accuracy === null) return 0;
+                ACCURACY_TIERS.forEach((v, i) => { if (m.accuracy >= v) t = i + 1; });
+                return t;
+            }
+            // Скорость: меньше — лучше
+            if (m.speedSamples < LADDER_MIN_SAMPLE || m.speedSec === null) return 0;
+            speedTiersFor(level).forEach((v, i) => { if (m.speedSec <= v) t = i + 1; });
+            return t;
+        }
+
+        // Уже полученная ступень: ищем самую высокую выданную. Полученное не отбирается,
+        // даже если текущая форма просела — иначе награда была бы не наградой.
+        function ladderTierEarned(unlocks, topicKey, ladderId) {
+            let t = 0;
+            for (let i = 1; i <= 5; i++) if (unlocks[`${topicKey}:${ladderId}${i}`]) t = i;
+            return t;
+        }
+
+        // Сводный ранг темы — минимум из трёх лесенок.
+        function topicCompositeTier(unlocks, topicKey) {
+            return Math.min(
+                ladderTierEarned(unlocks, topicKey, 's'),
+                ladderTierEarned(unlocks, topicKey, 'a'),
+                ladderTierEarned(unlocks, topicKey, 'c')
+            );
+        }
+
+        // Проверяет лесенки ОДНОЙ темы и выдаёт то, что заслужено.
+        // Правило блокировки: подняться выше "сводный + 1" нельзя ни в одной лесенке.
+        // Пока не собрана бронза во всех трёх, серебро не откроется нигде — так нельзя
+        // ни гнать на скорость с ошибками, ни топтаться в аккуратной медлительности.
+        function evaluateTopicLadders(topicKey) {
+            if (!topicKey) return [];
+            const p = parseTopicKey(topicKey);
+            if (!p.hasLevel) return []; // ключ старого формата — уровня нет, лесенки не про него
+            const st = Progress.get();
+            if (!st) return [];
+
+            const unlocks = Progress.getUnlocks();
+            const cap = topicCompositeTier(unlocks, topicKey) + 1;
+            const m = topicMetrics(st, topicKey);
+            const fresh = [];
+
+            LADDERS.forEach(l => {
+                const earned = ladderTierEarned(unlocks, topicKey, l.id);
+                if (earned >= cap) return; // упёрлись в блокировку, ждём отстающие лесенки
+                const target = Math.min(ladderTierByMetrics(l.id, m, p.level), cap);
+                for (let t = earned + 1; t <= target; t++) {
+                    if (Progress.unlock(`${topicKey}:${l.id}${t}`)) {
+                        fresh.push({
+                            id: `${topicKey}:${l.id}${t}`,
+                            icon: TIER_ICONS[t],
+                            title: `${TIER_NAMES[t]} · ${l.name} — ${topicLabelWithLevel(topicKey)}`
+                        });
+                    }
+                }
+            });
+
+            // Сводный ранг отдельным бейджем не выдаём — он вычисляется. Но о его повышении
+            // сообщаем: для ученика это и есть главное событие ("тема взята на серебро").
+            if (fresh.length) {
+                const after = topicCompositeTier(Progress.getUnlocks(), topicKey);
+                if (after > cap - 1) {
+                    fresh.push({
+                        id: `${topicKey}:composite${after}`,
+                        icon: TIER_ICONS[after],
+                        title: `${topicLabelWithLevel(topicKey)} — ${TIER_NAMES[after]}!`
+                    });
+                }
+            }
+            return fresh;
         }
 
         // Череда дней подряд, заканчивающаяся сегодня или вчера. "Вчера" засчитываем,
@@ -5186,20 +5345,9 @@
             };
         }
 
-        // Освоенные темы — динамические достижения вида master:<тема>. Отдельным списком,
-        // потому что их состав зависит от того, что ученик вообще решал.
-        function masteredTopics(st) {
-            const daily = st.daily || {};
-            const out = [];
-            Object.keys(st.byTopic || {}).forEach(key => {
-                const win = recentTopicWindow(daily, key, MASTERY_WINDOW);
-                if (win.attempts >= MASTERY_WINDOW) {
-                    const pct = Math.round(win.c / win.attempts * 100);
-                    if (pct >= MASTERY_PCT) out.push({ key, pct });
-                }
-            });
-            return out;
-        }
+        // Прежний бейдж "Освоено: <тема>" больше не выдаётся — его полностью заменила
+        // лесенка точности, которая делает то же самое, но по ступеням и с учётом уровня.
+        // Уже полученные такие бейджи никуда не деваются и продолжают показываться.
 
         // Проверяет все достижения и выдаёт новые. Возвращает список только что открытых.
         function evaluateAchievements() {
@@ -5212,14 +5360,6 @@
                 let ok = false;
                 try { ok = !!a.check(ctx); } catch (e) { ok = false; }
                 if (ok && Progress.unlock(a.id)) fresh.push(a);
-            });
-            masteredTopics(st).forEach(m => {
-                const id = 'master:' + m.key;
-                if (Progress.isUnlocked(id)) return;
-                if (Progress.unlock(id)) {
-                    fresh.push({ id, icon: '⭐', group: 'Освоенные темы',
-                        title: 'Освоено: ' + topicLabel(m.key) });
-                }
             });
             return fresh;
         }
@@ -5536,6 +5676,102 @@
                 wrap.appendChild(head);
                 render(locked, true);
             }
+
+            renderTopicLadders(st, unlocks);
+        }
+
+        // Карточки лесенок по темам. Показываем ТОЛЬКО те темы, где ученик реально
+        // занимался: всего конфигураций около сотни, и список из ста карточек, 97 из
+        // которых пустые, был бы не мотивацией, а стеной.
+        function renderTopicLadders(st, unlocks) {
+            const section = document.getElementById('ladderSection');
+            const wrap = document.getElementById('ladderList');
+            wrap.innerHTML = '';
+
+            const keys = Object.keys((st && st.byTopic) || {}).filter(k => {
+                const t = st.byTopic[k];
+                return parseTopicKey(k).hasLevel && ((t.correct || 0) + (t.wrong || 0)) > 0;
+            });
+            if (!keys.length) {
+                section.style.display = 'none';
+                return;
+            }
+            section.style.display = '';
+
+            // Сверху — где ранг выше, при равенстве — где больше решено
+            const rows = keys.map(k => ({
+                key: k,
+                composite: topicCompositeTier(unlocks, k),
+                m: topicMetrics(st, k),
+                level: parseTopicKey(k).level
+            })).sort((x, y) => (y.composite - x.composite) || (y.m.count - x.m.count));
+
+            rows.forEach(r => {
+                const cap = r.composite + 1;
+                const card = document.createElement('div');
+                card.className = 'ladder-card';
+                card.innerHTML = `
+                    <div class="ladder-head">
+                        <span class="ladder-topic"></span>
+                        <span class="ladder-rank"></span>
+                    </div>
+                    <div class="ladder-rows"></div>
+                    <div class="ladder-league"></div>`;
+                card.querySelector('.ladder-topic').innerText = topicLabelWithLevel(r.key);
+                const rank = card.querySelector('.ladder-rank');
+                rank.innerText = r.composite > 0
+                    ? `${TIER_ICONS[r.composite]} ${TIER_NAMES[r.composite]}`
+                    : 'нет ранга';
+                if (r.composite > 0) rank.classList.add('has-rank');
+
+                const rowsWrap = card.querySelector('.ladder-rows');
+                LADDERS.forEach(l => {
+                    const earned = ladderTierEarned(unlocks, r.key, l.id);
+                    const next = earned + 1;
+                    const blocked = earned >= cap && next <= 5;
+
+                    let nowText = '—', goalText = '';
+                    if (l.id === 'c') {
+                        nowText = String(r.m.count);
+                        if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${COUNT_TIERS[next - 1]}`;
+                    } else if (l.id === 'a') {
+                        nowText = r.m.accuracy === null ? '—' : r.m.accuracy + '%';
+                        if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${ACCURACY_TIERS[next - 1]}%`;
+                    } else {
+                        nowText = r.m.speedSec === null ? '—' : r.m.speedSec.toFixed(1) + ' с';
+                        if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${speedTiersFor(r.level)[next - 1]} с`;
+                    }
+                    if (next > 5) goalText = 'максимум';
+                    else if (blocked) goalText = 'ждёт остальные лесенки';
+
+                    const row = document.createElement('div');
+                    row.className = 'ladder-row' + (blocked ? ' blocked' : '');
+                    row.innerHTML = `
+                        <span class="ladder-icon"></span>
+                        <span class="ladder-name"></span>
+                        <span class="ladder-tier"></span>
+                        <span class="ladder-now"></span>
+                        <span class="ladder-goal"></span>`;
+                    row.querySelector('.ladder-icon').innerText = l.icon;
+                    row.querySelector('.ladder-name').innerText = l.name;
+                    row.querySelector('.ladder-tier').innerText = earned > 0 ? TIER_ICONS[earned] : '·';
+                    row.querySelector('.ladder-now').innerText = nowText;
+                    row.querySelector('.ladder-goal').innerText = goalText;
+                    rowsWrap.appendChild(row);
+                });
+
+                const league = card.querySelector('.ladder-league');
+                if (r.composite >= 5) {
+                    league.innerText = '👑 Супер-лига';
+                    league.classList.add('super');
+                } else if (r.composite >= 1) {
+                    league.innerText = '🏅 В лиге';
+                    league.classList.add('in');
+                } else {
+                    league.innerText = 'Собери бронзу во всех трёх — и тема войдёт в лигу';
+                }
+                wrap.appendChild(card);
+            });
         }
 
         // ===================== ПРОФИЛЬ =====================
@@ -6433,7 +6669,10 @@
 
                 // Проверяем награды до перехода к следующему примеру, чтобы всплывашка
                 // о новом достижении успела показаться поверх текущего экрана.
-                announceAchievements(evaluateAchievements());
+                // Лесенки считаем только для текущей темы: продвинуться можно лишь там,
+                // где ученик прямо сейчас решает, а перебирать все сто тем на каждый
+                // ответ было бы работой впустую.
+                announceAchievements(evaluateAchievements().concat(evaluateTopicLadders(topicKey)));
 
                 generateMath();
                 return;
