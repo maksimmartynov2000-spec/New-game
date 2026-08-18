@@ -547,6 +547,13 @@
             opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
         }
         .win-screen.active { opacity: 1; pointer-events: auto; }
+        .win-actions { display: flex; gap: 10px; margin-top: 30px; flex-wrap: wrap; justify-content: center; }
+        .btn-win {
+            padding: 12px 25px; background: var(--gold); border: none; border-radius: 8px;
+            font-weight: bold; cursor: pointer; font-size: 1rem; color: #1e293b;
+        }
+        .btn-win.secondary { background: rgba(255,255,255,0.1); color: var(--text-light); border: 1px solid rgba(255,255,255,0.25); }
+        .btn-win:active { transform: scale(0.96); }
 
         @media (max-height: 600px) {
             .math-box { padding: 8px; max-width: 320px; }
@@ -928,7 +935,10 @@
     <div class="win-screen" id="winScreen">
         <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;">Экзамен сдан!</h1>
         <p id="winDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size: 1.1rem; white-space:pre-line;"></p>
-        <button style="margin-top:30px; padding:12px 25px; background:var(--gold); border:none; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="location.reload()">Начать заново</button>
+        <div class="win-actions">
+            <button class="btn-win" onclick="winGoHome()">🏠 На главную</button>
+            <button class="btn-win secondary" onclick="winGoMenu()">☰ Меню</button>
+        </div>
     </div>
 
     <!-- Полноэкранное окно пазла -->
@@ -5442,20 +5452,59 @@
             }
         }
 
+        // Обнуление счётчиков текущей сессии. Пазл и весь накопленный прогресс не трогаются —
+        // они живут в Progress и переживают сколько угодно испытаний.
+        function resetSessionCounters() {
+            clearInterval(timerInterval);
+            gameActive = false;
+            correctCount = 0; wrongCount = 0; totalSeconds = 0; state.combo = 0;
+            document.getElementById('stat-correct').innerText = '0';
+            document.getElementById('stat-wrong').innerText = '0';
+            document.getElementById('clockTimeText').innerText = formatTime(0);
+            document.getElementById('comboBadge').style.display = 'none';
+            document.getElementById('comboBadge').classList.remove('frenzy');
+            answerLocked = false;
+        }
+
+        // Возврат экрана настройки к первому шагу с чистого листа. Нужен после завершённого
+        // испытания: следующее ученик собирает заново, а не доедает подсвеченный прошлый выбор
+        // (там же остаются и .selected на кнопках, и заполненный exampleConfig).
+        function resetConfigScreen() {
+            exampleConfig.category = null;
+            exampleConfig.numberType = null;
+            exampleConfig.operations = {};
+            document.querySelectorAll('.btn-category').forEach(b => b.classList.remove('selected'));
+            document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('selected'));
+            document.getElementById('fracSpecialBlock').style.display = 'none';
+            renderDifficultyList();   // сама спрячет блок сложности, раз режимов не выбрано
+            updateConfigValidity();   // и погасит кнопку "Начать испытание"
+            document.getElementById('restStepScreen').style.display = 'none';
+            document.getElementById('categoryStepScreen').style.display = 'flex';
+        }
+
         // Смена настроек без перезагрузки: пазл и весь накопленный прогресс остаются на месте,
-        // сбрасываются только счётчики текущей сессии.
+        // сбрасываются только счётчики текущей сессии. Прошлый выбор режимов НЕ сбрасывается —
+        // сюда приходят, чтобы подправить настройку на ходу, а не начать с нуля.
         function menuGoSettings() {
             if (!confirm('Открыть настройки примеров? Пазл и прогресс сохранятся, счётчики этой сессии обнулятся.')) return;
             closeMainMenu();
-            clearInterval(timerInterval);
-            correctCount = 0; wrongCount = 0; state.combo = 0;
-            document.getElementById('stat-correct').innerText = '0';
-            document.getElementById('stat-wrong').innerText = '0';
-            document.getElementById('comboBadge').style.display = 'none';
-            answerLocked = false;
+            resetSessionCounters();
             Progress.flush();
             document.getElementById('configScreen').style.display = 'flex';
         }
+
+        // Уход с экрана "Экзамен сдан!" — раньше здесь была одна кнопка "Начать заново",
+        // которая перезагружала страницу. Перезагрузка не нужна: состояние живёт в Progress,
+        // а счётчики сессии мы и так обнуляем.
+        function winLeaveToConfig() {
+            document.getElementById('winScreen').classList.remove('active');
+            resetSessionCounters();
+            resetConfigScreen();
+            Progress.flush();
+            document.getElementById('configScreen').style.display = 'flex';
+        }
+        function winGoHome() { winLeaveToConfig(); }
+        function winGoMenu() { winLeaveToConfig(); openStartMenu(); }
 
         function menuEndSession() {
             closeMainMenu();
