@@ -31,6 +31,11 @@
             --text-light: #f8fafc;
         }
         html, body { height: 100%; width: 100%; overflow: hidden; }
+        /* Тёмный фон нужен и на html, не только на body: в отдельном приложении (добавлено
+           на экран Домой) на iPad реальная высота экрана иногда чуть отличается от той,
+           что видит body — и в этом зазоре снизу просвечивает белый фон html по умолчанию,
+           а не наш тёмный. Дублируем цвет на html, чтобы зазора в принципе не было видно. */
+        html { background-color: var(--bg-dark); }
         body {
             background-color: var(--bg-dark);
             color: var(--text-light);
