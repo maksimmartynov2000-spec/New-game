@@ -117,7 +117,16 @@
         .config-hint { font-size: 0.72rem; color: #64748b; margin-top: 4px; }
 
         /* Переключатель периода на экране статистики */
-        .period-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .period-row { display: flex; flex-wrap: wrap; gap: 6px; }
+        .period-row .btn-period { flex: 1 1 auto; min-width: 72px; }
+        .period-custom { display: flex; align-items: center; gap: 6px; margin-top: 7px; }
+        .period-custom-label { font-size: 0.72rem; color: #64748b; white-space: nowrap; }
+        .period-custom input {
+            width: 68px; padding: 8px; border-radius: 8px; text-align: center;
+            border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.05);
+            color: var(--text-light); font-size: 0.85rem; box-sizing: border-box;
+        }
+        .period-custom .btn-period { flex: 0 0 auto; padding: 8px 12px; }
         .btn-period {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.12);
             border-radius: 9px; padding: 9px 4px; color: #94a3b8; text-align: center;
@@ -141,6 +150,25 @@
         .ach-main { display: flex; flex-direction: column; min-width: 0; }
         .ach-title { font-size: 0.88rem; font-weight: bold; color: #f1f5f9; }
         .ach-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
+
+        /* Карточка прошедшей эпохи */
+        .epoch-card {
+            background: rgba(168, 85, 247, 0.06); border: 1px solid rgba(168, 85, 247, 0.28);
+            border-radius: 12px; padding: 12px; margin-bottom: 9px;
+        }
+        .epoch-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 9px; flex-wrap: wrap; }
+        .epoch-title { font-size: 0.95rem; font-weight: bold; color: #d8b4fe; }
+        .epoch-dates { font-size: 0.7rem; color: #94a3b8; }
+        .epoch-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+        .epoch-cell { background: rgba(255,255,255,0.04); border-radius: 8px; padding: 7px 4px; text-align: center; }
+        .epoch-cell b { display: block; font-size: 1rem; color: #f1f5f9; line-height: 1.2; }
+        .epoch-cell span { font-size: 0.62rem; color: #94a3b8; }
+        .epoch-topics { margin-top: 8px; }
+        .epoch-topic-row {
+            display: flex; align-items: center; justify-content: space-between;
+            font-size: 0.76rem; color: #cbd5e1; padding: 3px 0;
+        }
+        .epoch-badges { margin-top: 7px; font-size: 0.74rem; color: #fbbf24; }
 
         /* ===== ЛИСТ ОТЧЁТА ДЛЯ РОДИТЕЛЕЙ =====
            Светлый намеренно: его отправляют скриншотом человеку, который в приложение
@@ -695,9 +723,16 @@
         <div class="config-container">
             <div class="config-section">
                 <div class="period-row" id="statsPeriodRow">
-                    <button class="btn-period" data-period="7">7 дней</button>
+                    <button class="btn-period" data-period="7">Неделя</button>
                     <button class="btn-period selected" data-period="30">30 дней</button>
+                    <button class="btn-period" data-period="90">90 дней</button>
+                    <button class="btn-period" data-period="180">180 дней</button>
                     <button class="btn-period" data-period="all">Всё время</button>
+                </div>
+                <div class="period-custom">
+                    <span class="period-custom-label">Свой период:</span>
+                    <input type="number" id="statsPeriodInput" min="1" max="180" step="1" inputmode="numeric" placeholder="дней">
+                    <button class="btn-period" id="statsPeriodApply">Показать</button>
                 </div>
                 <div class="config-hint" id="statsPeriodHint"></div>
             </div>
@@ -751,6 +786,15 @@
                 <div class="config-section-title" id="statsTopicTitle">По темам за период</div>
                 <div id="statsTopicList"></div>
             </div>
+
+            <div class="config-section" id="statsEpochsSection" style="display:none;">
+                <div class="config-section-title">Прошедшие эпохи</div>
+                <div class="config-hint" style="margin-bottom:8px;">
+                    Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни
+                    уже не хранятся, а итоги остаются навсегда.
+                </div>
+                <div id="statsEpochsList"></div>
+            </div>
         </div>
     </div>
 
@@ -773,9 +817,15 @@
 
         <div class="config-container">
             <div class="period-row" id="reportPeriodRow">
-                <button class="btn-period" data-period="7">7 дней</button>
+                <button class="btn-period" data-period="7">Неделя</button>
                 <button class="btn-period selected" data-period="30">30 дней</button>
                 <button class="btn-period" data-period="90">90 дней</button>
+                <button class="btn-period" data-period="180">180 дней</button>
+            </div>
+            <div class="period-custom">
+                <span class="period-custom-label">Свой период:</span>
+                <input type="number" id="reportPeriodInput" min="1" max="180" step="1" inputmode="numeric" placeholder="дней">
+                <button class="btn-period" id="reportPeriodApply">Показать</button>
             </div>
         </div>
 
@@ -3440,7 +3490,18 @@
                     // Заметки репетитора об учениках: { кодУченика: текст }. Лежат в аккаунте
                     // РЕПЕТИТОРА, а не ученика — это рабочая запись преподавателя, и ученик
                     // не должен её видеть, открыв своё приложение.
-                    studentNotes: {}
+                    studentNotes: {},
+
+                    // Карточки эпох: замороженные сводки за прошедшие отрезки по 180 дней.
+                    // { '1': { from, to, days, c, w, a, s, p, ms, mc, top: [...], badges: N } }
+                    // Ключ — номер эпохи, считается от первого записанного дня.
+                    //
+                    // ВАЖНО: это СНИМОК, а не копилка. Цифры карточки нигде не складываются
+                    // с текущими — все живые периоды считаются только по daily. Именно поэтому
+                    // подчистка журнала безопасна: если старое устройство при слиянии вернёт
+                    // уже свёрнутый день, он просто снова подчистится, и двойного счёта
+                    // возникнуть не может.
+                    epochs: {}
                 };
             }
 
@@ -3453,7 +3514,7 @@
             //   p  — собрано пазлов
             //   ms — суммарное время раздумий на верных ответах, мс
             //   mc — сколько ответов попало в ms (чтобы считать среднее)
-            //   t  — по темам: { 'fraction:add': [верно, ошибок, почти] }
+            //   t  — по темам: { 'integer+:add:1': [верно, ошибок, почти, время(мс), ответов ко времени] }
             function emptyDay() {
                 return { c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {} };
             }
@@ -3467,20 +3528,40 @@
                 return `${dt.getFullYear()}-${m}-${day}`;
             }
 
-            // Сколько дней журнала храним. Считаем только дни с занятиями, так что 400 —
-            // это заметно больше года реальной практики. Старое просто отбрасываем:
-            // "за всё время" живёт в totals/byTopic и не подчищается никогда, поэтому
-            // подчистка журнала не может испортить итоговые цифры.
+            // Сколько дней журнала храним. Самый длинный период, который можно выбрать на
+            // экране, — 180 дней; 200 даёт запас и при этом вдвое дешевле прежних 400 по
+            // размеру и трафику (состояние уходит на сервер целиком при каждой синхронизации).
+            // Один день = максимум одна запись, поэтому 200 записей всегда покрывают
+            // не меньше 200 календарных дней — 180-дневный обзор не может остаться без данных.
             //
-            // Месячных сводок специально НЕТ. Они дали бы риск двойного счёта: устройство,
-            // которое ещё не знает о сводке, вернуло бы при слиянии уже свёрнутый день,
-            // и период посчитался бы дважды. Все периоды считаем на лету из daily.
-            const DAILY_KEEP_DAYS = 400;
+            // Ничего не теряется безвозвратно: перед подчисткой отрезок замораживается в
+            // карточку эпохи (см. EPOCH_DAYS) — компактный снимок за 180 дней, который
+            // хранится вечно.
+            const DAILY_KEEP_DAYS = 200;
             function pruneDaily(daily) {
                 const keys = Object.keys(daily);
                 if (keys.length <= DAILY_KEEP_DAYS) return daily;
                 keys.sort(); // 'ГГГГ-ММ-ДД' сортируется как строка правильно
                 for (let i = 0; i < keys.length - DAILY_KEEP_DAYS; i++) delete daily[keys[i]];
+                return daily;
+            }
+
+            // Время ответа по темам нужно ТОЛЬКО лесенке скорости, а она смотрит на последнюю
+            // сотню попыток — то есть на считанные дни. Отчёты и статистика берут скорость из
+            // дневного ms/mc, а не из тем. Поэтому у записей старше 30 дней хвост со временем
+            // просто отбрасываем: счётчики верно/ошибок/почти остаются на всю глубину периода,
+            // а самая объёмная часть живёт ровно столько, сколько реально используется.
+            const TOPIC_SPEED_KEEP_DAYS = 30;
+            function trimTopicSpeed(daily) {
+                const keys = Object.keys(daily).sort();
+                const cutoff = keys.length - TOPIC_SPEED_KEEP_DAYS;
+                for (let i = 0; i < cutoff; i++) {
+                    const t = daily[keys[i]] && daily[keys[i]].t;
+                    if (!t) continue;
+                    Object.keys(t).forEach(k => {
+                        if (t[k] && t[k].length > 3) t[k] = t[k].slice(0, 3);
+                    });
+                }
                 return daily;
             }
 
@@ -3603,15 +3684,40 @@
                     tk.forEach(key => {
                         const p = (x.t && x.t[key]) || [];
                         const q = (y.t && y.t[key]) || [];
-                        bucket.t[key] = [
+                        // [верно, ошибок, почти, суммарное время верных (мс), сколько ответов в этом времени]
+                        const slot = [
                             Math.max(p[0] || 0, q[0] || 0),
                             Math.max(p[1] || 0, q[1] || 0),
-                            Math.max(p[2] || 0, q[2] || 0)
+                            Math.max(p[2] || 0, q[2] || 0),
+                            Math.max(p[3] || 0, q[3] || 0),
+                            Math.max(p[4] || 0, q[4] || 0)
                         ];
+                        bucket.t[key] = slot;
                     });
                     out.daily[k] = bucket;
                 });
+                trimTopicSpeed(out.daily);
                 pruneDaily(out.daily);
+
+                // Карточки эпох: объединение по номеру эпохи, при конфликте — максимум по
+                // каждому полю. Границы эпох считаются от первого записанного дня по формуле,
+                // поэтому оба устройства всегда получают одинаковый номер для одного отрезка,
+                // а максимум разрешает случай, когда одно устройство знало о днях больше.
+                out.epochs = {};
+                const epochKeys = new Set([...Object.keys(a.epochs || {}), ...Object.keys(b.epochs || {})]);
+                epochKeys.forEach(k => {
+                    const x = (a.epochs && a.epochs[k]) || null;
+                    const y = (b.epochs && b.epochs[k]) || null;
+                    if (!x || !y) { out.epochs[k] = x || y; return; }
+                    const merged = Object.assign({}, x);
+                    ['days', 'c', 'w', 'a', 's', 'p', 'ms', 'mc', 'badges', 'streak'].forEach(f => {
+                        merged[f] = Math.max(x[f] || 0, y[f] || 0);
+                    });
+                    merged.from = x.from || y.from;
+                    merged.to = x.to || y.to;
+                    merged.top = (x.top && x.top.length >= ((y.top || []).length)) ? x.top : (y.top || []);
+                    out.epochs[k] = merged;
+                });
 
                 // Достижения — объединение, снять обратно нельзя. При конфликте дат побеждает
                 // более РАННЯЯ: первое получение и есть правда, второе устройство про него
@@ -3677,6 +3783,8 @@
                 pruneDaily(s.daily);
                 s.unlocks = toUnlockMap(s.unlocks);
                 if (!s.studentNotes || typeof s.studentNotes !== 'object' || Array.isArray(s.studentNotes)) s.studentNotes = {};
+                if (!s.epochs || typeof s.epochs !== 'object' || Array.isArray(s.epochs)) s.epochs = {};
+                trimTopicSpeed(s.daily);
                 if (typeof s.profileLabel !== 'string') s.profileLabel = '';
                 if (s.accountType !== 'linked') s.accountType = 'self';
                 if (typeof s.ownerCode !== 'string') s.ownerCode = null;
@@ -3712,6 +3820,13 @@
 
             function persistLocal() {
                 state.updatedAt = Date.now();
+                // Порядок здесь принципиален: сначала замораживаем закрывшуюся эпоху, и только
+                // потом подчищаем журнал. Наоборот — и карточка соберётся по обрезанным данным.
+                // Обе проверки дешёвые и обычно сразу выходят: карточка за текущий отрезок ещё
+                // не может быть заморожена, а дней в журнале почти всегда меньше лимита.
+                sealEpochs();
+                pruneDaily(state.daily);
+                trimTopicSpeed(state.daily);
                 if (state.playerCode) profiles[state.playerCode] = state;
                 localDriver.write({ activeCode: state.playerCode, profiles, passwords });
                 dirty = true;
@@ -3730,6 +3845,74 @@
 
             // Счётчик для recordSecond() — чтобы не писать на диск каждую секунду.
             let secondsSincePersist = 0;
+
+            // ===== ЭПОХИ =====
+            // Отрезок в 180 дней. Границы считаются от первого записанного дня, поэтому
+            // оба устройства всегда получают одинаковые номера и одинаковые ключи карточек —
+            // рассинхронизации быть не может даже без всякой связи между ними.
+            const EPOCH_DAYS = 180;
+
+            function shiftKey(key, delta) {
+                const [y, m, d] = key.split('-').map(Number);
+                const dt = new Date(y, m - 1, d);
+                dt.setDate(dt.getDate() + delta);
+                return dayKey(dt);
+            }
+            function daysBetween(fromKey, toKey) {
+                const [y1, m1, d1] = fromKey.split('-').map(Number);
+                const [y2, m2, d2] = toKey.split('-').map(Number);
+                return Math.round((new Date(y2, m2 - 1, d2) - new Date(y1, m1 - 1, d1)) / 86400000);
+            }
+
+            // Замораживает все полностью прошедшие эпохи, для которых карточки ещё нет.
+            // Вызывается на сохранении: к моменту, когда журнал начнёт подчищаться, снимок
+            // уже сделан, поэтому старые данные не пропадают, а переезжают в карточку.
+            function sealEpochs() {
+                const daily = state.daily || {};
+                const keys = Object.keys(daily).sort();
+                if (!keys.length) return;
+                const first = keys[0];
+                const today = dayKey();
+                const elapsed = daysBetween(first, today);
+                const completed = Math.floor(elapsed / EPOCH_DAYS); // сколько отрезков закрылось
+                if (completed < 1) return;
+                if (!state.epochs || typeof state.epochs !== 'object') state.epochs = {};
+
+                for (let n = 1; n <= completed; n++) {
+                    if (state.epochs[n]) continue; // уже заморожена
+                    const from = shiftKey(first, EPOCH_DAYS * (n - 1));
+                    const to = shiftKey(first, EPOCH_DAYS * n - 1);
+                    const card = { from, to, days: 0, c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, streak: 0, badges: 0, top: [] };
+                    const byTopic = {};
+                    let run = 0, prev = null;
+                    keys.forEach(k => {
+                        if (k < from || k > to) return;
+                        const d = daily[k];
+                        const active = ((d.c || 0) + (d.w || 0)) > 0 || (d.s || 0) > 0;
+                        if (active) {
+                            card.days++;
+                            run = (prev && shiftKey(prev, 1) === k) ? run + 1 : 1;
+                            if (run > card.streak) card.streak = run;
+                            prev = k;
+                        }
+                        ['c', 'w', 'a', 's', 'p', 'ms', 'mc'].forEach(f => { card[f] += d[f] || 0; });
+                        Object.keys(d.t || {}).forEach(tk => {
+                            const v = d.t[tk] || [];
+                            const acc = byTopic[tk] || (byTopic[tk] = [0, 0]);
+                            acc[0] += v[0] || 0; acc[1] += v[1] || 0;
+                        });
+                    });
+                    // В карточку кладём только заметные темы — она должна остаться компактной
+                    card.top = Object.keys(byTopic)
+                        .map(k => ({ k, c: byTopic[k][0], w: byTopic[k][1] }))
+                        .filter(t => (t.c + t.w) >= 20)
+                        .sort((x, y) => (y.c + y.w) - (x.c + x.w))
+                        .slice(0, 6);
+                    card.badges = Object.keys(state.unlocks || {})
+                        .filter(id => { const dt = state.unlocks[id]; return dt && dt >= from && dt <= to; }).length;
+                    state.epochs[n] = card;
+                }
+            }
 
             // Переключение активного профиля: откладывает текущий в кэш, поднимает
             // уже известный устройству профиль или заводит новый с нужными метками.
@@ -3897,9 +4080,16 @@
                         day.mc++;
                     }
                     if (topicKey) {
-                        const slot = day.t[topicKey] || (day.t[topicKey] = [0, 0, 0]);
+                        const slot = day.t[topicKey] || (day.t[topicKey] = [0, 0, 0, 0, 0]);
+                        while (slot.length < 5) slot.push(0); // запись могла прийти из старой версии
                         if (isRight) slot[0]++; else slot[1]++;
                         if (kind === 'almost') slot[2]++;
+                        // Время по темам питает только лесенку скорости — и только у верных
+                        // ответов, по той же причине, что и дневное ms/mc выше.
+                        if (isRight && Number.isFinite(elapsedMs) && elapsedMs > 0) {
+                            slot[3] += Math.round(elapsedMs);
+                            slot[4]++;
+                        }
                     }
 
                     persistLocal();
@@ -3931,6 +4121,8 @@
                 // --- журнал по дням ---
                 getDaily() { return state.daily || {}; },
                 dayKey(d) { return dayKey(d); },
+                getEpochs() { return state.epochs || {}; },
+                epochLength() { return EPOCH_DAYS; },
 
                 // --- заметки репетитора об учениках ---
                 getStudentNote(code) { return (state.studentNotes || {})[code] || ''; },
@@ -4419,6 +4611,52 @@
         // ===================== ГЛАВНОЕ МЕНЮ =====================
         const CATEGORY_LABELS = { integer: 'Целые', decimal: 'Десятичные', fraction: 'Дроби' };
 
+        // ===================== КЛЮЧ ТЕМЫ =====================
+        // Формат: 'категория+знак:операция:уровень', например 'integer+:add:1'.
+        // Уровень и знак нужны достижениям: «сложение целых положительных на 1★» и
+        // «на 5★» — это разные навыки, и одна лесенка на них обе была бы бессмысленной.
+        //
+        // Записи старого формата ('integer:add', без знака и уровня) продолжают читаться:
+        // они просто не участвуют в лесенках (уровень из них не восстановить) и попадают
+        // в те же строки статистики, что и новые.
+        function buildTopicKey(meta) {
+            if (!meta || !meta.category || !meta.opKey) return null;
+            const sign = meta.isNegative ? '-' : '+';
+            const lvl = meta.level || 1;
+            return `${meta.category}${sign}:${meta.opKey}:${lvl}`;
+        }
+        function parseTopicKey(key) {
+            const parts = String(key || '').split(':');
+            const head = parts[0] || '';
+            const sign = (head.slice(-1) === '+' || head.slice(-1) === '-') ? head.slice(-1) : null;
+            return {
+                category: sign ? head.slice(0, -1) : head,
+                sign,
+                op: parts[1] || '',
+                level: parts.length > 2 ? Number(parts[2]) || null : null,
+                hasLevel: parts.length > 2
+            };
+        }
+        // Ключ для ОТОБРАЖЕНИЯ: уровни схлопываются в одну строку, знак остаётся —
+        // «целые положительные» и «целые отрицательные» это разные вещи и для ученика,
+        // и для репетитора, а вот «сложение на 2★ и на 4★» в отчёте разделять незачем.
+        function displayTopicKey(key) {
+            const p = parseTopicKey(key);
+            return `${p.category}${p.sign || ''}:${p.op}`;
+        }
+        function topicLabel(key) {
+            const p = parseTopicKey(key);
+            const cat = CATEGORY_LABELS[p.category] || p.category;
+            const signSuffix = (p.category === 'integer' && p.sign) ? (p.sign === '-' ? ' −' : ' +') : '';
+            const op = (OP_LABELS[p.op] || p.op).replace(/^\S+\s/, '');
+            return `${cat}${signSuffix} · ${op}`;
+        }
+        // То же самое, но с уровнем — для достижений, где уровень и есть суть темы.
+        function topicLabelWithLevel(key) {
+            const p = parseTopicKey(key);
+            return topicLabel(key) + (p.level ? ` · ${p.level}★` : '');
+        }
+
         document.getElementById('btnOpenMenu').addEventListener('click', openMainMenu);
 
         function openMainMenu() {
@@ -4459,14 +4697,25 @@
             const wrap = document.getElementById(targetId);
             const MIN_ATTEMPTS = 5;
 
-            const rows = Object.keys(byTopic).map(key => {
+            // Уровни сложности схлопываем в одну строку: показывать «Дроби · Сложение»
+            // пятью строками (по строке на звёздность) — это шум, а не информация.
+            // Разбивка по уровням живёт в достижениях, где она и нужна.
+            const grouped = {};
+            Object.keys(byTopic).forEach(key => {
                 const t = byTopic[key];
-                const attempts = (t.correct || 0) + (t.wrong || 0);
-                const [cat, op] = key.split(':');
+                const g = displayTopicKey(key);
+                const acc = grouped[g] || (grouped[g] = { correct: 0, wrong: 0 });
+                acc.correct += t.correct || 0;
+                acc.wrong += t.wrong || 0;
+            });
+
+            const rows = Object.keys(grouped).map(key => {
+                const t = grouped[key];
+                const attempts = t.correct + t.wrong;
                 return {
                     key, attempts,
-                    pct: attempts > 0 ? Math.round((t.correct || 0) / attempts * 100) : 0,
-                    label: `${CATEGORY_LABELS[cat] || cat} · ${(OP_LABELS[op] || op).replace(/^\S+\s/, '')}`
+                    pct: attempts > 0 ? Math.round(t.correct / attempts * 100) : 0,
+                    label: topicLabel(key)
                 };
             }).filter(r => r.attempts >= MIN_ATTEMPTS)
               .sort((a, b) => a.pct - b.pct);
@@ -4615,7 +4864,28 @@
             if (!btn) return;
             const p = btn.getAttribute('data-period');
             statsPeriod = (p === 'all') ? 'all' : Number(p);
+            document.getElementById('statsPeriodInput').value = '';
             renderStatsScreen(statsViewState, statsViewLabel);
+        });
+
+        // Ручной ввод числа дней. Верхняя граница — 180: ровно столько хранится в журнале,
+        // просить больше нечестно (данных всё равно не будет).
+        function applyCustomPeriod(inputId, setter) {
+            const el = document.getElementById(inputId);
+            const n = Math.round(Number(el.value));
+            if (!Number.isFinite(n) || n < 1) { el.value = ''; return; }
+            const clamped = Math.min(n, 180);
+            el.value = clamped;
+            setter(clamped);
+        }
+        document.getElementById('statsPeriodApply').addEventListener('click', () => {
+            applyCustomPeriod('statsPeriodInput', (n) => {
+                statsPeriod = n;
+                renderStatsScreen(statsViewState, statsViewLabel);
+            });
+        });
+        document.getElementById('statsPeriodInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('statsPeriodApply').click();
         });
 
         // foreignState/foreignLabel — для просмотра статистики ученика без входа под его кодом.
@@ -4723,6 +4993,80 @@
             document.getElementById('statsPeriodHint').innerText = first
                 ? `Дневник занятий ведётся с ${formatDayKeyHuman(first)}.`
                 : 'Дневник занятий начнётся с первого решённого примера.';
+
+            renderEpochCards(st);
+        }
+
+        // Карточки прошедших эпох. Это замороженные снимки: их числа НЕ складываются
+        // с текущими и вообще ни в каких расчётах периода не участвуют — только показ.
+        function renderEpochCards(st) {
+            const section = document.getElementById('statsEpochsSection');
+            const wrap = document.getElementById('statsEpochsList');
+            const epochs = (st && st.epochs) || {};
+            const nums = Object.keys(epochs).map(Number).filter(n => n > 0).sort((a, b) => b - a);
+            if (!nums.length) { section.style.display = 'none'; return; }
+
+            section.style.display = '';
+            wrap.innerHTML = '';
+            nums.forEach(n => {
+                const e = epochs[n];
+                if (!e) return;
+                const total = (e.c || 0) + (e.w || 0);
+                const acc = accuracyPct(e.c, e.w, 1);
+                const speed = e.mc > 0 ? (e.ms / e.mc / 1000).toFixed(1) + ' с' : '—';
+                const card = document.createElement('div');
+                card.className = 'epoch-card';
+                card.innerHTML = `
+                    <div class="epoch-head">
+                        <span class="epoch-title"></span>
+                        <span class="epoch-dates"></span>
+                    </div>
+                    <div class="epoch-grid"></div>
+                    <div class="epoch-topics"></div>`;
+                card.querySelector('.epoch-title').innerText = `Эпоха ${n}`;
+                card.querySelector('.epoch-dates').innerText =
+                    `${formatDayKeyHuman(e.from)} — ${formatDayKeyHuman(e.to)}`;
+
+                const cells = [
+                    [`${e.days || 0}`, 'дней занимался'],
+                    [formatDuration(e.s), 'времени'],
+                    [`${total}`, 'примеров'],
+                    [acc === null ? '—' : acc + '%', 'точность'],
+                    [speed, 'скорость'],
+                    [`${e.streak || 0}`, 'дней подряд']
+                ];
+                const grid = card.querySelector('.epoch-grid');
+                cells.forEach(([v, l]) => {
+                    const cell = document.createElement('div');
+                    cell.className = 'epoch-cell';
+                    cell.innerHTML = `<b></b><span></span>`;
+                    cell.querySelector('b').innerText = v;
+                    cell.querySelector('span').innerText = l;
+                    grid.appendChild(cell);
+                });
+
+                const tWrap = card.querySelector('.epoch-topics');
+                (e.top || []).forEach(t => {
+                    const attempts = (t.c || 0) + (t.w || 0);
+                    if (!attempts) return;
+                    const pct = Math.round((t.c || 0) / attempts * 100);
+                    const row = document.createElement('div');
+                    row.className = 'epoch-topic-row';
+                    row.innerHTML = `<span></span><b></b>`;
+                    row.querySelector('span').innerText = topicLabel(t.k);
+                    const b = row.querySelector('b');
+                    b.innerText = pct + '%';
+                    b.style.color = pct >= 85 ? '#10b981' : (pct >= 65 ? '#f59e0b' : '#ef4444');
+                    tWrap.appendChild(row);
+                });
+                if (e.badges) {
+                    const badge = document.createElement('div');
+                    badge.className = 'epoch-badges';
+                    badge.innerText = `🏅 достижений получено: ${e.badges}`;
+                    card.appendChild(badge);
+                }
+                wrap.appendChild(card);
+            });
         }
 
         // ===================== ДОСТИЖЕНИЯ =====================
@@ -4761,10 +5105,6 @@
             return n;
         }
 
-        function topicLabel(key) {
-            const [cat, op] = String(key).split(':');
-            return `${CATEGORY_LABELS[cat] || cat} · ${(OP_LABELS[op] || op).replace(/^\S+\s/, '')}`;
-        }
 
         // Определения достижений. check(ctx) → true, если заслужено.
         // Порядок важен только для отрисовки.
@@ -4906,7 +5246,14 @@
             const btn = e.target.closest('.btn-period');
             if (!btn) return;
             reportPeriod = Number(btn.getAttribute('data-period'));
+            document.getElementById('reportPeriodInput').value = '';
             renderReport();
+        });
+        document.getElementById('reportPeriodApply').addEventListener('click', () => {
+            applyCustomPeriod('reportPeriodInput', (n) => { reportPeriod = n; renderReport(); });
+        });
+        document.getElementById('reportPeriodInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') document.getElementById('reportPeriodApply').click();
         });
 
         async function openReportFor(code, summary) {
@@ -5011,9 +5358,18 @@
             renderReportChart(daily, fromKey, today);
 
             // --- Темы: сначала уверенные, потом те, что в работе ---
-            const topics = Object.keys(cur.t).map(key => {
+            // Уровни сложности схлопываем, как и на экране статистики: родителю нужна
+            // картина по темам, а не по звёздности внутри каждой.
+            const grouped = {};
+            Object.keys(cur.t).forEach(key => {
                 const v = cur.t[key];
-                const attempts = (v[0] || 0) + (v[1] || 0);
+                const g = displayTopicKey(key);
+                const acc = grouped[g] || (grouped[g] = [0, 0]);
+                acc[0] += v[0] || 0; acc[1] += v[1] || 0;
+            });
+            const topics = Object.keys(grouped).map(key => {
+                const v = grouped[key];
+                const attempts = v[0] + v[1];
                 return { key, attempts, pct: attempts > 0 ? Math.round(v[0] / attempts * 100) : 0 };
             }).filter(r => r.attempts >= 5).sort((a, b) => b.pct - a.pct);
 
@@ -6052,9 +6408,7 @@
             // Единая точка учёта: пишем каждый ответ в накопительную статистику по теме.
             // Отсюда потом вырастут достижения, скины и отчёт для репетитора.
             // "Забыл сократить" считаем верным ответом по существу — счёт-то был правильный.
-            const topicKey = currentProblemMeta
-                ? `${currentProblemMeta.category}:${currentProblemMeta.opKey}`
-                : null;
+            const topicKey = currentProblemMeta ? buildTopicKey(currentProblemMeta) : null;
             const elapsedMs = questionShownAt ? (Date.now() - questionShownAt) : 0;
 
             if (isCorrect) {
