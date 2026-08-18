@@ -1635,8 +1635,18 @@
         // между уровнями идёт через ограничение сверху на НОК (см. ADD_SUB_MAX_LCM), а не через
         // сами числа: иначе НОК может случайно оказаться слишком большим для устного счёта
         // (например, пара 7 и 9 технически "разные и не делятся", но их НОК = 63).
+        //
+        // 1★ — только НЕЧЁТНЫЕ знаменатели, и это не стилистический выбор, а математическая
+        // необходимость. Условие всегда даётся в несократимом виде, поэтому при чётном
+        // знаменателе оба числителя обязаны быть нечётными (иначе дробь сократится уже в
+        // условии). Сумма или разность двух нечётных чисел — всегда чётная, а чётное число
+        // при чётном знаменателе — это всегда общий множитель 2. То есть для ЧЁТНОГО
+        // знаменателя результат сложения/вычитания двух несократимых правильных дробей
+        // ГАРАНТИРОВАННО сокращается — без исключений, это не вопрос удачного подбора чисел.
+        // На 1★ сокращать пока не нужно уметь вообще (это отдельно тренирует режим
+        // «Сокращение»), поэтому чётные знаменатели здесь в принципе непригодны.
         const ADD_SUB_FRAC_DEN_POOL = {
-            1: [2, 3, 4, 5],
+            1: [3, 5, 7, 9, 11],
             2: [2, 3, 4, 5, 6, 7, 8],
             3: [2, 3, 4, 5, 6, 7, 8, 9, 10],
             4: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
@@ -1691,6 +1701,38 @@
             const n1 = randFracProper(den);
             const n2 = isAdd ? (den - n1) : n1;
             return { n1, n2 };
+        }
+
+        // Детерминированный подбор пары числителей (общий знаменатель den), гарантирующий,
+        // что результат (сумма/разность) НЕ сокращается — обратная версия функции выше,
+        // используется на 1★, где сокращать пока вообще не нужно уметь. Диапазон n1..n2
+        // небольшой (den ≤ 11), поэтому детерминированный перебор в фолбэке дешёвый и
+        // не требует угадывания формулы, как в pickReducibleAddSubPair.
+        // Заодно исключает n1===n2 при вычитании: gcd(0, den) по определению равен den
+        // (и не 1 при den>1), так что "0" как ответ отсеивается той же проверкой без
+        // отдельного условия.
+        function pickIrreducibleAddSubPair(den, isAdd) {
+            let guard = 0;
+            while (guard < 30) {
+                guard++;
+                const n1 = randFracProper(den);
+                const n2 = randFracProper(den);
+                const result = isAdd ? (n1 + n2) : Math.abs(n1 - n2);
+                if (gcd(result, den) === 1) return { n1, n2 };
+            }
+            // Детерминированный фолбэк: полный перебор пар несократимых числителей.
+            for (let n1 = 1; n1 < den; n1++) {
+                if (gcd(n1, den) !== 1) continue;
+                for (let n2 = 1; n2 < den; n2++) {
+                    if (gcd(n2, den) !== 1) continue;
+                    const result = isAdd ? (n1 + n2) : Math.abs(n1 - n2);
+                    if (gcd(result, den) === 1) return { n1, n2 };
+                }
+            }
+            // Не должно случиться при нечётных знаменателях из ADD_SUB_FRAC_DEN_POOL[1] —
+            // валидная пара для них существует всегда. Крайний фолбэк на случай, если пул
+            // когда-нибудь изменят и в него попадёт знаменатель без решения.
+            return { n1: randFracProper(den), n2: randFracProper(den) };
         }
 
         // Пара разных знаменателей, ни один из которых не делится на другой, С ОГРАНИЧЕНИЕМ НОК
@@ -1786,9 +1828,8 @@
             if (level === 1) {
                 const pool = ADD_SUB_FRAC_DEN_POOL[1];
                 const den = pool[randInt(0, pool.length - 1)];
-                const n1 = randFracProper(den);
-                const n2 = randFracProper(den);
-                return { whole1: 0, n1, d1: den, whole2: 0, n2, d2: den };
+                const pair = pickIrreducibleAddSubPair(den, opKey === 'add');
+                return { whole1: 0, n1: pair.n1, d1: den, whole2: 0, n2: pair.n2, d2: den };
             }
             if (level === 2) {
                 const pool = ADD_SUB_FRAC_DEN_POOL[2];
@@ -1937,16 +1978,26 @@
 
             // "Забыли сократить" — несокращённая, но математически равная дробь.
             // Считаем "сырые" числитель/знаменатель до вызова simplifyFrac.
-            let rawNum, rawDen;
-            if (opKey === 'add') { rawNum = f1.num * f2.den + f2.num * f1.den; rawDen = f1.den * f2.den; }
-            else if (opKey === 'sub') { rawNum = f1.num * f2.den - f2.num * f1.den; rawDen = f1.den * f2.den; }
-            else if (opKey === 'mul') { rawNum = f1.num * f2.num; rawDen = f1.den * f2.den; }
-            else { rawNum = f1.num * f2.den; rawDen = f1.den * f2.num; }
-            if (rawDen !== 0) {
-                let nNum = rawNum, nDen = rawDen;
-                if (nDen < 0) { nNum = -nNum; nDen = -nDen; }
-                if ((gcd(nNum, nDen) || 1) > 1) {
-                    pushFrac(priority, { num: nNum, den: nDen }, correctAnswer, used, isNegative);
+            //
+            // На 1★ сложения/вычитания эта ошибка структурно невозможна: числа подобраны
+            // так (см. pickIrreducibleAddSubPair), что результат никогда не сокращается.
+            // Без этой оговорки формула ниже всё равно "раздула" бы дробь — при одинаковом
+            // знаменателе перекрёстное умножение домножает и числитель, и знаменатель на
+            // тот же den, то есть добавляет общий множитель, даже когда сокращать нечего.
+            // Выбор такого варианта тогда засчитывался бы как мягкое "почти", а не как
+            // отсутствующий вариант — на этом уровне такого исхода быть не должно вообще.
+            if (!(level === 1 && (opKey === 'add' || opKey === 'sub'))) {
+                let rawNum, rawDen;
+                if (opKey === 'add') { rawNum = f1.num * f2.den + f2.num * f1.den; rawDen = f1.den * f2.den; }
+                else if (opKey === 'sub') { rawNum = f1.num * f2.den - f2.num * f1.den; rawDen = f1.den * f2.den; }
+                else if (opKey === 'mul') { rawNum = f1.num * f2.num; rawDen = f1.den * f2.den; }
+                else { rawNum = f1.num * f2.den; rawDen = f1.den * f2.num; }
+                if (rawDen !== 0) {
+                    let nNum = rawNum, nDen = rawDen;
+                    if (nDen < 0) { nNum = -nNum; nDen = -nDen; }
+                    if ((gcd(nNum, nDen) || 1) > 1) {
+                        pushFrac(priority, { num: nNum, den: nDen }, correctAnswer, used, isNegative);
+                    }
                 }
             }
 
