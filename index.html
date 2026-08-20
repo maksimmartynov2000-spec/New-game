@@ -646,6 +646,76 @@
             .btn-answer { padding: 8px; font-size: 1.1rem; min-height: 52px; }
             .puzzle-mini-thumb { width: clamp(130px, 42vw, 200px); height: clamp(130px, 42vw, 200px); }
         }
+        /* --- Диалоги и уведомления приложения ---
+           Раньше здесь были системные prompt/alert/confirm. У них три беды: в
+           установленном на «Домой» приложении они выглядят чужеродно и подписаны
+           доменом сайта; они блокируют весь поток выполнения, включая таймер
+           и синхронизацию; и на каждое поле нужен отдельный вызов — добавление
+           ученика превращалось в три всплывающих окна подряд без возможности
+           вернуться назад и поправить первое. */
+        .dlg-backdrop {
+            position: fixed; inset: 0; z-index: 400;
+            background: rgba(3, 4, 8, 0.78);
+            display: none; align-items: center; justify-content: center;
+            padding: 20px;
+            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            overflow-y: auto;
+            -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px);
+        }
+        .dlg-backdrop.open { display: flex; }
+        .dlg-card {
+            width: 100%; max-width: 420px; box-sizing: border-box;
+            background: rgba(15, 18, 32, 0.98);
+            border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 16px;
+            padding: 20px; flex-shrink: 0;
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+            animation: dlgIn 0.16s ease-out;
+        }
+        @keyframes dlgIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+        .dlg-title { color: var(--gold); font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; }
+        .dlg-text { color: #cbd5e1; font-size: 0.9rem; line-height: 1.45; margin-bottom: 14px; white-space: pre-line; }
+        .dlg-field { margin-bottom: 12px; }
+        .dlg-label { display: block; color: #94a3b8; font-size: 0.78rem; margin-bottom: 5px; }
+        .dlg-input {
+            width: 100%; box-sizing: border-box; padding: 11px 12px;
+            font-size: 1rem; font-family: inherit;
+            border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.22);
+            background: rgba(255, 255, 255, 0.07); color: white;
+        }
+        .dlg-input:focus { outline: none; border-color: var(--gold); }
+        textarea.dlg-input { min-height: 92px; resize: vertical; line-height: 1.4; }
+        .dlg-hint { color: #64748b; font-size: 0.74rem; margin-top: 5px; }
+        .dlg-err { color: #f87171; font-size: 0.84rem; margin-bottom: 12px; display: none; }
+        .dlg-actions { display: flex; gap: 10px; margin-top: 4px; }
+        .dlg-btn {
+            flex: 1; padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.18);
+            background: rgba(255, 255, 255, 0.07); color: #e2e8f0;
+            font-size: 0.95rem; font-family: inherit; font-weight: 600; cursor: pointer;
+        }
+        .dlg-btn.primary { background: var(--gold); border-color: var(--gold); color: #1a1400; }
+        .dlg-btn.danger { background: #dc2626; border-color: #dc2626; color: white; }
+        .dlg-btn:active { transform: scale(0.98); }
+
+        /* Короткие сообщения, которые не требуют ответа: раньше это были alert(). */
+        .toast-wrap {
+            position: fixed; z-index: 420; left: 50%; transform: translateX(-50%);
+            top: calc(12px + env(safe-area-inset-top));
+            width: 100%; max-width: 420px; padding: 0 12px; box-sizing: border-box;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .toast {
+            background: rgba(15, 18, 32, 0.97); border: 1px solid rgba(255, 255, 255, 0.16);
+            border-left: 4px solid #64748b; border-radius: 10px;
+            padding: 11px 14px; color: #e2e8f0; font-size: 0.88rem; line-height: 1.35;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            animation: toastIn 0.18s ease-out;
+        }
+        .toast.error { border-left-color: #f87171; }
+        .toast.ok { border-left-color: #34d399; }
+        .toast.hiding { animation: toastOut 0.22s ease-in forwards; }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
+        @keyframes toastOut { to { opacity: 0; transform: translateY(-8px); } }
     </style>
     <!-- Библиотека лежит рядом, а не на чужом CDN. Раньше подключалась с jsdelivr, и при его
          недоступности вход не работал вообще: кнопка просто не реагировала, без объяснения.
@@ -1129,6 +1199,13 @@
             </div>
         </div>
     </div>
+
+    <!-- Диалог приложения (подтверждения и ввод) и лента коротких уведомлений.
+         Содержимое собирается в askConfirm/askForm/showNotice, разметка тут пустая. -->
+    <div class="dlg-backdrop" id="appDialog" role="dialog" aria-modal="true">
+        <div class="dlg-card" id="appDialogCard"></div>
+    </div>
+    <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
 
     <script>
         // ===================== НАСТРОЙКА ГЕНЕРАЦИИ ПРИМЕРОВ =====================
@@ -3488,6 +3565,234 @@
 
 
         // =====================================================================
+        //  ДИАЛОГИ И УВЕДОМЛЕНИЯ
+        // ---------------------------------------------------------------------
+        //  Замена системным prompt/alert/confirm. Три причины уйти от них:
+        //   1) в приложении, добавленном на «Домой», они подписаны доменом сайта
+        //      и выглядят как чужое окно поверх игры;
+        //   2) они блокируют поток целиком — на время открытого confirm() стоят
+        //      и таймер испытания, и фоновая синхронизация прогресса;
+        //   3) на каждое поле нужен свой вызов: добавление ученика было тремя
+        //      окнами подряд, без возможности вернуться и поправить первое.
+        //
+        //  Здесь три функции. showToast — сообщение без ответа (бывший alert).
+        //  askConfirm — да/нет. askForm — одна или несколько строк ввода сразу,
+        //  с проверкой прямо в окне: ошибка показывается под полями, окно не
+        //  закрывается и введённое не теряется.
+        //
+        //  askConfirm и askForm возвращают промис, поэтому вызывающий код стал
+        //  async. Отмена — это null (askForm) или false (askConfirm), никогда
+        //  не исключение: отмена — нормальный исход, а не ошибка.
+        // =====================================================================
+
+        function showToast(text, kind) {
+            const wrap = document.getElementById('toastWrap');
+            if (!wrap) return;
+            const el = document.createElement('div');
+            el.className = 'toast' + (kind ? ' ' + kind : '');
+            el.innerText = text;                 // innerText, не innerHTML: в сообщениях бывают коды учеников
+            wrap.appendChild(el);
+            // Ошибку держим дольше: её обычно нужно прочитать и осмыслить, а не просто заметить.
+            const life = kind === 'error' ? 4600 : 3000;
+            setTimeout(() => {
+                el.classList.add('hiding');
+                setTimeout(() => el.remove(), 260);
+            }, life);
+        }
+
+        // Единственный открытый диалог за раз. Если что-то попробует открыть второй
+        // поверх первого, первый честно завершится отменой, а не потеряется молча.
+        let dialogClose = null;
+
+        function closeAppDialog(result) {
+            const done = dialogClose;
+            dialogClose = null;
+            document.getElementById('appDialog').classList.remove('open');
+            document.getElementById('appDialogCard').innerHTML = '';
+            if (done) done(result);
+        }
+
+        // Общая часть обоих диалогов: собирает карточку, вешает Esc и клик по фону,
+        // возвращает промис с результатом. build(card, submit) наполняет карточку.
+        function openAppDialog(cancelResult, build) {
+            if (dialogClose) closeAppDialog(cancelResult);
+            const back = document.getElementById('appDialog');
+            const card = document.getElementById('appDialogCard');
+            card.innerHTML = '';
+
+            return new Promise(resolve => {
+                dialogClose = resolve;
+
+                const onKey = (e) => {
+                    if (!dialogClose) { document.removeEventListener('keydown', onKey); return; }
+                    if (e.key === 'Escape') { e.preventDefault(); document.removeEventListener('keydown', onKey); closeAppDialog(cancelResult); }
+                };
+                document.addEventListener('keydown', onKey);
+
+                // Клик мимо карточки — отмена. Отмена всегда безопасна, поэтому так
+                // можно и для необратимых действий: случайно подтвердить это не даст.
+                back.onclick = (e) => { if (e.target === back) closeAppDialog(cancelResult); };
+
+                build(card, (result) => { document.removeEventListener('keydown', onKey); closeAppDialog(result); });
+                back.classList.add('open');
+            });
+        }
+
+        function dlgHead(card, title, text) {
+            if (title) {
+                const h = document.createElement('div');
+                h.className = 'dlg-title';
+                h.innerText = title;
+                card.appendChild(h);
+            }
+            if (text) {
+                const p = document.createElement('div');
+                p.className = 'dlg-text';
+                p.innerText = text;
+                card.appendChild(p);
+            }
+        }
+
+        function dlgActions(card, okText, cancelText, danger, onOk, onCancel) {
+            const row = document.createElement('div');
+            row.className = 'dlg-actions';
+
+            const cancel = document.createElement('button');
+            cancel.className = 'dlg-btn';
+            cancel.type = 'button';
+            cancel.innerText = cancelText;
+            cancel.addEventListener('click', onCancel);
+
+            const ok = document.createElement('button');
+            ok.className = 'dlg-btn ' + (danger ? 'danger' : 'primary');
+            ok.type = 'button';
+            ok.innerText = okText;
+            ok.addEventListener('click', onOk);
+
+            // Отмена слева: у необратимых действий безопасный выход должен стоять
+            // там, куда палец идёт первым, а не под подтверждающей кнопкой.
+            row.appendChild(cancel);
+            row.appendChild(ok);
+            card.appendChild(row);
+            return ok;
+        }
+
+        // Сообщение, которое нужно прочитать и закрыть (бывший alert с одним ОК).
+        // В отличие от showToast не исчезает само — для того, что нельзя пропустить,
+        // например только что выданного пароля.
+        function showNotice(opts) {
+            const o = opts || {};
+            return openAppDialog(undefined, (card, submit) => {
+                dlgHead(card, o.title || '', o.text || '');
+                const row = document.createElement('div');
+                row.className = 'dlg-actions';
+                const ok = document.createElement('button');
+                ok.className = 'dlg-btn primary';
+                ok.type = 'button';
+                ok.innerText = o.okText || 'Понятно';
+                ok.addEventListener('click', () => submit(undefined));
+                row.appendChild(ok);
+                card.appendChild(row);
+                setTimeout(() => ok.focus(), 0);
+            });
+        }
+
+        // Да/нет. Возвращает true только при явном подтверждении.
+        function askConfirm(opts) {
+            const o = opts || {};
+            return openAppDialog(false, (card, submit) => {
+                dlgHead(card, o.title || 'Подтверждение', o.text || '');
+                const ok = dlgActions(
+                    card, o.okText || 'Да', o.cancelText || 'Отмена', !!o.danger,
+                    () => submit(true), () => submit(false)
+                );
+                // Фокус на кнопке подтверждения — но не у опасных действий:
+                // там случайный Enter не должен ничего удалять.
+                if (!o.danger) setTimeout(() => ok.focus(), 0);
+            });
+        }
+
+        // Ввод одного или нескольких значений. fields: [{key, label, type, value,
+        // placeholder, hint, multiline}]. validate(values) возвращает текст ошибки
+        // или null — ошибка показывается под полями, диалог остаётся открытым.
+        // Результат: объект значений или null, если отменили.
+        function askForm(opts) {
+            const o = opts || {};
+            const fields = o.fields || [];
+            return openAppDialog(null, (card, submit) => {
+                dlgHead(card, o.title || '', o.text || '');
+
+                const inputs = {};
+                fields.forEach(f => {
+                    const box = document.createElement('div');
+                    box.className = 'dlg-field';
+                    if (f.label) {
+                        const lab = document.createElement('label');
+                        lab.className = 'dlg-label';
+                        lab.innerText = f.label;
+                        box.appendChild(lab);
+                    }
+                    const input = document.createElement(f.multiline ? 'textarea' : 'input');
+                    input.className = 'dlg-input';
+                    if (!f.multiline) input.type = f.type || 'text';
+                    input.value = f.value || '';
+                    if (f.placeholder) input.placeholder = f.placeholder;
+                    // Логины и пароли автозаменой портить нельзя.
+                    input.setAttribute('autocapitalize', f.autocapitalize || 'off');
+                    input.setAttribute('autocorrect', 'off');
+                    input.setAttribute('spellcheck', 'false');
+                    box.appendChild(input);
+                    if (f.hint) {
+                        const hint = document.createElement('div');
+                        hint.className = 'dlg-hint';
+                        hint.innerText = f.hint;
+                        box.appendChild(hint);
+                    }
+                    card.appendChild(box);
+                    inputs[f.key] = input;
+                });
+
+                const err = document.createElement('div');
+                err.className = 'dlg-err';
+                card.appendChild(err);
+
+                const collect = () => {
+                    const values = {};
+                    fields.forEach(f => {
+                        const raw = inputs[f.key].value;
+                        values[f.key] = f.trim === false ? raw : raw.trim();
+                    });
+                    return values;
+                };
+
+                const tryOk = () => {
+                    const values = collect();
+                    const problem = o.validate ? o.validate(values) : null;
+                    if (problem) {
+                        err.innerText = problem;
+                        err.style.display = 'block';
+                        return;
+                    }
+                    submit(values);
+                };
+
+                dlgActions(card, o.okText || 'Готово', o.cancelText || 'Отмена', !!o.danger,
+                    tryOk, () => submit(null));
+
+                // Enter в однострочном поле = подтверждение: так же, как в обычной форме.
+                fields.forEach(f => {
+                    if (f.multiline) return;
+                    inputs[f.key].addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') { e.preventDefault(); tryOk(); }
+                    });
+                });
+
+                const first = fields[0] && inputs[fields[0].key];
+                if (first) setTimeout(() => { first.focus(); if (first.select) first.select(); }, 0);
+            });
+        }
+
+        // =====================================================================
         //  ХРАНИЛИЩЕ ПРОГРЕССА
         // ---------------------------------------------------------------------
         //  Единственное место во всём приложении, которое знает, ГДЕ лежат данные.
@@ -5341,7 +5646,7 @@
 
         async function openReportFor(code, summary) {
             const st = await fetchStudentState(code, summary && summary.state);
-            if (!st) { alert('Не удалось загрузить данные ученика.'); return; }
+            if (!st) { showToast('Не удалось загрузить данные ученика.', 'error'); return; }
             reportStudent = { code, label: (summary && summary.label) || st.profileLabel || code, state: st };
             closeProfileScreen();
             renderReport();
@@ -5352,12 +5657,18 @@
             openProfileScreen();
         }
 
-        function editReportNote() {
+        async function editReportNote() {
             if (!reportStudent) return;
             const cur = Progress.getStudentNote(reportStudent.code);
-            const text = prompt('Комментарий для родителей (что отметить, над чем работаем):', cur);
-            if (text === null) return;
-            Progress.setStudentNote(reportStudent.code, text.trim());
+            const values = await askForm({
+                title: 'Комментарий для родителей',
+                text: 'Что отметить, над чем работаем. Попадёт в отчёт под цифрами.',
+                fields: [{ key: 'note', label: '', value: cur, multiline: true,
+                           placeholder: 'Например: уверенно считает в уме до 20, беру дроби помедленнее.' }],
+                okText: 'Сохранить'
+            });
+            if (values === null) return;
+            Progress.setStudentNote(reportStudent.code, values.note);
             Progress.flush(true);
             renderReport();
         }
@@ -5748,9 +6059,9 @@
         // Общий вход по коду+паролю: проверяет через RPC, потом переключает профиль и
         // перезагружает страницу — проще и надёжнее, чем вручную обновлять десяток виджетов.
         async function loginAndSwitch(code, password) {
-            if (!supabaseClient) { alert('Нет соединения с сервером.'); return false; }
+            if (!supabaseClient) { showToast('Нет соединения с сервером.', 'error'); return false; }
             const { data, error } = await supabaseClient.rpc('login', { p_code: code, p_password: password });
-            if (error || !data || !data.ok) { alert('Неверный код или пароль.'); return false; }
+            if (error || !data || !data.ok) { showToast('Неверный код или пароль.', 'error'); return false; }
             Progress.switchTo(code, password);
             await Progress.flush(true);
             location.reload();
@@ -5760,17 +6071,34 @@
         // Уже известный профиль на этом устройстве — пароль спрашиваем заново, если он
         // почему-то не сохранился локально (например, после очистки данных браузера).
         async function profileLoginTo(code) {
-            const pw = Progress.getPasswordFor(code) || prompt(`Пароль для ${code}:`) || '';
-            if (!pw) return;
+            let pw = Progress.getPasswordFor(code);
+            if (!pw) {
+                const values = await askForm({
+                    title: 'Вход в профиль',
+                    text: `Пароль для «${code}».`,
+                    fields: [{ key: 'pw', label: 'Пароль', type: 'password' }],
+                    okText: 'Войти',
+                    validate: (v) => v.pw ? null : 'Введи пароль.'
+                });
+                if (values === null) return;
+                pw = values.pw;
+            }
             loginAndSwitch(code, pw);
         }
 
         async function profileAddExisting() {
-            const raw = (prompt('Логин профиля:') || '').trim();
-            if (!raw) return;
-            const pw = prompt('Пароль:') || '';
-            if (!pw) return;
-            loginAndSwitch(raw, pw);
+            const values = await askForm({
+                title: 'Добавить профиль',
+                text: 'Профиль появится в списке на этом устройстве — переключаться можно будет без пароля.',
+                fields: [
+                    { key: 'code', label: 'Логин' },
+                    { key: 'pw', label: 'Пароль', type: 'password' }
+                ],
+                okText: 'Войти',
+                validate: (v) => !v.code ? 'Введи логин.' : (!v.pw ? 'Введи пароль.' : null)
+            });
+            if (values === null) return;
+            loginAndSwitch(values.code, values.pw);
         }
 
         // --- Мои ученики ---
@@ -5874,7 +6202,7 @@
 
         async function viewStudentStats(code, summary) {
             const state = await fetchStudentState(code, summary && summary.state);
-            if (!state) { alert('Не удалось загрузить статистику ученика.'); return; }
+            if (!state) { showToast('Не удалось загрузить статистику ученика.', 'error'); return; }
             statsReturnTo = 'profile';
             closeProfileScreen();
             renderStatsScreen(state, (summary && summary.label) || state.profileLabel || code);
@@ -5882,16 +6210,32 @@
         }
 
         async function addStudent() {
-            if (!supabaseClient) { alert('Нет соединения с сервером.'); return; }
+            if (!supabaseClient) { showToast('Нет соединения с сервером.', 'error'); return; }
             const myCode = Progress.getCode();
             const myPw = Progress.getPassword();
-            if (!myCode || !myPw) { alert('Сначала войди под своим логином.'); return; }
+            if (!myCode || !myPw) { showToast('Сначала войди под своим логином.', 'error'); return; }
 
-            const code = (prompt('Логин ученика (6–20 символов, можно своё имя+число):', suggestCode()) || '').trim();
-            if (!code) return;
-            const password = prompt('Пароль ученику (минимум 4 символа):') || '';
-            if (!password) return;
-            const label = (prompt('Имя ученика (необязательно):') || '').trim();
+            // Все три поля сразу: раньше это были три окна подряд, и опечатку в логине
+            // можно было заметить только когда сервер откажет — после ввода пароля.
+            const values = await askForm({
+                title: 'Новый ученик',
+                text: 'Логин и пароль нужно будет передать ученику — под ними он войдёт со своего устройства.',
+                fields: [
+                    { key: 'code', label: 'Логин ученика', value: suggestCode(), hint: '6–20 символов, можно имя + число' },
+                    { key: 'password', label: 'Пароль', type: 'password', hint: 'Минимум 4 символа' },
+                    { key: 'label', label: 'Имя (необязательно)', autocapitalize: 'words', placeholder: 'Как показывать в списке' }
+                ],
+                okText: 'Создать',
+                validate: (v) => {
+                    if (v.code.length < 6 || v.code.length > 20) return 'Логин — от 6 до 20 символов.';
+                    if (v.password.length < 4) return 'Пароль — минимум 4 символа.';
+                    return null;
+                }
+            });
+            if (values === null) return;
+            const code = values.code;
+            const password = values.password;
+            const label = values.label;
 
             try {
                 const { data, error } = await supabaseClient.rpc('create_student', {
@@ -5906,7 +6250,7 @@
                         code_taken: 'Этот код уже занят, придумай другой.',
                         password_too_short: 'Пароль слишком короткий — минимум 4 символа.'
                     };
-                    alert(messages[data && data.error] || 'Не удалось создать ученика.');
+                    showToast(messages[data && data.error] || 'Не удалось создать ученика.', 'error');
                     return;
                 }
                 const banner = document.getElementById('studentsBanner');
@@ -5920,44 +6264,61 @@
                 banner.appendChild(box);
                 renderStudentsList();
             } catch (e) {
-                alert('Не удалось создать ученика. Проверь интернет.');
+                showToast('Не удалось создать ученика. Проверь интернет.', 'error');
             }
         }
 
         async function resetStudentPassword(code) {
             const myCode = Progress.getCode();
             const myPw = Progress.getPassword();
-            const newPw = prompt(`Новый пароль для ${code} (минимум 4 символа):`) || '';
-            if (!newPw) return;
+            const values = await askForm({
+                title: 'Новый пароль',
+                text: `Пароль для ученика «${code}». Старый перестанет работать сразу.`,
+                fields: [{ key: 'pw', label: 'Новый пароль', type: 'password', hint: 'Минимум 4 символа' }],
+                okText: 'Сменить',
+                validate: (v) => v.pw.length < 4 ? 'Пароль — минимум 4 символа.' : null
+            });
+            if (values === null) return;
+            const newPw = values.pw;
             try {
                 const { data, error } = await supabaseClient.rpc('reset_student_password', {
                     p_tutor_code: myCode, p_tutor_password: myPw,
                     p_student_code: code, p_new_password: newPw
                 });
                 if (error) throw error;
-                if (!data || !data.ok) { alert('Не удалось сменить пароль.'); return; }
-                alert(`Новый пароль для ${code}: ${newPw}`);
+                if (!data || !data.ok) { showToast('Не удалось сменить пароль.', 'error'); return; }
+                // Не всплывашкой: пароль нужно успеть прочитать и передать ученику,
+                // а исчезающее через три секунды сообщение для этого не годится.
+                await showNotice({
+                    title: 'Пароль изменён',
+                    text: `Ученик: ${code}\nНовый пароль: ${newPw}\n\nПередай его — старый больше не работает.`
+                });
             } catch (e) {
-                alert('Не удалось подключиться. Проверь интернет.');
+                showToast('Не удалось подключиться. Проверь интернет.', 'error');
             }
         }
 
         async function deleteStudentAccount(code) {
             const myCode = Progress.getCode();
             const myPw = Progress.getPassword();
-            const ok = confirm(`Точно удалить ученика «${code}» насовсем? Весь его прогресс и логин пропадут без возможности восстановить.`);
+            const ok = await askConfirm({
+                title: 'Удалить ученика?',
+                text: `Ученик «${code}» пропадёт насовсем — весь прогресс и сам логин, без возможности восстановить.`,
+                okText: 'Удалить', danger: true
+            });
             if (!ok) return;
             try {
                 const { data, error } = await supabaseClient.rpc('delete_student', {
                     p_tutor_code: myCode, p_tutor_password: myPw, p_student_code: code
                 });
                 if (error) throw error;
-                if (!data || !data.ok) { alert('Не удалось удалить ученика.'); return; }
+                if (!data || !data.ok) { showToast('Не удалось удалить ученика.', 'error'); return; }
                 Progress.forgetProfile(code); // если он был и в списке профилей на этом устройстве
                 renderStudentsList();
                 renderProfileList();
+                showToast(`Ученик «${code}» удалён.`, 'ok');
             } catch (e) {
-                alert('Не удалось подключиться. Проверь интернет.');
+                showToast('Не удалось подключиться. Проверь интернет.', 'error');
             }
         }
 
@@ -5965,30 +6326,41 @@
         async function confirmHardReset() {
             const code = Progress.getCode();
             if (!code) return;
-            const ok = confirm('Точно сбросить весь прогресс этого профиля? Решённые примеры, пазл и коллекция обнулятся. Код останется тот же. Отменить это нельзя.');
+            const ok = await askConfirm({
+                title: 'Сбросить весь прогресс?',
+                text: 'Решённые примеры, пазл, коллекция и достижения обнулятся. Логин останется тот же. Отменить это нельзя.',
+                okText: 'Сбросить', danger: true
+            });
             if (!ok) return;
             await Progress.hardReset();
             location.reload();
         }
 
         // Необратимо: удаляет саму запись на сервере, не только прогресс. Просит
-        // повторно ввести логин текстом — обычного confirm() тут маловато для того,
+        // повторно ввести логин текстом — одного «да/нет» тут маловато для того,
         // что нельзя отменить.
         async function confirmDeleteOwnAccount() {
             const code = Progress.getCode();
             const pw = Progress.getPassword();
             if (!code || !pw) return;
-            const typed = prompt(`Это удалит профиль «${code}» насовсем — весь прогресс и сам логин, без возможности восстановить. Чтобы подтвердить, введи логин ещё раз:`);
-            if (typed === null) return;
-            if (typed !== code) { alert('Логин не совпадает — отменено.'); return; }
+            const values = await askForm({
+                title: 'Удалить профиль насовсем?',
+                text: `Пропадёт всё: прогресс, пазл, коллекция, достижения и сам логин «${code}». Восстановить будет нельзя.`,
+                fields: [{ key: 'typed', label: 'Введи логин, чтобы подтвердить', placeholder: code }],
+                okText: 'Удалить', danger: true,
+                // Ошибку показываем прямо в окне: раньше несовпадение закрывало ввод
+                // и выбрасывало отдельный alert, после которого всё надо было начинать заново.
+                validate: (v) => v.typed === code ? null : 'Логин не совпадает.'
+            });
+            if (values === null) return;
             try {
                 const { data, error } = await supabaseClient.rpc('delete_own_account', { p_code: code, p_password: pw });
                 if (error) throw error;
-                if (!data || !data.ok) { alert('Не удалось удалить профиль.'); return; }
+                if (!data || !data.ok) { showToast('Не удалось удалить профиль.', 'error'); return; }
                 Progress.wipeAllLocal();
                 location.reload();
             } catch (e) {
-                alert('Не удалось подключиться. Проверь интернет.');
+                showToast('Не удалось подключиться. Проверь интернет.', 'error');
             }
         }
 
@@ -6025,8 +6397,13 @@
         // Смена настроек без перезагрузки: пазл и весь накопленный прогресс остаются на месте,
         // сбрасываются только счётчики текущей сессии. Прошлый выбор режимов НЕ сбрасывается —
         // сюда приходят, чтобы подправить настройку на ходу, а не начать с нуля.
-        function menuGoSettings() {
-            if (!confirm('Открыть настройки примеров? Пазл и прогресс сохранятся, счётчики этой сессии обнулятся.')) return;
+        async function menuGoSettings() {
+            const ok = await askConfirm({
+                title: 'Сменить настройки примеров?',
+                text: 'Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущего испытания.',
+                okText: 'Открыть настройки'
+            });
+            if (!ok) return;
             closeMainMenu();
             resetSessionCounters();
             Progress.flush();
@@ -6755,10 +7132,17 @@
             Progress.flush(); // без force — уйдёт на сервер, только если реально что-то изменилось
         }, 8000);
 
-        document.getElementById('btn-exam').addEventListener('click', () => {
+        document.getElementById('btn-exam').addEventListener('click', async () => {
             if (!gameActive) return;
-            const confirmed = confirm('Вы действительно хотите завершить испытание? Игра завершится.');
-            if (!confirmed) return;
+            const confirmed = await askConfirm({
+                title: 'Завершить испытание?',
+                text: 'Покажу результат и разбор ошибок. Решённое засчитано и никуда не денется.',
+                okText: 'Завершить'
+            });
+            // Пока окно открыто, испытание продолжается — таймер не стоит, как это было
+            // с системным confirm(). Поэтому проверяем ещё раз: за это время игру могли
+            // завершить и другим способом.
+            if (!confirmed || !gameActive) return;
 
             gameActive = false;
             document.getElementById('winDesc').innerText =
