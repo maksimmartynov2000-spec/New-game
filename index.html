@@ -1894,25 +1894,32 @@
             return { d1: 2, d2: 3 }; // крайний фолбэк, всегда валиден (НОК=6)
         }
 
-        // Общий множитель k в допустимых пределах пула (чтобы d1=k*mult не выходил за диапазон уровня
-        // ни при mult=2, ни при mult=3 — проверяем худший случай)
-        function pickCrossFactor(pool) {
-            const maxDen = Math.max(...pool);
-            const kOptions = [2, 3, 4, 5].filter(k => k * 3 <= maxDen);
-            return kOptions.length ? kOptions[randInt(0, kOptions.length - 1)] : 2;
-        }
-
-        // Умножение: гарантированное перекрёстное сокращение (числитель второй дроби делит
-        // знаменатель первой, при этом каждая дробь по отдельности несократима).
-        // Принимает пул знаменателей напрямую — переиспользуется для разных уровней/операций.
+        // Умножение: гарантированная возможность сократить хотя бы по одной диагонали
+        // (числитель одной дроби имеет общий множитель со знаменателем другой), при этом
+        // каждая дробь по отдельности несократима.
+        //
+        // Пара подбирается перебором случайных кандидатов, а не строится по формуле.
+        // Прежняя формула (d1 = k×2 или k×3, второй числитель ВСЕГДА равен k) сжимала
+        // пространство до неприличия: на 2★ существовало ровно 12 разных примеров, повтор
+        // приходил на третьем-седьмом, и у всех двенадцати второй числитель был равен 2 —
+        // ученик запоминал ответы вместо того, чтобы считать. Плюс сокращение всегда шло
+        // по одной и той же диагонали, то есть искать его по-настоящему не требовалось.
         function pickCancelMulPair(pool) {
-            const k = pickCrossFactor(pool);
-            const d1 = k * randInt(2, 3);
-            const n2 = k;
-            const d2Pool = pool.filter(d => d > n2 && gcd(d, n2) === 1);
-            const d2 = d2Pool.length ? d2Pool[randInt(0, d2Pool.length - 1)] : n2 + 1;
-            const n1 = randFracProper(d1);
-            return { n1, d1, n2, d2 };
+            for (let guard = 0; guard < 60; guard++) {
+                const d1 = pool[randInt(0, pool.length - 1)];
+                const d2 = pool[randInt(0, pool.length - 1)];
+                if (d1 < 2 || d2 < 2) continue;
+                const n1 = randFracProper(d1);
+                const n2 = randFracProper(d2);
+                if (gcd(n2, d1) > 1 || gcd(n1, d2) > 1) return { n1, d1, n2, d2 };
+            }
+            // Детерминированный фолбэк: чётный знаменатель у первой дроби и чётный числитель
+            // у второй дают общий множитель 2 по построению.
+            const evenD1 = pool.filter(d => d % 2 === 0);
+            const d1 = evenD1.length ? evenD1[randInt(0, evenD1.length - 1)] : 4;
+            const d2Pool = pool.filter(d => d > 2 && d % 2 === 1);
+            const d2 = d2Pool.length ? d2Pool[randInt(0, d2Pool.length - 1)] : 3;
+            return { n1: randFracProper(d1), d1, n2: 2, d2 };
         }
 
         // Умножение: гарантированное ОТСУТСТВИЕ возможности сократить (ни по одной диагонали)
@@ -1929,19 +1936,23 @@
             return { n1, d1, n2, d2 };
         }
 
-        // Деление: гарантированная возможность сокращения (общий множитель либо в числителях,
-        // либо в знаменателях — механика отличается от умножения из-за переворота второй дроби)
+        // Деление: гарантированная возможность сокращения. Из-за переворота второй дроби
+        // сокращается либо пара числителей, либо пара знаменателей — не диагонали, как
+        // при умножении.
+        //
+        // Подбор тоже перебором: прежняя ветка «общий множитель в числителях» ставила ОБА
+        // числителя равными одному и тому же k, то есть половина примеров имела вид k/a ÷ k/b
+        // с одинаковыми числителями.
         function pickCancelDivPair(pool) {
-            if (Math.random() < 0.5) {
-                // общий множитель в числителях
-                const k = pickCrossFactor(pool);
-                const d1Pool = pool.filter(d => d > k && gcd(d, k) === 1);
-                const d2Pool = pool.filter(d => d > k && gcd(d, k) === 1);
-                const d1 = d1Pool.length ? d1Pool[randInt(0, d1Pool.length - 1)] : k + 1;
-                const d2 = d2Pool.length ? d2Pool[randInt(0, d2Pool.length - 1)] : k + 1;
-                return { n1: k, d1, n2: k, d2 };
+            for (let guard = 0; guard < 60; guard++) {
+                const d1 = pool[randInt(0, pool.length - 1)];
+                const d2 = pool[randInt(0, pool.length - 1)];
+                if (d1 < 2 || d2 < 2) continue;
+                const n1 = randFracProper(d1);
+                const n2 = randFracProper(d2);
+                if (gcd(n1, n2) > 1 || gcd(d1, d2) > 1) return { n1, d1, n2, d2 };
             }
-            // общий множитель в знаменателях — просто берём одинаковый знаменатель
+            // Детерминированный фолбэк: одинаковый знаменатель сокращается всегда.
             const d = pool[randInt(0, pool.length - 1)];
             return { n1: randFracProper(d), d1: d, n2: randFracProper(d), d2: d };
         }
