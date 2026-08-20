@@ -1,0 +1,8 @@
+{
+  "name": "kluch",
+  "private": true,
+  "description": "Ключ — тренажёр устного счёта. Сборки нет: index.html открывается как есть.",
+  "scripts": {
+    "test": "node test/generator.test.js"
+  }
+}

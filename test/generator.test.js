@@ -1,0 +1,376 @@
+// Тесты инвариантов генератора примеров.
+//
+// Зачем: генератор — самая содержательная часть приложения, и его дефекты не видны
+// глазом. «Дроби · Умножение · 2★» несколько недель выдавали ровно 12 разных примеров
+// с повтором на третьем, и заметить это можно было только счётом. Эти тесты фиксируют
+// свойства, которые обязаны выполняться всегда, чтобы следующая правка не сломала их молча.
+//
+// Как запускать:  node test/generator.test.js
+// Браузер не нужен: сборка вытаскивает <script> из index.html и исполняет в jsdom-подобной
+// заглушке. Ничего не устанавливается — только то, что уже есть в Node.
+
+const fs = require('fs');
+const path = require('path');
+const vm = require('vm');
+
+const ROOT = path.join(__dirname, '..');
+
+// ---------- запуск кода приложения без браузера ----------
+// index.html — один файл, где скрипт намертво завязан на DOM. Полностью его исполнять
+// не нужно и незачем: генераторы примеров — чистые функции. Поэтому вырезаем только
+// объявления функций и констант и выполняем их в песочнице с минимальными заглушками.
+function loadGenerators() {
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
+
+    // Обрываем там, где начинается работа с DOM и canvas: всё нужное объявлено выше.
+    const MARKER = '// ===================== ПАЗЛ: ГЕНЕРАЦИЯ КУСОЧКОВ (jigsaw)';
+    const cut = script.indexOf(MARKER);
+    if (cut < 0) throw new Error('не найдена метка конца генераторов: ' + MARKER);
+    const head = script.slice(0, cut);
+
+    // Заглушка элемента: код верхнего уровня навешивает обработчики и трогает стили.
+    // К генераторам это отношения не имеет, но без заглушек выполнение упадёт.
+    const stubEl = () => ({
+        style: {}, dataset: {}, innerHTML: '', innerText: '', value: '',
+        classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+        appendChild() {}, removeChild() {}, remove() {},
+        addEventListener() {}, setAttribute() {}, getAttribute: () => null,
+        querySelector: () => stubEl(), querySelectorAll: () => [],
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 0, height: 0 })
+    });
+
+    const sandbox = {
+        console, Math, Number, Object, Array, String, JSON, Set, Map, Date, isNaN, parseInt, parseFloat,
+        document: {
+            getElementById: () => stubEl(),
+            querySelectorAll: () => [],
+            querySelector: () => stubEl(),
+            addEventListener: () => {},
+            createElement: () => stubEl(),
+            body: stubEl()
+        },
+        window: { addEventListener: () => {}, innerWidth: 400, innerHeight: 800 },
+        navigator: {},
+        localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+        setInterval: () => 0,
+        setTimeout: () => 0,
+        clearInterval: () => {},
+        requestAnimationFrame: () => 0
+    };
+    sandbox.globalThis = sandbox;
+    vm.createContext(sandbox);
+    vm.runInContext(head, sandbox, { filename: 'index.html<script>' });
+    return sandbox;
+}
+
+// ---------- крошечный тест-раннер ----------
+let passed = 0, failed = 0;
+const failures = [];
+
+function test(name, fn) {
+    try {
+        fn();
+        passed++;
+        console.log(`  ✓ ${name}`);
+    } catch (e) {
+        failed++;
+        failures.push({ name, message: e.message });
+        console.log(`  ✗ ${name}\n      ${e.message}`);
+    }
+}
+function assert(cond, msg) {
+    if (!cond) throw new Error(msg);
+}
+function group(name) { console.log(`\n${name}`); }
+
+// ---------- сами тесты ----------
+const G = loadGenerators();
+
+const CATEGORIES = [
+    { cat: 'integer', sign: 'positive', ops: ['add', 'sub', 'mul', 'div'] },
+    { cat: 'integer', sign: 'negative', ops: ['add', 'sub', 'mul', 'div'] },
+    { cat: 'decimal', sign: 'positive', ops: ['add', 'sub', 'mul', 'div'] },
+    { cat: 'fraction', sign: 'positive',
+      ops: ['add', 'sub', 'mul', 'div', 'simplify', 'toMixed', 'toImproper', 'fracOfNumber'] }
+];
+
+function generateOne(cat, op, level, isNegative) {
+    if (cat === 'fraction') {
+        if (op === 'simplify') return G.generateSimplifyProblem(level);
+        if (op === 'toMixed') return G.generateToMixedProblem(level);
+        if (op === 'toImproper') return G.generateToImproperProblem(level);
+        if (op === 'fracOfNumber') return G.generateFracOfNumberProblem(level);
+        return G.generateFractionProblem(op, level, isNegative);
+    }
+    if (cat === 'decimal') return G.generateDecimalProblem(op, level, isNegative);
+    return G.generateProblem(op, level, isNegative);
+}
+
+function forEachCombo(fn) {
+    CATEGORIES.forEach(({ cat, sign, ops }) => {
+        ops.forEach(op => {
+            for (let level = 1; level <= 5; level++) {
+                fn({ cat, sign, op, level, isNegative: sign === 'negative',
+                     label: `${cat}${sign === 'negative' ? '−' : '+'} · ${op} · ${level}★` });
+            }
+        });
+    });
+}
+
+group('Ни одна комбинация не падает и не тормозит');
+test('все 100 комбинаций генерируются без исключений', () => {
+    const broken = [];
+    forEachCombo(c => {
+        try {
+            for (let i = 0; i < 200; i++) generateOne(c.cat, c.op, c.level, c.isNegative);
+        } catch (e) {
+            broken.push(`${c.label}: ${e.message}`);
+        }
+    });
+    assert(broken.length === 0, `упало: ${broken.join('; ')}`);
+});
+
+test('генерация 200 примеров укладывается в 300 мс на комбинацию', () => {
+    const slow = [];
+    forEachCombo(c => {
+        const t0 = Date.now();
+        for (let i = 0; i < 200; i++) generateOne(c.cat, c.op, c.level, c.isNegative);
+        const ms = Date.now() - t0;
+        if (ms > 300) slow.push(`${c.label}: ${ms} мс`);
+    });
+    assert(slow.length === 0, `медленно: ${slow.join('; ')}`);
+});
+
+group('Разнообразие примеров');
+// Порог намеренно невысокий: он ловит вырождение вроде «12 примеров на всю тему»,
+// а не требует бесконечного разнообразия там, где задача проста по сути.
+const MIN_DISTINCT = 25;
+const VARIETY_EXEMPT = new Set([
+    // Перевод дроби в смешанное число и обратно на 1★ — по построению 18 вариантов:
+    // две целых части × несократимые числители при знаменателях 2..5. Задача чисто
+    // на форму записи, расширять пул здесь означало бы поменять уровень сложности.
+    'fraction+ · toMixed · 1★',
+    'fraction+ · toImproper · 1★'
+]);
+
+test(`каждая комбинация даёт минимум ${MIN_DISTINCT} различных примеров из 400`, () => {
+    const poor = [];
+    forEachCombo(c => {
+        if (VARIETY_EXEMPT.has(c.label)) return;
+        const seen = new Set();
+        for (let i = 0; i < 400; i++) {
+            const p = generateOne(c.cat, c.op, c.level, c.isNegative);
+            seen.add(JSON.stringify(p).replace(/"level":\d+/, ''));
+        }
+        if (seen.size < MIN_DISTINCT) poor.push(`${c.label}: ${seen.size}`);
+    });
+    assert(poor.length === 0, `мало разнообразия: ${poor.join('; ')}`);
+});
+
+test('ни у одной темы нет «залипшего» числа во всех примерах', () => {
+    // Ловит ровно тот дефект, что был у умножения дробей: второй числитель всегда 2.
+    const stuck = [];
+    CATEGORIES.filter(c => c.cat === 'fraction').forEach(({ ops }) => {
+        ops.filter(op => ['mul', 'div', 'add', 'sub'].includes(op)).forEach(op => {
+            for (let level = 1; level <= 5; level++) {
+                const n1s = new Set(), n2s = new Set();
+                for (let i = 0; i < 400; i++) {
+                    const p = G.generateFractionProblem(op, level, false);
+                    n1s.add(Math.abs(p.f1.num)); n2s.add(Math.abs(p.f2.num));
+                }
+                const label = `fraction · ${op} · ${level}★`;
+                // Уровень 4 умножения/деления — это «дробь × целое», там один операнд
+                // целый по замыслу, поэтому единственное значение числителя допустимо.
+                if (level === 4 && (op === 'mul' || op === 'div')) return;
+                if (n1s.size < 2) stuck.push(`${label}: первый числитель всегда ${[...n1s][0]}`);
+                if (n2s.size < 2) stuck.push(`${label}: второй числитель всегда ${[...n2s][0]}`);
+            }
+        });
+    });
+    assert(stuck.length === 0, stuck.join('; '));
+});
+
+group('Дроби: обещания уровней сложности');
+test('1★ сложение/вычитание — ответ никогда не требует сокращения', () => {
+    const bad = [];
+    ['add', 'sub'].forEach(op => {
+        for (let i = 0; i < 4000; i++) {
+            const m = G.pickAddSubMagnitudes(1, op);
+            const f1 = { num: m.n1, den: m.d1 }, f2 = { num: m.n2, den: m.d1 };
+            const ans = op === 'add' ? G.fracAdd(f1, f2) : G.fracSub(f1, f2);
+            if (ans.den !== m.d1) bad.push(`${m.n1}/${m.d1} ${op} ${m.n2}/${m.d1} → ${ans.num}/${ans.den}`);
+            if (ans.num === 0) bad.push(`нулевой ответ: ${m.n1}/${m.d1} ${op} ${m.n2}/${m.d1}`);
+        }
+    });
+    assert(bad.length === 0, `сократимых ответов: ${bad.length}, например ${bad[0]}`);
+});
+
+test('1★ сложение/вычитание — одинаковые знаменатели из пула 3..11', () => {
+    const dens = new Set();
+    ['add', 'sub'].forEach(op => {
+        for (let i = 0; i < 4000; i++) {
+            const m = G.pickAddSubMagnitudes(1, op);
+            assert(m.d1 === m.d2, `знаменатели разошлись: ${m.d1} и ${m.d2}`);
+            assert(m.n1 >= 1 && m.n1 < m.d1 && m.n2 >= 1 && m.n2 < m.d1,
+                `числитель вне диапазона: ${m.n1}, ${m.n2} при знаменателе ${m.d1}`);
+            dens.add(m.d1);
+        }
+    });
+    const sorted = [...dens].sort((a, b) => a - b);
+    assert(sorted[0] >= 3 && sorted[sorted.length - 1] <= 11,
+        `знаменатели вне 3..11: ${sorted.join(',')}`);
+    assert(sorted.length >= 8, `мало разных знаменателей: ${sorted.join(',')}`);
+});
+
+test('2★ сложение/вычитание — ответ, наоборот, всегда сокращается', () => {
+    let notReducible = 0;
+    ['add', 'sub'].forEach(op => {
+        for (let i = 0; i < 3000; i++) {
+            const m = G.pickAddSubMagnitudes(2, op);
+            const f1 = { num: m.n1, den: m.d1 }, f2 = { num: m.n2, den: m.d2 };
+            const ans = op === 'add' ? G.fracAdd(f1, f2) : G.fracSub(f1, f2);
+            if (ans.den === m.d1) notReducible++;
+        }
+    });
+    assert(notReducible === 0, `несокращаемых на 2★: ${notReducible}`);
+});
+
+test('2★ умножение/деление — сокращение всегда возможно, операнды несократимы', () => {
+    const problems = [];
+    ['mul', 'div'].forEach(op => {
+        for (let i = 0; i < 4000; i++) {
+            const m = G.pickMulDivMagnitudes(2, op);
+            const canCancel = op === 'mul'
+                ? (G.gcd(m.n2, m.d1) > 1 || G.gcd(m.n1, m.d2) > 1)
+                : (G.gcd(m.n1, m.n2) > 1 || G.gcd(m.d1, m.d2) > 1);
+            if (!canCancel) problems.push(`${op}: ${m.n1}/${m.d1} и ${m.n2}/${m.d2} не сокращаются`);
+            if (G.gcd(m.n1, m.d1) !== 1 || G.gcd(m.n2, m.d2) !== 1) {
+                problems.push(`${op}: операнд сократим — ${m.n1}/${m.d1}, ${m.n2}/${m.d2}`);
+            }
+        }
+    });
+    assert(problems.length === 0, `${problems.length} нарушений, например: ${problems[0]}`);
+});
+
+test('3★ и 5★ умножение/деление — сокращение примерно в половине случаев', () => {
+    [3, 5].forEach(level => {
+        ['mul', 'div'].forEach(op => {
+            let can = 0;
+            const N = 4000;
+            for (let i = 0; i < N; i++) {
+                const m = G.pickMulDivMagnitudes(level, op);
+                const c = op === 'mul'
+                    ? (G.gcd(m.n2, m.d1) > 1 || G.gcd(m.n1, m.d2) > 1)
+                    : (G.gcd(m.n1, m.n2) > 1 || G.gcd(m.d1, m.d2) > 1);
+                if (c) can++;
+            }
+            const pct = can / N * 100;
+            assert(pct > 30 && pct < 70,
+                `${op} ${level}★: сокращается ${pct.toFixed(0)}% — ожидалось около половины`);
+        });
+    });
+});
+
+test('4★ умножение/деление — один из операндов целое число', () => {
+    ['mul', 'div'].forEach(op => {
+        for (let i = 0; i < 2000; i++) {
+            const m = G.pickMulDivMagnitudes(4, op);
+            assert(m.d1 === 1 || m.d2 === 1,
+                `${op} 4★: ни один операнд не целый — ${m.n1}/${m.d1}, ${m.n2}/${m.d2}`);
+        }
+    });
+});
+
+group('Дроби: специальные режимы');
+test('сокращение — условие действительно сократимо, ответ несократим', () => {
+    for (let level = 1; level <= 5; level++) {
+        for (let i = 0; i < 2000; i++) {
+            const p = G.generateSimplifyProblem(level);
+            assert(G.gcd(p.given.num, p.given.den) > 1,
+                `${level}★: условие ${p.given.num}/${p.given.den} уже несократимо`);
+            assert(G.gcd(p.answer.num, p.answer.den) === 1,
+                `${level}★: ответ ${p.answer.num}/${p.answer.den} сократим`);
+            const g = G.gcd(p.given.num, p.given.den);
+            assert(p.given.num / g === p.answer.num && p.given.den / g === p.answer.den,
+                `${level}★: ответ не соответствует условию`);
+        }
+    }
+});
+
+test('перевод в смешанное/неправильную — величина не меняется', () => {
+    for (let level = 1; level <= 5; level++) {
+        for (let i = 0; i < 1000; i++) {
+            [G.generateToMixedProblem(level), G.generateToImproperProblem(level)].forEach(p => {
+                assert(p.whole * p.den + p.properNum === p.answer.num,
+                    `${level}★: ${p.whole} и ${p.properNum}/${p.den} ≠ ${p.answer.num}/${p.answer.den}`);
+                assert(p.properNum > 0 && p.properNum < p.den,
+                    `${level}★: остаток ${p.properNum} не правильная дробь при знаменателе ${p.den}`);
+            });
+        }
+    }
+});
+
+test('дробь от числа — ответ всегда целый', () => {
+    for (let level = 1; level <= 5; level++) {
+        for (let i = 0; i < 2000; i++) {
+            const p = G.generateFracOfNumberProblem(level);
+            assert(p.N % p.fracDen === 0,
+                `${level}★: ${p.N} не делится на ${p.fracDen} нацело`);
+            assert(Number.isInteger(p.answer) && p.answer > 0,
+                `${level}★: ответ ${p.answer} не целое положительное`);
+            assert(p.answer === p.N / p.fracDen * p.fracNum,
+                `${level}★: ответ не равен ${p.fracNum}/${p.fracDen} от ${p.N}`);
+        }
+    }
+});
+
+group('Варианты ответа');
+test('среди вариантов нет равного правильному по значению', () => {
+    // Иначе ученик выбирает верный по сути ответ и получает «ошибку» или «почти».
+    const bad = [];
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let level = 1; level <= 5; level++) {
+            for (let i = 0; i < 500; i++) {
+                const p = G.generateFractionProblem(op, level, false);
+                const d = G.buildFractionDistractors(op, p.f1, p.f2, p.answer, false, 3, level);
+                assert(d.length === 3, `${op} ${level}★: вариантов ${d.length}, а не 3`);
+                d.forEach(x => {
+                    const sameValue = x.num * p.answer.den === p.answer.num * x.den;
+                    const sameForm = x.num === p.answer.num && x.den === p.answer.den;
+                    // Несокращённая форма верного ответа — законный вариант («почти»),
+                    // но только там, где сокращать вообще требуется, то есть не на 1★.
+                    if (sameValue && !sameForm && level === 1 && (op === 'add' || op === 'sub')) {
+                        bad.push(`${op} 1★: вариант ${x.num}/${x.den} равен ответу ${p.answer.num}/${p.answer.den}`);
+                    }
+                });
+            }
+        }
+    });
+    assert(bad.length === 0, `${bad.length} случаев, например: ${bad[0]}`);
+});
+
+test('варианты не повторяются между собой', () => {
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let level = 1; level <= 5; level++) {
+            for (let i = 0; i < 300; i++) {
+                const p = G.generateFractionProblem(op, level, false);
+                const d = G.buildFractionDistractors(op, p.f1, p.f2, p.answer, false, 3, level);
+                const keys = d.map(x => `${x.num}/${x.den}`);
+                assert(new Set(keys).size === keys.length,
+                    `${op} ${level}★: повтор среди вариантов ${keys.join(', ')}`);
+            }
+        }
+    });
+});
+
+// ---------- итог ----------
+console.log(`\n${'─'.repeat(50)}`);
+if (failed === 0) {
+    console.log(`Все проверки пройдены: ${passed}`);
+    process.exit(0);
+} else {
+    console.log(`Провалено: ${failed} из ${passed + failed}`);
+    failures.forEach(f => console.log(`  • ${f.name}\n    ${f.message}`));
+    process.exit(1);
+}
