@@ -647,7 +647,11 @@
             .puzzle-mini-thumb { width: clamp(130px, 42vw, 200px); height: clamp(130px, 42vw, 200px); }
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+    <!-- Библиотека лежит рядом, а не на чужом CDN. Раньше подключалась с jsdelivr, и при его
+         недоступности вход не работал вообще: кнопка просто не реагировала, без объяснения.
+         Свои 207 КБ ничего не стоят на фоне остальной раздачи, зато убирают единственную
+         внешнюю зависимость и заодно дают приложению работать офлайн. -->
+    <script src="vendor/supabase.js"></script>
 </head>
 <body>
 
@@ -3345,6 +3349,17 @@
             'images/IMG_2447.png'
         ];
 
+        // Превью 256×256 в WebP для сетки коллекции. Полные картинки — 1024×1024 PNG примерно
+        // по мегабайту каждая, и раньше экран коллекции тянул их все разом (около 20 МБ) ради
+        // плиток размером в сотню пикселей. Превью весят 241 КБ на все двадцать — в 84 раза
+        // меньше, а на плитке неотличимы. Полный файл грузится только когда открывают
+        // конкретный парадокс или собранный пазл, то есть ровно там, где качество видно.
+        function puzzleThumbSrc(idx) {
+            const full = PUZZLE_IMAGE_SRCS[idx];
+            if (!full) return '';
+            return full.replace('images/', 'images/thumbs/').replace('.png', '.webp');
+        }
+
         // ===== КОЛЛЕКЦИЯ №1: ПАРАДОКСЫ МАТЕМАТИКИ =====
         // Порядок строго соответствует PUZZLE_IMAGE_SRCS: индекс картинки = индекс парадокса.
         // hook — одна дерзкая строчка "в чём подвох", body — короткое объяснение без формул.
@@ -4609,7 +4624,10 @@
                 const item = document.createElement('div');
                 item.className = 'collection-item ' + (unlocked ? 'unlocked' : 'locked');
                 const img = document.createElement('img');
-                img.src = PUZZLE_IMAGE_SRCS[i];
+                img.src = puzzleThumbSrc(i);
+                img.loading = 'lazy';
+                img.decoding = 'async';
+                img.alt = collection[i] ? ((PARADOXES[i] && PARADOXES[i].name) || 'Парадокс') : 'Ещё не открыто';
                 item.appendChild(img);
 
                 // Название парадокса подписываем только у собранных — у остальных
@@ -6767,6 +6785,15 @@
         // заново каждый раз (Progress.setConfig() всё ещё сохраняет последний выбор
         // в state — это часть схемы синхронизации, но на экран он больше не влияет).
         bootCodeScreen();
+
+        // Офлайн-режим. Регистрируем после загрузки страницы, чтобы не отнимать канал
+        // у самого приложения. Ошибку глушим намеренно: без service worker всё работает
+        // как раньше, просто без офлайна, и падать из-за этого приложение не должно.
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(() => { /* офлайна не будет */ });
+            });
+        }
     </script>
 </body>
 </html>
