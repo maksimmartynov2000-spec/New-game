@@ -3933,10 +3933,24 @@
             // не теряя офлайн-копию прогресса друг друга. Ключ — код профиля.
             let profiles = {};
 
-            // Пароли профилей на этом устройстве — ТОЛЬКО локально, никогда не уходят
-            // в синхронизируемое состояние. Нужны, чтобы каждый запрос к серверу (в т.ч.
-            // тихие фоновые flush()) мог подтвердить, что это действительно владелец кода.
+            // Токены сессий — основной способ подтверждать личность при каждом запросе
+            // к серверу (в т.ч. при тихих фоновых flush()). Токен ничего не значит нигде,
+            // кроме этого приложения, гасится по одному и сам протухает.
+            let tokens = {};
+
+            // Пароли профилей — запасной путь, только пока устройство не успело обменять
+            // пароль на токен (см. ensureSessions в блоке синхронизации). После обмена
+            // пароль отсюда стирается и больше на устройстве не хранится.
             let passwords = {};
+
+            // Чем подтверждать запрос по этому коду: токеном, если он уже есть,
+            // иначе паролем (старый путь). null — подтверждать нечем, синхронизации нет.
+            function authFor(code) {
+                if (!code) return null;
+                if (tokens[code]) return { token: tokens[code] };
+                if (passwords[code]) return { password: passwords[code] };
+                return null;
+            }
 
             // --- драйвер хранилища -------------------------------------------
             // Пока реализован только локальный. Серверный подключается сюда же,
@@ -4186,7 +4200,7 @@
                 pruneDaily(state.daily);
                 trimTopicSpeed(state.daily);
                 if (state.playerCode) profiles[state.playerCode] = state;
-                localDriver.write({ activeCode: state.playerCode, profiles, passwords });
+                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
                 dirty = true;
             }
 
@@ -4299,7 +4313,7 @@
                 // входа в только что созданный репетитором аккаунт (там updatedAt=0) и затирала
                 // бы их — ровно так и произошло с студенческим аккаунтом, который "потерял"
                 // привязку к репетитору после первого входа.
-                localDriver.write({ activeCode: state.playerCode, profiles, passwords });
+                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
                 dirty = true;
             }
 
@@ -4314,6 +4328,7 @@
                             if (n) { n.playerCode = code; profiles[code] = n; }
                         });
                         passwords = (envelope.passwords && typeof envelope.passwords === 'object') ? envelope.passwords : {};
+                        tokens = (envelope.tokens && typeof envelope.tokens === 'object') ? envelope.tokens : {};
                         state = (envelope.activeCode && profiles[envelope.activeCode]) || emptyState();
                     } else {
                         const legacy = migrateFromV2() || migrateFromV1();
@@ -4326,11 +4341,33 @@
 
                 get() { return state; },
                 getCode() { return state.playerCode; },
-                getPassword() { return passwords[state.playerCode] || null; },
-                // Пароль ЛЮБОГО известного устройству профиля, не только активного —
-                // нужен при переключении на другой уже знакомый профиль.
+                // Пароль профиля — только пока он не обменян на токен: нужен самому обмену
+                // и переключению на уже знакомый профиль, если обмен ещё не случился.
                 getPasswordFor(code) { return passwords[code] || null; },
-                setPassword(pw) { if (state.playerCode) { passwords[state.playerCode] = pw; persistLocal(); } },
+
+                // --- токены сессий ---
+                getToken() { return tokens[state.playerCode] || null; },
+                getTokenFor(code) { return tokens[code] || null; },
+                // Обмен состоялся: держим токен, пароль с устройства убираем совсем —
+                // ради этого всё и делалось.
+                setToken(code, token) {
+                    if (!code || !token) return;
+                    tokens[code] = token;
+                    delete passwords[code];
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
+                },
+                // Сервер сказал, что токен больше не годится (погашен или протух).
+                // Пароля тут уже нет, поэтому дальше нужен обычный вход.
+                dropToken(code) {
+                    if (!code || !tokens[code]) return;
+                    delete tokens[code];
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
+                },
+                // Чем подтверждать запрос: токеном или паролем. Наружу нужно, чтобы
+                // экраны репетитора выбирали серверную функцию под тот же способ.
+                authFor(code) { return authFor(code || state.playerCode); },
+                // Коды, у которых на устройстве ещё лежит пароль, — их и надо обменять.
+                codesWithPassword() { return Object.keys(passwords); },
 
                 // --- профили на этом устройстве ---
                 // code+password должны быть уже проверены сервером (через login/create_student)
@@ -4348,6 +4385,7 @@
                     if (!code || code === state.playerCode) return false;
                     delete profiles[code];
                     delete passwords[code];
+                    delete tokens[code];
                     persistLocal();
                     return true;
                 },
@@ -4385,7 +4423,9 @@
                     if (code) profiles[code] = state;
                     persistLocal();
                     if (remoteDriver && code) {
-                        try { await remoteDriver.write(code, passwords[code], state); dirty = false; return true; }
+                        const auth = authFor(code);
+                        if (!auth) return false;
+                        try { await remoteDriver.write(code, auth, state); dirty = false; return true; }
                         catch (e) { return false; }
                     }
                     return true;
@@ -4510,15 +4550,15 @@
                 // Худший исход при перекрытии — лишний, избыточный запрос, не потеря данных.
                 async flush(force) {
                     if (!remoteDriver || !state.playerCode) return;
-                    const password = passwords[state.playerCode];
-                    if (!password) return; // без пароля синхронизироваться нельзя — ждём входа
+                    const auth = authFor(state.playerCode);
+                    if (!auth) return; // подтвердить личность нечем — ждём входа
                     if (!dirty && !force) return;
                     try {
-                        const remote = normalize(await remoteDriver.read(state.playerCode, password));
+                        const remote = normalize(await remoteDriver.read(state.playerCode, auth));
                         state = mergeState(remote, state);
                         profiles[state.playerCode] = state; // merge вернул новый объект — обновляем кэш
-                        localDriver.write({ activeCode: state.playerCode, profiles, passwords });
-                        await remoteDriver.write(state.playerCode, password, state);
+                        localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
+                        await remoteDriver.write(state.playerCode, auth, state);
                         dirty = false;
                         return true;
                     } catch (e) {
@@ -4537,10 +4577,15 @@
         // =====================================================================
         //  СИНХРОНИЗАЦИЯ С SUPABASE
         // ---------------------------------------------------------------------
-        //  Таблица citadel_progress (code, password_hash, state, updated_at) недоступна
-        //  напрямую этому ключу — он публичный (anon) и просто открывает доступ к RPC-функциям
-        //  (login/save_state/create_student/...), которые сами проверяют пароль на стороне базы
-        //  и хранят его только как bcrypt-хеш. См. supabase/migration.sql.
+        //  Таблицы citadel_progress и citadel_session напрямую этому ключу недоступны —
+        //  он публичный (anon) и просто открывает доступ к RPC-функциям, которые сами
+        //  проверяют личность на стороне базы. Пароль там хранится только как bcrypt-хеш,
+        //  токен — только как sha256. См. supabase/migration.sql и supabase/session-tokens.sql.
+        //
+        //  Личность подтверждается токеном сессии. Пароль остаётся на устройстве только
+        //  до первого запуска после обновления: ensureSessions() ниже меняет его на токен
+        //  и стирает. Пока SQL с токенами не запущен в базе, обмен просто не удаётся —
+        //  приложение продолжает работать по паролю, как раньше.
         // =====================================================================
         const SUPABASE_URL = 'https://uxmhzwacdhckhmlvqonh.supabase.co';
         const SUPABASE_ANON_KEY = 'sb_publishable_dAIiXea2B9CgxqlMANpQqg_1h_rhy_b';
@@ -4551,20 +4596,82 @@
             Progress.attachRemote({
                 // login() проверяет код+пароль на стороне базы и отдаёт state только при совпадении —
                 // используется и для входа, и для тихих фоновых пересинхронизаций.
-                async read(code, password) {
-                    const { data, error } = await supabaseClient.rpc('login', { p_code: code, p_password: password });
+                async read(code, auth) {
+                    if (auth.token) {
+                        const { data, error } = await supabaseClient.rpc('session_state', { p_token: auth.token });
+                        if (error) throw error;
+                        if (!data || !data.ok) {
+                            // Токен погашен или протух — забываем его, дальше нужен обычный вход.
+                            if (data && data.error === 'bad_session') Progress.dropToken(code);
+                            throw new Error((data && data.error) || 'auth_failed');
+                        }
+                        return data.state;
+                    }
+                    const { data, error } = await supabaseClient.rpc('login', { p_code: code, p_password: auth.password });
                     if (error) throw error;
                     if (!data || !data.ok) throw new Error(data && data.error || 'auth_failed');
                     return data.state;
                 },
-                async write(code, password, state) {
+                async write(code, auth, state) {
+                    if (auth.token) {
+                        const { data, error } = await supabaseClient.rpc('session_save', {
+                            p_token: auth.token, p_state: state
+                        });
+                        if (error) throw error;
+                        if (!data || !data.ok) {
+                            if (data && data.error === 'bad_session') Progress.dropToken(code);
+                            throw new Error((data && data.error) || 'save_failed');
+                        }
+                        return;
+                    }
                     const { data, error } = await supabaseClient.rpc('save_state', {
-                        p_code: code, p_password: password, p_state: state
+                        p_code: code, p_password: auth.password, p_state: state
                     });
                     if (error) throw error;
                     if (!data) throw new Error('save_failed');
                 }
             });
+        }
+
+        // Обменивает пароль на токен и стирает пароль с устройства. Возвращает true,
+        // если обмен удался. Ошибка не страшна: пароль остаётся на месте, приложение
+        // работает по-старому, попробуем при следующем запуске.
+        async function exchangePasswordForToken(code, password) {
+            if (!supabaseClient || !code || !password) return false;
+            try {
+                const { data, error } = await supabaseClient.rpc('session_login', {
+                    p_code: code, p_password: password
+                });
+                // Функции ещё нет в базе (SQL не запущен) — это не повод что-то ломать.
+                if (error || !data || !data.ok || !data.token) return false;
+                Progress.setToken(code, data.token);
+                return true;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        // Разовая уборка при запуске: у всех профилей на этом устройстве меняем
+        // сохранённый пароль на токен. Работает в фоне и игре не мешает.
+        async function ensureSessions() {
+            const codes = Progress.codesWithPassword();
+            for (const code of codes) {
+                await exchangePasswordForToken(code, Progress.getPasswordFor(code));
+            }
+        }
+
+        // Один и тот же вызов в двух вариантах: по токену (основной путь) и по паролю
+        // (запасной, пока устройство не обменяло). Возвращает то же, что supabase.rpc.
+        async function callAuthed(tokenFn, tokenArgs, passwordFn, passwordArgs) {
+            if (!supabaseClient) return { data: { ok: false, error: 'no_connection' }, error: null };
+            const code = Progress.getCode();
+            const auth = Progress.authFor(code);
+            if (!auth) return { data: { ok: false, error: 'no_auth' }, error: null };
+            if (auth.token) {
+                return supabaseClient.rpc(tokenFn, Object.assign({ p_token: auth.token }, tokenArgs));
+            }
+            return supabaseClient.rpc(passwordFn, Object.assign(
+                { p_tutor_code: code, p_tutor_password: auth.password }, passwordArgs));
         }
 
         // Случайная заготовка кода — репетитор её видит как подсказку в поле ввода
@@ -4593,7 +4700,15 @@
 
             loadingEl.style.display = 'block';
             try {
-                const { data, error } = await supabaseClient.rpc('login', { p_code: raw, p_password: pw });
+                // session_login отдаёт и состояние, и токен. Если функции ещё нет в базе,
+                // откатываемся на старый login — тогда на устройстве останется пароль.
+                let res = await supabaseClient.rpc('session_login', { p_code: raw, p_password: pw });
+                let token = res.data && res.data.ok ? res.data.token : null;
+                if (res.error || !res.data) {
+                    res = await supabaseClient.rpc('login', { p_code: raw, p_password: pw });
+                    token = null;
+                }
+                const { data, error } = res;
                 loadingEl.style.display = 'none';
                 if (error) throw error;
                 if (!data || !data.ok) {
@@ -4602,6 +4717,7 @@
                     return;
                 }
                 Progress.switchTo(raw, pw);
+                if (token) Progress.setToken(raw, token); // пароль при этом стирается
                 document.getElementById('codeScreen').style.display = 'none';
                 await Progress.flush(true);
                 updateCollectionBadge();
@@ -4612,13 +4728,16 @@
             }
         }
 
-        // Показывается, пока на устройстве нет сохранённого входа (код+пароль).
-        // Если оба уже есть, просто тихо синхронизируемся в фоне и не мешаем игре.
+        // Показывается, пока на устройстве нет сохранённого входа. Вход — это токен
+        // сессии либо (пока не обменяли) пароль; хватает любого из двух.
         function bootCodeScreen() {
             const existing = Progress.getCode();
-            const pw = Progress.getPassword();
-            if (existing && pw) {
-                Progress.flush(true).then(() => updateCollectionBadge());
+            if (existing && Progress.authFor(existing)) {
+                // Обмен паролей на токены — до первой синхронизации, чтобы она пошла
+                // уже по токену, и в фоне: экран входа этого не ждёт.
+                ensureSessions()
+                    .then(() => Progress.flush(true))
+                    .then(() => updateCollectionBadge());
                 return;
             }
             document.getElementById('codeScreen').style.display = 'flex';
@@ -6060,9 +6179,16 @@
         // перезагружает страницу — проще и надёжнее, чем вручную обновлять десяток виджетов.
         async function loginAndSwitch(code, password) {
             if (!supabaseClient) { showToast('Нет соединения с сервером.', 'error'); return false; }
-            const { data, error } = await supabaseClient.rpc('login', { p_code: code, p_password: password });
+            let res = await supabaseClient.rpc('session_login', { p_code: code, p_password: password });
+            let token = res.data && res.data.ok ? res.data.token : null;
+            if (res.error || !res.data) {
+                res = await supabaseClient.rpc('login', { p_code: code, p_password: password });
+                token = null;
+            }
+            const { data, error } = res;
             if (error || !data || !data.ok) { showToast('Неверный код или пароль.', 'error'); return false; }
             Progress.switchTo(code, password);
+            if (token) Progress.setToken(code, token); // пароль при этом стирается
             await Progress.flush(true);
             location.reload();
             return true;
@@ -6071,6 +6197,13 @@
         // Уже известный профиль на этом устройстве — пароль спрашиваем заново, если он
         // почему-то не сохранился локально (например, после очистки данных браузера).
         async function profileLoginTo(code) {
+            // Токен этого профиля уже лежит на устройстве — пароль спрашивать незачем.
+            if (Progress.getTokenFor(code)) {
+                Progress.switchTo(code);
+                await Progress.flush(true);
+                location.reload();
+                return;
+            }
             let pw = Progress.getPasswordFor(code);
             if (!pw) {
                 const values = await askForm({
@@ -6104,15 +6237,14 @@
         // --- Мои ученики ---
         async function fetchMyStudents() {
             const myCode = Progress.getCode();
-            const myPw = Progress.getPassword();
-            if (!myCode || !myPw || !supabaseClient) return [];
+            const auth = Progress.authFor(myCode);
+            if (!myCode || !auth || !supabaseClient) return [];
 
             // Сначала пробуем лёгкий список (только имя + итоги + когда заходил).
             // Старый list_my_students тянет ПОЛНОЕ состояние каждого ученика вместе
             // с журналом занятий, а список открывается при каждом заходе в профиль.
-            const light = await supabaseClient.rpc('list_my_students_summary', {
-                p_tutor_code: myCode, p_tutor_password: myPw
-            });
+            const light = await callAuthed('session_list_students', {},
+                                           'list_my_students_summary', {});
             if (!light.error && light.data && light.data.ok) {
                 return (light.data.students || []).map(s => ({
                     code: s.code,
@@ -6124,8 +6256,9 @@
 
             // Откат на старый путь: функции ещё нет в базе (SQL не запущен) — приложение
             // должно продолжать работать, просто чуть тяжелее.
+            if (auth.token) return []; // по токену запасного пути нет — он и не нужен
             const full = await supabaseClient.rpc('list_my_students', {
-                p_tutor_code: myCode, p_tutor_password: myPw
+                p_tutor_code: myCode, p_tutor_password: auth.password
             });
             if (full.error || !full.data || !full.data.ok) return [];
             return (full.data.students || []).map(s => ({
@@ -6140,12 +6273,9 @@
         // Полное состояние одного ученика — с журналом по дням. Тянем только когда
         // реально открываем его статистику или отчёт, а не для отрисовки списка.
         async function fetchStudentState(code, fallbackState) {
-            const myCode = Progress.getCode();
-            const myPw = Progress.getPassword();
-            if (!myCode || !myPw || !supabaseClient) return fallbackState || null;
-            const res = await supabaseClient.rpc('get_student_state', {
-                p_tutor_code: myCode, p_tutor_password: myPw, p_student_code: code
-            });
+            if (!Progress.authFor() || !supabaseClient) return fallbackState || null;
+            const res = await callAuthed('session_student_state', { p_student_code: code },
+                                         'get_student_state', { p_student_code: code });
             if (!res.error && res.data && res.data.ok) return res.data.state || null;
             return fallbackState || null; // функции ещё нет в базе — берём что есть
         }
@@ -6211,9 +6341,7 @@
 
         async function addStudent() {
             if (!supabaseClient) { showToast('Нет соединения с сервером.', 'error'); return; }
-            const myCode = Progress.getCode();
-            const myPw = Progress.getPassword();
-            if (!myCode || !myPw) { showToast('Сначала войди под своим логином.', 'error'); return; }
+            if (!Progress.authFor()) { showToast('Сначала войди под своим логином.', 'error'); return; }
 
             // Все три поля сразу: раньше это были три окна подряд, и опечатку в логине
             // можно было заметить только когда сервер откажет — после ввода пароля.
@@ -6238,10 +6366,11 @@
             const label = values.label;
 
             try {
-                const { data, error } = await supabaseClient.rpc('create_student', {
-                    p_tutor_code: myCode, p_tutor_password: myPw,
-                    p_student_code: code, p_student_password: password, p_label: label
-                });
+                const { data, error } = await callAuthed(
+                    'session_create_student',
+                    { p_student_code: code, p_student_password: password, p_label: label },
+                    'create_student',
+                    { p_student_code: code, p_student_password: password, p_label: label });
                 if (error) throw error;
                 if (!data || !data.ok) {
                     const messages = {
@@ -6269,8 +6398,6 @@
         }
 
         async function resetStudentPassword(code) {
-            const myCode = Progress.getCode();
-            const myPw = Progress.getPassword();
             const values = await askForm({
                 title: 'Новый пароль',
                 text: `Пароль для ученика «${code}». Старый перестанет работать сразу.`,
@@ -6281,17 +6408,17 @@
             if (values === null) return;
             const newPw = values.pw;
             try {
-                const { data, error } = await supabaseClient.rpc('reset_student_password', {
-                    p_tutor_code: myCode, p_tutor_password: myPw,
-                    p_student_code: code, p_new_password: newPw
-                });
+                const { data, error } = await callAuthed(
+                    'session_reset_student_password', { p_student_code: code, p_new_password: newPw },
+                    'reset_student_password', { p_student_code: code, p_new_password: newPw });
                 if (error) throw error;
                 if (!data || !data.ok) { showToast('Не удалось сменить пароль.', 'error'); return; }
                 // Не всплывашкой: пароль нужно успеть прочитать и передать ученику,
                 // а исчезающее через три секунды сообщение для этого не годится.
                 await showNotice({
                     title: 'Пароль изменён',
-                    text: `Ученик: ${code}\nНовый пароль: ${newPw}\n\nПередай его — старый больше не работает.`
+                    text: `Ученик: ${code}\nНовый пароль: ${newPw}\n\nПередай его — старый больше не работает,`
+                        + `\nа устройства, где он уже был введён, попросят войти заново.`
                 });
             } catch (e) {
                 showToast('Не удалось подключиться. Проверь интернет.', 'error');
@@ -6299,8 +6426,6 @@
         }
 
         async function deleteStudentAccount(code) {
-            const myCode = Progress.getCode();
-            const myPw = Progress.getPassword();
             const ok = await askConfirm({
                 title: 'Удалить ученика?',
                 text: `Ученик «${code}» пропадёт насовсем — весь прогресс и сам логин, без возможности восстановить.`,
@@ -6308,9 +6433,9 @@
             });
             if (!ok) return;
             try {
-                const { data, error } = await supabaseClient.rpc('delete_student', {
-                    p_tutor_code: myCode, p_tutor_password: myPw, p_student_code: code
-                });
+                const { data, error } = await callAuthed(
+                    'session_delete_student', { p_student_code: code },
+                    'delete_student', { p_student_code: code });
                 if (error) throw error;
                 if (!data || !data.ok) { showToast('Не удалось удалить ученика.', 'error'); return; }
                 Progress.forgetProfile(code); // если он был и в списке профилей на этом устройстве
@@ -6336,26 +6461,28 @@
             location.reload();
         }
 
-        // Необратимо: удаляет саму запись на сервере, не только прогресс. Просит
-        // повторно ввести логин текстом — одного «да/нет» тут маловато для того,
-        // что нельзя отменить.
+        // Необратимо: удаляет саму запись на сервере, не только прогресс. Просит ввести
+        // пароль — одного «да/нет» тут маловато, а лежащего на устройстве токена тем более:
+        // он для того и нужен, чтобы игра шла без пароля, но не чтобы стирать аккаунт.
         async function confirmDeleteOwnAccount() {
             const code = Progress.getCode();
-            const pw = Progress.getPassword();
-            if (!code || !pw) return;
+            if (!code || !Progress.authFor(code)) return;
             const values = await askForm({
                 title: 'Удалить профиль насовсем?',
                 text: `Пропадёт всё: прогресс, пазл, коллекция, достижения и сам логин «${code}». Восстановить будет нельзя.`,
-                fields: [{ key: 'typed', label: 'Введи логин, чтобы подтвердить', placeholder: code }],
+                fields: [{ key: 'pw', label: 'Введи пароль, чтобы подтвердить', type: 'password' }],
                 okText: 'Удалить', danger: true,
-                // Ошибку показываем прямо в окне: раньше несовпадение закрывало ввод
-                // и выбрасывало отдельный alert, после которого всё надо было начинать заново.
-                validate: (v) => v.typed === code ? null : 'Логин не совпадает.'
+                validate: (v) => v.pw ? null : 'Введи пароль.'
             });
             if (values === null) return;
             try {
-                const { data, error } = await supabaseClient.rpc('delete_own_account', { p_code: code, p_password: pw });
+                const token = Progress.getToken();
+                const { data, error } = token
+                    ? await supabaseClient.rpc('session_delete_account', { p_token: token, p_password: values.pw })
+                    : await supabaseClient.rpc('delete_own_account', { p_code: code, p_password: values.pw });
                 if (error) throw error;
+                // Ошибку пароля показываем отдельно от сетевой: это разные беды.
+                if (data && data.error === 'bad_credentials') { showToast('Неверный пароль — профиль не тронут.', 'error'); return; }
                 if (!data || !data.ok) { showToast('Не удалось удалить профиль.', 'error'); return; }
                 Progress.wipeAllLocal();
                 location.reload();
