@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Ключ</title>
     <meta name="apple-mobile-web-app-title" content="Ключ">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -48,6 +48,27 @@
             animation: cosmicVibe 4s infinite linear;
         }
         @keyframes cosmicVibe { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
+
+        /* Системная настройка «Уменьшить движение» (Настройки → Универсальный доступ →
+           Движение на айпаде). Её включают не из вредности: кому-то от мельтешения
+           делается дурно, кому-то оно мешает сосредоточиться на примере, а у салюта за
+           тысячу решённых мерцание идёт больше минуты подряд. Порог светочувствительности
+           по WCAG (три вспышки в секунду) игра не переходит и без этого — здесь речь
+           о комфорте, а не о безопасности.
+
+           Полностью гасим только то, что мельтешит: вращение оттенка всего экрана,
+           пульсацию рамки примера и полёт искр. Переходы между экранами, всплывашки
+           наград и подсветка верного ответа остаются — без них игра перестала бы
+           отвечать на действия. */
+        @media (prefers-reduced-motion: reduce) {
+            body.mega-storm {
+                animation: none !important;
+                background: radial-gradient(circle at center, #2e1065 0%, #030712 100%) !important;
+            }
+            #cityCanvas { display: none; }   /* холст с искрами — на нём больше ничего не рисуется */
+            .floating-reward { animation-duration: 0.35s !important; }
+            .dlg-card, .toast { animation: none !important; }
+        }
 
         .modal-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -700,6 +721,15 @@
             background: rgba(255, 255, 255, 0.07); color: white;
         }
         .dlg-input:focus { outline: none; border-color: var(--gold); }
+
+        /* Видимая рамка фокуса. Пальцем её никто не увидит — она нужна тому, кто пришёл
+           с клавиатурой (внешняя клавиатура к айпаду, компьютер) и иначе не понимает,
+           где он сейчас находится. :focus-visible показывает её только при переходах
+           табом и не мешает обычному касанию. */
+        button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+            outline: 3px solid var(--gold);
+            outline-offset: 2px;
+        }
         textarea.dlg-input { min-height: 92px; resize: vertical; line-height: 1.4; }
         .dlg-hint { color: #64748b; font-size: 0.74rem; margin-top: 5px; }
         .dlg-err { color: #f87171; font-size: 0.84rem; margin-bottom: 12px; display: none; }
@@ -7435,7 +7465,7 @@
 
                 let bursts = 0;
                 let interval = setInterval(() => {
-                    if (!gameActive) { clearInterval(interval); return; }
+                    if (!gameActive || wantsCalm()) { clearInterval(interval); return; }
                     let rx = Math.random() * window.innerWidth;
                     let ry = Math.random() * window.innerHeight * 0.7;
                     let colors = ['#ffd700', '#a855f7', '#06b6d4', '#f472b6', '#10b981'];
@@ -7462,7 +7492,7 @@
                 const mathBoxRect = mathBox.getBoundingClientRect();
                 const mx = mathBoxRect.left + mathBoxRect.width / 2;
                 const my = mathBoxRect.top + mathBoxRect.height / 2;
-                for (let angle = 0; angle < Math.PI * 2; angle += 0.25) {
+                for (let angle = 0; !wantsCalm() && angle < Math.PI * 2; angle += 0.25) {
                     let speed = 3.5;
                     let vx = Math.cos(angle) * speed;
                     let vy = Math.sin(angle) * speed;
@@ -7640,6 +7670,8 @@
         }
 
         function buildSparks(num, color) {
+            // Холст с искрами при «уменьшить движение» скрыт — не копим объекты вхолостую.
+            if (wantsCalm()) return;
             const spaceRect = document.querySelector('.game-space').getBoundingClientRect();
             const centerX = spaceRect.left + spaceRect.width / 2;
             const centerY = spaceRect.top + spaceRect.height / 2;
@@ -7663,6 +7695,12 @@
         const FRAME_MS = 1000 / 60;
         let lastFrameAt = 0;
 
+        // Пульсацию рамки примера рисует JS, а не CSS, поэтому одним media-запросом
+        // её не выключить — спрашиваем ту же системную настройку отсюда. matchMedia
+        // может отсутствовать в совсем старом браузере, поэтому с проверкой.
+        const reduceMotionQuery = (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)')) || null;
+        const wantsCalm = () => !!(reduceMotionQuery && reduceMotionQuery.matches);
+
         function animate(now) {
             // Первый кадр и возвращение из свёрнутой вкладки: там между кадрами могут пройти
             // минуты, и без ограничения искры телепортировались бы, а салют кончался мгновенно.
@@ -7677,8 +7715,14 @@
                 bgFlashState += 0.1 * step;
 
                 let mathBox = document.getElementById('mainMathBox');
+                const calm = wantsCalm();
 
-                if (isUltimateStorm) {
+                if (isUltimateStorm && calm) {
+                    // «Уменьшить движение» включено: салют остаётся событием, но спокойным —
+                    // золотая рамка вместо мельтешения цветом, и без искр.
+                    mathBox.style.backgroundColor = 'rgba(20, 16, 4, 0.93)';
+                    mathBox.style.borderColor = 'var(--gold)';
+                } else if (isUltimateStorm) {
                     let r = Math.floor(Math.sin(bgFlashState) * 127 + 128);
                     let g = Math.floor(Math.sin(bgFlashState + 2) * 127 + 128);
                     let b = Math.floor(Math.cos(bgFlashState) * 127 + 128);
@@ -7688,7 +7732,7 @@
                     let colors = ['#ff0055', '#00ffcc', '#ffcc00', '#ff00ff', '#00ff00', '#ffffff'];
                     // Три искры на кадр при 60 Гц. Копим дробный остаток, иначе на быстром
                     // экране округление дало бы вдвое больше искр, чем на обычном.
-                    stormSparkDebt += 3 * step;
+                    stormSparkDebt += (calm ? 0 : 3) * step;
                     const sparks = Math.floor(stormSparkDebt);
                     stormSparkDebt -= sparks;
                     for (let k = 0; k < sparks; k++) {
@@ -7699,7 +7743,7 @@
                         let c = colors[Math.floor(Math.random() * colors.length)];
                         particles.push(new CustomSpark(canvas.width / 2, canvas.height * 0.4, c, vx, vy, Math.random() * 5 + 2, 4.0));
                     }
-                } else {
+                } else if (!calm) {
                     let r = Math.floor(Math.sin(bgFlashState) * 30 + 15);
                     let g = Math.floor(Math.sin(bgFlashState + 1) * 20 + 10);
                     let b = Math.floor(Math.cos(bgFlashState) * 40 + 25);
