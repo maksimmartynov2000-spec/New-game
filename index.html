@@ -372,15 +372,31 @@
         .topic-bar-fill { height: 100%; border-radius: 3px; }
         .topic-pct { font-size: 0.78rem; color: #94a3b8; width: 38px; text-align: right; flex-shrink: 0; }
         .menu-empty { color: #64748b; font-size: 0.85rem; text-align: center; padding: 14px; line-height: 1.5; }
+        /* Строка списка переносится: у ученика четыре кнопки действий, и на телефоне
+           они не оставляли тексту ничего — имя сжималось до «Гр…», а хвост со счётом
+           рассыпался в столбик по одному слову. Теперь сведения занимают всю ширину,
+           а кнопки встают под ними. */
         .list-row {
-            display: flex; align-items: center; gap: 10px;
+            display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
             padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.04);
             border: 1px solid rgba(255,255,255,0.08); margin-bottom: 8px;
         }
         .list-row.active { border-color: var(--gold); background: rgba(255,215,0,0.08); }
-        .list-row-main { flex: 1; min-width: 0; }
+        /* Ученик давно не выходил на связь. Полоска слева, а не цвет всей строки:
+           это повод посмотреть, а не тревога — строка должна оставаться читаемой. */
+        .list-row.quiet { border-left: 3px solid #fbbf24; }
+        .list-row.silent { border-left: 3px solid #f87171; }
+        .list-row-warn { font-size: 0.72rem; margin-top: 4px; font-weight: bold; }
+        .list-row.quiet .list-row-warn { color: #fbbf24; }
+        .list-row.silent .list-row-warn { color: #f87171; }
+        .students-summary {
+            font-size: 0.75rem; color: #fbbf24; margin-bottom: 8px;
+            padding: 7px 10px; border-radius: 8px;
+            background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25);
+        }
+        .list-row-main { flex: 1 1 100%; min-width: 0; }
         .list-row-name { font-size: 0.9rem; font-weight: bold; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .list-row-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; font-family: monospace; letter-spacing: 1px; }
+        .list-row-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; font-family: monospace; letter-spacing: 0.5px; }
         .list-row-badge {
             font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em;
             padding: 2px 7px; border-radius: 6px; background: rgba(6,182,212,0.15); color: var(--cyan);
@@ -6759,6 +6775,37 @@
         }
 
         // "Был(а) в приложении" — понятная человеку подпись вместо голой даты.
+        // Через сколько дней молчания ученик попадает в жёлтые, а через сколько — в красные.
+        // Неделя — потому что занятия обычно раз в неделю: пропущенная неделя ещё бывает,
+        // три — это уже не «забыл», а «что-то не так».
+        const QUIET_DAYS = 8;
+        const SILENT_DAYS = 21;
+
+        // Сколько дней назад прогресс этого ученика в последний раз доходил до сервера.
+        // Это НЕ то же самое, что «когда занимался»: устройство могло быть без сети.
+        // Но для репетитора оба случая одинаково стоит заметить.
+        function daysSinceSync(iso) {
+            if (!iso) return null;
+            const then = new Date(iso);
+            if (isNaN(then.getTime())) return null;
+            return Math.max(0, Math.floor((Date.now() - then.getTime()) / 86400000));
+        }
+
+        function pluralDays(n) {
+            const t = n % 100, o = n % 10;
+            if (t >= 11 && t <= 14) return 'дней';
+            if (o === 1) return 'день';
+            if (o >= 2 && o <= 4) return 'дня';
+            return 'дней';
+        }
+        function pluralStudents(n) {
+            const t = n % 100, o = n % 10;
+            if (t >= 11 && t <= 14) return 'учеников';
+            if (o === 1) return 'ученик';
+            if (o >= 2 && o <= 4) return 'ученика';
+            return 'учеников';
+        }
+
         function lastSeenText(iso) {
             if (!iso) return '';
             const then = new Date(iso);
@@ -6780,13 +6827,31 @@
                 return;
             }
             wrap.innerHTML = '';
-            students.forEach(s => {
+
+            // Молчащие — наверх. Именно с ними надо что-то делать, а строка «занимался
+            // 3 недели назад», спрятанная в середине списка мелким серым шрифтом, до сих
+            // пор ничего никому не говорила.
+            const withSilence = students.map(s => ({ s, days: daysSinceSync(s.updatedAt) }));
+            withSilence.sort((x, y) => (y.days === null ? 1e9 : y.days) - (x.days === null ? 1e9 : x.days));
+
+            const quietCount = withSilence.filter(r => r.days === null || r.days >= QUIET_DAYS).length;
+            if (quietCount) {
+                const note = document.createElement('div');
+                note.className = 'students-summary';
+                note.innerText = `${quietCount} ${pluralStudents(quietCount)} не выходил${quietCount === 1 ? '' : 'и'}`
+                    + ` на связь больше недели. Проверь, занимается ли и доходит ли прогресс.`;
+                wrap.appendChild(note);
+            }
+
+            withSilence.forEach(({ s, days }) => {
                 const totals = s.totals || { correct: 0, wrong: 0 };
                 const total = (totals.correct || 0) + (totals.wrong || 0);
                 const pct = total > 0 ? Math.round((totals.correct || 0) / total * 100) + '%' : '—';
                 const seen = lastSeenText(s.updatedAt);
                 const row = document.createElement('div');
-                row.className = 'list-row';
+                row.className = 'list-row'
+                    + (days === null || days >= SILENT_DAYS ? ' silent'
+                       : days >= QUIET_DAYS ? ' quiet' : '');
                 row.innerHTML = `
                     <div class="list-row-main">
                         <div class="list-row-name"></div>
@@ -6800,6 +6865,18 @@
                 row.querySelector('.list-row-name').innerText = s.label || s.code;
                 row.querySelector('.list-row-sub').innerText =
                     `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}${seen ? ' · ' + seen : ''}`;
+
+                // Предупреждение отдельной строкой, обычным шрифтом: мелкий моноширинный
+                // хвост выше глаз пролистывает, а это как раз то, ради чего сюда заходят.
+                if (days === null || days >= QUIET_DAYS) {
+                    const warn = document.createElement('div');
+                    warn.className = 'list-row-warn';
+                    warn.innerText = days === null
+                        ? '⚠️ ни разу не выходил на связь'
+                        : (days >= SILENT_DAYS ? `⚠️ молчит ${days} ${pluralDays(days)}`
+                                               : `⏳ не было ${days} ${pluralDays(days)}`);
+                    row.querySelector('.list-row-main').appendChild(warn);
+                }
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));
                 row.querySelector('[data-act="report"]').addEventListener('click', () => openReportFor(s.code, s));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
