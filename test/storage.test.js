@@ -457,6 +457,91 @@ test('день в журнале записывается по местной д
         `день записан как ${Object.keys(Progress.get().daily)} вместо местного ${local}`);
 });
 
+group('Виды ошибок');
+
+test('вид ошибки пишется и в пожизненный счёт по теме, и в журнал дня', () => {
+    const { Progress } = fresh();
+    Progress.switchTo('Vasya', 'pw1');
+    Progress.recordAnswer('fraction+:add:3', 'wrong', 8000);
+    Progress.recordMistakeKind('fraction+:add:3', 'сложил знаменатели');
+    Progress.recordAnswer('fraction+:add:3', 'wrong', 7000);
+    Progress.recordMistakeKind('fraction+:add:3', 'сложил знаменатели');
+    Progress.recordAnswer('fraction+:add:3', 'wrong', 9000);
+    Progress.recordMistakeKind('fraction+:add:3', 'не сократил');
+
+    eq(Progress.getErrorKinds()['fraction+:add:3']['сложил знаменатели'], 2, 'по теме');
+    eq(Progress.getErrorKinds()['fraction+:add:3']['не сократил'], 1, 'по теме');
+    const day = Object.values(Progress.get().daily)[0];
+    eq(day.e['сложил знаменатели'], 2, 'за день');
+    eq(day.e['не сократил'], 1, 'за день');
+});
+
+test('пустой вид ошибки ничего не записывает', () => {
+    const { Progress } = fresh();
+    Progress.switchTo('Vasya', 'pw1');
+    Progress.recordMistakeKind('fraction+:add:3', null);
+    Progress.recordMistakeKind('fraction+:add:3', '');
+    eq(Object.keys(Progress.getErrorKinds()).length, 0, 'тем с ошибками');
+});
+
+test('виды ошибок сливаются как счётчики «только вверх»', () => {
+    const { Progress } = fresh();
+    const m = Progress._merge(
+        { schema: 2, playerCode: 'X', updatedAt: 100, errorKinds: {
+            'fraction+:add:3': { 'сложил знаменатели': 12, 'не сократил': 3 } } },
+        { schema: 2, playerCode: 'X', updatedAt: 200, errorKinds: {
+            'fraction+:add:3': { 'сложил знаменатели': 5, 'перепутал действие': 7 },
+            'integer+:mul:2': { 'таблица умножения': 4 } } });
+    eq(m.errorKinds['fraction+:add:3']['сложил знаменатели'], 12, 'более свежая запись не откатывает');
+    eq(m.errorKinds['fraction+:add:3']['не сократил'], 3, 'вид, известный только одной стороне');
+    eq(m.errorKinds['fraction+:add:3']['перепутал действие'], 7, 'вид с другой стороны');
+    eq(m.errorKinds['integer+:mul:2']['таблица умножения'], 4, 'тема с другой стороны');
+});
+
+test('виды ошибок за день тоже берут максимум, а не сумму', () => {
+    const { Progress } = fresh();
+    const m = Progress._merge(
+        { schema: 2, playerCode: 'X', updatedAt: 100, daily: {
+            '2026-08-20': { c: 10, w: 5, a: 0, s: 200, p: 0, ms: 0, mc: 0, t: {}, e: { 'знак': 5 } } } },
+        { schema: 2, playerCode: 'X', updatedAt: 200, daily: {
+            '2026-08-20': { c: 8, w: 3, a: 0, s: 150, p: 0, ms: 0, mc: 0, t: {}, e: { 'знак': 3, 'таблица умножения': 2 } } } });
+    eq(m.daily['2026-08-20'].e['знак'], 5, 'знак');
+    eq(m.daily['2026-08-20'].e['таблица умножения'], 2, 'таблица умножения');
+});
+
+test('слияние идемпотентно и для видов ошибок', () => {
+    const { Progress } = fresh();
+    const s = { schema: 2, playerCode: 'X', updatedAt: 100,
+                errorKinds: { 'integer+:mul:2': { 'таблица умножения': 9 } } };
+    let m = Progress._merge(s, s);
+    for (let i = 0; i < 5; i++) m = Progress._merge(m, s);
+    eq(m.errorKinds['integer+:mul:2']['таблица умножения'], 9, 'после шести слияний');
+});
+
+test('битые виды ошибок не ломают чтение', () => {
+    const env = loadProgress();
+    env.store['mathCitadelState_v3'] = JSON.stringify({
+        activeCode: 'Vasya',
+        profiles: { Vasya: { schema: 2, playerCode: 'Vasya',
+            errorKinds: { 'integer+:mul:2': { 'таблица умножения': 'много' }, 'плохая тема': 'вообще не объект' } } }
+    });
+    env.Progress.init();
+    const ek = env.Progress.getErrorKinds();
+    assert(!('плохая тема' in ek), 'мусорная запись осталась');
+    assert(typeof ek['integer+:mul:2']['таблица умножения'] === 'number',
+        `счётчик остался ${JSON.stringify(ek['integer+:mul:2']['таблица умножения'])}`);
+});
+
+test('виды ошибок не утекают между профилями', () => {
+    const { Progress } = fresh();
+    Progress.switchTo('Vasya', 'pw1');
+    Progress.recordMistakeKind('integer+:mul:2', 'таблица умножения');
+    Progress.switchTo('Petya', 'pw2');
+    eq(Object.keys(Progress.getErrorKinds()).length, 0, 'тем с ошибками у второго профиля');
+    Progress.switchTo('Vasya', 'pw1');
+    eq(Progress.getErrorKinds()['integer+:mul:2']['таблица умножения'], 1, 'у первого профиля сохранилось');
+});
+
 // ---------- итог ----------
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
