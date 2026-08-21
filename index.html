@@ -4169,7 +4169,19 @@
                 if (!s.collections || typeof s.collections !== 'object') s.collections = { paradoxes: [] };
                 if (!Array.isArray(s.collections.paradoxes)) s.collections.paradoxes = [];
                 if (!s.totals || typeof s.totals !== 'object') s.totals = { correct: 0, wrong: 0, puzzlesCompleted: 0 };
+                // Проверять только форму мало: счётчик мог прийти строкой или NaN из битого
+                // хранилища, и тогда Math.max в слиянии даёт NaN, а JSON.stringify превращает
+                // его в null — прогресс молча обнуляется по дороге на сервер. Приводим к числу.
+                const num = (v) => (Number.isFinite(v) ? v : (Number.isFinite(Number(v)) ? Number(v) : 0));
+                s.totals.correct = num(s.totals.correct);
+                s.totals.wrong = num(s.totals.wrong);
+                s.totals.puzzlesCompleted = num(s.totals.puzzlesCompleted);
                 if (!s.byTopic || typeof s.byTopic !== 'object') s.byTopic = {};
+                Object.keys(s.byTopic).forEach(k => {
+                    const t = s.byTopic[k];
+                    if (!t || typeof t !== 'object') { delete s.byTopic[k]; return; }
+                    s.byTopic[k] = { correct: num(t.correct), wrong: num(t.wrong) };
+                });
                 if (!s.daily || typeof s.daily !== 'object' || Array.isArray(s.daily)) s.daily = {};
                 // Каждая корзина дня добивается до полного набора полей: данные могли прийти
                 // с более старой версии, где части счётчиков (или всего дня) ещё не было.
