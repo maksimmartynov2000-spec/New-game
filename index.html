@@ -6662,6 +6662,7 @@
 
         let megaShowActive = false;
         let megaShowTimer = 0;
+        let stormSparkDebt = 0; // дробный остаток искр шторма между кадрами
         let bgFlashState = 0;
         let isUltimateStorm = false;
 
@@ -7198,10 +7199,13 @@
                 this.color = color;
                 this.decay = 0.015 / lifeMultiplier;
             }
-            update() {
-                this.x += this.vx;
-                this.y += this.vy;
-                this.opacity -= this.decay;
+            // step — сколько «шестидесятигерцевых кадров» прошло с прошлого раза.
+            // На обычном экране это 1, на айпаде со 120 Гц — 0.5. Без него искра
+            // на быстром экране летит вдвое быстрее и гаснет вдвое раньше.
+            update(step) {
+                this.x += this.vx * step;
+                this.y += this.vy * step;
+                this.opacity -= this.decay * step;
             }
             draw() {
                 ctx.save(); ctx.beginPath(); ctx.globalAlpha = Math.max(0, this.opacity);
@@ -7221,12 +7225,31 @@
             }
         }
 
-        function animate() {
+        // Вся анимация раньше считала кадры, а не время: megaShowTimer--, bgFlashState += 0.1,
+        // this.x += this.vx. На экране 120 Гц (айпады и айфоны Pro) кадров вдвое больше, и всё
+        // шло вдвое быстрее: салют за тысячу примеров длился 37 секунд вместо 75, искры летели
+        // вдвое быстрее, мерцание ускорялось с 1 до 2 Гц. Игра ощущалась по-разному на разных
+        // устройствах, и заметить это на глаз было почти нельзя.
+        //
+        // Теперь на каждом кадре считаем, сколько прошло времени, и переводим его в привычные
+        // «кадры при 60 Гц». Все прежние числа (4500, 270, 75, 0.1, 0.015) остаются как были
+        // и означают ровно то же, что означали на обычном экране, — подбирать их заново
+        // не нужно.
+        const FRAME_MS = 1000 / 60;
+        let lastFrameAt = 0;
+
+        function animate(now) {
+            // Первый кадр и возвращение из свёрнутой вкладки: там между кадрами могут пройти
+            // минуты, и без ограничения искры телепортировались бы, а салют кончался мгновенно.
+            const dt = (lastFrameAt && now) ? Math.min(now - lastFrameAt, 3 * FRAME_MS) : FRAME_MS;
+            lastFrameAt = now || 0;
+            const step = dt / FRAME_MS;
+
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             if (megaShowActive) {
-                megaShowTimer--;
-                bgFlashState += 0.1;
+                megaShowTimer -= step;
+                bgFlashState += 0.1 * step;
 
                 let mathBox = document.getElementById('mainMathBox');
 
@@ -7238,7 +7261,12 @@
                     mathBox.style.borderColor = `rgb(${g}, ${b}, ${r})`;
 
                     let colors = ['#ff0055', '#00ffcc', '#ffcc00', '#ff00ff', '#00ff00', '#ffffff'];
-                    for (let k = 0; k < 3; k++) {
+                    // Три искры на кадр при 60 Гц. Копим дробный остаток, иначе на быстром
+                    // экране округление дало бы вдвое больше искр, чем на обычном.
+                    stormSparkDebt += 3 * step;
+                    const sparks = Math.floor(stormSparkDebt);
+                    stormSparkDebt -= sparks;
+                    for (let k = 0; k < sparks; k++) {
                         let angle = Math.random() * Math.PI * 2;
                         let spd = Math.random() * 8 + 4;
                         let vx = Math.cos(angle) * spd;
@@ -7256,6 +7284,7 @@
                 if (megaShowTimer <= 0) {
                     megaShowActive = false;
                     isUltimateStorm = false;
+                    stormSparkDebt = 0;
                     document.body.classList.remove('mega-storm');
                     mathBox.style.backgroundColor = `rgba(5, 7, 15, 0.9)`;
                     mathBox.style.borderColor = 'var(--cyan)';
@@ -7265,7 +7294,7 @@
 
             for (let i = particles.length - 1; i >= 0; i--) {
                 let p = particles[i];
-                p.update();
+                p.update(step);
                 p.draw();
                 if (p.opacity <= 0) {
                     particles.splice(i, 1);
