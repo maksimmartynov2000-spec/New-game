@@ -191,6 +191,119 @@ test('ни у одной темы нет «залипшего» числа во 
     assert(stuck.length === 0, stuck.join('; '));
 });
 
+group('Смысловые проверки: содержание не выродилось');
+// Проверки выше смотрят на ФОРМУ примеров: сколько их разных, нет ли залипшего числа.
+// Этого мало. Уровень «дроби 2★» полгода выдавал 88% примеров вида «5/6 − 5/6 = 0»
+// и проходил все проверки формы: примеры действительно были разные, числители не
+// залипали, ответ формально «сокращался» (0/6 → 0/1). Не сходился только смысл.
+//
+// Здесь — проверки смысла. Пороги взяты не с потолка, а из замеров по всем 100 темам:
+// у каждой указано, сколько намерено сегодня и сколько было у известного дефекта.
+
+// Ключ примера и ключ ответа — по ним считаем, не сгрудилась ли выдача в одну точку.
+function problemKey(p) {
+    if (p.f1) return `${p.f1.num}/${p.f1.den}|${p.f2.num}/${p.f2.den}`;
+    if (p.given) return `${p.given.num}/${p.given.den}|${p.whole}|${p.properNum}`;
+    if (p.d1) return `${p.d1.intVal}e${p.d1.dp}|${p.d2.intVal}e${p.d2.dp}`;
+    if (p.fracNum !== undefined) return `${p.fracNum}/${p.fracDen}|${p.N}`;
+    return `${p.a}|${p.b}`;
+}
+function answerKeyOf(p) {
+    const a = p.answer;
+    if (a === null || a === undefined) return 'нет решения'; // деление на ноль — это ответ
+    if (typeof a === 'object') return a.den !== undefined ? `${a.num}/${a.den}` : `${a.intVal}e${a.dp}`;
+    if (p.direction === 'toMixed') return `${p.whole} ${p.properNum}/${p.den}`;
+    if (p.direction === 'toImproper') return `${p.given.num}/${p.given.den}`;
+    return String(a);
+}
+
+function shareOfMostCommon(c, keyFn, runs) {
+    const counts = new Map();
+    for (let i = 0; i < runs; i++) {
+        const k = keyFn(generateOne(c.cat, c.op, c.level, c.isNegative));
+        counts.set(k, (counts.get(k) || 0) + 1);
+    }
+    let top = null, best = 0;
+    counts.forEach((n, k) => { if (n > best) { best = n; top = k; } });
+    return { key: top, share: best / runs };
+}
+
+// Замерено сегодня: максимум по всем темам — 28% (дроби 2★ на вычитание: ответы
+// после сокращения неизбежно сходятся к простым дробям вроде 1/3).
+// У дефекта, который это должно было поймать, было 88%.
+const MAX_ANSWER_SHARE = 0.40;
+test(`ни один ответ не занимает больше ${Math.round(MAX_ANSWER_SHARE * 100)}% выдачи темы`, () => {
+    const bad = [];
+    forEachCombo(c => {
+        const { key, share } = shareOfMostCommon(c, answerKeyOf, 3000);
+        if (share > MAX_ANSWER_SHARE) bad.push(`${c.label}: ответ «${key}» в ${(share * 100).toFixed(0)}%`);
+    });
+    assert(bad.length === 0, bad.join('; '));
+});
+
+// Замерено сегодня: максимум 14% (перевод дробей 1★, где вариантов всего 18).
+const MAX_PROBLEM_SHARE = 0.25;
+test(`ни один пример не занимает больше ${Math.round(MAX_PROBLEM_SHARE * 100)}% выдачи темы`, () => {
+    const bad = [];
+    forEachCombo(c => {
+        const { key, share } = shareOfMostCommon(c, problemKey, 3000);
+        if (share > MAX_PROBLEM_SHARE) bad.push(`${c.label}: пример «${key}» в ${(share * 100).toFixed(0)}%`);
+    });
+    assert(bad.length === 0, bad.join('; '));
+});
+
+test('в дробной арифметике ответ 0 или 1 — редкость, а не правило', () => {
+    // Именно этим уровень 2★ и болел: считать было нечего, и ребёнок это замечал.
+    const bad = [];
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let level = 1; level <= 5; level++) {
+            let degenerate = 0;
+            const runs = 3000;
+            for (let i = 0; i < runs; i++) {
+                const a = G.generateFractionProblem(op, level, false).answer;
+                if (a.num === 0 || Math.abs(a.num) === Math.abs(a.den)) degenerate++;
+            }
+            const share = degenerate / runs;
+            // Деление даёт ответ 1 законно (a/b ÷ a/b), поэтому ему порог мягче.
+            const limit = op === 'div' ? 0.25 : 0.10;
+            if (share > limit) bad.push(`дроби ${op} ${level}★: ${(share * 100).toFixed(0)}% ответов 0 или 1`);
+        }
+    });
+    assert(bad.length === 0, bad.join('; '));
+});
+
+test('у каждой темы не меньше 5 разных ответов', () => {
+    const bad = [];
+    forEachCombo(c => {
+        const seen = new Set();
+        for (let i = 0; i < 1000; i++) seen.add(answerKeyOf(generateOne(c.cat, c.op, c.level, c.isNegative)));
+        if (seen.size < 5) bad.push(`${c.label}: ${seen.size}`);
+    });
+    assert(bad.length === 0, bad.join('; '));
+});
+
+// Сколько разных примеров ученик увидит за короткий заход. Считает не теоретический
+// размер темы, а то, что реально выпадает: тема из 30 примеров, где 90% выдачи — три
+// из них, здесь провалится, хотя проверку «минимум 25 различных» пройдёт.
+// Замерено сегодня: минимум 14,7 (не считая освобождённых). У дефекта 2★ было бы ~8.
+const MIN_IN_A_ROW = 13;
+test(`среди 20 примеров подряд в среднем не меньше ${MIN_IN_A_ROW} разных`, () => {
+    const poor = [];
+    forEachCombo(c => {
+        if (VARIETY_EXEMPT.has(c.label)) return;
+        let sum = 0;
+        const runs = 120;
+        for (let r = 0; r < runs; r++) {
+            const seen = new Set();
+            for (let i = 0; i < 20; i++) seen.add(problemKey(generateOne(c.cat, c.op, c.level, c.isNegative)));
+            sum += seen.size;
+        }
+        const avg = sum / runs;
+        if (avg < MIN_IN_A_ROW) poor.push(`${c.label}: ${avg.toFixed(1)}`);
+    });
+    assert(poor.length === 0, `однообразно за короткий заход: ${poor.join('; ')}`);
+});
+
 group('Дроби: обещания уровней сложности');
 test('1★ сложение/вычитание — ответ никогда не требует сокращения', () => {
     const bad = [];
@@ -223,17 +336,40 @@ test('1★ сложение/вычитание — одинаковые знам
     assert(sorted.length >= 8, `мало разных знаменателей: ${sorted.join(',')}`);
 });
 
-test('2★ сложение/вычитание — ответ, наоборот, всегда сокращается', () => {
-    let notReducible = 0;
+test('2★ сложение/вычитание — ответ сокращается и при этом не 0 и не 1', () => {
+    // Проверка «сокращается» сама по себе слабая: 0/6 и 6/6 ей удовлетворяют,
+    // и уровень с 88% таких ответов её проходил. Поэтому здесь три условия сразу.
+    const bad = [];
     ['add', 'sub'].forEach(op => {
         for (let i = 0; i < 3000; i++) {
             const m = G.pickAddSubMagnitudes(2, op);
             const f1 = { num: m.n1, den: m.d1 }, f2 = { num: m.n2, den: m.d2 };
             const ans = op === 'add' ? G.fracAdd(f1, f2) : G.fracSub(f1, f2);
-            if (ans.den === m.d1) notReducible++;
+            const shown = `${m.n1}/${m.d1} ${op} ${m.n2}/${m.d2}`;
+            if (m.d1 !== m.d2) bad.push(`разные знаменатели: ${shown}`);
+            if (ans.den === m.d1) bad.push(`не сокращается: ${shown}`);
+            if (ans.num === 0) bad.push(`ответ 0: ${shown}`);
+            if (ans.num === ans.den) bad.push(`ответ 1: ${shown}`);
         }
     });
-    assert(notReducible === 0, `несокращаемых на 2★: ${notReducible}`);
+    assert(bad.length === 0, `${bad.length} нарушений, например: ${bad[0]}`);
+});
+
+test('2★ сложение/вычитание — знаменатели только составные', () => {
+    // При простом знаменателе d из дробей k/d сокращаются только k = 0 и k = d,
+    // то есть ответ 0 или 1. Простое число в пуле 2★ — это гарантированное вырождение.
+    const dens = new Set();
+    ['add', 'sub'].forEach(op => {
+        for (let i = 0; i < 3000; i++) dens.add(G.pickAddSubMagnitudes(2, op).d1);
+    });
+    const isPrime = (n) => {
+        if (n < 2) return false;
+        for (let d = 2; d * d <= n; d++) if (n % d === 0) return false;
+        return true;
+    };
+    const primes = [...dens].filter(isPrime);
+    assert(primes.length === 0, `простые знаменатели на 2★: ${primes.join(',')}`);
+    assert(dens.size >= 4, `мало разных знаменателей: ${[...dens].sort((a, b) => a - b).join(',')}`);
 });
 
 test('2★ умножение/деление — сокращение всегда возможно, операнды несократимы', () => {
