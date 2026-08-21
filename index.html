@@ -609,15 +609,31 @@
         .btn-win:active { transform: scale(0.96); }
 
         /* ===== РАЗБОР ОШИБОК ===== */
+        /* Разбор ошибок по причинам — одна строка на причину, с полоской доли. */
+        .kind-row { margin-bottom: 9px; }
+        .kind-row:last-child { margin-bottom: 0; }
+        .kind-head { display: flex; align-items: baseline; gap: 8px; }
+        .kind-name { flex: 1; font-size: 0.82rem; color: #e2e8f0; }
+        .kind-count { font-size: 0.78rem; color: #94a3b8; font-variant-numeric: tabular-nums; }
+        .kind-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.07); margin-top: 5px; overflow: hidden; }
+        .kind-bar-fill { height: 100%; border-radius: 3px; background: #f87171; }
+        .kind-row.top .kind-name { color: var(--gold); font-weight: bold; }
+        .kind-row.top .kind-bar-fill { background: var(--gold); }
+
         .mistake-card {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px; padding: 12px; margin-bottom: 10px;
         }
-        .mistake-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
-        .mistake-topic { flex: 1; font-size: 0.72rem; color: #94a3b8; }
-        .mistake-tag {
+        /* flex-wrap: длинный ярлык причины должен уехать на вторую строку, а не за край
+           карточки. min-width:0 нужен, чтобы название темы могло сжаться: без него флекс
+           не даёт элементу стать уже своего содержимого и ярлык всё равно вылезает. */
+        .mistake-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+        .mistake-topic { flex: 1 1 auto; min-width: 0; font-size: 0.72rem; color: #94a3b8; }
+        .mistake-tag { max-width: 100%;
             font-size: 0.66rem; font-weight: bold; padding: 3px 8px; border-radius: 20px;
-            text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap;
+            text-transform: uppercase; letter-spacing: 0.04em;
+            /* было nowrap — из-за него длинная причина не переносилась и уезжала за карточку */
+            white-space: normal; text-align: center;
         }
         .mistake-tag.wrong { background: rgba(239,68,68,0.15); color: #f87171; }
         .mistake-tag.almost { background: rgba(245,158,11,0.15); color: #fbbf24; }
@@ -886,6 +902,14 @@
                 <div id="statsTopicList"></div>
             </div>
 
+            <div class="config-section" id="statsMistakesSection" style="display:none;">
+                <div class="config-section-title">Над чем работать</div>
+                <div class="config-hint" style="margin-bottom:8px;">
+                    Ошибки за период, разобранные по причине.
+                </div>
+                <div id="statsMistakeList"></div>
+            </div>
+
             <div class="config-section" id="statsEpochsSection" style="display:none;">
                 <div class="config-section-title">Прошедшие эпохи</div>
                 <div class="config-hint" style="margin-bottom:8px;">
@@ -960,6 +984,11 @@
             <div class="report-block" id="repTopicsBlock">
                 <div class="report-block-title">Темы</div>
                 <div id="repTopics"></div>
+            </div>
+
+            <div class="report-block" id="repMistakesBlock">
+                <div class="report-block-title">Над чем работаем</div>
+                <div id="repMistakes"></div>
             </div>
 
             <div class="report-block" id="repAchBlock">
@@ -3270,6 +3299,288 @@
             return result;
         }
 
+        // =====================================================================
+        //  РАЗБОР ОШИБОК: ЧТО ИМЕННО СДЕЛАНО НЕ ТАК
+        // ---------------------------------------------------------------------
+        //  Приложение считало ошибки, но не знало, какие они. Репетитор видел
+        //  «12 ошибок», а не «9 из 12 — сложил знаменатели». Между тем варианты
+        //  ответа с самого начала строятся как модели конкретных ошибок: «сложил
+        //  в лоб», «не перевернул дробь», «забыл сократить». Оставалось понять,
+        //  какую из них ученик выбрал, — и это можно сделать, ничего не меняя
+        //  в генераторе.
+        //
+        //  Поэтому здесь разбор идёт ПОСЛЕ ответа, по самому числу: берём условие,
+        //  верный ответ и выбранный и заново считаем, какая известная ошибка даёт
+        //  ровно этот результат. Функция чистая, генератора не касается, и если
+        //  ни одна модель не подошла — честно возвращает «другая ошибка».
+        //
+        //  Порядок проверок важен: сначала самые узнаваемые причины, потом общие.
+        //  Первое совпадение и есть ответ.
+        // =====================================================================
+
+        const MISTAKE_LABELS = {
+            'не сократил':                 'Не сократил ответ',
+            'общий знаменатель зря':       'Зря привёл к общему знаменателю',
+            'сложил знаменатели':          'Сложил (вычел) и числители, и знаменатели',
+            'перепутал действие':          'Перепутал действие',
+            'не перевернул дробь':         'При делении не перевернул вторую дробь',
+            'забыл целую часть':           'Потерял целую часть',
+            'ошибся в переводе':           'Ошибся при переводе дроби',
+            'сократил не до конца':        'Сократил не до конца',
+            'ошибся в сокращении':         'Ошибся в сокращении',
+            'ошибся в знаке':              'Ошибся в знаке',
+            'ошибся на единицу':           'Промахнулся на единицу',
+            'таблица умножения':           'Ошибка в таблице умножения',
+            'делил на ноль':               'Не заметил деления на ноль',
+            'запятая не на месте':         'Запятая не на месте',
+            'не перенёс десяток':          'Не перенёс десяток',
+            'не занял десяток':            'Не занял десяток при вычитании',
+            'переставил числа':            'Поменял числа местами',
+            'взял одно из чисел':          'Назвал одно из чисел примера',
+            'сложил вместо умножения':     'Сложил вместо того чтобы умножить',
+            'не выровнял запятую':         'Не выровнял запятые перед сложением',
+            'забыл поделить':              'Умножил, но забыл поделить на знаменатель',
+            'нашёл только одну долю':      'Нашёл одну долю, но не умножил',
+            'нашёл остаток':               'Нашёл остаток вместо самой доли',
+            'ошибся на одну долю':         'Промахнулся на одну долю',
+            'забыл перемножить знаменатели': 'Перемножил числители, но не знаменатели',
+            'перевернул не ту дробь':      'Перевернул первую дробь вместо второй',
+            'перевёл не обе дроби':        'Привёл к общему знаменателю только одну дробь',
+            'другая ошибка':               'Другая ошибка'
+        };
+
+        // Короткие подписи для ярлычка на карточке разбора: там места на одну-две строки,
+        // а полные названия («Привёл к общему знаменателю только одну дробь») туда не влезают
+        // и уезжают за край карточки.
+        const MISTAKE_SHORT = {
+            'не сократил':                 'не сократил',
+            'общий знаменатель зря':       'лишнее приведение',
+            'сложил знаменатели':          'сложил знаменатели',
+            'перепутал действие':          'другое действие',
+            'не перевернул дробь':         'не перевернул',
+            'забыл целую часть':           'без целой части',
+            'ошибся в переводе':           'перевод дроби',
+            'сократил не до конца':        'не до конца',
+            'ошибся в сокращении':         'сокращение',
+            'ошибся в знаке':              'знак',
+            'ошибся на единицу':           'мимо на 1',
+            'таблица умножения':           'таблица',
+            'делил на ноль':               'деление на 0',
+            'запятая не на месте':         'запятая',
+            'не перенёс десяток':          'без переноса',
+            'не занял десяток':            'без займа',
+            'переставил числа':            'числа местами',
+            'взял одно из чисел':          'число из примера',
+            'сложил вместо умножения':     'сложил вместо ×',
+            'не выровнял запятую':         'запятые не выровнены',
+            'забыл поделить':              'забыл поделить',
+            'нашёл только одну долю':      'одна доля',
+            'нашёл остаток':               'остаток',
+            'ошибся на одну долю':         'мимо на долю',
+            'забыл перемножить знаменатели': 'без знаменателей',
+            'перевернул не ту дробь':      'не та дробь',
+            'перевёл не обе дроби':        'привёл одну',
+            'другая ошибка':               'ошибка'
+        };
+
+        function mistakeLabel(kind) { return MISTAKE_LABELS[kind] || kind; }
+        function mistakeShort(kind) { return MISTAKE_SHORT[kind] || MISTAKE_LABELS[kind] || kind; }
+
+        // Дробь ли это и равны ли две дроби по величине (а не по записи).
+        const isFrac = (v) => v && typeof v === 'object' && 'num' in v && 'den' in v;
+        const isDecimalValue = (v) => v && typeof v === 'object' && 'intVal' in v && 'dp' in v;
+        const sameValue = (x, y) => isFrac(x) && isFrac(y) && x.den !== 0 && y.den !== 0
+            && x.num * y.den === y.num * x.den;
+        const sameFrac = (x, y) => isFrac(x) && isFrac(y) && x.num === y.num && x.den === y.den;
+
+        function classifyFractionArith(problem, correct, chosen) {
+            const { f1, f2, opKey } = problem;
+            if (!isFrac(chosen) || !isFrac(f1) || !isFrac(f2)) return null;
+
+            // Величина верная, запись — нет. Если знаменатели были одинаковые, а ученик
+            // всё равно перемножил их крест-накрест, это отдельная, очень характерная
+            // история: не ошибка в счёте, а лишний шаг от неуверенности.
+            if (sameValue(chosen, correct)) {
+                if (f1.den === f2.den && chosen.den === f1.den * f2.den) return 'общий знаменатель зря';
+                return 'не сократил';
+            }
+
+            if (chosen.num === -correct.num && chosen.den === correct.den) return 'ошибся в знаке';
+
+            // «Сложил в лоб»: числители к числителям, знаменатели к знаменателям.
+            const flat = opKey === 'sub'
+                ? { num: f1.num - f2.num, den: f1.den - f2.den }
+                : { num: f1.num + f2.num, den: f1.den + f2.den };
+            if (flat.den !== 0 && (sameFrac(chosen, flat) || sameValue(chosen, flat))) return 'сложил знаменатели';
+
+            // Деление без переворота второй дроби — то же самое, что умножение.
+            if (opKey === 'div' && f2.num !== 0) {
+                const asMul = fracMul(f1, f2);
+                if (sameFrac(chosen, asMul) || sameValue(chosen, asMul)) return 'не перевернул дробь';
+            }
+
+            // Умножение: перемножил числители, а знаменатель взял из готового.
+            if (opKey === 'mul') {
+                const a = simplifyFrac(f1.num * f2.num, f1.den);
+                const b = simplifyFrac(f1.num * f2.num, f2.den);
+                if (sameFrac(chosen, a) || sameFrac(chosen, b)) return 'забыл перемножить знаменатели';
+            }
+
+            // Деление: перевернул первую дробь вместо второй.
+            if (opKey === 'div' && f1.num !== 0 && f2.den !== 0) {
+                const flipped = simplifyFrac(f1.den * f2.num, f1.num * f2.den);
+                if (sameFrac(chosen, flipped)) return 'перевернул не ту дробь';
+            }
+
+            // Сложение и вычитание с разными знаменателями: привёл к общему только одну
+            // дробь, а числитель второй взял как есть. Очень характерная половинчатая ошибка.
+            if ((opKey === 'add' || opKey === 'sub') && f1.den !== f2.den) {
+                const lcd = f1.den * f2.den / gcd(f1.den, f2.den);
+                const sign = opKey === 'add' ? 1 : -1;
+                const half1 = { num: f1.num * (lcd / f1.den) + sign * f2.num, den: lcd };
+                const half2 = { num: f1.num + sign * f2.num * (lcd / f2.den), den: lcd };
+                if (sameValue(chosen, half1) || sameValue(chosen, half2)) return 'перевёл не обе дроби';
+            }
+
+            const opposite = { add: 'sub', sub: 'add', mul: 'div', div: 'mul' }[opKey];
+            if (opposite) {
+                try {
+                    const other = opposite === 'add' ? fracAdd(f1, f2)
+                        : opposite === 'sub' ? fracSub(f1, f2)
+                        : opposite === 'mul' ? fracMul(f1, f2)
+                        : (f2.num !== 0 ? fracDiv(f1, f2) : null);
+                    if (other && (sameFrac(chosen, other) || sameValue(chosen, other))) return 'перепутал действие';
+                } catch (e) { /* обратное действие неопределено — просто идём дальше */ }
+            }
+
+            // Ответ должен был быть смешанным числом, а взята только дробная часть.
+            const m = toMixedParts(correct);
+            if (m && m.whole !== 0 && m.remNum !== 0
+                && Math.abs(chosen.num) === m.remNum && chosen.den === m.den) return 'забыл целую часть';
+
+            return null;
+        }
+
+        function classifyIntegerLike(problem, correct, chosen, opKey) {
+            if (typeof chosen !== 'number' || typeof correct !== 'number') return null;
+            const a = problem.a, b = problem.b;
+            const haveOperands = typeof a === 'number' && typeof b === 'number';
+
+            if (chosen === -correct && correct !== 0) return 'ошибся в знаке';
+
+            // Разряды: сложил столбиком, не перенеся десяток, или вычел, не заняв его.
+            // Это те же модели, по которым строятся варианты ответа, — см. buildDistractors.
+            if (haveOperands) {
+                if (opKey === 'add') {
+                    const nc = noCarryAdd(a, b);
+                    if (nc !== null && (chosen === nc || chosen === -nc)) return 'не перенёс десяток';
+                }
+                if (opKey === 'sub') {
+                    const nb = noBorrowSub(a, b);
+                    if (nb !== null && (chosen === nb || chosen === -nb)) return 'не занял десяток';
+                    if (chosen === b - a && a !== b) return 'переставил числа';
+                }
+
+                const others = { add: a - b, sub: a + b, mul: (b !== 0 ? a / b : null), div: a * b };
+                const other = others[opKey];
+                if (other !== null && other !== undefined && chosen === other) return 'перепутал действие';
+                if (opKey === 'mul' && chosen === a + b) return 'сложил вместо умножения';
+
+                // Соседняя клетка таблицы умножения: 7×8 вместо 7×7.
+                if (opKey === 'mul' && (chosen === a * (b + 1) || chosen === a * (b - 1)
+                    || chosen === (a + 1) * b || chosen === (a - 1) * b)) return 'таблица умножения';
+
+                // При делении часто называют само делимое или делитель, не посчитав.
+                if (opKey === 'div' && (chosen === a || chosen === b)) return 'взял одно из чисел';
+            }
+
+            // Промах на единицу проверяем последним: иначе он перехватывал бы более
+            // говорящие причины, которые случайно оказались рядом с верным ответом.
+            if (Math.abs(chosen - correct) === 1) return 'ошибся на единицу';
+            return null;
+        }
+
+        // «Дробь от числа»: модели ошибок здесь свои, см. buildFracOfNumberDistractors.
+        function classifyFracOfNumber(problem, correct, chosen) {
+            if (typeof chosen !== 'number') return null;
+            const { fracNum, N, k } = problem;
+            if (chosen === N * fracNum) return 'забыл поделить';
+            if (chosen === k && k !== correct) return 'нашёл только одну долю';
+            if (chosen === N - correct) return 'нашёл остаток';
+            if (k && (chosen === correct + k || chosen === correct - k)) return 'ошибся на одну долю';
+            if (Math.abs(chosen - correct) === 1) return 'ошибся на единицу';
+            return null;
+        }
+
+        // Главная точка входа. meta — то же, что в currentProblemMeta.
+        function classifyMistake(meta, problem, correct, chosen) {
+            if (!meta || !problem) return 'другая ошибка';
+            const opKey = meta.opKey;
+
+            // Выбрали число там, где верный ответ — «нет решения» (деление на ноль).
+            if (problem.noSolution && chosen !== 'NO_SOLUTION') return 'делил на ноль';
+
+            try {
+                if (meta.category === 'fraction') {
+                    if (opKey === 'simplify') {
+                        if (!isFrac(chosen)) return 'другая ошибка';
+                        // Величина та же, запись другая — значит сократил, но не до упора.
+                        if (sameValue(chosen, correct)) return 'сократил не до конца';
+                        return 'ошибся в сокращении';
+                    }
+                    if (opKey === 'toMixed' || opKey === 'toImproper') return 'ошибся в переводе';
+                    if (opKey === 'fracOfNumber') return classifyFracOfNumber(problem, correct, chosen) || 'другая ошибка';
+                    return classifyFractionArith(problem, correct, chosen) || 'другая ошибка';
+                }
+
+                if (meta.category === 'decimal') {
+                    if (!isDecimalValue(chosen) || !isDecimalValue(correct)) return 'другая ошибка';
+                    const d1 = problem.d1, d2 = problem.d2;
+                    const val = (d) => d.intVal / Math.pow(10, d.dp);
+                    const cv = val(correct), gv = val(chosen);
+
+                    if (gv === -cv && cv !== 0) return 'ошибся в знаке';
+
+                    // Те же цифры, но запятая сдвинута — самая частая беда десятичных.
+                    if (chosen.intVal === correct.intVal && chosen.dp !== correct.dp) return 'запятая не на месте';
+
+                    if (d1 && d2) {
+                        const commonDp = Math.max(d1.dp, d2.dp);
+                        const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
+                        const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
+                        const same = (iv, dp) => chosen.intVal === iv && chosen.dp === dp;
+
+                        // Сложил сырые цифры, не выровняв запятые (0.5 + 0.25 как 5 + 25).
+                        if ((opKey === 'add' || opKey === 'sub') && d1.dp !== d2.dp) {
+                            const raw = opKey === 'add' ? d1.intVal + d2.intVal : d1.intVal - d2.intVal;
+                            if (same(raw, Math.max(d1.dp, d2.dp))) return 'не выровнял запятую';
+                        }
+                        if (opKey === 'add' && same(v1 - v2, commonDp)) return 'перепутал действие';
+                        if (opKey === 'sub' && same(v1 + v2, commonDp)) return 'перепутал действие';
+                        if (opKey === 'mul') {
+                            if (same(v1 + v2, commonDp)) return 'сложил вместо умножения';
+                            const raw = d1.intVal * d2.intVal;
+                            if (chosen.intVal === raw && chosen.dp !== d1.dp + d2.dp) return 'запятая не на месте';
+                        }
+                        if (opKey === 'div' && same(d1.intVal * d2.intVal, d1.dp + d2.dp)) return 'перепутал действие';
+                    }
+
+                    if (gv !== 0 && cv !== 0) {
+                        const ratio = gv / cv;
+                        for (const k of [0.001, 0.01, 0.1, 10, 100, 1000]) {
+                            if (Math.abs(ratio - k) < 1e-9) return 'запятая не на месте';
+                        }
+                    }
+                    return 'другая ошибка';
+                }
+
+                return classifyIntegerLike(problem, correct, chosen, opKey) || 'другая ошибка';
+            } catch (e) {
+                // Разбор ошибок не имеет права уронить игру: не разобрались — и ладно.
+                return 'другая ошибка';
+            }
+        }
+
         // ===================== ПАЗЛ: ГЕНЕРАЦИЯ КУСОЧКОВ (jigsaw) =====================
         const PUZZLE_GRID = 10;
         const PUZZLE_TOTAL = PUZZLE_GRID * PUZZLE_GRID; // 100
@@ -3866,6 +4177,12 @@
                     totals: { correct: 0, wrong: 0, puzzlesCompleted: 0 },
                     byTopic: {},           // { 'fraction:add': { correct: N, wrong: N }, ... }
 
+                    // Виды ошибок за всё время, по темам:
+                    //   { 'fraction+:add:3': { 'сложил знаменатели': 12, 'не сократил': 4 } }
+                    // Отвечает на вопрос, который счётчик ошибок задать не позволял:
+                    // ученик ошибается вразнобой или у него одна и та же дыра.
+                    errorKinds: {},
+
                     // Журнал по дням — единственное место, где вообще есть измерение времени.
                     // Без него нельзя ответить ни на один вопрос вида "а что изменилось за месяц":
                     // totals/byTopic выше пожизненные и только растут, из них динамику не достать.
@@ -3904,7 +4221,10 @@
             //   mc — сколько ответов попало в ms (чтобы считать среднее)
             //   t  — по темам: { 'integer+:add:1': [верно, ошибок, почти, время(мс), ответов ко времени] }
             function emptyDay() {
-                return { c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {} };
+                // e — виды ошибок за день, плоской картой { 'сложил знаменатели': 3, ... }.
+                // Намеренно НЕ по темам: восемь ключей на день против восьмисот, а для
+                // вопроса «над чем работать в этом месяце» разбивки по темам и не нужно.
+                return { c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {}, e: {} };
             }
 
             // Дата ПО МЕСТНОМУ ВРЕМЕНИ, а не по UTC. toISOString() здесь был бы багом:
@@ -4052,6 +4372,19 @@
                     puzzlesCompleted: Math.max((a.totals && a.totals.puzzlesCompleted) || 0, (b.totals && b.totals.puzzlesCompleted) || 0)
                 };
 
+                // Виды ошибок — такие же счётчики «только вверх», как byTopic.
+                out.errorKinds = {};
+                const ekTopics = new Set([...Object.keys(a.errorKinds || {}), ...Object.keys(b.errorKinds || {})]);
+                ekTopics.forEach(t => {
+                    const x = (a.errorKinds && a.errorKinds[t]) || {};
+                    const y = (b.errorKinds && b.errorKinds[t]) || {};
+                    const merged = {};
+                    new Set([...Object.keys(x), ...Object.keys(y)]).forEach(k => {
+                        merged[k] = Math.max(x[k] || 0, y[k] || 0);
+                    });
+                    out.errorKinds[t] = merged;
+                });
+
                 const topics = new Set([...Object.keys(a.byTopic || {}), ...Object.keys(b.byTopic || {})]);
                 out.byTopic = {};
                 topics.forEach(t => {
@@ -4081,6 +4414,9 @@
                     ['c', 'w', 'a', 's', 'p', 'ms', 'mc'].forEach(f => {
                         bucket[f] = Math.max(x[f] || 0, y[f] || 0);
                     });
+                    const ek = new Set([...Object.keys(x.e || {}), ...Object.keys(y.e || {})]);
+                    ek.forEach(k => { bucket.e[k] = Math.max((x.e || {})[k] || 0, (y.e || {})[k] || 0); });
+
                     const tk = new Set([...Object.keys(x.t || {}), ...Object.keys(y.t || {})]);
                     tk.forEach(key => {
                         const p = (x.t && x.t[key]) || [];
@@ -4176,6 +4512,12 @@
                 s.totals.correct = num(s.totals.correct);
                 s.totals.wrong = num(s.totals.wrong);
                 s.totals.puzzlesCompleted = num(s.totals.puzzlesCompleted);
+                if (!s.errorKinds || typeof s.errorKinds !== 'object' || Array.isArray(s.errorKinds)) s.errorKinds = {};
+                Object.keys(s.errorKinds).forEach(k => {
+                    const t = s.errorKinds[k];
+                    if (!t || typeof t !== 'object' || Array.isArray(t)) { delete s.errorKinds[k]; return; }
+                    Object.keys(t).forEach(kind => { t[kind] = num(t[kind]); });
+                });
                 if (!s.byTopic || typeof s.byTopic !== 'object') s.byTopic = {};
                 Object.keys(s.byTopic).forEach(k => {
                     const t = s.byTopic[k];
@@ -4190,6 +4532,7 @@
                     if (!raw || typeof raw !== 'object') { delete s.daily[k]; return; }
                     const bucket = Object.assign(emptyDay(), raw);
                     bucket.t = (raw.t && typeof raw.t === 'object' && !Array.isArray(raw.t)) ? raw.t : {};
+                    bucket.e = (raw.e && typeof raw.e === 'object' && !Array.isArray(raw.e)) ? raw.e : {};
                     s.daily[k] = bucket;
                 });
                 pruneDaily(s.daily);
@@ -4498,6 +4841,23 @@
                 // Булево значение тоже принимается — на случай старых вызовов.
                 // elapsedMs — сколько ученик думал; учитывается только у верных ответов,
                 // время неверного ответа — шум (быстрый случайный тык считался бы "скоростью").
+                // Вид ошибки пишется отдельным вызовом сразу после recordAnswer:
+                // так учёт ответов остаётся прежним, а разбор можно не звать вовсе,
+                // если разобрать не удалось.
+                recordMistakeKind(topicKey, kind) {
+                    if (!kind) return;
+                    if (topicKey) {
+                        if (!state.errorKinds || typeof state.errorKinds !== 'object') state.errorKinds = {};
+                        const t = state.errorKinds[topicKey] || (state.errorKinds[topicKey] = {});
+                        t[kind] = (t[kind] || 0) + 1;
+                    }
+                    const day = touchDay();
+                    if (!day.e || typeof day.e !== 'object') day.e = {};
+                    day.e[kind] = (day.e[kind] || 0) + 1;
+                    persistLocal();
+                },
+                getErrorKinds() { return state.errorKinds || {}; },
+
                 recordAnswer(topicKey, outcome, elapsedMs) {
                     const kind = (outcome === true) ? 'correct'
                         : (outcome === false) ? 'wrong'
@@ -5297,7 +5657,7 @@
         // Суммирует дни журнала за период [fromKey, toKey] включительно.
         // fromKey = null означает "с самого начала".
         function aggregateDaily(daily, fromKey, toKey) {
-            const out = { days: 0, c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {} };
+            const out = { days: 0, c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {}, e: {} };
             Object.keys(daily || {}).forEach(k => {
                 if ((fromKey && k < fromKey) || (toKey && k > toKey)) return;
                 const d = daily[k];
@@ -5309,6 +5669,7 @@
                     const v = d.t[tk] || [];
                     slot[0] += v[0] || 0; slot[1] += v[1] || 0; slot[2] += v[2] || 0;
                 });
+                Object.keys(d.e || {}).forEach(kind => { out.e[kind] = (out.e[kind] || 0) + (d.e[kind] || 0); });
             });
             return out;
         }
@@ -5506,7 +5867,47 @@
                 ? `Дневник занятий ведётся с ${formatDayKeyHuman(first)}.`
                 : 'Дневник занятий начнётся с первого решённого примера.';
 
+            // --- Над чем работать: ошибки за период, разобранные по причине ---
+            const kinds = isAll ? aggregateDaily(daily, null, today).e : cur.e;
+            const drawn = renderMistakeKinds(kinds, 'statsMistakeList', 6);
+            document.getElementById('statsMistakesSection').style.display = drawn ? 'block' : 'none';
+
             renderEpochCards(st);
+        }
+
+        // Список причин ошибок: строка на причину, полоска показывает долю.
+        // Одна и та же отрисовка нужна и в статистике, и в отчёте родителям —
+        // разница только в подписи сверху, поэтому она сюда не входит.
+        // Возвращает, сколько строк нарисовано: ноль означает «показывать блок незачем».
+        function renderMistakeKinds(kinds, containerId, limit) {
+            const wrap = document.getElementById(containerId);
+            if (!wrap) return 0;
+            wrap.innerHTML = '';
+            const rows = Object.keys(kinds || {})
+                .map(kind => ({ kind, n: kinds[kind] || 0 }))
+                .filter(r => r.n > 0)
+                .sort((x, y) => y.n - x.n)
+                .slice(0, limit || 6);
+            if (!rows.length) return 0;
+
+            const total = rows.reduce((sum, r) => sum + r.n, 0);
+            const max = rows[0].n;
+            rows.forEach((r, i) => {
+                const row = document.createElement('div');
+                row.className = 'kind-row' + (i === 0 && rows.length > 1 ? ' top' : '');
+                row.innerHTML = `
+                    <div class="kind-head">
+                        <span class="kind-name"></span>
+                        <span class="kind-count"></span>
+                    </div>
+                    <div class="kind-bar"><div class="kind-bar-fill"></div></div>`;
+                row.querySelector('.kind-name').innerText = mistakeLabel(r.kind);
+                row.querySelector('.kind-count').innerText =
+                    `${r.n} · ${Math.round(r.n / total * 100)}%`;
+                row.querySelector('.kind-bar-fill').style.width = `${Math.round(r.n / max * 100)}%`;
+                wrap.appendChild(row);
+            });
+            return rows.length;
         }
 
         // Карточки прошедших эпох. Это замороженные снимки: их числа НЕ складываются
@@ -5989,6 +6390,13 @@
                     aWrap.appendChild(el);
                 });
             }
+
+            // --- Над чем работаем: причины ошибок за период ---
+            // Родителю цифра «ошибок 40» не говорит ничего. «Из 40 ошибок 27 — сложил
+            // знаменатели» говорит всё: видно, что это одна конкретная дыра, а не
+            // общая невнимательность, и понятно, что с ней делать.
+            const drawnKinds = renderMistakeKinds(cur.e, 'repMistakes', 4);
+            document.getElementById('repMistakesBlock').style.display = drawnKinds ? 'block' : 'none';
 
             // --- Комментарий репетитора ---
             const noteText = Progress.getStudentNote(reportStudent.code);
@@ -6674,7 +7082,7 @@
         // Снимок примера в момент неверного ответа. Условие и варианты берём готовыми из DOM
         // (innerHTML), потому что дроби — это разметка, а не текст: пересобирать её заново
         // значило бы дублировать всю логику отрисовки ради того же результата.
-        function rememberMistake(clickedBtn, isAlmost) {
+        function rememberMistake(clickedBtn, isAlmost, mistakeKind) {
             try {
                 const questionHtml = document.getElementById('mathQuestion').innerHTML;
                 const chosenKey = clickedBtn ? clickedBtn.dataset.key : null;
@@ -6688,6 +7096,7 @@
                     n: correctCount + wrongCount + sessionMistakes.length + 1,
                     questionHtml, options, chosenKey, correctKey,
                     isAlmost: !!isAlmost,
+                    kind: mistakeKind || null,
                     topic: meta.category ? `${CATEGORY_LABELS[meta.category] || meta.category} · ${(OP_LABELS[meta.opKey] || meta.opKey || '').replace(/^\S+\s/, '')}` : '',
                     level: meta.level || null
                 });
@@ -6732,7 +7141,10 @@
                 head.querySelector('.mistake-topic').innerText =
                     m.topic + (m.level ? ` · ${m.level}★` : '');
                 const tag = head.querySelector('.mistake-tag');
-                tag.innerText = m.isAlmost ? 'не сократил' : 'ошибка';
+                // Вместо безликого «ошибка» — что именно пошло не так. Ученику это
+                // подсказка, а не приговор: одно и то же слово на трёх карточках подряд
+                // он замечает сам, и это самое полезное, что тут может произойти.
+                tag.innerText = m.isAlmost ? 'не сократил' : mistakeShort(m.kind || 'другая ошибка');
                 tag.classList.add(m.isAlmost ? 'almost' : 'wrong');
                 card.appendChild(head);
 
@@ -6780,6 +7192,7 @@
         // условия и, если новое сгенерированное совпало с ним, перегенерируем (с ограничением
         // попыток, чтобы не зациклиться, если пул примеров крайне мал).
         let lastProblemSignature = null;
+        let currentProblem = null;  // последний выданный пример — нужен разбору ошибок
         function generateUniqueProblem(generatorFn, sigFn) {
             let problem, sig, guard = 0;
             do {
@@ -6788,6 +7201,10 @@
                 guard++;
             } while (sig === lastProblemSignature && guard < 8);
             lastProblemSignature = sig;
+            // Через эту функцию проходит генерация всех без исключения примеров, поэтому
+            // здесь же удобно запомнить сам пример — разбору ошибки нужны его числа,
+            // а не только тема и сложность.
+            currentProblem = problem;
             return problem;
         }
 
@@ -7128,7 +7545,13 @@
             // Здесь же складываем карточку примера для разбора в конце испытания. Снимок берём
             // ДО того, как ниже навешиваются классы btn-correct/btn-wrong/locked: нам нужно
             // содержимое кнопок, а не их подсветка — раскрашивать будем сами на своём экране.
-            rememberMistake(clickedBtn, isUnreducedMatch);
+            // Что именно сделано не так. Разбираем один раз и пользуемся дважды:
+            // в карточке разбора в конце испытания и в накопительной статистике.
+            const mistakeKind = isUnreducedMatch
+                ? 'не сократил'
+                : classifyMistake(currentProblemMeta, currentProblem, correctAnswer, chosen);
+
+            rememberMistake(clickedBtn, isUnreducedMatch, mistakeKind);
 
             answerLocked = true;
             clearInterval(timerInterval);
@@ -7142,11 +7565,13 @@
                 spawnRewardText('Почти! Не забудь сократить', clickX, clickY, '#f59e0b', false);
                 buildSparks(10, '#f59e0b');
                 Progress.recordAnswer(topicKey, 'almost', elapsedMs);
+                Progress.recordMistakeKind(topicKey, 'не сократил');
                 // Пропускаем штраф за пазл и не портим статистику "Ошибки" — это не ошибка в счёте.
             } else {
                 wrongCount++;
                 document.getElementById('stat-wrong').innerText = wrongCount;
                 Progress.recordAnswer(topicKey, 'wrong', elapsedMs);
+                Progress.recordMistakeKind(topicKey, mistakeKind);
 
                 state.combo = Math.floor(state.combo / 2);
                 const badge = document.getElementById('comboBadge');

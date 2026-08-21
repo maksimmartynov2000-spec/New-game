@@ -60,7 +60,11 @@ function loadGenerators() {
     };
     sandbox.globalThis = sandbox;
     vm.createContext(sandbox);
-    vm.runInContext(head, sandbox, { filename: 'index.html<script>' });
+    // Объявления через const не становятся свойствами глобального объекта, а таблицы
+    // подписей проверять надо — поднимаем их наружу явно.
+    vm.runInContext(head + '\n;globalThis.MISTAKE_LABELS = MISTAKE_LABELS;'
+                         + '\n;globalThis.MISTAKE_SHORT = MISTAKE_SHORT;',
+                    sandbox, { filename: 'index.html<script>' });
     return sandbox;
 }
 
@@ -498,6 +502,134 @@ test('варианты не повторяются между собой', () =>
             }
         }
     });
+});
+
+group('Разбор ошибок: что именно сделано не так');
+// Варианты ответа с самого начала строятся как модели конкретных ошибок. Разбор
+// восстанавливает модель обратно по выбранному числу — значит, на настоящих вариантах
+// он и должен срабатывать. Здесь проверяется именно это: не «функция не падает»,
+// а «по живым дистракторам она узнаёт причину чаще, чем разводит руками».
+
+function wrongOptionsFor(c) {
+    // Пары (верный ответ, неверный вариант) ровно в том виде, в каком их увидит checkAnswer.
+    const p = generateOne(c.cat, c.op, c.level, c.isNegative);
+    let correct = p.answer, options = [];
+    if (c.cat === 'fraction' && ['add', 'sub', 'mul', 'div'].includes(c.op)) {
+        options = G.buildFractionDistractors(c.op, p.f1, p.f2, correct, c.isNegative, 3, c.level);
+    } else if (c.cat === 'fraction' && c.op === 'simplify') {
+        options = G.buildSimplifyDistractors(p, 3);
+    } else if (c.cat === 'fraction' && (c.op === 'toMixed' || c.op === 'toImproper')) {
+        options = G.buildMixedConvertDistractors(p, 3);
+    } else if (c.cat === 'fraction' && c.op === 'fracOfNumber') {
+        options = G.buildFracOfNumberDistractors(p, 3);
+    } else if (c.cat === 'decimal') {
+        options = G.buildDecimalDistractors(c.op, p.d1, p.d2, correct, c.isNegative, 3);
+    } else {
+        options = G.buildDistractors(c.op, p.a, p.b, correct, c.isNegative, 3);
+    }
+    const meta = { isNegative: c.isNegative, opKey: c.op, level: c.level, category: c.cat };
+    return { p, meta, correct, options: options || [] };
+}
+
+test('разбор не падает ни на одной теме и ни на одном варианте', () => {
+    const broken = [];
+    forEachCombo(c => {
+        try {
+            for (let i = 0; i < 40; i++) {
+                const { p, meta, correct, options } = wrongOptionsFor(c);
+                options.forEach(o => {
+                    const kind = G.classifyMistake(meta, p, correct, o);
+                    if (typeof kind !== 'string' || !kind) throw new Error(`вернул ${JSON.stringify(kind)}`);
+                });
+            }
+        } catch (e) { broken.push(`${c.label}: ${e.message}`); }
+    });
+    assert(broken.length === 0, broken.join('; '));
+});
+
+test('причина названа у большинства настоящих вариантов ответа', () => {
+    // Часть вариантов — случайные наполнители: когда модели ошибок для темы кончаются,
+    // генератор добирает недостающие числа рядом с ответом. У них причины нет и быть
+    // не может, поэтому требование не «разобрать всё», а два порога, снятые с замера:
+    // в среднем по всем темам сегодня разбирается 85%, хуже всего — 33% (дроби 1★ на
+    // вычитание, где из трёх вариантов осмысленных моделей всего две).
+    const poor = [];
+    let sumPct = 0, topics = 0;
+    forEachCombo(c => {
+        let total = 0, named = 0;
+        for (let i = 0; i < 60; i++) {
+            const { p, meta, correct, options } = wrongOptionsFor(c);
+            options.forEach(o => {
+                total++;
+                if (G.classifyMistake(meta, p, correct, o) !== 'другая ошибка') named++;
+            });
+        }
+        if (!total) return;
+        const pct = named / total;
+        sumPct += pct; topics++;
+        if (pct < 0.30) poor.push(`${c.label}: ${Math.round(pct * 100)}%`);
+    });
+    assert(poor.length === 0, `слишком много неразобранного: ${poor.join('; ')}`);
+    const avg = sumPct / topics;
+    assert(avg >= 0.70, `в среднем разбирается только ${Math.round(avg * 100)}%`);
+});
+
+test('верный ответ никогда не попадает в разбор как ошибка', () => {
+    // Защита от обратной беды: если разбор назовёт причину там, где ученик ответил
+    // верно, статистика начнёт показывать ошибки, которых не было.
+    const bad = [];
+    forEachCombo(c => {
+        for (let i = 0; i < 40; i++) {
+            const { p, meta, correct, options } = wrongOptionsFor(c);
+            const sameAsCorrect = options.filter(o => JSON.stringify(o) === JSON.stringify(correct));
+            if (sameAsCorrect.length) bad.push(`${c.label}: верный ответ оказался среди неверных вариантов`);
+        }
+    });
+    assert(bad.length === 0, bad[0]);
+});
+
+test('известные ошибки узнаются по имени', () => {
+    // Точечные случаи, посчитанные на бумаге. Если разбор перестанет их узнавать,
+    // значит модель разошлась с тем, как строятся варианты ответа.
+    const F = (num, den) => ({ num, den });
+    const cases = [
+        // 1/2 + 1/3: сложил числители и знаменатели отдельно
+        [{ opKey: 'add', category: 'fraction' }, { f1: F(1, 2), f2: F(1, 3), opKey: 'add' }, F(5, 6), F(2, 5), 'сложил знаменатели'],
+        // 1/2 ÷ 1/3: не перевернул вторую дробь
+        [{ opKey: 'div', category: 'fraction' }, { f1: F(1, 2), f2: F(1, 3), opKey: 'div' }, F(3, 2), F(1, 6), 'не перевернул дробь'],
+        // 2/3 × 3/4: перемножил числители, знаменатель взял готовый
+        [{ opKey: 'mul', category: 'fraction' }, { f1: F(2, 3), f2: F(3, 4), opKey: 'mul' }, F(1, 2), F(2, 1), 'забыл перемножить знаменатели'],
+        // 3/12 + 7/12 = 5/6, а выбрано несокращённое 10/12
+        [{ opKey: 'add', category: 'fraction' }, { f1: F(3, 12), f2: F(7, 12), opKey: 'add' }, F(5, 6), F(120, 144), 'общий знаменатель зря'],
+        // то же условие, но выбран просто несокращённый ответ
+        [{ opKey: 'add', category: 'fraction' }, { f1: F(3, 12), f2: F(7, 12), opKey: 'add' }, F(5, 6), F(10, 12), 'не сократил'],
+        // 7 × 7 = 49, выбрано 56 — соседняя клетка таблицы
+        [{ opKey: 'mul', category: 'integer' }, { a: 7, b: 7 }, 49, 56, 'таблица умножения'],
+        // 12 ÷ 4 = 3, названо само делимое
+        [{ opKey: 'div', category: 'integer' }, { a: 12, b: 4 }, 3, 12, 'взял одно из чисел'],
+        // 5 − 3 = 2, выбрано 8 — перепутал действие
+        [{ opKey: 'sub', category: 'integer' }, { a: 5, b: 3 }, 2, 8, 'перепутал действие'],
+        // деление на ноль: выбрано число вместо «нет решения»
+        [{ opKey: 'div', category: 'integer' }, { a: 4, b: 0, noSolution: true }, null, 4, 'делил на ноль']
+    ];
+    const bad = [];
+    cases.forEach(([meta, problem, correct, chosen, expected]) => {
+        const got = G.classifyMistake(Object.assign({ level: 3, isNegative: false }, meta), problem, correct, chosen);
+        if (got !== expected) bad.push(`ожидалось «${expected}», получено «${got}»`);
+    });
+    assert(bad.length === 0, bad.join('; '));
+});
+
+test('у каждой причины есть и полная подпись, и короткая', () => {
+    const missing = [];
+    Object.keys(G.MISTAKE_LABELS).forEach(k => {
+        if (!G.MISTAKE_SHORT[k]) missing.push(`нет короткой подписи: ${k}`);
+        if (G.MISTAKE_SHORT[k] && G.MISTAKE_SHORT[k].length > 22) missing.push(`короткая подпись слишком длинная: ${k}`);
+    });
+    Object.keys(G.MISTAKE_SHORT).forEach(k => {
+        if (!G.MISTAKE_LABELS[k]) missing.push(`нет полной подписи: ${k}`);
+    });
+    assert(missing.length === 0, missing.join('; '));
 });
 
 // ---------- итог ----------
