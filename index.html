@@ -780,6 +780,51 @@
         }
         .fold-arrow { font-size: 0.7rem; color: #64748b; }
 
+        /* --- Выдача кода: сетка «режим × уровень» --- */
+        .grant-sections { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+        .grant-sec {
+            flex: 1 1 auto; padding: 9px 10px; border-radius: 9px; font-size: 0.78rem; font-weight: bold;
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15);
+            color: #e2e8f0; cursor: pointer; font-family: inherit;
+        }
+        .grant-sec.on { background: rgba(168,85,247,0.20); border-color: var(--royal); color: white; }
+        .grant-grid { display: grid; gap: 4px; margin-bottom: 10px; }
+        .grant-corner, .grant-col, .grant-row {
+            font-size: 0.68rem; font-weight: bold; color: #94a3b8; cursor: pointer;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.10);
+            border-radius: 7px; padding: 6px 4px; text-align: center; font-family: inherit;
+        }
+        .grant-row { text-align: left; padding-left: 8px; white-space: nowrap; }
+        .grant-corner { color: #64748b; }
+        .grant-cell {
+            aspect-ratio: 1.35; border-radius: 7px; cursor: pointer;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
+        }
+        .grant-cell.on { background: rgba(16,185,129,0.28); border-color: #34d399; }
+        .grant-summary {
+            font-size: 0.74rem; color: #94a3b8; margin-bottom: 12px;
+            padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.04);
+        }
+        .code-big {
+            font-family: monospace; font-size: 2rem; font-weight: bold; letter-spacing: 6px;
+            color: var(--gold); text-align: center; padding: 16px 8px; border-radius: 12px;
+            background: rgba(255,215,0,0.08); border: 1px solid rgba(255,215,0,0.30);
+            margin-bottom: 12px; user-select: all;
+        }
+        .code-row {
+            display: flex; align-items: center; gap: 8px; padding: 9px 10px; margin-bottom: 7px;
+            border-radius: 9px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        }
+        .code-row.used { opacity: 0.55; }
+        .code-row.revoked { opacity: 0.45; border-style: dashed; }
+        .code-row-main { flex: 1; min-width: 0; }
+        .code-row-code { font-family: monospace; font-size: 0.95rem; font-weight: bold; letter-spacing: 2px; color: var(--gold); }
+        .code-row-sub { font-size: 0.68rem; color: #94a3b8; margin-top: 2px; }
+        .code-row-state { font-size: 0.64rem; font-weight: bold; }
+        .code-row-state.wait { color: #fbbf24; }
+        .code-row-state.done { color: #34d399; }
+        .code-row-state.off { color: #f87171; }
+
         .mistake-card {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px; padding: 12px; margin-bottom: 10px;
@@ -1011,7 +1056,7 @@
                 <div class="config-hint" id="lockedCodeHint">
                     Код открывает раздел насовсем и действует только на твой логин.
                 </div>
-                <div id="lockedActions"></div>
+                <button class="btn-config-continue ready" onclick="askAccessCode()">🔑 У меня есть код</button>
             </div>
         </div>
     </div>
@@ -1242,6 +1287,9 @@
                        style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
                               background:rgba(255,255,255,0.06); color:white; box-sizing:border-box; text-align:center; font-size:0.95rem;">
                 <button class="menu-btn" style="margin-top:8px;" onclick="saveProfileLabel()">💾 <span>Сохранить имя</span></button>
+                <button class="menu-btn" id="btnAccessCode" style="margin-top:8px; display:none;"
+                        onclick="askAccessCode()">🔑 <span>Ввести код от репетитора</span></button>
+                <div id="accessSummary" class="config-hint" style="margin-top:8px;"></div>
             </div>
 
             <div class="config-section">
@@ -4328,6 +4376,10 @@
             return openAppDialog(null, (card, submit) => {
                 dlgHead(card, o.title || '', o.text || '');
 
+                // Своя разметка вместо (или вдобавок к) полей ввода. Нужна там, где
+                // ответом служит не текст, а выбор в сетке, — например при выдаче кода.
+                if (typeof o.build === 'function') o.build(card);
+
                 const inputs = {};
                 fields.forEach(f => {
                     const box = document.createElement('div');
@@ -5450,6 +5502,30 @@
             return parts.join('; ');
         }
 
+        // Спрашивает у сервера, что открыто, и перезаписывает локальный слепок.
+        // Именно перезапись, а не слияние: отозванный доступ обязан исчезать.
+        //
+        // Если функции ещё нет в базе (SQL не запущен) или сети нет — НИЧЕГО не пишем.
+        // Тогда доступ остаётся null, а null означает «открыто всё». Так замки
+        // включаются ровно в тот момент, когда серверная часть появляется, и ни
+        // секундой раньше: ученик не может оказаться заперт из-за пропавшего интернета.
+        async function refreshAccess() {
+            if (!supabaseClient) return;
+            const code = Progress.getCode();
+            const auth = Progress.authFor(code);
+            if (!code || !auth) return;
+            try {
+                const { data, error } = auth.token
+                    ? await supabaseClient.rpc('session_my_access', { p_token: auth.token })
+                    : await supabaseClient.rpc('my_access', { p_code: code, p_password: auth.password });
+                if (error || !data || !data.ok || !data.access) return;
+                Progress.setAccess(data.access);
+                refreshSectionLocks();
+            } catch (e) {
+                // Сети нет — работаем с тем, что знали в прошлый раз.
+            }
+        }
+
         // Обновляет замки на кнопках разделов. Зовётся при каждом открытии настройки:
         // доступ мог измениться, пока ученик играл.
         function refreshSectionLocks() {
@@ -5483,6 +5559,330 @@
         function closeLockedPanel() {
             document.getElementById('lockedScreen').style.display = 'none';
         }
+
+        // Ввод кода учеником. Живёт в двух местах: на панели закрытого раздела
+        // (куда он попадает, ткнув в замок) и в профиле — на случай, если код
+        // пришёл заранее и до закрытого раздела он ещё не дошёл.
+        async function askAccessCode() {
+            const values = await askForm({
+                title: 'Код от репетитора',
+                text: 'Введи код, который тебе прислали. Он откроет раздел насовсем.',
+                fields: [{ key: 'code', label: 'Код', placeholder: 'например, ГМ4КР7' }],
+                okText: 'Открыть',
+                validate: (v) => v.code.length >= 4 ? null : 'Код короче, чем бывает.'
+            });
+            if (values === null) return;
+            if (!supabaseClient) { showToast('Нет соединения с сервером.', 'error'); return; }
+
+            const code = Progress.getCode();
+            const auth = Progress.authFor(code);
+            if (!code || !auth) { showToast('Сначала войди под своим логином.', 'error'); return; }
+
+            const typed = values.code.trim().toUpperCase();
+            try {
+                const { data, error } = auth.token
+                    ? await supabaseClient.rpc('session_redeem_access_code', { p_token: auth.token, p_code: typed })
+                    : await supabaseClient.rpc('redeem_access_code',
+                        { p_code_owner: code, p_password: auth.password, p_code: typed });
+                if (error) throw error;
+                if (!data || !data.ok) {
+                    const messages = {
+                        bad_code: 'Такого кода нет — проверь, правильно ли переписал.',
+                        already_used: 'Этот код уже использован.',
+                        revoked: 'Этот код отозвал репетитор.'
+                    };
+                    showToast(messages[data && data.error] || 'Не удалось открыть по этому коду.', 'error');
+                    return;
+                }
+                await refreshAccess();
+                refreshSectionLocks();
+                closeLockedPanel();
+                await showNotice({
+                    title: 'Открыто!',
+                    text: `Раздел «${SECTION_TITLES[data.section] || data.section}» теперь доступен.\n`
+                        + `Загляни в настройку испытаний.`
+                });
+                resetConfigScreen();
+            } catch (e) {
+                showToast('Не удалось подключиться. Проверь интернет.', 'error');
+            }
+        }
+
+        // =====================================================================
+        //  ВЫДАЧА КОДОВ: ЭКРАН РЕПЕТИТОРА
+        // ---------------------------------------------------------------------
+        //  Точность «раздел + режимы + уровни» даёт неприятную арифметику: у дробей
+        //  восемь режимов на пять уровней — сорок галочек. Посреди занятия это долго.
+        //  Поэтому сетка с быстрым выбором: нажатие на название режима берёт всю
+        //  строку, на звезду — весь столбец, «весь раздел» — всё сразу. «Дроби,
+        //  сложение и вычитание, 1–3★» — четыре касания вместо двенадцати.
+        // =====================================================================
+
+        const GRANT_SECTIONS = [
+            { key: 'fraction+', title: '🧮 Дроби', ops: OP_ORDER },
+            { key: 'decimal+',  title: '🔟 Десятичные', ops: ['add', 'sub', 'mul', 'div'] },
+            { key: 'integer-',  title: '🔴 Отрицательные', ops: ['add', 'sub', 'mul', 'div'] }
+        ];
+
+        // Собирает разрешение из отмеченных клеток. Если отмечено всё — отдаём
+        // короткое 'all': так и в базе понятнее, и панель ученика напишет
+        // «открыт полностью», а не перечислит восемь режимов по пять звёзд.
+        function grantFromPicks(sec, picks) {
+            const out = {};
+            let total = 0, marked = 0;
+            sec.ops.forEach(op => {
+                const lv = [];
+                for (let i = 1; i <= 5; i++) {
+                    total++;
+                    if (picks[`${op}:${i}`]) { lv.push(i); marked++; }
+                }
+                if (lv.length === 5) out[op] = 'all';
+                else if (lv.length) out[op] = lv;
+            });
+            if (marked === 0) return null;
+            if (marked === total) return 'all';
+            return out;
+        }
+
+        function grantHuman(sec, grant) {
+            if (grant === 'all') return 'весь раздел';
+            return Object.keys(grant).map(op => {
+                const name = (OP_LABELS[op] || op).replace(/^\S+\s/, '').toLowerCase();
+                return grant[op] === 'all' ? name : `${name} ${grant[op].join(', ')}★`;
+            }).join('; ');
+        }
+
+        async function openIssueCode(studentCode, studentLabel) {
+            let secIdx = 0;
+            let picks = {};
+
+            const values = await askForm({
+                title: 'Открыть раздел',
+                text: `Ученик: ${studentLabel || studentCode}. Код сработает только на этот логин, один раз.`,
+                fields: [],
+                okText: 'Выдать код',
+                // Проверка и одновременно источник результата: askForm отдаёт значения
+                // полей, а полей тут нет — разрешение живёт в picks выше.
+                validate: () => grantFromPicks(GRANT_SECTIONS[secIdx], picks) ? null : 'Отметь хотя бы одну клетку.',
+                build: (card) => {
+                    const secRow = document.createElement('div');
+                    secRow.className = 'grant-sections';
+                    const grid = document.createElement('div');
+                    grid.className = 'grant-grid';
+                    const summary = document.createElement('div');
+                    summary.className = 'grant-summary';
+
+                    const redraw = () => {
+                        const sec = GRANT_SECTIONS[secIdx];
+                        [...secRow.children].forEach((b, i) => b.classList.toggle('on', i === secIdx));
+
+                        grid.innerHTML = '';
+                        grid.style.gridTemplateColumns = 'auto repeat(5, 1fr)';
+
+                        const corner = document.createElement('button');
+                        corner.type = 'button';
+                        corner.className = 'grant-corner';
+                        corner.innerText = 'всё';
+                        corner.addEventListener('click', () => {
+                            const any = sec.ops.some(op => [1,2,3,4,5].some(i => picks[`${op}:${i}`]));
+                            sec.ops.forEach(op => [1,2,3,4,5].forEach(i => { picks[`${op}:${i}`] = !any; }));
+                            redraw();
+                        });
+                        grid.appendChild(corner);
+
+                        for (let i = 1; i <= 5; i++) {
+                            const col = document.createElement('button');
+                            col.type = 'button';
+                            col.className = 'grant-col';
+                            col.innerText = `${i}★`;
+                            col.addEventListener('click', () => {
+                                const any = sec.ops.some(op => picks[`${op}:${i}`]);
+                                sec.ops.forEach(op => { picks[`${op}:${i}`] = !any; });
+                                redraw();
+                            });
+                            grid.appendChild(col);
+                        }
+
+                        sec.ops.forEach(op => {
+                            const lab = document.createElement('button');
+                            lab.type = 'button';
+                            lab.className = 'grant-row';
+                            lab.innerText = (OP_LABELS[op] || op).replace(/^\S+\s/, '');
+                            lab.addEventListener('click', () => {
+                                const any = [1,2,3,4,5].some(i => picks[`${op}:${i}`]);
+                                [1,2,3,4,5].forEach(i => { picks[`${op}:${i}`] = !any; });
+                                redraw();
+                            });
+                            grid.appendChild(lab);
+
+                            for (let i = 1; i <= 5; i++) {
+                                const cell = document.createElement('button');
+                                cell.type = 'button';
+                                cell.className = 'grant-cell' + (picks[`${op}:${i}`] ? ' on' : '');
+                                cell.addEventListener('click', () => {
+                                    picks[`${op}:${i}`] = !picks[`${op}:${i}`];
+                                    redraw();
+                                });
+                                grid.appendChild(cell);
+                            }
+                        });
+
+                        const g = grantFromPicks(sec, picks);
+                        summary.innerText = g
+                            ? `Откроется: ${sec.title.replace(/^\S+\s/, '')} — ${grantHuman(sec, g)}.`
+                            : 'Ничего не выбрано.';
+                    };
+
+                    GRANT_SECTIONS.forEach((sec, i) => {
+                        const b = document.createElement('button');
+                        b.type = 'button';
+                        b.className = 'grant-sec';
+                        b.innerText = sec.title;
+                        b.addEventListener('click', () => { secIdx = i; picks = {}; redraw(); });
+                        secRow.appendChild(b);
+                    });
+
+                    card.appendChild(secRow);
+                    card.appendChild(grid);
+                    card.appendChild(summary);
+                    redraw();
+                }
+            });
+            if (values === null) return;
+
+            const sec = GRANT_SECTIONS[secIdx];
+            const grant = grantFromPicks(sec, picks);
+            const { data, error } = await callAuthed(
+                'session_issue_access_code', { p_student_code: studentCode, p_section: sec.key, p_grant: grant },
+                'issue_access_code', { p_student_code: studentCode, p_section: sec.key, p_grant: grant });
+            if (error || !data || !data.ok) {
+                const messages = {
+                    not_your_student: 'Это не твой ученик.',
+                    bad_grant: 'Такой набор режимов сервер не принял.',
+                    bad_section: 'Этот раздел кодом не открывается.'
+                };
+                showToast(messages[data && data.error] || 'Не удалось выдать код.', 'error');
+                return;
+            }
+
+            await showCodeResult(data.code, studentLabel || studentCode, sec, grant);
+            renderStudentsList();
+        }
+
+        // Код показывается крупно и не исчезает сам: его надо успеть переписать
+        // или скопировать, а исчезающая через три секунды всплывашка для этого не годится.
+        function showCodeResult(code, who, sec, grant) {
+            return openAppDialog(undefined, (card, submit) => {
+                dlgHead(card, 'Код готов', `Для ученика ${who}.\nОткроет: ${sec.title.replace(/^\S+\s/, '')} — ${grantHuman(sec, grant)}.`);
+
+                const big = document.createElement('div');
+                big.className = 'code-big';
+                big.innerText = code;
+                card.appendChild(big);
+
+                const hint = document.createElement('div');
+                hint.className = 'dlg-hint';
+                hint.style.marginBottom = '12px';
+                hint.innerText = 'Отправь его ученику. Код сработает один раз и только на его логин.';
+                card.appendChild(hint);
+
+                const row = document.createElement('div');
+                row.className = 'dlg-actions';
+                const copy = document.createElement('button');
+                copy.className = 'dlg-btn';
+                copy.type = 'button';
+                copy.innerText = 'Скопировать';
+                copy.addEventListener('click', () => {
+                    try {
+                        navigator.clipboard.writeText(code);
+                        copy.innerText = 'Скопировано';
+                    } catch (e) {
+                        copy.innerText = 'Не вышло — перепиши';
+                    }
+                });
+                const ok = document.createElement('button');
+                ok.className = 'dlg-btn primary';
+                ok.type = 'button';
+                ok.innerText = 'Готово';
+                ok.addEventListener('click', () => submit(undefined));
+                row.appendChild(copy);
+                row.appendChild(ok);
+                card.appendChild(row);
+            });
+        }
+
+        // Список выданных кодов по ученику: что открыто, что ещё не погашено,
+        // что отозвано. Без него репетитор не помнит, кому что отправлял.
+        async function openStudentCodes(studentCode, studentLabel) {
+            const { data, error } = await callAuthed(
+                'session_list_access_codes', { p_student_code: studentCode },
+                'list_access_codes', { p_student_code: studentCode });
+            if (error || !data || !data.ok) { showToast('Не удалось получить список кодов.', 'error'); return; }
+            const codes = data.codes || [];
+
+            await openAppDialog(undefined, (card, submit) => {
+                dlgHead(card, 'Выданные коды', `Ученик: ${studentLabel || studentCode}`);
+                if (!codes.length) {
+                    const empty = document.createElement('div');
+                    empty.className = 'dlg-text';
+                    empty.innerText = 'Этому ученику коды ещё не выдавались.';
+                    card.appendChild(empty);
+                }
+                codes.forEach(c => {
+                    const state = c.revokedAt ? 'off' : (c.redeemedAt ? 'done' : 'wait');
+                    const row = document.createElement('div');
+                    row.className = 'code-row ' + (c.revokedAt ? 'revoked' : (c.redeemedAt ? 'used' : ''));
+                    row.innerHTML = `<div class="code-row-main">
+                            <div class="code-row-code"></div>
+                            <div class="code-row-sub"></div>
+                        </div>
+                        <span class="code-row-state ${state}"></span>`;
+                    row.querySelector('.code-row-code').innerText = c.code;
+                    const secDef = GRANT_SECTIONS.find(x => x.key === c.section) || { title: c.section };
+                    row.querySelector('.code-row-sub').innerText =
+                        `${SECTION_TITLES[c.section] || c.section} — ${grantHuman(secDef, c.grant)}`;
+                    row.querySelector('.code-row-state').innerText =
+                        c.revokedAt ? 'отозван' : (c.redeemedAt ? 'использован' : 'ждёт');
+
+                    if (!c.revokedAt) {
+                        const btn = document.createElement('button');
+                        btn.className = 'list-row-btn';
+                        btn.type = 'button';
+                        btn.innerText = 'Отозвать';
+                        btn.addEventListener('click', async () => {
+                            btn.disabled = true;
+                            const res = await callAuthed('session_revoke_access_code', { p_code: c.code },
+                                                         'revoke_access_code', { p_code: c.code });
+                            if (res.error || !res.data || !res.data.ok) {
+                                showToast('Не удалось отозвать.', 'error');
+                                btn.disabled = false;
+                                return;
+                            }
+                            submit(undefined);
+                            showToast(`Код ${c.code} отозван — раздел закрылся.`, 'ok');
+                        });
+                        row.appendChild(btn);
+                    }
+                    card.appendChild(row);
+                });
+
+                const row = document.createElement('div');
+                row.className = 'dlg-actions';
+                const ok = document.createElement('button');
+                ok.className = 'dlg-btn primary';
+                ok.type = 'button';
+                ok.innerText = 'Закрыть';
+                ok.addEventListener('click', () => submit(undefined));
+                row.appendChild(ok);
+                card.appendChild(row);
+            });
+        }
+
+        const SECTION_TITLES = {
+            'integer-': 'Целые отрицательные',
+            'decimal+': 'Десятичные дроби',
+            'fraction+': 'Дроби'
+        };
 
         // Случайная заготовка кода — репетитор её видит как подсказку в поле ввода
         // и может стереть/заменить на что-то своё (TAYA67, ANTON25...). Не единственный
@@ -5530,6 +5930,7 @@
                 if (token) Progress.setToken(raw, token); // пароль при этом стирается
                 document.getElementById('codeScreen').style.display = 'none';
                 await Progress.flush(true);
+                await refreshAccess();
                 updateCollectionBadge();
             } catch (e) {
                 loadingEl.style.display = 'none';
@@ -5547,6 +5948,7 @@
                 // уже по токену, и в фоне: экран входа этого не ждёт.
                 ensureSessions()
                     .then(() => Progress.flush(true))
+                    .then(() => refreshAccess())
                     .then(() => updateCollectionBadge());
                 return;
             }
@@ -7247,6 +7649,21 @@
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
             renderProfileList();
 
+            // Ввод кода — только ученику: репетитору открыто всё и без кодов.
+            // Заодно показываем, что уже открыто, чтобы не гадать.
+            document.getElementById('btnAccessCode').style.display = type === 'linked' ? '' : 'none';
+            const sum = document.getElementById('accessSummary');
+            if (type !== 'linked') {
+                sum.innerText = '';
+            } else {
+                const opened = ['integer-', 'decimal+', 'fraction+']
+                    .filter(k => isSectionOpen(k))
+                    .map(k => `${SECTION_TITLES[k]}${grantSummary(k) && grantSummary(k) !== 'открыт полностью' ? ' (' + grantSummary(k) + ')' : ''}`);
+                sum.innerText = opened.length
+                    ? 'Открыто кодами: ' + opened.join(', ') + '.'
+                    : 'Кроме целых положительных пока ничего не открыто.';
+            }
+
             // Заводить учеников может только сам репетитор (self) — сервер тоже это
             // проверяет (см. миграцию), но прятать кнопку у ученика правильнее, чем
             // показывать её и потом объяснять отказ.
@@ -7481,9 +7898,11 @@
                         <div class="list-row-sub"></div>
                     </div>
                     <button class="list-row-btn" data-act="view">Смотреть</button>
-                    <button class="list-row-btn" data-act="report">📄</button>
-                    <button class="list-row-btn" data-act="pw">🔑</button>
-                    <button class="list-row-btn" data-act="del">🗑️</button>
+                    <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>
+                    <button class="list-row-btn" data-act="grant" title="Открыть раздел">🔓</button>
+                    <button class="list-row-btn" data-act="codes" title="Выданные коды">📋</button>
+                    <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>
+                    <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>
                 `;
                 row.querySelector('.list-row-name').innerText = s.label || s.code;
                 row.querySelector('.list-row-sub').innerText =
@@ -7502,6 +7921,8 @@
                 }
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));
                 row.querySelector('[data-act="report"]').addEventListener('click', () => openReportFor(s.code, s));
+                row.querySelector('[data-act="grant"]').addEventListener('click', () => openIssueCode(s.code, s.label));
+                row.querySelector('[data-act="codes"]').addEventListener('click', () => openStudentCodes(s.code, s.label));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
                 row.querySelector('[data-act="del"]').addEventListener('click', () => deleteStudentAccount(s.code));
                 wrap.appendChild(row);
