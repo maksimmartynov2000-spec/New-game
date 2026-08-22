@@ -1325,7 +1325,7 @@
                     <div class="category-select-row" id="categorySelectRow">
                         <button class="btn-category" data-value="integer" data-sign="positive" data-title="Положительные">🔵 Положительные</button>
                         <button class="btn-category" data-value="integer" data-sign="negative" data-title="Отрицательные">🔴 Отрицательные</button>
-                        <button class="btn-category" data-value="decimal" data-sign="positive" data-title="Десятичные дроби">🔟 Десятичные дроби</button>
+                        <button class="btn-category" data-value="decimal" data-sign="positive" data-title="Десятичные">🔟 Десятичные</button>
                         <button class="btn-category" data-value="fraction" data-sign="positive" data-title="Дроби">🧮 Дроби</button>
                     </div>
                 </div>
@@ -5880,7 +5880,7 @@
 
         const SECTION_TITLES = {
             'integer-': 'Отрицательные',
-            'decimal+': 'Десятичные дроби',
+            'decimal+': 'Десятичные',
             'fraction+': 'Дроби'
         };
 
@@ -6877,7 +6877,7 @@
         const MAP_SECTIONS = [
             { cat: 'integer', sign: '+', label: '🔵 Положительные', ops: ['add', 'sub', 'mul', 'div'] },
             { cat: 'integer', sign: '-', label: '🔴 Отрицательные', ops: ['add', 'sub', 'mul', 'div'] },
-            { cat: 'decimal', sign: '+', label: '🔟 Десятичные дроби',    ops: ['add', 'sub', 'mul', 'div'] },
+            { cat: 'decimal', sign: '+', label: '🔟 Десятичные',          ops: ['add', 'sub', 'mul', 'div'] },
             { cat: 'fraction', sign: '+', label: '🧮 Дроби',              ops: OP_ORDER }
         ];
         const OP_SHORT = {
