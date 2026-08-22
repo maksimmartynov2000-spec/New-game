@@ -281,6 +281,17 @@
             border-radius: 14px; padding: 14px 4px; color: white; text-align: center;
             font-size: 0.8rem; font-weight: bold; cursor: pointer; line-height: 1.3;
         }
+        /* Закрытый раздел. Не прячем и не делаем нечитаемым: ученик должен видеть,
+           что раздел существует и что его можно открыть, — иначе он просто решит,
+           что приложение маленькое. */
+        .btn-category.locked { opacity: 0.55; border-style: dashed; }
+        .btn-category.locked .cat-lock {
+            display: block; font-size: 0.62rem; font-weight: normal;
+            color: #fbbf24; margin-top: 5px; letter-spacing: 0.03em;
+        }
+        .btn-op.locked, .btn-star.locked {
+            opacity: 0.4; border-style: dashed; cursor: default;
+        }
         .btn-category.selected {
             border-color: var(--royal); background: rgba(168, 85, 247, 0.15);
             box-shadow: 0 0 12px rgba(168, 85, 247, 0.35);
@@ -988,6 +999,23 @@
         <button class="menu-btn" onclick="startMenuGoProfile()">👤 <span>Профиль</span></button>
     </div>
 
+    <!-- Панель закрытого раздела: объясняет, почему закрыто, и что с этим делать. -->
+    <div class="modal-screen" id="lockedScreen" style="z-index:245; display:none;">
+        <button class="start-menu-btn" onclick="closeLockedPanel()" aria-label="Назад">◀️</button>
+        <h1 class="start-title" style="font-size:1.5rem;">🔒 <span id="lockedTitle">Раздел закрыт</span></h1>
+        <div class="config-container" style="max-width:420px;">
+            <div class="config-section">
+                <p style="color:#cbd5e1; font-size:0.9rem; line-height:1.5; margin:0;" id="lockedText"></p>
+            </div>
+            <div class="config-section">
+                <div class="config-hint" id="lockedCodeHint">
+                    Код открывает раздел насовсем и действует только на твой логин.
+                </div>
+                <div id="lockedActions"></div>
+            </div>
+        </div>
+    </div>
+
     <!-- Экран статистики: занятия и результат за выбранный период -->
     <div class="modal-screen" id="statsScreen" style="z-index:230; display:none;">
         <button class="start-menu-btn" onclick="closeStatsScreen()" aria-label="Назад">◀️</button>
@@ -1247,10 +1275,10 @@
             <div class="config-container">
                 <div class="config-section">
                     <div class="category-select-row" id="categorySelectRow">
-                        <button class="btn-category" data-value="integer" data-sign="positive">🔵 Целые положительные</button>
-                        <button class="btn-category" data-value="integer" data-sign="negative">🔴 Целые отрицательные</button>
-                        <button class="btn-category" data-value="decimal" data-sign="positive">🔟 Десятичные дроби</button>
-                        <button class="btn-category" data-value="fraction" data-sign="positive">🧮 Дроби</button>
+                        <button class="btn-category" data-value="integer" data-sign="positive" data-title="Целые положительные">🔵 Целые положительные</button>
+                        <button class="btn-category" data-value="integer" data-sign="negative" data-title="Целые отрицательные">🔴 Целые отрицательные</button>
+                        <button class="btn-category" data-value="decimal" data-sign="positive" data-title="Десятичные дроби">🔟 Десятичные дроби</button>
+                        <button class="btn-category" data-value="fraction" data-sign="positive" data-title="Дроби">🧮 Дроби</button>
                     </div>
                 </div>
             </div>
@@ -1447,6 +1475,12 @@
         // просто зашит в кнопку и отдельного шага выбора знака для них не существует.
         document.querySelectorAll('.btn-category').forEach(btn => {
             btn.addEventListener('click', () => {
+                // Закрытый раздел ведёт не в игру, а в панель с объяснением.
+                const lockKey = sectionKeyOf(btn.getAttribute('data-value'), btn.getAttribute('data-sign'));
+                if (!isSectionOpen(lockKey)) {
+                    openLockedPanel(lockKey, btn.getAttribute('data-title') || 'Раздел');
+                    return;
+                }
                 document.querySelectorAll('.btn-category').forEach(b => b.classList.remove('selected'));
                 btn.classList.add('selected');
                 const newCategory = btn.getAttribute('data-value');
@@ -1469,6 +1503,7 @@
                 document.getElementById('fracSpecialBlock').style.display = newCategory === 'fraction' ? 'block' : 'none';
 
                 updateFracOnlyOpAvailability();
+                refreshOpLocks();
                 updateConfigValidity();
 
                 // Переходим на второй экран — остальная настройка (открывается только после выбора категории)
@@ -1502,6 +1537,26 @@
                 }
             });
             if (changed) renderDifficultyList();
+        }
+
+        // Код может открыть не весь раздел, а отдельные режимы. Закрытые гасим тем же
+        // способом, что и особые режимы дробей при отрицательных числах, — механизм уже
+        // есть и ведёт себя предсказуемо.
+        function refreshOpLocks() {
+            if (!exampleConfig.category) return;
+            const secKey = sectionKeyOf(exampleConfig.category, exampleConfig.numberType);
+            let changed = false;
+            document.querySelectorAll('.btn-op').forEach(btn => {
+                const op = btn.getAttribute('data-op');
+                if (isOpOpen(secKey, op)) { btn.classList.remove('locked'); return; }
+                btn.classList.add('locked', 'disabled-op');
+                if (op in exampleConfig.operations) {
+                    delete exampleConfig.operations[op];
+                    btn.classList.remove('selected');
+                    changed = true;
+                }
+            });
+            if (changed) { renderDifficultyList(); updateConfigValidity(); }
         }
 
         document.querySelectorAll('.btn-op').forEach(btn => {
@@ -1546,10 +1601,19 @@
                 const starsWrap = document.createElement('div');
                 starsWrap.className = 'diff-stars';
 
+                const secKey = sectionKeyOf(exampleConfig.category, exampleConfig.numberType);
                 for (let lvl = 1; lvl <= 5; lvl++) {
                     const starBtn = document.createElement('button');
                     starBtn.className = 'btn-star';
                     starBtn.innerText = `${lvl}★`;
+                    // Код может открыть не весь раздел, а «дроби, сложение, 1–3★».
+                    // Закрытая звезда видна, но не нажимается: так понятно, что дальше есть куда расти.
+                    if (!isLevelOpen(secKey, op, lvl)) {
+                        starBtn.classList.add('locked');
+                        starBtn.disabled = true;
+                        starsWrap.appendChild(starBtn);
+                        continue;
+                    }
                     if (exampleConfig.operations[op] === lvl) starBtn.classList.add('selected');
                     starBtn.addEventListener('click', () => {
                         exampleConfig.operations[op] = lvl;
@@ -1577,6 +1641,18 @@
             const selectedOps = Object.keys(exampleConfig.operations);
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
             if (!exampleConfig.category || !exampleConfig.numberType || !allHaveDifficulty) return;
+
+            // Последняя проверка перед стартом. Доступ мог измениться, пока экран настройки
+            // был открыт: репетитор отозвал код, синхронизация принесла новый список.
+            // Пропускать сюда закрытое нельзя — иначе замок обходится простым «не закрывай экран».
+            const secKey = sectionKeyOf(exampleConfig.category, exampleConfig.numberType);
+            const blocked = selectedOps.filter(op => !isLevelOpen(secKey, op, exampleConfig.operations[op]));
+            if (blocked.length) {
+                resetConfigScreen();
+                refreshSectionLocks();
+                showToast('Этот режим больше не открыт — выбери другой.', 'error');
+                return;
+            }
 
             Progress.setConfig(exampleConfig);
 
@@ -4472,6 +4548,16 @@
             // не теряя офлайн-копию прогресса друг друга. Ключ — код профиля.
             let profiles = {};
 
+            // Что этому ученику разрешено решать. Живёт РЯДОМ с состоянием, а не внутри:
+            // это не прогресс ученика, а решение репетитора, и сливать его по правилу
+            // «только растёт» нельзя — отозванный доступ обязан исчезать, а не выживать.
+            // Правда о доступе на сервере; здесь только слепок, чтобы работало офлайн.
+            //
+            // null означает «мы ещё не спрашивали» — и это НЕ то же самое, что «ничего
+            // не разрешено». Пока не спросили, открыто всё: иначе ученик оказался бы
+            // заперт из-за отсутствия сети или неподнятой серверной части.
+            let access = null;
+
             // Токены сессий — основной способ подтверждать личность при каждом запросе
             // к серверу (в т.ч. при тихих фоновых flush()). Токен ничего не значит нигде,
             // кроме этого приложения, гасится по одному и сам протухает.
@@ -4774,7 +4860,7 @@
                 pruneDaily(state.daily);
                 trimTopicSpeed(state.daily);
                 if (state.playerCode) profiles[state.playerCode] = state;
-                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
+                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 dirty = true;
             }
 
@@ -4865,6 +4951,8 @@
             // password — обязателен для нового профиля, иначе им нельзя будет синхронизироваться.
             function doSwitch(code, password, opts) {
                 if (!code) return;
+                // Доступ принадлежит профилю, а не устройству: при переключении забываем.
+                if (state.playerCode !== code) access = null;
                 if (state.playerCode && state.playerCode !== code) profiles[state.playerCode] = state;
                 if (password) passwords[code] = password;
                 if (profiles[code]) {
@@ -4887,7 +4975,7 @@
                 // входа в только что созданный репетитором аккаунт (там updatedAt=0) и затирала
                 // бы их — ровно так и произошло с студенческим аккаунтом, который "потерял"
                 // привязку к репетитору после первого входа.
-                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
+                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 dirty = true;
             }
 
@@ -4903,6 +4991,7 @@
                         });
                         passwords = (envelope.passwords && typeof envelope.passwords === 'object') ? envelope.passwords : {};
                         tokens = (envelope.tokens && typeof envelope.tokens === 'object') ? envelope.tokens : {};
+                        access = (envelope.access && typeof envelope.access === 'object') ? envelope.access : null;
                         state = (envelope.activeCode && profiles[envelope.activeCode]) || emptyState();
                     } else {
                         const legacy = migrateFromV2() || migrateFromV1();
@@ -4928,18 +5017,32 @@
                     if (!code || !token) return;
                     tokens[code] = token;
                     delete passwords[code];
-                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 },
                 // Сервер сказал, что токен больше не годится (погашен или протух).
                 // Пароля тут уже нет, поэтому дальше нужен обычный вход.
                 dropToken(code) {
                     if (!code || !tokens[code]) return;
                     delete tokens[code];
-                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 },
                 // Чем подтверждать запрос: токеном или паролем. Наружу нужно, чтобы
                 // экраны репетитора выбирали серверную функцию под тот же способ.
                 authFor(code) { return authFor(code || state.playerCode); },
+
+                // --- доступ к разделам ---
+                // null = ещё не спрашивали (значит открыто всё), объект = ответ сервера.
+                getAccess() { return access; },
+                setAccess(a) {
+                    access = (a && typeof a === 'object') ? a : null;
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
+                },
+                // При смене профиля чужой доступ надо забыть немедленно, не дожидаясь
+                // ответа сервера, — иначе новый ученик на секунду увидит чужие разделы.
+                clearAccess() {
+                    access = null;
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
+                },
                 // Коды, у которых на устройстве ещё лежит пароль, — их и надо обменять.
                 codesWithPassword() { return Object.keys(passwords); },
 
@@ -5148,7 +5251,7 @@
                         const remote = normalize(await remoteDriver.read(state.playerCode, auth));
                         state = mergeState(remote, state);
                         profiles[state.playerCode] = state; // merge вернул новый объект — обновляем кэш
-                        localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens });
+                        localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                         await remoteDriver.write(state.playerCode, auth, state);
                         dirty = false;
                         return true;
@@ -5263,6 +5366,122 @@
             }
             return supabaseClient.rpc(passwordFn, Object.assign(
                 { p_tutor_code: code, p_tutor_password: auth.password }, passwordArgs));
+        }
+
+        // =====================================================================
+        //  ДОСТУП К РАЗДЕЛАМ
+        // ---------------------------------------------------------------------
+        //  Приложение перестало быть «четыре раздела вперемешку» и стало одним
+        //  курсом: целые положительные, четыре действия, пять уровней. Остальное
+        //  закрыто и открывается точечно, кодом от репетитора. Смысл не в том,
+        //  что закрытое сломано, а в том, что выбор темы — работа репетитора,
+        //  а не ребёнка, которому проще взять то, что уже получается.
+        //
+        //  Три правила, каждое важно:
+        //   1) Целые положительные открыты всегда и никакого кода не требуют.
+        //   2) Репетитор (accountType 'self') видит всё: иначе он не сможет ни
+        //      проверить задание, ни показать что-то на занятии.
+        //   3) Пока сервер не сказал, какой доступ у ученика, открыто ВСЁ.
+        //      Отсутствие ответа — это «не знаем», а не «не разрешено». Иначе
+        //      ученик оказался бы заперт из-за пропавшей сети или из-за того,
+        //      что серверная часть ещё не поднята.
+        //
+        //  Форма ответа сервера:
+        //    { "fraction+": "all",  "decimal+": { "add": [1,2,3], "sub": "all" } }
+        //  Ключ раздела — категория со знаком, как в ключах тем.
+        // =====================================================================
+
+        const BASE_SECTION = 'integer+';   // всегда открыт
+
+        function sectionKeyOf(category, sign) {
+            return `${category}${sign === 'negative' ? '-' : '+'}`;
+        }
+
+        // Полный доступ: репетитор, а также любой, про кого мы ещё ничего не знаем.
+        function hasFullAccess() {
+            if (Progress.getAccountType() !== 'linked') return true;
+            return Progress.getAccess() === null;
+        }
+
+        function grantFor(secKey) {
+            const a = Progress.getAccess();
+            return (a && Object.prototype.hasOwnProperty.call(a, secKey)) ? a[secKey] : null;
+        }
+
+        function isSectionOpen(secKey) {
+            if (secKey === BASE_SECTION) return true;
+            if (hasFullAccess()) return true;
+            const g = grantFor(secKey);
+            if (g === 'all') return true;
+            return !!(g && typeof g === 'object' && Object.keys(g).length > 0);
+        }
+
+        function isOpOpen(secKey, op) {
+            if (secKey === BASE_SECTION || hasFullAccess()) return true;
+            const g = grantFor(secKey);
+            if (g === 'all') return true;
+            if (!g || typeof g !== 'object') return false;
+            const lv = g[op];
+            return lv === 'all' || (Array.isArray(lv) && lv.length > 0);
+        }
+
+        function isLevelOpen(secKey, op, level) {
+            if (secKey === BASE_SECTION || hasFullAccess()) return true;
+            const g = grantFor(secKey);
+            if (g === 'all') return true;
+            if (!g || typeof g !== 'object') return false;
+            const lv = g[op];
+            if (lv === 'all') return true;
+            return Array.isArray(lv) && lv.indexOf(Number(level)) >= 0;
+        }
+
+        // Человеческое описание того, что открыто в разделе, — для панели замка.
+        function grantSummary(secKey) {
+            const g = grantFor(secKey);
+            if (g === 'all') return 'открыт полностью';
+            if (!g || typeof g !== 'object') return '';
+            const parts = Object.keys(g).map(op => {
+                const name = (OP_LABELS[op] || op).replace(/^\S+\s/, '').toLowerCase();
+                const lv = g[op];
+                if (lv === 'all') return name;
+                if (!Array.isArray(lv) || !lv.length) return null;
+                return `${name} ${lv.slice().sort((a, b) => a - b).join(', ')}★`;
+            }).filter(Boolean);
+            return parts.join('; ');
+        }
+
+        // Обновляет замки на кнопках разделов. Зовётся при каждом открытии настройки:
+        // доступ мог измениться, пока ученик играл.
+        function refreshSectionLocks() {
+            document.querySelectorAll('.btn-category').forEach(btn => {
+                const secKey = sectionKeyOf(btn.getAttribute('data-value'), btn.getAttribute('data-sign'));
+                const open = isSectionOpen(secKey);
+                btn.classList.toggle('locked', !open);
+                let badge = btn.querySelector('.cat-lock');
+                if (!open && !badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'cat-lock';
+                    badge.innerText = '🔒 Заблокировано';
+                    btn.appendChild(badge);
+                } else if (open && badge) {
+                    badge.remove();
+                }
+            });
+        }
+
+        // Панель закрытого раздела. Открывается вместо игры, объясняет и не врёт:
+        // если часть раздела уже открыта кодом, так и написано.
+        function openLockedPanel(secKey, label) {
+            const partial = grantSummary(secKey);
+            document.getElementById('lockedTitle').innerText = label;
+            document.getElementById('lockedText').innerText = partial
+                ? `В этом разделе тебе открыто: ${partial}. Остальное — по коду от репетитора.`
+                : 'Этот раздел пока закрыт. Открыть его может только репетитор — попроси у него код.';
+            document.getElementById('lockedScreen').style.display = 'flex';
+        }
+
+        function closeLockedPanel() {
+            document.getElementById('lockedScreen').style.display = 'none';
         }
 
         // Случайная заготовка кода — репетитор её видит как подсказку в поле ввода
@@ -7468,6 +7687,7 @@
         // испытания: следующее ученик собирает заново, а не доедает подсвеченный прошлый выбор
         // (там же остаются и .selected на кнопках, и заполненный exampleConfig).
         function resetConfigScreen() {
+            refreshSectionLocks();
             exampleConfig.category = null;
             exampleConfig.numberType = null;
             exampleConfig.operations = {};
@@ -7493,6 +7713,7 @@
             closeMainMenu();
             resetSessionCounters();
             Progress.flush();
+            refreshSectionLocks();
             document.getElementById('configScreen').style.display = 'flex';
         }
 
@@ -7506,6 +7727,7 @@
             resetSessionCounters();
             resetConfigScreen();
             Progress.flush();
+            refreshSectionLocks();
             document.getElementById('configScreen').style.display = 'flex';
         }
         function winGoHome() { winLeaveToConfig(); }
@@ -8314,6 +8536,7 @@
         // подставляем прошлый выбор режимов/сложности, ученик/репетитор выбирает
         // заново каждый раз (Progress.setConfig() всё ещё сохраняет последний выбор
         // в state — это часть схемы синхронизации, но на экран он больше не влияет).
+        refreshSectionLocks();
         bootCodeScreen();
 
         // Офлайн-режим. Регистрируем после загрузки страницы, чтобы не отнимать канал
