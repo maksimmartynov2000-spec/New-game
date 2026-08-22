@@ -1323,8 +1323,8 @@
             <div class="config-container">
                 <div class="config-section">
                     <div class="category-select-row" id="categorySelectRow">
-                        <button class="btn-category" data-value="integer" data-sign="positive" data-title="Целые положительные">🔵 Целые положительные</button>
-                        <button class="btn-category" data-value="integer" data-sign="negative" data-title="Целые отрицательные">🔴 Целые отрицательные</button>
+                        <button class="btn-category" data-value="integer" data-sign="positive" data-title="Положительные">🔵 Положительные</button>
+                        <button class="btn-category" data-value="integer" data-sign="negative" data-title="Отрицательные">🔴 Отрицательные</button>
                         <button class="btn-category" data-value="decimal" data-sign="positive" data-title="Десятичные дроби">🔟 Десятичные дроби</button>
                         <button class="btn-category" data-value="fraction" data-sign="positive" data-title="Дроби">🧮 Дроби</button>
                     </div>
@@ -5430,7 +5430,7 @@
         //  а не ребёнка, которому проще взять то, что уже получается.
         //
         //  Три правила, каждое важно:
-        //   1) Целые положительные открыты всегда и никакого кода не требуют.
+        //   1) Положительные целые открыты всегда и никакого кода не требуют.
         //   2) Репетитор (accountType 'self') видит всё: иначе он не сможет ни
         //      проверить задание, ни показать что-то на занятии.
         //   3) Пока сервер не сказал, какой доступ у ученика, открыто ВСЁ.
@@ -5879,7 +5879,7 @@
         }
 
         const SECTION_TITLES = {
-            'integer-': 'Целые отрицательные',
+            'integer-': 'Отрицательные',
             'decimal+': 'Десятичные дроби',
             'fraction+': 'Дроби'
         };
@@ -6295,6 +6295,19 @@
         // ===================== ГЛАВНОЕ МЕНЮ =====================
         const CATEGORY_LABELS = { integer: 'Целые', decimal: 'Десятичные', fraction: 'Дроби' };
 
+        // У целых чисел знак и есть название раздела. Слово «целые» из подписей убрано:
+        // оно ничего не добавляло, а место занимало в самых тесных местах — на кнопке
+        // раздела, в строке карточки разбора, в заголовке карты.
+        //
+        // Записи старого формата ('integer:add', без знака) знака не несут, и выдумывать
+        // его нельзя — для них остаётся прежнее нейтральное «Целые».
+        function categoryLabel(category, sign) {
+            if (category !== 'integer') return CATEGORY_LABELS[category] || category;
+            if (sign === '-' || sign === 'negative') return 'Отрицательные';
+            if (sign === '+' || sign === 'positive') return 'Положительные';
+            return CATEGORY_LABELS.integer;
+        }
+
         // ===================== КЛЮЧ ТЕМЫ =====================
         // Формат: 'категория+знак:операция:уровень', например 'integer+:add:1'.
         // Уровень и знак нужны достижениям: «сложение целых положительных на 1★» и
@@ -6330,10 +6343,8 @@
         }
         function topicLabel(key) {
             const p = parseTopicKey(key);
-            const cat = CATEGORY_LABELS[p.category] || p.category;
-            const signSuffix = (p.category === 'integer' && p.sign) ? (p.sign === '-' ? ' −' : ' +') : '';
             const op = (OP_LABELS[p.op] || p.op).replace(/^\S+\s/, '');
-            return `${cat}${signSuffix} · ${op}`;
+            return `${categoryLabel(p.category, p.sign)} · ${op}`;
         }
         // То же самое, но с уровнем — для достижений, где уровень и есть суть темы.
         function topicLabelWithLevel(key) {
@@ -6864,8 +6875,8 @@
         // не помещаются. Когда раздел один, двадцать клеток читаются одним взглядом —
         // сразу видно и где силён, и где остановился, и куда идти дальше.
         const MAP_SECTIONS = [
-            { cat: 'integer', sign: '+', label: '🔵 Целые положительные', ops: ['add', 'sub', 'mul', 'div'] },
-            { cat: 'integer', sign: '-', label: '🔴 Целые отрицательные', ops: ['add', 'sub', 'mul', 'div'] },
+            { cat: 'integer', sign: '+', label: '🔵 Положительные', ops: ['add', 'sub', 'mul', 'div'] },
+            { cat: 'integer', sign: '-', label: '🔴 Отрицательные', ops: ['add', 'sub', 'mul', 'div'] },
             { cat: 'decimal', sign: '+', label: '🔟 Десятичные дроби',    ops: ['add', 'sub', 'mul', 'div'] },
             { cat: 'fraction', sign: '+', label: '🧮 Дроби',              ops: OP_ORDER }
         ];
@@ -8251,7 +8262,7 @@
                     questionHtml, options, chosenKey, correctKey,
                     isAlmost: !!isAlmost,
                     kind: mistakeKind || null,
-                    topic: meta.category ? `${CATEGORY_LABELS[meta.category] || meta.category} · ${(OP_LABELS[meta.opKey] || meta.opKey || '').replace(/^\S+\s/, '')}` : '',
+                    topic: meta.category ? `${categoryLabel(meta.category, meta.isNegative ? '-' : '+')} · ${(OP_LABELS[meta.opKey] || meta.opKey || '').replace(/^\S+\s/, '')}` : '',
                     level: meta.level || null
                 });
             } catch (e) {
