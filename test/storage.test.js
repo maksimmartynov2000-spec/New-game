@@ -542,6 +542,67 @@ test('виды ошибок не утекают между профилями', 
     eq(Progress.getErrorKinds()['integer+:mul:2']['таблица умножения'], 1, 'у первого профиля сохранилось');
 });
 
+group('Доступ к разделам');
+
+test('доступ не попадает в состояние и, значит, не сливается как прогресс', () => {
+    // Ключевое свойство: доступ — решение репетитора, а не достижение ученика.
+    // Если бы он лежал в state, слияние «только растёт» сохраняло бы отозванный
+    // доступ навсегда, и отобрать его было бы нечем.
+    const { Progress } = fresh();
+    Progress.switchTo('Vasya', 'pw1');
+    Progress.setAccess({ 'fraction+': 'all' });
+    assert(!('access' in Progress.get()), 'доступ утёк в состояние');
+    const merged = Progress._merge(
+        { schema: 2, playerCode: 'Vasya', updatedAt: 1, access: { 'fraction+': 'all' } },
+        { schema: 2, playerCode: 'Vasya', updatedAt: 2 });
+    assert(!merged.access, 'слияние вернуло доступ, хотя не должно им заниматься');
+});
+
+test('доступ переживает перезапуск', () => {
+    const env = loadProgress();
+    env.Progress.init();
+    env.Progress.switchTo('Vasya', 'pw1');
+    env.Progress.setAccess({ 'fraction+': { add: [1, 2, 3] } });
+    const saved = env.store['mathCitadelState_v3'];
+
+    const env2 = loadProgress();
+    env2.store['mathCitadelState_v3'] = saved;
+    env2.Progress.init();
+    const a = env2.Progress.getAccess();
+    assert(a && a['fraction+'], 'доступ не восстановился');
+    eq(JSON.stringify(a['fraction+'].add), '[1,2,3]', 'уровни');
+});
+
+test('пока доступ не спрашивали, он null — это не то же самое, что пустой', () => {
+    // На этом различии держится безопасность выкладки: «не знаем» означает
+    // «открыто всё», а «знаем, что ничего» — только базовый раздел. Если бы
+    // отсутствие ответа читалось как пустой доступ, ученик оказался бы заперт
+    // из-за пропавшей сети.
+    const { Progress } = fresh();
+    Progress.switchTo('Vasya', 'pw1');
+    eq(Progress.getAccess(), null, 'свежий профиль');
+    Progress.setAccess({});
+    assert(Progress.getAccess() !== null, 'пустой ответ должен отличаться от отсутствия ответа');
+    eq(Object.keys(Progress.getAccess()).length, 0, 'ключей в пустом доступе');
+});
+
+test('чужой доступ не переезжает на другой профиль', () => {
+    const { Progress } = fresh();
+    Progress.switchTo('Vasya', 'pw1');
+    Progress.setAccess({ 'fraction+': 'all' });
+    Progress.switchTo('Petya', 'pw2');
+    eq(Progress.getAccess(), null, 'доступ у второго профиля');
+});
+
+test('мусор вместо доступа читается как «не знаем»', () => {
+    const { Progress } = fresh();
+    Progress.switchTo('Vasya', 'pw1');
+    Progress.setAccess('всё открыто');
+    eq(Progress.getAccess(), null, 'строка вместо объекта');
+    Progress.setAccess(undefined);
+    eq(Progress.getAccess(), null, 'undefined');
+});
+
 // ---------- итог ----------
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
