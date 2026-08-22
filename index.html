@@ -657,6 +657,118 @@
         .kind-row.top .kind-name { color: var(--gold); font-weight: bold; }
         .kind-row.top .kind-bar-fill { background: var(--gold); }
 
+
+        /* ============ СТАТИСТИКА: ВИЗУАЛЬНАЯ ЧАСТЬ ============
+           Раньше экран был восемью одинаковыми карточками с числами. Числа верные,
+           но по ним нельзя было ответить на главный вопрос — что происходит. Здесь
+           три вещи, каждая отвечает на свой вопрос:
+             полоса дней  — занимается ли регулярно;
+             карта раздела — где силён, где остановился;
+             кривые        — становится ли лучше.
+           Всё считается из тех же данных, что и раньше, ничего нового не хранится. */
+
+        /* --- Три главных числа --- */
+        .stat-hero { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .stat-hero-card {
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 12px; padding: 12px 8px; text-align: center;
+        }
+        .stat-hero-val { font-size: 1.5rem; font-weight: bold; color: var(--gold); line-height: 1.1; }
+        .stat-hero-label { font-size: 0.68rem; color: #94a3b8; margin-top: 5px; }
+        .stat-hero-delta { display: block; font-size: 0.66rem; margin-top: 3px; font-weight: bold; }
+        .stat-hero-delta.up { color: #34d399; }
+        .stat-hero-delta.down { color: #f87171; }
+        /* Второстепенные числа — одной строкой, а не такими же карточками:
+           у дней, времени и пазлов другой вес, и спорить с главными тремя им незачем. */
+        .stat-side {
+            display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 10px;
+            font-size: 0.76rem; color: #94a3b8;
+        }
+        .stat-side b { color: #e2e8f0; font-weight: bold; }
+
+        /* --- Полоса дней --- */
+        .day-strip {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(11px, 1fr));
+            gap: 3px; margin-top: 4px;
+        }
+        .day-cell {
+            aspect-ratio: 1; border-radius: 3px; background: rgba(255,255,255,0.05);
+            border: 1px solid transparent;
+        }
+        .day-cell.d1 { background: rgba(16,185,129,0.30); }
+        .day-cell.d2 { background: rgba(16,185,129,0.50); }
+        .day-cell.d3 { background: rgba(16,185,129,0.72); }
+        .day-cell.d4 { background: rgba(16,185,129,0.95); }
+        .day-cell.today { border-color: var(--gold); }
+        .strip-legend {
+            display: flex; align-items: center; gap: 6px; justify-content: flex-end;
+            font-size: 0.66rem; color: #64748b; margin-top: 7px;
+        }
+        .strip-legend .day-cell { width: 10px; aspect-ratio: 1; }
+
+        /* --- Карта раздела --- */
+        .map-block { margin-bottom: 14px; }
+        .map-block:last-child { margin-bottom: 0; }
+        .map-title { font-size: 0.8rem; color: #e2e8f0; font-weight: bold; margin-bottom: 7px; }
+        .map-grid { display: grid; gap: 4px; }
+        .map-head, .map-row-label {
+            font-size: 0.66rem; color: #64748b; display: flex;
+            align-items: center; justify-content: center; min-height: 18px;
+        }
+        .map-row-label { justify-content: flex-start; white-space: nowrap; }
+        .map-cell {
+            aspect-ratio: 1; border-radius: 7px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.03);
+        }
+        .map-cell.empty { border-style: dashed; border-color: rgba(255,255,255,0.10); }
+        .map-cell.lo   { background: rgba(239,68,68,0.20);  border-color: rgba(239,68,68,0.45); }
+        .map-cell.mid  { background: rgba(245,158,11,0.20); border-color: rgba(245,158,11,0.45); }
+        .map-cell.hi   { background: rgba(16,185,129,0.20); border-color: rgba(16,185,129,0.50); }
+        .map-pct { font-size: 0.76rem; font-weight: bold; color: #e2e8f0; line-height: 1; }
+        .map-cell.empty .map-pct { color: #475569; font-weight: normal; }
+        .map-n { font-size: 0.56rem; color: #94a3b8; margin-top: 2px; }
+        .map-tier { font-size: 0.56rem; line-height: 1; margin-top: 2px; }
+        .map-hint { font-size: 0.68rem; color: #64748b; margin-top: 8px; }
+
+        /* Отчёт родителям — светлый лист (его печатают и пересылают), поэтому те же
+           клетки там нужны в тёмных чернилах, иначе от карты остаются одни рамки. */
+        .report-sheet .map-title { color: #0f172a; }
+        .report-sheet .map-head, .report-sheet .map-row-label { color: #64748b; }
+        .report-sheet .map-pct { color: #0f172a; }
+        .report-sheet .map-cell { border-color: #cbd5e1; background: #f8fafc; }
+        .report-sheet .map-cell.empty { border-color: #e2e8f0; }
+        .report-sheet .map-cell.empty .map-pct { color: #cbd5e1; }
+        .report-sheet .map-cell.lo  { background: #fee2e2; border-color: #fca5a5; }
+        .report-sheet .map-cell.mid { background: #fef3c7; border-color: #fcd34d; }
+        .report-sheet .map-cell.hi  { background: #d1fae5; border-color: #6ee7b7; }
+        .report-sheet .map-n { color: #64748b; }
+        /* Полоски причин ошибок в отчёте — тоже на светлом. */
+        .report-sheet .kind-name { color: #0f172a; }
+        .report-sheet .kind-count { color: #64748b; }
+        .report-sheet .kind-bar { background: #e2e8f0; }
+        .report-sheet .kind-row.top .kind-name { color: #b45309; }
+        .report-sheet .kind-row.top .kind-bar-fill { background: #f59e0b; }
+
+        /* --- Кривые --- */
+        .trend-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .trend-card {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 10px; padding: 10px;
+        }
+        .trend-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+        .trend-name { font-size: 0.7rem; color: #94a3b8; }
+        .trend-now { font-size: 0.9rem; font-weight: bold; color: #e2e8f0; }
+        .trend-svg { width: 100%; height: 42px; display: block; }
+        .trend-empty { font-size: 0.68rem; color: #64748b; text-align: center; padding: 12px 0; }
+
+        /* --- Сворачиваемый раздел --- */
+        .fold-head {
+            display: flex; align-items: center; justify-content: space-between;
+            cursor: pointer; user-select: none;
+        }
+        .fold-arrow { font-size: 0.7rem; color: #64748b; }
+
         .mistake-card {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px; padding: 12px; margin-bottom: 10px;
@@ -899,48 +1011,66 @@
             </div>
 
             <div class="config-section">
-                <div class="config-section-title">Занятия</div>
-                <div class="menu-stat-grid">
-                    <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsDaysVal">0</div>
-                        <div class="menu-stat-label">📅 Дней занимался</div>
+                <div class="stat-hero">
+                    <div class="stat-hero-card">
+                        <div class="stat-hero-val" id="statsSolvedVal">0</div>
+                        <div class="stat-hero-label">Решено</div>
                     </div>
-                    <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsTimeVal">0м</div>
-                        <div class="menu-stat-label">⏱️ Всего времени</div>
+                    <div class="stat-hero-card">
+                        <div class="stat-hero-val" id="statsAccuracyVal">—</div>
+                        <div class="stat-hero-label">Точность<span class="stat-hero-delta" id="statsAccuracyDelta"></span></div>
                     </div>
-                    <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsStreakVal">0</div>
-                        <div class="menu-stat-label">🔥 Дней подряд</div>
+                    <div class="stat-hero-card">
+                        <div class="stat-hero-val" id="statsSpeedVal">—</div>
+                        <div class="stat-hero-label">Скорость<span class="stat-hero-delta" id="statsSpeedDelta"></span></div>
                     </div>
-                    <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsPuzzlesVal">0</div>
-                        <div class="menu-stat-label">🧩 Пазлов собрано</div>
+                </div>
+                <div class="stat-side">
+                    <span>📅 дней: <b id="statsDaysVal">0</b></span>
+                    <span>⏱️ время: <b id="statsTimeVal">0м</b></span>
+                    <span>🔥 подряд: <b id="statsStreakVal">0</b></span>
+                    <span>❌ ошибок: <b id="statsWrongVal">0</b></span>
+                    <span>🧩 пазлов: <b id="statsPuzzlesVal">0</b></span>
+                </div>
+                <div class="config-hint" id="statsAlmostHint"></div>
+            </div>
+
+            <div class="config-section" id="statsStripSection">
+                <div class="config-section-title">Занятия по дням</div>
+                <div class="day-strip" id="statsDayStrip"></div>
+                <div class="strip-legend">
+                    <span>меньше</span>
+                    <span class="day-cell"></span>
+                    <span class="day-cell d1"></span>
+                    <span class="day-cell d2"></span>
+                    <span class="day-cell d3"></span>
+                    <span class="day-cell d4"></span>
+                    <span>больше</span>
+                </div>
+            </div>
+
+            <div class="config-section" id="statsTrendSection">
+                <div class="config-section-title">Как меняется</div>
+                <div class="trend-row">
+                    <div class="trend-card">
+                        <div class="trend-head"><span class="trend-name">🎯 Точность</span><span class="trend-now" id="trendAccNow">—</span></div>
+                        <div id="trendAccBody"></div>
+                    </div>
+                    <div class="trend-card">
+                        <div class="trend-head"><span class="trend-name">⚡ Скорость</span><span class="trend-now" id="trendSpeedNow">—</span></div>
+                        <div id="trendSpeedBody"></div>
                     </div>
                 </div>
             </div>
 
-            <div class="config-section">
-                <div class="config-section-title">Результат</div>
-                <div class="menu-stat-grid">
-                    <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsSolvedVal">0</div>
-                        <div class="menu-stat-label">✅ Решено примеров</div>
-                    </div>
-                    <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsAccuracyVal">—</div>
-                        <div class="menu-stat-label">🎯 Точность<span class="stat-delta" id="statsAccuracyDelta"></span></div>
-                    </div>
-                    <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsSpeedVal">—</div>
-                        <div class="menu-stat-label">⚡ Скорость ответа<span class="stat-delta" id="statsSpeedDelta"></span></div>
-                    </div>
-                    <div class="menu-stat-card">
-                        <div class="menu-stat-value" id="statsWrongVal">0</div>
-                        <div class="menu-stat-label">❌ Ошибок</div>
-                    </div>
+            <div class="config-section" id="statsMapSection">
+                <div class="config-section-title" id="statsMapTitle">Карта разделов</div>
+                <div id="statsMap"></div>
+                <div class="map-hint">
+                    Клетка — действие на своей сложности. Цвет по точности:
+                    зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено,
+                    значок — ранг темы.
                 </div>
-                <div class="config-hint" id="statsAlmostHint"></div>
             </div>
 
             <div class="config-section">
@@ -957,12 +1087,17 @@
             </div>
 
             <div class="config-section" id="statsEpochsSection" style="display:none;">
-                <div class="config-section-title">Прошедшие эпохи</div>
-                <div class="config-hint" style="margin-bottom:8px;">
-                    Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни
-                    уже не хранятся, а итоги остаются навсегда.
+                <div class="config-section-title fold-head" onclick="toggleEpochs()">
+                    <span>Прошедшие эпохи</span>
+                    <span class="fold-arrow" id="statsEpochsArrow">▼ показать</span>
                 </div>
-                <div id="statsEpochsList"></div>
+                <div id="statsEpochsBody" style="display:none;">
+                    <div class="config-hint" style="margin:8px 0;">
+                        Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни
+                        уже не хранятся, а итоги остаются навсегда.
+                    </div>
+                    <div id="statsEpochsList"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -1030,6 +1165,16 @@
             <div class="report-block" id="repTopicsBlock">
                 <div class="report-block-title">Темы</div>
                 <div id="repTopics"></div>
+            </div>
+
+            <div class="report-block" id="repMapBlock">
+                <div class="report-block-title">Что освоено</div>
+                <div id="repMap"></div>
+                <div class="report-note">
+                    Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно
+                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема
+                    только началась. Пустая клетка: до неё ещё не дошли.
+                </div>
             </div>
 
             <div class="report-block" id="repMistakesBlock">
@@ -5865,8 +6010,8 @@
             // когда данных хватает в обоих — иначе стрелка красивая, но врущая.
             const accDeltaEl = document.getElementById('statsAccuracyDelta');
             const speedDeltaEl = document.getElementById('statsSpeedDelta');
-            accDeltaEl.className = 'stat-delta';
-            speedDeltaEl.className = 'stat-delta';
+            accDeltaEl.className = 'stat-hero-delta';
+            speedDeltaEl.className = 'stat-hero-delta';
             accDeltaEl.innerText = '';
             speedDeltaEl.innerText = '';
 
@@ -5880,7 +6025,7 @@
                 const prevAcc = accuracyPct(prev.c, prev.w, MIN);
                 if (curAcc !== null && prevAcc !== null && curAcc !== prevAcc) {
                     const d = curAcc - prevAcc;
-                    accDeltaEl.className = 'stat-delta ' + (d > 0 ? 'up' : 'down');
+                    accDeltaEl.className = 'stat-hero-delta ' + (d > 0 ? 'up' : 'down');
                     accDeltaEl.innerText = (d > 0 ? '↑ +' : '↓ ') + d;
                 }
                 if (cur.mc >= MIN && prev.mc >= MIN) {
@@ -5890,7 +6035,7 @@
                     // Быстрее — это меньше секунд, поэтому зелёным подсвечивается
                     // отрицательная разница, а не положительная.
                     if (Math.abs(d) >= 0.2) {
-                        speedDeltaEl.className = 'stat-delta ' + (d < 0 ? 'up' : 'down');
+                        speedDeltaEl.className = 'stat-hero-delta ' + (d < 0 ? 'up' : 'down');
                         speedDeltaEl.innerText = (d < 0 ? '↑ ' : '↓ ') + Math.abs(d).toFixed(1) + ' с';
                     }
                 }
@@ -5912,6 +6057,22 @@
             document.getElementById('statsPeriodHint').innerText = first
                 ? `Дневник занятий ведётся с ${formatDayKeyHuman(first)}.`
                 : 'Дневник занятий начнётся с первого решённого примера.';
+
+            // --- Полоса дней: занимается ли регулярно ---
+            const stripFrom = isAll ? (earliestDayKey(daily) || today) : fromKey;
+            const hasDays = Object.keys(daily).length > 0;
+            renderDayStrip(daily, stripFrom, today);
+            document.getElementById('statsStripSection').style.display = hasDays ? 'block' : 'none';
+
+            // --- Кривые: становится ли лучше ---
+            renderTrends(daily, stripFrom, today);
+            document.getElementById('statsTrendSection').style.display = hasDays ? 'block' : 'none';
+
+            // --- Карта разделов: где силён, где остановился ---
+            document.getElementById('statsMapTitle').innerText =
+                isAll ? 'Карта разделов за всё время' : 'Карта разделов за период';
+            const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap', {});
+            document.getElementById('statsMapSection').style.display = mapDrawn ? 'block' : 'none';
 
             // --- Над чем работать: ошибки за период, разобранные по причине ---
             const kinds = isAll ? aggregateDaily(daily, null, today).e : cur.e;
@@ -5954,6 +6115,243 @@
                 wrap.appendChild(row);
             });
             return rows.length;
+        }
+
+        // ===================== СТАТИСТИКА: КАРТИНКИ =====================
+        //  Ни одного нового поля в хранилище: всё считается из того же журнала по дням
+        //  и тех же byTopic, что были раньше. Меняется только то, как это показано.
+        // =================================================================
+
+        // --- Полоса дней ---
+        // Отвечает на вопрос, которого не было видно в цифрах: занимается ли регулярно.
+        // Пять уровней яркости, пороги от медианы активного дня, а не абсолютные:
+        // у одного ученика насыщенный день это 30 примеров, у другого 150, и мерить
+        // их одной линейкой значит одному всегда рисовать бледное, другому всегда яркое.
+        function renderDayStrip(daily, fromKey, toKey) {
+            const wrap = document.getElementById('statsDayStrip');
+            if (!wrap) return;
+            wrap.innerHTML = '';
+
+            const keys = [];
+            let k = fromKey || earliestDayKey(daily) || toKey;
+            let guard = 0;
+            while (k <= toKey && guard++ < 400) { keys.push(k); k = shiftDayKey(k, 1); }
+
+            const counts = keys.map(key => {
+                const d = daily[key];
+                return d ? (d.c || 0) + (d.w || 0) : 0;
+            });
+            const active = counts.filter(c => c > 0).sort((a, b) => a - b);
+            const median = active.length ? active[Math.floor(active.length / 2)] : 0;
+
+            keys.forEach((key, i) => {
+                const cnt = counts[i];
+                const cell = document.createElement('div');
+                let cls = 'day-cell';
+                if (cnt > 0 && median > 0) {
+                    const r = cnt / median;
+                    cls += r >= 1.5 ? ' d4' : r >= 1.0 ? ' d3' : r >= 0.5 ? ' d2' : ' d1';
+                } else if (cnt > 0) {
+                    cls += ' d3';
+                }
+                if (key === toKey) cls += ' today';
+                cell.className = cls;
+                cell.title = `${formatDayKeyHuman(key)} — ${cnt ? cnt + ' примеров' : 'не занимался'}`;
+                wrap.appendChild(cell);
+            });
+        }
+
+        // --- Кривые точности и скорости ---
+        // Точки — недели, а не дни: по дням линия скачет от одного неудачного захода
+        // и показывает шум вместо динамики. Если период короткий, берём дни.
+        function bucketize(daily, fromKey, toKey) {
+            const days = [];
+            let k = fromKey, guard = 0;
+            while (k <= toKey && guard++ < 400) { days.push(k); k = shiftDayKey(k, 1); }
+            const size = days.length <= 14 ? 1 : (days.length <= 60 ? 7 : 14);
+            const out = [];
+            for (let i = 0; i < days.length; i += size) {
+                const slice = days.slice(i, i + size);
+                const agg = { c: 0, w: 0, ms: 0, mc: 0 };
+                slice.forEach(dk => {
+                    const d = daily[dk];
+                    if (!d) return;
+                    agg.c += d.c || 0; agg.w += d.w || 0;
+                    agg.ms += d.ms || 0; agg.mc += d.mc || 0;
+                });
+                out.push(agg);
+            }
+            return out;
+        }
+
+        // Маленький график линией. Возвращает SVG-разметку или пустую строку,
+        // если точек меньше двух — рисовать линию по одной точке нечестно.
+        function sparklineSvg(values, color, invert) {
+            const pts = values.filter(v => v !== null);
+            if (pts.length < 2) return '';
+            let lo = Math.min(...pts), hi = Math.max(...pts);
+            if (hi === lo) { hi = lo + 1; lo = lo - 1; }
+            const W = 100, H = 42, pad = 4;
+            const step = W / (values.length - 1);
+            const y = (v) => {
+                const t = (v - lo) / (hi - lo);
+                const tt = invert ? 1 - t : t;                  // у скорости меньше = лучше
+                return pad + (1 - tt) * (H - pad * 2);
+            };
+            let d = '', area = '', started = false;
+            values.forEach((v, i) => {
+                if (v === null) return;
+                const x = i * step;
+                d += (started ? ' L' : 'M') + x.toFixed(1) + ' ' + y(v).toFixed(1);
+                started = true;
+            });
+            const first = values.findIndex(v => v !== null);
+            const last = values.length - 1 - [...values].reverse().findIndex(v => v !== null);
+            area = d + ` L${(last * step).toFixed(1)} ${H} L${(first * step).toFixed(1)} ${H} Z`;
+            const lastVal = values[last];
+            return `<svg class="trend-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+                <path d="${area}" fill="${color}" opacity="0.14"></path>
+                <path d="${d}" fill="none" stroke="${color}" stroke-width="2"
+                      stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"></path>
+                <circle cx="${(last * step).toFixed(1)}" cy="${y(lastVal).toFixed(1)}" r="2.5" fill="${color}"></circle>
+            </svg>`;
+        }
+
+        function renderTrends(daily, fromKey, toKey) {
+            const buckets = bucketize(daily, fromKey, toKey);
+            const MIN = 5; // меньше пяти ответов в корзине — точка ни о чём, пропускаем
+
+            const accVals = buckets.map(b => (b.c + b.w) >= MIN ? Math.round(b.c / (b.c + b.w) * 100) : null);
+            const spdVals = buckets.map(b => b.mc >= MIN ? +(b.ms / b.mc / 1000).toFixed(1) : null);
+
+            const accSvg = sparklineSvg(accVals, '#34d399', false);
+            const spdSvg = sparklineSvg(spdVals, '#06b6d4', true);
+
+            const lastOf = (a) => { for (let i = a.length - 1; i >= 0; i--) if (a[i] !== null) return a[i]; return null; };
+            const accNow = lastOf(accVals), spdNow = lastOf(spdVals);
+
+            document.getElementById('trendAccNow').innerText = accNow === null ? '—' : accNow + '%';
+            document.getElementById('trendSpeedNow').innerText = spdNow === null ? '—' : spdNow + ' с';
+            document.getElementById('trendAccBody').innerHTML = accSvg
+                || '<div class="trend-empty">Мало данных<br>для кривой</div>';
+            document.getElementById('trendSpeedBody').innerHTML = spdSvg
+                || '<div class="trend-empty">Мало данных<br>для кривой</div>';
+        }
+
+        // --- Карта разделов ---
+        // Сетка «действие × звёздность». Раньше такого быть не могло: сто тем в таблицу
+        // не помещаются. Когда раздел один, двадцать клеток читаются одним взглядом —
+        // сразу видно и где силён, и где остановился, и куда идти дальше.
+        const MAP_SECTIONS = [
+            { cat: 'integer', sign: '+', label: '🔵 Целые положительные', ops: ['add', 'sub', 'mul', 'div'] },
+            { cat: 'integer', sign: '-', label: '🔴 Целые отрицательные', ops: ['add', 'sub', 'mul', 'div'] },
+            { cat: 'decimal', sign: '+', label: '🔟 Десятичные дроби',    ops: ['add', 'sub', 'mul', 'div'] },
+            { cat: 'fraction', sign: '+', label: '🧮 Дроби',              ops: OP_ORDER }
+        ];
+        const OP_SHORT = {
+            add: '➕', sub: '➖', mul: '✖️', div: '➗',
+            simplify: 'сокр.', toMixed: 'в см.', toImproper: 'в непр.', fracOfNumber: 'от числа'
+        };
+
+        // byTopic — { 'integer+:add:1': {correct, wrong} }. Рисуем только те разделы,
+        // где ученик реально что-то решал: пустая сетка из двадцати прочерков не
+        // информация, а шум.
+        function renderMasteryMap(byTopic, unlocks, containerId, opts) {
+            const wrap = document.getElementById(containerId);
+            if (!wrap) return 0;
+            wrap.innerHTML = '';
+            const compact = !!(opts && opts.compact);
+            let drawn = 0;
+
+            MAP_SECTIONS.forEach(sec => {
+                const cells = [];
+                let anyData = false;
+                sec.ops.forEach(op => {
+                    for (let lv = 1; lv <= 5; lv++) {
+                        const key = `${sec.cat}${sec.sign}:${op}:${lv}`;
+                        const t = byTopic[key] || {};
+                        const attempts = (t.correct || 0) + (t.wrong || 0);
+                        if (attempts > 0) anyData = true;
+                        cells.push({ key, op, lv, attempts, correct: t.correct || 0 });
+                    }
+                });
+                if (!anyData) return;
+                drawn++;
+
+                const block = document.createElement('div');
+                block.className = 'map-block';
+                const title = document.createElement('div');
+                title.className = 'map-title';
+                title.innerText = sec.label;
+                block.appendChild(title);
+
+                const grid = document.createElement('div');
+                grid.className = 'map-grid';
+                grid.style.gridTemplateColumns = 'auto repeat(5, 1fr)';
+
+                grid.appendChild(Object.assign(document.createElement('div'), { className: 'map-head' }));
+                for (let lv = 1; lv <= 5; lv++) {
+                    const h = document.createElement('div');
+                    h.className = 'map-head';
+                    h.innerText = `${lv}★`;
+                    grid.appendChild(h);
+                }
+
+                sec.ops.forEach(op => {
+                    const lab = document.createElement('div');
+                    lab.className = 'map-row-label';
+                    lab.innerText = OP_SHORT[op] || op;
+                    grid.appendChild(lab);
+
+                    for (let lv = 1; lv <= 5; lv++) {
+                        const c = cells.find(x => x.op === op && x.lv === lv);
+                        const cell = document.createElement('div');
+                        const pct = c.attempts > 0 ? Math.round(c.correct / c.attempts * 100) : null;
+                        cell.className = 'map-cell ' + (pct === null ? 'empty'
+                            : pct >= 85 ? 'hi' : pct >= 65 ? 'mid' : 'lo');
+
+                        const val = document.createElement('div');
+                        val.className = 'map-pct';
+                        val.innerText = pct === null ? '·' : pct + '%';
+                        cell.appendChild(val);
+
+                        if (pct !== null && !compact) {
+                            const nEl = document.createElement('div');
+                            nEl.className = 'map-n';
+                            nEl.innerText = c.attempts;
+                            cell.appendChild(nEl);
+
+                            const tier = unlocks ? topicCompositeTier(unlocks, c.key) : 0;
+                            if (tier > 0) {
+                                const t = document.createElement('div');
+                                t.className = 'map-tier';
+                                t.innerText = TIER_ICONS[tier];
+                                cell.appendChild(t);
+                            }
+                        }
+                        cell.title = pct === null
+                            ? `${topicLabelWithLevel(c.key)} — ещё не решал`
+                            : `${topicLabelWithLevel(c.key)} — ${pct}% из ${c.attempts}`;
+                        grid.appendChild(cell);
+                    }
+                });
+
+                block.appendChild(grid);
+                wrap.appendChild(block);
+            });
+
+            if (!drawn) {
+                wrap.innerHTML = '<div class="menu-empty">Пока пусто.<br>Реши несколько примеров — здесь появится карта.</div>';
+            }
+            return drawn;
+        }
+
+        function toggleEpochs() {
+            const body = document.getElementById('statsEpochsBody');
+            const arrow = document.getElementById('statsEpochsArrow');
+            const open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : 'block';
+            arrow.innerText = open ? '▼ показать' : '▲ скрыть';
         }
 
         // Карточки прошедших эпох. Это замороженные снимки: их числа НЕ складываются
@@ -6436,6 +6834,12 @@
                     aWrap.appendChild(el);
                 });
             }
+
+            // --- Что освоено: та же карта, но без счётчиков попыток. Родителю нужна
+            // не бухгалтерия, а картина: где зелено, где ещё нет.
+            const repByTopic = periodTopicsToByTopic(cur.t);
+            const repMapDrawn = renderMasteryMap(repByTopic, st.unlocks || {}, 'repMap', { compact: true });
+            document.getElementById('repMapBlock').style.display = repMapDrawn ? 'block' : 'none';
 
             // --- Над чем работаем: причины ошибок за период ---
             // Родителю цифра «ошибок 40» не говорит ничего. «Из 40 ошибок 27 — сложил
