@@ -498,6 +498,48 @@ test('виды ошибок сливаются как счётчики «тол�
     eq(m.errorKinds['integer+:mul:2']['таблица умножения'], 4, 'тема с другой стороны');
 });
 
+test('разбор по типам примеров сливается как счётчики «только вверх»', () => {
+    const { Progress } = fresh();
+    const m = Progress._merge(
+        { schema: 2, playerCode: 'X', updatedAt: 100, byClass: {
+            'integer+:sub:5': { '2': [40, 6, 52000, 40], 'h': [10, 4, 15000, 10] } } },
+        { schema: 2, playerCode: 'X', updatedAt: 200, byClass: {
+            'integer+:sub:5': { '2': [12, 9, 9000, 12], '0': [7, 1, 5000, 7] },
+            'integer+:add:3': { '1': [5, 0, 4000, 5] } } });
+    eq(m.byClass['integer+:sub:5']['2'][0], 40, 'верные не откатываются более свежей записью');
+    eq(m.byClass['integer+:sub:5']['2'][1], 9, 'ошибки берут максимум с любой стороны');
+    eq(m.byClass['integer+:sub:5']['2'][2], 52000, 'суммарное время тоже только вверх');
+    eq(m.byClass['integer+:sub:5']['h'][0], 10, 'подмножество «через сотню» уцелело');
+    eq(m.byClass['integer+:sub:5']['0'][0], 7, 'класс, известный только одной стороне');
+    eq(m.byClass['integer+:add:3']['1'][0], 5, 'тема с другой стороны');
+});
+
+test('битый разбор по типам не ломает чтение', () => {
+    // Слот мог прийти строкой, числом или из старой версии, где поля ещё не было.
+    const { Progress } = fresh();
+    const n = Progress._normalize({
+        schema: 2, playerCode: 'X', updatedAt: 1,
+        byClass: {
+            'integer+:add:1': { '0': [3, 1, 'abc', null], '1': 'мусор' },
+            'integer+:sub:2': 'совсем мусор'
+        }
+    });
+    eq(n.byClass['integer+:add:1']['0'][2], 0, 'нечисловое время стало нулём');
+    eq(n.byClass['integer+:add:1']['0'][3], 0, 'null стал нулём');
+    eq(n.byClass['integer+:add:1']['1'], undefined, 'слот не массивом выброшен');
+    eq(n.byClass['integer+:sub:2'], undefined, 'тема не объектом выброшена');
+});
+
+test('разбор по типам не утекает между профилями', () => {
+    const { Progress } = fresh();
+    Progress.switchTo('AAA', 'pw');
+    Progress.recordClass('integer+:add:5', { cls: '2', hundred: true }, true, 3000);
+    eq(Progress.getByClass()['integer+:add:5']['2'][0], 1, 'записалось в свой профиль');
+    eq(Progress.getByClass()['integer+:add:5']['h'][0], 1, 'подмножество тоже записалось');
+    Progress.switchTo('BBB', 'pw');
+    eq(Object.keys(Progress.getByClass()).length, 0, 'у другого профиля пусто');
+});
+
 test('виды ошибок за день тоже берут максимум, а не сумму', () => {
     const { Progress } = fresh();
     const m = Progress._merge(
