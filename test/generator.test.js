@@ -466,6 +466,97 @@ test('дробь от числа — ответ всегда целый', () => 
 });
 
 group('Варианты ответа');
+test('вариант ответа не может быть невозможным при ответе от 11', () => {
+    // Сумма всегда больше каждого слагаемого, разность всегда меньше уменьшаемого.
+    // Вариант, нарушающий это, отбрасывается одним взглядом — слот пропадает зря.
+    // На самых маленьких примерах (2 − 1) правдоподобных чисел физически меньше трёх,
+    // и фильтр там снимается осознанно, поэтому проверяем от одиннадцати.
+    const bad = [];
+    ['add', 'sub'].forEach(op => {
+        for (let level = 1; level <= 5; level++) {
+            for (let i = 0; i < 4000; i++) {
+                const p = G.generateProblem(op, level, false);
+                if (p.noSolution || p.answer < 11) continue;
+                const opts = G.buildDistractors(op, p.a, p.b, p.answer, false, 3)
+                              .filter(v => typeof v === 'number');
+                opts.forEach(v => {
+                    if (op === 'add' && v <= Math.max(p.a, p.b)) bad.push(`${p.text}: ${v}`);
+                    if (op === 'sub' && (v >= p.a || v === p.b)) bad.push(`${p.text}: ${v}`);
+                });
+            }
+        }
+    });
+    assert(bad.length === 0, `невозможные варианты: ${bad.slice(0, 5).join(', ')}`);
+});
+
+test('последняя цифра не выдаёт ответ: рядом всегда есть ловушка на десяток', () => {
+    // Пока среди вариантов нет второго числа с той же последней цифрой, пример решается
+    // счётом одного разряда из двух. Полностью исключить нельзя: изредка обе стороны
+    // (ответ ± 10) оказываются невозможными, поэтому порог, а не ноль.
+    ['add', 'sub'].forEach(op => {
+        for (let level = 1; level <= 5; level++) {
+            let uniq = 0, total = 0;
+            for (let i = 0; i < 4000; i++) {
+                const p = G.generateProblem(op, level, false);
+                if (p.noSolution || p.answer < 11) continue;
+                total++;
+                const opts = G.buildDistractors(op, p.a, p.b, p.answer, false, 3)
+                              .filter(v => typeof v === 'number');
+                if (!opts.some(v => v % 10 === p.answer % 10)) uniq++;
+            }
+            if (!total) continue;
+            const share = uniq / total;
+            assert(share < 0.15,
+                `${op} ${level}★: ответ виден по последней цифре в ${(share * 100).toFixed(1)}% примеров`);
+        }
+    });
+});
+
+test('верный ответ не выделяется числом общих цифр с другими вариантами', () => {
+    // Ловушка на десяток делит с ответом единицы, ловушка на единицы — десятки.
+    // Если поставить только их, ответ оказывается единственным числом, связанным
+    // сразу с двумя другими, и его видно, не считая. Квадрат 2×2 это выравнивает.
+    const tens = (x) => Math.floor(x / 10), units = (x) => x % 10;
+    ['add', 'sub'].forEach(op => {
+        for (let level = 2; level <= 5; level++) {
+            let leak = 0, total = 0;
+            for (let i = 0; i < 4000; i++) {
+                const p = G.generateProblem(op, level, false);
+                if (p.noSolution || p.answer < 11) continue;
+                total++;
+                const all = [p.answer].concat(
+                    G.buildDistractors(op, p.a, p.b, p.answer, false, 3).filter(v => typeof v === 'number'));
+                const score = all.map(v => all.filter(o => o !== v
+                    && (tens(o) === tens(v) || units(o) === units(v))).length);
+                const max = Math.max(...score);
+                if (score[0] === max && score.filter(x => x === max).length === 1) leak++;
+            }
+            if (!total) continue;
+            const share = leak / total;
+            assert(share < 0.10,
+                `${op} ${level}★: ответ — самый связанный вариант в ${(share * 100).toFixed(1)}% примеров`);
+        }
+    });
+});
+
+test('ловушка на десяток отличается от ответа ровно на десять', () => {
+    // Модель «единицы верные, десятки нет». Если сдвиг окажется другим, разбор ошибок
+    // назовёт причину неверно: он опознаёт её именно по разнице в десять.
+    ['add', 'sub'].forEach(op => {
+        for (let level = 1; level <= 5; level++) {
+            for (let i = 0; i < 1500; i++) {
+                const p = G.generateProblem(op, level, false);
+                if (p.noSolution || p.answer < 11) continue;
+                const opts = G.buildDistractors(op, p.a, p.b, p.answer, false, 3)
+                              .filter(v => typeof v === 'number');
+                const same = opts.filter(v => v % 10 === p.answer % 10);
+                same.forEach(v => assert(Math.abs(v - p.answer) % 10 === 0,
+                    `${p.text}: вариант ${v} делит последнюю цифру, но не кратен десяти`));
+            }
+        }
+    });
+});
+
 test('среди вариантов нет равного правильному по значению', () => {
     // Иначе ученик выбирает верный по сути ответ и получает «ошибку» или «почти».
     const bad = [];
@@ -609,6 +700,14 @@ test('известные ошибки узнаются по имени', () => {
         [{ opKey: 'div', category: 'integer' }, { a: 12, b: 4 }, 3, 12, 'взял одно из чисел'],
         // 5 − 3 = 2, выбрано 8 — перепутал действие
         [{ opKey: 'sub', category: 'integer' }, { a: 5, b: 3 }, 2, 8, 'перепутал действие'],
+        // 17 + 18 = 35, названо 25: единицы верные, потерян десяток
+        [{ opKey: 'add', category: 'integer' }, { a: 17, b: 18 }, 35, 25, 'ошибка в десятках'],
+        // то же, но десяток лишний
+        [{ opKey: 'add', category: 'integer' }, { a: 17, b: 18 }, 35, 45, 'ошибка в десятках'],
+        // 62 − 38 = 24, названо 34 — тот же промах при вычитании
+        [{ opKey: 'sub', category: 'integer' }, { a: 62, b: 38 }, 24, 34, 'ошибка в десятках'],
+        // 62 − 38 = 24, названо 36 — поразрядный модуль разности, это другая ошибка
+        [{ opKey: 'sub', category: 'integer' }, { a: 62, b: 38 }, 24, 36, 'не занял десяток'],
         // деление на ноль: выбрано число вместо «нет решения»
         [{ opKey: 'div', category: 'integer' }, { a: 4, b: 0, noSolution: true }, null, 4, 'делил на ноль']
     ];
