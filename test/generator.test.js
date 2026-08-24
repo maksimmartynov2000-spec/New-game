@@ -308,6 +308,119 @@ test(`среди 20 примеров подряд в среднем не мен�
     assert(poor.length === 0, `однообразно за короткий заход: ${poor.join('; ')}`);
 });
 
+group('Сложение положительных: полосы, переход, размер слагаемых');
+
+const ADD_BANDS_EXPECTED = [[2, 10], [11, 20], [21, 50], [51, 100], [101, 200]];
+const ADD_WEIGHTS_EXPECTED = {
+    1: [1],
+    2: [0.30, 0.70],
+    3: [0.10, 0.20, 0.70],
+    4: [0.05, 0.10, 0.15, 0.70],
+    5: [0.01, 0.04, 0.125, 0.225, 0.60]
+};
+const ADD_FLOOR_EXPECTED = [1, 5, 8, 14, 24];
+const crossesTen = (a, b) => (a % 10 + b % 10) > 10;
+
+function sampleAdd(level, n) {
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(G.genAddPositive(level));
+    return out;
+}
+function bandOf(sum) {
+    for (let i = 0; i < ADD_BANDS_EXPECTED.length; i++) {
+        if (sum >= ADD_BANDS_EXPECTED[i][0] && sum <= ADD_BANDS_EXPECTED[i][1]) return i;
+    }
+    return -1;
+}
+
+test('сумма всегда внутри своего потолка и равна слагаемым', () => {
+    const ceil = { 1: 10, 2: 20, 3: 50, 4: 100, 5: 200 };
+    for (let level = 1; level <= 5; level++) {
+        for (const p of sampleAdd(level, 5000)) {
+            assert(p.a >= 1 && p.b >= 1, `${level}★: слагаемое меньше единицы в «${p.text}»`);
+            assert(p.a + p.b === p.answer, `${level}★: ответ не равен сумме в «${p.text}»`);
+            assert(p.answer >= 2 && p.answer <= ceil[level],
+                `${level}★: сумма ${p.answer} вне потолка ${ceil[level]}`);
+        }
+    }
+});
+
+test('частоты полос сумм соответствуют заданным', () => {
+    // Ради этого всё и делалось: раньше сумма бралась равномерно в потолке, и малые
+    // суммы получали вес не по числу своих примеров — на пятой звезде каждый десятый
+    // пример был примером с первой.
+    const N = 40000;
+    for (let level = 1; level <= 5; level++) {
+        const counts = [0, 0, 0, 0, 0];
+        for (const p of sampleAdd(level, N)) {
+            const bi = bandOf(p.answer);
+            assert(bi >= 0, `${level}★: сумма ${p.answer} не попала ни в одну полосу`);
+            counts[bi]++;
+        }
+        const expected = ADD_WEIGHTS_EXPECTED[level];
+        for (let i = 0; i < counts.length; i++) {
+            const want = expected[i] || 0;
+            const got = counts[i] / N;
+            const tol = 0.01 + 0.02 * want;
+            assert(Math.abs(got - want) <= tol,
+                `${level}★ полоса ${ADD_BANDS_EXPECTED[i].join('-')}: ожидали ${(want * 100).toFixed(1)}%, вышло ${(got * 100).toFixed(1)}%`);
+        }
+    }
+});
+
+test('переход через десяток занимает 70% каждой полосы, кроме первой', () => {
+    // В полосе 2–10 перехода не бывает вовсе: сумма единиц равна самой сумме.
+    // 4 + 6 = 10 переходом не считается — это состав десятка, а не переход через него.
+    const N = 40000;
+    for (let level = 1; level <= 5; level++) {
+        const total = [0, 0, 0, 0, 0], carry = [0, 0, 0, 0, 0];
+        for (const p of sampleAdd(level, N)) {
+            const bi = bandOf(p.answer);
+            total[bi]++;
+            if (crossesTen(p.a, p.b)) carry[bi]++;
+        }
+        assert(carry[0] === 0, `${level}★: в полосе 2-10 нашёлся переход через десяток`);
+        for (let i = 1; i < total.length; i++) {
+            if (total[i] < 500) continue;   // слишком мало данных для доли
+            const got = carry[i] / total[i];
+            assert(Math.abs(got - 0.70) <= 0.03,
+                `${level}★ полоса ${ADD_BANDS_EXPECTED[i].join('-')}: переход в ${(got * 100).toFixed(1)}% вместо 70%`);
+        }
+    }
+});
+
+test('порог на меньшее слагаемое действует только на примеры без перехода', () => {
+    // Без перехода маленькое слагаемое обесценивает пример (156 + 3 считать не надо),
+    // с переходом — нет (156 + 9 надо). Порог стоит там, где он что-то значит.
+    const N = 30000;
+    const withCarryAndSmall = [0, 0, 0, 0, 0];
+    for (let level = 2; level <= 5; level++) {
+        for (const p of sampleAdd(level, N)) {
+            const bi = bandOf(p.answer);
+            const min = Math.min(p.a, p.b);
+            if (!crossesTen(p.a, p.b)) {
+                assert(min >= ADD_FLOOR_EXPECTED[bi],
+                    `${level}★: «${p.text}» без перехода, а меньшее слагаемое ${min} ниже порога ${ADD_FLOOR_EXPECTED[bi]}`);
+            } else if (min < ADD_FLOOR_EXPECTED[bi]) {
+                withCarryAndSmall[bi]++;
+            }
+        }
+    }
+    // И обратное: примеры «большое плюс маленькое с переходом» обязаны остаться.
+    // Если порог поедет на весь пул, эта проверка упадёт.
+    assert(withCarryAndSmall[4] > 0,
+        'в полосе 101-200 не осталось примеров с переходом и слагаемым меньше 24');
+    assert(withCarryAndSmall[3] > 0,
+        'в полосе 51-100 не осталось примеров с переходом и слагаемым меньше 14');
+});
+
+test('первая звезда не изменилась: только суммы до десяти, без перехода', () => {
+    for (const p of sampleAdd(1, 20000)) {
+        assert(p.answer >= 2 && p.answer <= 10, `1★: сумма ${p.answer} вне 2..10`);
+        assert(!crossesTen(p.a, p.b), `1★: «${p.text}» с переходом через десяток`);
+    }
+});
+
 group('Дроби: обещания уровней сложности');
 test('1★ сложение/вычитание — ответ никогда не требует сокращения', () => {
     const bad = [];
