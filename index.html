@@ -825,27 +825,6 @@
         .code-row-state.done { color: #34d399; }
         .code-row-state.off { color: #f87171; }
 
-        /* --- Экран замеров скорости (временный, для калибровки порогов) --- */
-        .meas-note {
-            font-size: 0.74rem; color: #fbbf24; line-height: 1.45; margin-bottom: 12px;
-            padding: 9px 11px; border-radius: 9px;
-            background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25);
-        }
-        .meas-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
-        .meas-table th {
-            color: #64748b; font-weight: normal; text-align: right; padding: 5px 3px;
-            border-bottom: 1px solid rgba(255,255,255,0.10);
-        }
-        .meas-table th:first-child { text-align: left; }
-        .meas-table td { padding: 5px 3px; text-align: right; color: #cbd5e1; font-variant-numeric: tabular-nums; }
-        .meas-table td:first-child { text-align: left; color: #e2e8f0; white-space: nowrap; }
-        .meas-table td.med { color: var(--gold); font-weight: bold; }
-        .meas-table tr.thin td { color: #64748b; }
-        .meas-table tr.sec-head td {
-            color: #94a3b8; font-weight: bold; padding-top: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.08);
-        }
-
         .mistake-card {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px; padding: 12px; margin-bottom: 10px;
@@ -1082,29 +1061,6 @@
         </div>
     </div>
 
-    <!-- Замеры скорости: временный экран для калибровки порогов. Показывает сырые
-         времена ответов по каждой клетке — медиану, квартили и разброс. -->
-    <div class="modal-screen" id="measScreen" style="z-index:246; display:none;">
-        <button class="start-menu-btn" onclick="closeMeasScreen()" aria-label="Назад">◀️</button>
-        <h1 class="start-title" style="font-size:1.5rem;">⏱️ Замеры скорости</h1>
-        <p class="start-subtitle" id="measSubtitle">—</p>
-        <div class="config-container">
-            <div class="config-section">
-                <div class="meas-note">
-                    Замеры хранятся <b>на этом устройстве</b> и на сервер не уходят.
-                    Если продолжить на другом — данные не переедут.
-                    Первые 5 ответов в каждой клетке отброшены как разгон.
-                </div>
-                <div id="measBody"></div>
-            </div>
-            <div class="config-section">
-                <button class="menu-btn" onclick="copyMeasTable()">📋 <span>Скопировать таблицей</span></button>
-                <button class="menu-btn danger" onclick="clearMeasSamples()">🗑️ <span>Очистить замеры</span></button>
-                <div class="config-hint">Очистка трогает только замеры — прогресс, пазл и достижения остаются.</div>
-            </div>
-        </div>
-    </div>
-
     <!-- Экран статистики: занятия и результат за выбранный период -->
     <div class="modal-screen" id="statsScreen" style="z-index:230; display:none;">
         <button class="start-menu-btn" onclick="closeStatsScreen()" aria-label="Назад">◀️</button>
@@ -1331,7 +1287,6 @@
                        style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
                               background:rgba(255,255,255,0.06); color:white; box-sizing:border-box; text-align:center; font-size:0.95rem;">
                 <button class="menu-btn" style="margin-top:8px;" onclick="saveProfileLabel()">💾 <span>Сохранить имя</span></button>
-                <button class="menu-btn" style="margin-top:8px;" onclick="openMeasScreen()">⏱️ <span>Замеры скорости</span></button>
                 <button class="menu-btn" id="btnAccessCode" style="margin-top:8px; display:none;"
                         onclick="askAccessCode()">🔑 <span>Ввести код от репетитора</span></button>
                 <div id="accessSummary" class="config-hint" style="margin-top:8px;"></div>
@@ -4609,7 +4564,6 @@
             // Ничего не теряется безвозвратно: перед подчисткой отрезок замораживается в
             // карточку эпохи (см. EPOCH_DAYS) — компактный снимок за 180 дней, который
             // хранится вечно.
-            const SPEED_SAMPLE_CAP = 300;   // сырых времён на клетку
             const DAILY_KEEP_DAYS = 200;
             function pruneDaily(daily) {
                 const keys = Object.keys(daily);
@@ -4645,17 +4599,6 @@
             // так два ребёнка на одном айпаде могут переключаться между своими аккаунтами,
             // не теряя офлайн-копию прогресса друг друга. Ключ — код профиля.
             let profiles = {};
-
-            // Сырые времена ответов по каждой клетке — для калибровки порогов скорости.
-            //
-            // Живёт РЯДОМ с состоянием и НЕ уходит на сервер. Причины две. Во-первых,
-            // это не прогресс: сливать два списка времён по правилу «максимум» бессмысленно.
-            // Во-вторых, это временный измерительный инструмент, и засорять им состояние
-            // всех учеников незачем.
-            //
-            // Следствие, о котором надо помнить: замеры лежат на одном устройстве и на
-            // другое не переезжают. Экран замеров об этом честно предупреждает.
-            let speedSamples = {};
 
             // Что этому ученику разрешено решать. Живёт РЯДОМ с состоянием, а не внутри:
             // это не прогресс ученика, а решение репетитора, и сливать его по правилу
@@ -4969,7 +4912,7 @@
                 pruneDaily(state.daily);
                 trimTopicSpeed(state.daily);
                 if (state.playerCode) profiles[state.playerCode] = state;
-                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access, speedSamples });
+                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 dirty = true;
             }
 
@@ -5084,7 +5027,7 @@
                 // входа в только что созданный репетитором аккаунт (там updatedAt=0) и затирала
                 // бы их — ровно так и произошло с студенческим аккаунтом, который "потерял"
                 // привязку к репетитору после первого входа.
-                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access, speedSamples });
+                localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 dirty = true;
             }
 
@@ -5101,8 +5044,6 @@
                         passwords = (envelope.passwords && typeof envelope.passwords === 'object') ? envelope.passwords : {};
                         tokens = (envelope.tokens && typeof envelope.tokens === 'object') ? envelope.tokens : {};
                         access = (envelope.access && typeof envelope.access === 'object') ? envelope.access : null;
-                        speedSamples = (envelope.speedSamples && typeof envelope.speedSamples === 'object')
-                            ? envelope.speedSamples : {};
                         state = (envelope.activeCode && profiles[envelope.activeCode]) || emptyState();
                     } else {
                         const legacy = migrateFromV2() || migrateFromV1();
@@ -5128,47 +5069,31 @@
                     if (!code || !token) return;
                     tokens[code] = token;
                     delete passwords[code];
-                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access, speedSamples });
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 },
                 // Сервер сказал, что токен больше не годится (погашен или протух).
                 // Пароля тут уже нет, поэтому дальше нужен обычный вход.
                 dropToken(code) {
                     if (!code || !tokens[code]) return;
                     delete tokens[code];
-                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access, speedSamples });
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 },
                 // Чем подтверждать запрос: токеном или паролем. Наружу нужно, чтобы
                 // экраны репетитора выбирали серверную функцию под тот же способ.
                 authFor(code) { return authFor(code || state.playerCode); },
-
-                // --- замеры скорости ---
-                // Больше SPEED_SAMPLE_CAP на клетку не храним: для медианы хватает
-                // с запасом, а расти без предела локальному хранилищу нельзя.
-                recordSpeedSample(topicKey, ms) {
-                    if (!topicKey || !Number.isFinite(ms) || ms <= 0) return;
-                    const arr = speedSamples[topicKey] || (speedSamples[topicKey] = []);
-                    arr.push(Math.round(ms));
-                    if (arr.length > SPEED_SAMPLE_CAP) arr.splice(0, arr.length - SPEED_SAMPLE_CAP);
-                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access, speedSamples });
-                },
-                getSpeedSamples() { return speedSamples; },
-                clearSpeedSamples() {
-                    speedSamples = {};
-                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access, speedSamples });
-                },
 
                 // --- доступ к разделам ---
                 // null = ещё не спрашивали (значит открыто всё), объект = ответ сервера.
                 getAccess() { return access; },
                 setAccess(a) {
                     access = (a && typeof a === 'object') ? a : null;
-                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access, speedSamples });
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 },
                 // При смене профиля чужой доступ надо забыть немедленно, не дожидаясь
                 // ответа сервера, — иначе новый ученик на секунду увидит чужие разделы.
                 clearAccess() {
                     access = null;
-                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access, speedSamples });
+                    localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 },
                 // Коды, у которых на устройстве ещё лежит пароль, — их и надо обменять.
                 codesWithPassword() { return Object.keys(passwords); },
@@ -5378,7 +5303,7 @@
                         const remote = normalize(await remoteDriver.read(state.playerCode, auth));
                         state = mergeState(remote, state);
                         profiles[state.playerCode] = state; // merge вернул новый объект — обновляем кэш
-                        localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access, speedSamples });
+                        localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                         await remoteDriver.write(state.playerCode, auth, state);
                         dirty = false;
                         return true;
@@ -7059,166 +6984,6 @@
             const open = body.style.display !== 'none';
             body.style.display = open ? 'none' : 'block';
             arrow.innerText = open ? '▼ показать' : '▲ скрыть';
-        }
-
-        // =====================================================================
-        //  ЗАМЕРЫ СКОРОСТИ (временно, для калибровки порогов)
-        // ---------------------------------------------------------------------
-        //  Пороги скорости в лесенках взяты из головы, и это единственное место
-        //  в приложении, где число ничем не обосновано. Чтобы посчитать их честно,
-        //  нужны настоящие времена ответов по каждой клетке.
-        //
-        //  Приложение хранит по клетке только сумму времени и число ответов, то есть
-        //  одно среднее. Для этой задачи среднего мало: одна отлучка на минуту посреди
-        //  сотни примеров сдвигает его на десять процентов, и заметить это невозможно.
-        //  Поэтому здесь пишутся сырые времена, а показываются медиана и квартили —
-        //  их выброс не портит.
-        //
-        //  Разгон отбрасывается: первые ответы в клетке всегда медленнее, потому что
-        //  человек ещё вчитывается в формат, а не считает.
-        // =====================================================================
-
-        const MEAS_WARMUP_DROP = 5;
-
-        function percentileOf(sortedArr, q) {
-            if (!sortedArr.length) return null;
-            const idx = Math.min(sortedArr.length - 1, Math.max(0, Math.round(q * (sortedArr.length - 1))));
-            return sortedArr[idx];
-        }
-
-        // Сводка по одной клетке. Возвращает null, если после отбрасывания разгона
-        // не осталось ничего, о чём стоило бы говорить.
-        function measStatsFor(samples) {
-            if (!Array.isArray(samples)) return null;
-            const useful = samples.slice(MEAS_WARMUP_DROP);
-            if (!useful.length) return null;
-            const sorted = useful.slice().sort((a, b) => a - b);
-            const sum = sorted.reduce((s, v) => s + v, 0);
-            return {
-                n: sorted.length,
-                min: sorted[0],
-                p25: percentileOf(sorted, 0.25),
-                med: percentileOf(sorted, 0.50),
-                p75: percentileOf(sorted, 0.75),
-                mean: sum / sorted.length,
-                raw: samples.length
-            };
-        }
-
-        // Строки сводки по всем клеткам, в порядке «раздел → действие → уровень».
-        function measRows() {
-            const all = Progress.getSpeedSamples() || {};
-            const rows = [];
-            MAP_SECTIONS.forEach(sec => {
-                sec.ops.forEach(op => {
-                    for (let lv = 1; lv <= 5; lv++) {
-                        const key = `${sec.cat}${sec.sign}:${op}:${lv}`;
-                        const st = measStatsFor(all[key]);
-                        if (!st) continue;
-                        rows.push({
-                            key, section: sec.label,
-                            label: `${(OP_LABELS[op] || op).replace(/^\S+\s/, '')} ${lv}★`,
-                            st
-                        });
-                    }
-                });
-            });
-            return rows;
-        }
-
-        const sec1 = (ms) => (ms / 1000).toFixed(1);
-
-        function renderMeasScreen() {
-            const rows = measRows();
-            const body = document.getElementById('measBody');
-            const sub = document.getElementById('measSubtitle');
-            body.innerHTML = '';
-
-            if (!rows.length) {
-                sub.innerText = 'Пока пусто';
-                body.innerHTML = '<div class="menu-empty">Замеров ещё нет.<br>'
-                    + 'Реши примеры — по каждой клетке нужно хотя бы шесть ответов.</div>';
-                return;
-            }
-
-            const total = rows.reduce((s, r) => s + r.st.n, 0);
-            const ready = rows.filter(r => r.st.n >= 35).length;
-            sub.innerText = `Клеток с данными: ${rows.length} · готовых (35+): ${ready} · всего замеров: ${total}`;
-
-            const table = document.createElement('table');
-            table.className = 'meas-table';
-            table.innerHTML = `<thead><tr>
-                <th>клетка</th><th>n</th><th>мин</th><th>25%</th><th>медиана</th><th>75%</th><th>сред.</th>
-            </tr></thead>`;
-            const tbody = document.createElement('tbody');
-
-            let lastSection = null;
-            rows.forEach(r => {
-                if (r.section !== lastSection) {
-                    lastSection = r.section;
-                    const head = document.createElement('tr');
-                    head.className = 'sec-head';
-                    const td = document.createElement('td');
-                    td.colSpan = 7;
-                    td.innerText = r.section;
-                    head.appendChild(td);
-                    tbody.appendChild(head);
-                }
-                const tr = document.createElement('tr');
-                // Клетки, где замеров мало, показываем приглушённо: по ним считать рано.
-                if (r.st.n < 35) tr.className = 'thin';
-                [r.label, r.st.n, sec1(r.st.min), sec1(r.st.p25), sec1(r.st.med), sec1(r.st.p75), sec1(r.st.mean)]
-                    .forEach((v, i) => {
-                        const td = document.createElement('td');
-                        if (i === 4) td.className = 'med';
-                        td.innerText = v;
-                        tr.appendChild(td);
-                    });
-                tbody.appendChild(tr);
-            });
-            table.appendChild(tbody);
-            body.appendChild(table);
-        }
-
-        // Текстовый вид — на случай, если скриншот неудобен. Разделители табами,
-        // чтобы вставлялось в таблицу как есть.
-        function measAsText() {
-            const rows = measRows();
-            const out = ['клетка\tn\tмин\t25%\tмедиана\t75%\tсреднее'];
-            rows.forEach(r => {
-                out.push([r.key, r.st.n, sec1(r.st.min), sec1(r.st.p25), sec1(r.st.med), sec1(r.st.p75), sec1(r.st.mean)].join('\t'));
-            });
-            return out.join('\n');
-        }
-
-        function copyMeasTable() {
-            const text = measAsText();
-            try {
-                navigator.clipboard.writeText(text);
-                showToast('Таблица скопирована.', 'ok');
-            } catch (e) {
-                showToast('Скопировать не вышло — пришли скриншотом.', 'error');
-            }
-        }
-
-        async function clearMeasSamples() {
-            const ok = await askConfirm({
-                title: 'Очистить замеры?',
-                text: 'Сотрутся только времена ответов. Прогресс, пазл, коллекция и достижения останутся на месте.',
-                okText: 'Очистить', danger: true
-            });
-            if (!ok) return;
-            Progress.clearSpeedSamples();
-            renderMeasScreen();
-            showToast('Замеры очищены.', 'ok');
-        }
-
-        function openMeasScreen() {
-            renderMeasScreen();
-            document.getElementById('measScreen').style.display = 'flex';
-        }
-        function closeMeasScreen() {
-            document.getElementById('measScreen').style.display = 'none';
         }
 
         // Карточки прошедших эпох. Это замороженные снимки: их числа НЕ складываются
@@ -8908,13 +8673,6 @@
             // "Забыл сократить" считаем верным ответом по существу — счёт-то был правильный.
             const topicKey = currentProblemMeta ? buildTopicKey(currentProblemMeta) : null;
             const elapsedMs = questionShownAt ? (Date.now() - questionShownAt) : 0;
-
-            // Сырое время верного ответа — для калибровки порогов скорости.
-            // Условие то же, что у лесенки (см. recordAnswer), чтобы замеряемое
-            // и оцениваемое были одним и тем же, а не двумя похожими вещами.
-            if (topicKey && elapsedMs > 0 && (isCorrect || isUnreducedMatch)) {
-                Progress.recordSpeedSample(topicKey, elapsedMs);
-            }
 
             if (isCorrect) {
                 correctCount++;
