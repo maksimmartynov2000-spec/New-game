@@ -825,6 +825,17 @@
         .code-row-state.done { color: #34d399; }
         .code-row-state.off { color: #f87171; }
 
+        /* --- Разбор по типам примеров на экране статистики --- */
+        .cls-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+        .cls-table td { padding: 4px 3px; text-align: right; color: #cbd5e1; font-variant-numeric: tabular-nums; }
+        .cls-table td:first-child { text-align: left; color: #e2e8f0; }
+        .cls-table tr.cls-head td {
+            color: var(--gold); font-weight: bold; padding-top: 11px;
+            border-bottom: 1px solid rgba(255,255,255,0.10);
+        }
+        .cls-table tr.thin td { color: #64748b; }
+        .cls-table tr.sub td:first-child { padding-left: 10px; }
+
         .mistake-card {
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
             border-radius: 12px; padding: 12px; margin-bottom: 10px;
@@ -1157,6 +1168,23 @@
                     Ошибки за период, разобранные по причине.
                 </div>
                 <div id="statsMistakeList"></div>
+            </div>
+
+            <div class="config-section" id="statsClassSection" style="display:none;">
+                <div class="config-section-title fold-head" onclick="toggleClassBreakdown()">
+                    <span>Разбор по типам примеров</span>
+                    <span class="fold-arrow" id="statsClassArrow">▼ показать</span>
+                </div>
+                <div id="statsClassBody" style="display:none;">
+                    <div class="config-hint" style="margin:8px 0;">
+                        Только положительные, сложение и вычитание. Три класса не пересекаются
+                        и в сумме дают всю клетку. «Через сотню» — подмножество, а не четвёртый
+                        класс, поэтому его строка считается отдельно. Клетки, где ответов меньше
+                        двадцати, показаны приглушённо: считать по ним рано.
+                    </div>
+                    <div id="statsClassList"></div>
+                    <button class="menu-btn" style="margin-top:10px;" onclick="copyClassTable()">📋 <span>Скопировать таблицей</span></button>
+                </div>
             </div>
 
             <div class="config-section" id="statsEpochsSection" style="display:none;">
@@ -4749,6 +4777,17 @@
                     // ученик ошибается вразнобой или у него одна и та же дыра.
                     errorKinds: {},
 
+                    // Разбор по типам примеров — только целые положительные, сложение
+                    // и вычитание. Отвечает на вопрос, которого нет ни у одной другой
+                    // записи: внутри одной клетки проседает всё подряд или конкретный
+                    // тип примера. Ключ — тема, значение — по классу:
+                    //   { 'integer+:sub:5': { '2': [верно, ошибок, мс, ответов], 'h': [...] } }
+                    // Классы '0' / '1' / '2' — без перехода, дополнение до круглого,
+                    // полный переход; они не пересекаются и в сумме дают всю клетку.
+                    // Ключ 'h' — переход через сотню (двойной заём). Он ПЕРЕСЕКАЕТСЯ
+                    // с остальными: это подмножество, а не четвёртый класс.
+                    byClass: {},
+
                     // Журнал по дням — единственное место, где вообще есть измерение времени.
                     // Без него нельзя ответить ни на один вопрос вида "а что изменилось за месяц":
                     // totals/byTopic выше пожизненные и только растут, из них динамику не достать.
@@ -4961,6 +5000,25 @@
                     out.errorKinds[t] = merged;
                 });
 
+                // Разбор по типам — те же счётчики «только вверх», что и byTopic.
+                out.byClass = {};
+                const bcTopics = new Set([...Object.keys(a.byClass || {}), ...Object.keys(b.byClass || {})]);
+                bcTopics.forEach(t => {
+                    const x = (a.byClass && a.byClass[t]) || {};
+                    const y = (b.byClass && b.byClass[t]) || {};
+                    const merged = {};
+                    new Set([...Object.keys(x), ...Object.keys(y)]).forEach(cls => {
+                        const p = x[cls] || [], q = y[cls] || [];
+                        merged[cls] = [
+                            Math.max(p[0] || 0, q[0] || 0),
+                            Math.max(p[1] || 0, q[1] || 0),
+                            Math.max(p[2] || 0, q[2] || 0),
+                            Math.max(p[3] || 0, q[3] || 0)
+                        ];
+                    });
+                    out.byClass[t] = merged;
+                });
+
                 const topics = new Set([...Object.keys(a.byTopic || {}), ...Object.keys(b.byTopic || {})]);
                 out.byTopic = {};
                 topics.forEach(t => {
@@ -5093,6 +5151,16 @@
                     const t = s.errorKinds[k];
                     if (!t || typeof t !== 'object' || Array.isArray(t)) { delete s.errorKinds[k]; return; }
                     Object.keys(t).forEach(kind => { t[kind] = num(t[kind]); });
+                });
+                if (!s.byClass || typeof s.byClass !== 'object' || Array.isArray(s.byClass)) s.byClass = {};
+                Object.keys(s.byClass).forEach(k => {
+                    const t = s.byClass[k];
+                    if (!t || typeof t !== 'object' || Array.isArray(t)) { delete s.byClass[k]; return; }
+                    Object.keys(t).forEach(cls => {
+                        const slot = t[cls];
+                        if (!Array.isArray(slot)) { delete t[cls]; return; }
+                        t[cls] = [num(slot[0]), num(slot[1]), num(slot[2]), num(slot[3])];
+                    });
                 });
                 if (!s.byTopic || typeof s.byTopic !== 'object') s.byTopic = {};
                 Object.keys(s.byTopic).forEach(k => {
@@ -5451,6 +5519,29 @@
                 },
                 getErrorKinds() { return state.errorKinds || {}; },
 
+                // Разбор по типам примеров. Три класса не пересекаются и в сумме дают
+                // всю клетку; 'h' — подмножество, а не четвёртый класс, поэтому пример
+                // с переходом через сотню считается дважды: в своём классе и в 'h'.
+                recordClass(topicKey, struct, isRight, elapsedMs) {
+                    if (!topicKey || !struct) return;
+                    if (!state.byClass || typeof state.byClass !== 'object') state.byClass = {};
+                    const t = state.byClass[topicKey] || (state.byClass[topicKey] = {});
+                    const bump = (key) => {
+                        const slot = t[key] || (t[key] = [0, 0, 0, 0]);
+                        if (isRight) slot[0]++; else slot[1]++;
+                        // Время, как и у лесенки, берём только у верных ответов: время
+                        // ошибки говорит не о скорости счёта, а о том, как быстро ткнули.
+                        if (isRight && Number.isFinite(elapsedMs) && elapsedMs > 0) {
+                            slot[2] += Math.round(elapsedMs);
+                            slot[3]++;
+                        }
+                    };
+                    bump(struct.cls);
+                    if (struct.hundred) bump('h');
+                    persistLocal();
+                },
+                getByClass() { return state.byClass || {}; },
+
                 recordAnswer(topicKey, outcome, elapsedMs) {
                     const kind = (outcome === true) ? 'correct'
                         : (outcome === false) ? 'wrong'
@@ -5561,7 +5652,8 @@
                     }
                 },
                 attachRemote(driver) { remoteDriver = driver; },
-                _merge: mergeState
+                _merge: mergeState,
+                _normalize: normalize
             };
         })();
 
@@ -6563,6 +6655,26 @@
         // Записи старого формата ('integer:add', без знака и уровня) продолжают читаться:
         // они просто не участвуют в лесенках (уровень из них не восстановить) и попадают
         // в те же строки статистики, что и новые.
+        // Структурный класс примера для разбора статистики. Только целые положительные,
+        // сложение и вычитание: у дробей и десятичных «переход через десяток» смысла не имеет.
+        //
+        // Для вычитания два «слагаемых» зеркала — это вычитаемое и ответ, потому что
+        // «a − b = c» и «b + c = a» одна и та же тройка. Поэтому класс и переход через
+        // сотню считаются одной формулой на оба режима.
+        function structuralClassOf(meta, problem) {
+            if (!meta || !problem) return null;
+            if (meta.category !== 'integer' || meta.isNegative) return null;
+            if (meta.opKey !== 'add' && meta.opKey !== 'sub') return null;
+            const a = problem.a, b = problem.b;
+            if (typeof a !== 'number' || typeof b !== 'number') return null;
+            const x = meta.opKey === 'add' ? a : b;
+            const y = meta.opKey === 'add' ? b : (a - b);
+            if (x < 0 || y < 0) return null;
+            const carry = (x % 10 + y % 10) >= 10 ? 1 : 0;
+            const hundred = (Math.floor(x / 10) % 10 + Math.floor(y / 10) % 10 + carry) >= 10;
+            return { cls: String(unitsClass(x, y)), hundred };
+        }
+
         function buildTopicKey(meta) {
             if (!meta || !meta.category || !meta.opKey) return null;
             const sign = meta.isNegative ? '-' : '+';
@@ -6958,6 +7070,7 @@
             const drawn = renderMistakeKinds(kinds, 'statsMistakeList', 6);
             document.getElementById('statsMistakesSection').style.display = drawn ? 'block' : 'none';
 
+            renderClassBreakdown(st);
             renderEpochCards(st);
         }
 
@@ -7223,6 +7336,116 @@
                 wrap.innerHTML = '<div class="menu-empty">Пока пусто.<br>Реши несколько примеров — здесь появится карта.</div>';
             }
             return drawn;
+        }
+
+        // ---- Разбор по типам примеров ----
+        // Отвечает на вопрос, которого не задаёт ни одна другая запись: внутри клетки
+        // проседает всё подряд или конкретный тип примера. Нужен для двух отложенных
+        // решений — про двойной заём и про маленький ответ при заёме.
+        const CLASS_TITLES = {
+            add: { '0': 'без перехода', '1': 'дополнение до круглого', '2': 'полный переход', 'h': 'через сотню' },
+            sub: { '0': 'без заёма', '1': 'вычитание из круглого', '2': 'полный заём', 'h': 'двойной заём' }
+        };
+        const CLASS_ORDER = ['0', '1', '2', 'h'];
+        const CLASS_MIN_SAMPLE = 20;   // ниже этого считать рано
+
+        // Строки разбора: [{ topicKey, opKey, level, rows: [{ key, title, right, wrong, acc, sec }] }]
+        function classRows(byClass) {
+            const out = [];
+            Object.keys(byClass || {}).forEach(key => {
+                const p = parseTopicKey(key);
+                if (!p || p.category !== 'integer' || p.sign !== '+') return;
+                if (p.op !== 'add' && p.op !== 'sub') return;
+                const cell = byClass[key] || {};
+                const rows = [];
+                CLASS_ORDER.forEach(cls => {
+                    const slot = cell[cls];
+                    if (!Array.isArray(slot)) return;
+                    const right = slot[0] || 0, wrong = slot[1] || 0;
+                    const attempts = right + wrong;
+                    if (!attempts) return;
+                    rows.push({
+                        key: cls,
+                        title: CLASS_TITLES[p.op][cls] || cls,
+                        right, wrong, attempts,
+                        acc: Math.round(100 * right / attempts),
+                        sec: (slot[3] || 0) > 0 ? (slot[2] / slot[3] / 1000) : null
+                    });
+                });
+                if (rows.length) out.push({ topicKey: key, opKey: p.op, level: p.level || 1, rows });
+            });
+            // Сложение перед вычитанием, внутри — по возрастанию звезды.
+            out.sort((x, y) => (x.opKey === y.opKey) ? (x.level - y.level) : (x.opKey === 'add' ? -1 : 1));
+            return out;
+        }
+
+        function renderClassBreakdown(st) {
+            const section = document.getElementById('statsClassSection');
+            const wrap = document.getElementById('statsClassList');
+            const cells = classRows((st && st.byClass) || {});
+            if (!cells.length) { section.style.display = 'none'; return; }
+            section.style.display = '';
+
+            const table = document.createElement('table');
+            table.className = 'cls-table';
+            cells.forEach(cell => {
+                const head = table.insertRow();
+                head.className = 'cls-head';
+                const total = cell.rows.reduce((n, r) => n + (r.key === 'h' ? 0 : r.attempts), 0);
+                const c1 = head.insertCell(); c1.colSpan = 2;
+                c1.innerText = `${cell.opKey === 'add' ? 'Сложение' : 'Вычитание'} ${cell.level}★`;
+                const c2 = head.insertCell(); c2.colSpan = 2;
+                c2.innerText = `${total} ответов`;
+
+                cell.rows.forEach(r => {
+                    const tr = table.insertRow();
+                    tr.className = 'sub' + (r.attempts < CLASS_MIN_SAMPLE ? ' thin' : '');
+                    tr.insertCell().innerText = r.title;
+                    tr.insertCell().innerText = r.attempts;
+                    tr.insertCell().innerText = `${r.acc}%`;
+                    tr.insertCell().innerText = r.sec === null ? '—' : `${r.sec.toFixed(1)} с`;
+                });
+            });
+            wrap.innerHTML = '';
+            wrap.appendChild(table);
+        }
+
+        function toggleClassBreakdown() {
+            const body = document.getElementById('statsClassBody');
+            const arrow = document.getElementById('statsClassArrow');
+            const open = body.style.display !== 'none';
+            body.style.display = open ? 'none' : 'block';
+            arrow.innerText = open ? '▼ показать' : '▲ скрыть';
+        }
+
+        // Текст для отправки — колонки через табуляцию, чтобы вставлялось таблицей.
+        function classAsText(st) {
+            const cells = classRows((st && st.byClass) || {});
+            const lines = ['режим\tзвезда\tтип\tответов\tточность\tсекунд'];
+            cells.forEach(cell => {
+                cell.rows.forEach(r => {
+                    lines.push([
+                        cell.opKey === 'add' ? 'сложение' : 'вычитание',
+                        cell.level, r.title, r.attempts, r.acc + '%',
+                        r.sec === null ? '—' : r.sec.toFixed(2)
+                    ].join('\t'));
+                });
+            });
+            return lines.join('\n');
+        }
+
+        async function copyClassTable() {
+            // Тот же источник, что и у самого экрана: свой прогресс или прогресс ученика,
+            // если репетитор смотрит чужую статистику.
+            const st = statsViewState || Progress.get();
+            const text = classAsText(st);
+            if (!text || text.indexOf('\n') < 0) { showToast('Пока нечего копировать.', 'error'); return; }
+            try {
+                await navigator.clipboard.writeText(text);
+                showToast('Таблица скопирована.', 'ok');
+            } catch (e) {
+                await showNotice({ title: 'Разбор по типам примеров', text, okText: 'Закрыть' });
+            }
         }
 
         function toggleEpochs() {
@@ -8928,6 +9151,12 @@
             // "Забыл сократить" считаем верным ответом по существу — счёт-то был правильный.
             const topicKey = currentProblemMeta ? buildTopicKey(currentProblemMeta) : null;
             const elapsedMs = questionShownAt ? (Date.now() - questionShownAt) : 0;
+
+            // Разбор по типам примеров — одной записью на ответ, независимо от того,
+            // верный он или нет. «Почти» (посчитал верно, забыл сократить) в целых
+            // числах не бывает, поэтому здесь достаточно isCorrect.
+            const struct = structuralClassOf(currentProblemMeta, currentProblem);
+            if (topicKey && struct) Progress.recordClass(topicKey, struct, isCorrect, elapsedMs);
 
             if (isCorrect) {
                 correctCount++;
