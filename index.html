@@ -1935,23 +1935,10 @@
         }
 
         // --- ГЕНЕРАЦИЯ ОТВЛЕКАЮЩИХ ВАРИАНТОВ ОТВЕТА ---
-        // Обе функции работают через МОДУЛЬ чисел (не зависят от знака a/b) — так ловушка
+        // Функция работает через МОДУЛЬ чисел (не зависит от знака a/b) — так ловушка
         // "ошибка в разрядах" работает и в отрицательном режиме тоже. Знак результата
         // применяется на стороне вызова (buildDistractors), обычно совпадающим со знаком
         // правильного ответа — это изолирует "ошибку в цифрах" от "ошибки в знаке".
-        function noCarryAdd(a, b) {
-            const sa = String(Math.abs(a)), sb = String(Math.abs(b));
-            const maxLen = Math.max(sa.length, sb.length);
-            const pa = sa.padStart(maxLen, '0');
-            const pb = sb.padStart(maxLen, '0');
-            let digits = '';
-            for (let i = 0; i < maxLen; i++) {
-                digits += (parseInt(pa[i]) + parseInt(pb[i])) % 10;
-            }
-            const val = parseInt(digits, 10);
-            return Number.isNaN(val) ? null : val;
-        }
-
         // Имитация "вычитания без заёма через разряд" — частая ошибка новичков:
         // по каждому разряду берут модуль разности цифр, не занимая десяток
         function noBorrowSub(a, b) {
@@ -1965,6 +1952,98 @@
             }
             const val = parseInt(digits, 10);
             return Number.isNaN(val) ? null : val;
+        }
+
+        // --- ПРАВДОПОДОБИЕ ЛОВУШКИ ---
+        // Вариант ответа обязан быть тем, что ученик мог бы получить, посчитав неверно.
+        // Для положительных чисел это проверяется самой арифметикой: сумма всегда больше
+        // каждого слагаемого, разность всегда меньше уменьшаемого. Вариант, нарушающий
+        // это, отбрасывается одним взглядом — он занимает слот и ничего не проверяет
+        // (6 + 8 с вариантом 4, 14 − 10 с вариантом 14).
+        //
+        // В отрицательном режиме правила другие: −5 + (−8) = −13 меньше обоих слагаемых.
+        // Поэтому там фильтр не применяется вовсе — этот раздел разберём отдельно.
+        function plausibleWhole(opKey, a, b, val, isNegative) {
+            if (isNegative) return true;
+            if (!Number.isFinite(val) || val < 0) return false;
+            if (typeof a !== 'number' || typeof b !== 'number') return true;
+            if (opKey === 'add') return val > Math.max(a, b);
+            if (opKey === 'sub') return val < a && val !== b;
+            return true;
+        }
+
+        // Ловушка «промахнулся на десяток»: единицы посчитаны верно, десятки — нет
+        // (17 + 18 = 35, а названо 45 или 25). Это самая частая ошибка при счёте в столбик
+        // и одновременно единственный способ закрыть ярлык «посчитай только единицы»:
+        // пока среди вариантов нет второго числа с той же последней цифрой, ответ можно
+        // взять, посчитав один разряд из двух.
+        function tenDecoyFor(opKey, a, b, correctAnswer, isNegative) {
+            if (isNegative || correctAnswer < 11) return null;   // десятков нет — и ловушки нет
+            const up = correctAnswer + 10;
+            const down = correctAnswer - 10;
+            const okUp = plausibleWhole(opKey, a, b, up, isNegative);
+            const okDown = down > 0 && plausibleWhole(opKey, a, b, down, isNegative);
+            if (okUp && okDown) return Math.random() < 0.6 ? up : down;   // 60% в большую сторону
+            if (okUp) return up;
+            if (okDown) return down;
+            return null;
+        }
+
+        // Число с теми же десятками, что у tensSource, и другой цифрой единиц.
+        function unitsDecoyValue(tensSource, correctAnswer, shift) {
+            const unit = ((correctAnswer % 10) + shift + 10) % 10;
+            return Math.floor(tensSource / 10) * 10 + unit;
+        }
+
+        // Десяточная ловушка закрывает счёт по единицам, единичная («те же десятки, другая
+        // цифра единиц») — прикидку на глаз. Но вместе они создают третий ярлык: верный
+        // ответ оказывается единственным числом, связанным сразу с двумя другими — общие
+        // десятки с одной ловушкой, общие единицы с другой, — и его видно, не считая.
+        //
+        // Поэтому пара достраивается до квадрата 2×2: два десятка × две цифры единиц,
+        // 35 / 45 / 37 / 47. Верную последнюю цифру носят двое, верный десяток — тоже
+        // двое, связи у всех четырёх одинаковы. Угадать нельзя: надо посчитать оба разряда.
+        //
+        // Сначала квадрат строился не всегда, а в 70% примеров — ради разнообразия
+        // картинки. Замер показал, что так не работает: в оставшихся 30% обычный
+        // случайный вариант попадает в тот же десяток, что и ответ, и подсказка
+        // возвращается (26–40% примеров вместо ожидаемых 7–12%). Поэтому квадрат
+        // строится всегда, когда это возможно.
+
+        function addSubDecoyPlan(opKey, a, b, correctAnswer, isNegative) {
+            const out = [];
+            if (isNegative || (opKey !== 'add' && opKey !== 'sub')) return out;
+            if (typeof a !== 'number' || typeof b !== 'number') return out;
+            const keep = (v) => v !== correctAnswer && !out.includes(v)
+                && plausibleWhole(opKey, a, b, v, isNegative);
+
+            // Ответ меньше одиннадцати — промахиваться на десяток не на чем. Вместо этого
+            // соседние числа по разные стороны: на первой звезде надо считать точно,
+            // а не прикидывать, и разброс вариантов не должен давать угадать порядком.
+            if (correctAnswer <= 10) {
+                const side = Math.random() < 0.5 ? 1 : -1;
+                const near = [correctAnswer + side * randInt(1, 2)];
+                if (Math.random() >= 0.4) near.push(correctAnswer - side * randInt(1, 2));
+                near.forEach(v => { if (keep(v)) out.push(v); });
+                const wide = correctAnswer + (Math.random() < 0.5 ? 1 : -1) * randInt(3, 5);
+                if (keep(wide)) out.push(wide);
+                return out;
+            }
+
+            const ten = tenDecoyFor(opKey, a, b, correctAnswer, isNegative);
+            if (ten === null) return out;
+            out.push(ten);
+
+            // Сдвиг цифры единиц ровно на 1–3: вариант стоит вплотную к ответу, но не
+            // читается как опечатка. Перебираем сдвиги вразнобой — у краёв диапазона
+            // часть из них даёт невозможные числа, и с одной попытки квадрат не собрать.
+            const shifts = shuffleArray([1, 2, 3, -1, -2, -3]);
+            for (const shift of shifts) {
+                const u1 = unitsDecoyValue(correctAnswer, correctAnswer, shift);
+                const u2 = unitsDecoyValue(ten, correctAnswer, shift);
+                if (u1 !== u2 && keep(u1) && keep(u2)) { out.push(u1); out.push(u2); break; }
+            }
+            return out;
         }
 
         function pushStructural(arr, val, correctAnswer, isNegative) {
@@ -1994,6 +2073,12 @@
                 pushStructural(priority, -correctAnswer, correctAnswer, isNegative);
             }
 
+            // Разрядные ловушки сложения и вычитания положительных: промах на десяток
+            // и, в большинстве примеров, парная к нему единичная. Приоритет высокий —
+            // без них ответ угадывается по одному разряду, см. addSubDecoyPlan.
+            addSubDecoyPlan(opKey, a, b, correctAnswer, isNegative)
+                .forEach(v => pushStructural(priority, v, correctAnswer, isNegative));
+
             // Умножение: один из множителей — 0 → берут второй множитель "как есть"
             // (путают с умножением на 1)
             if (opKey === 'mul') {
@@ -2014,11 +2099,11 @@
             let structural = [];
 
             if (opKey === 'add') {
-                const noCarryMag = noCarryAdd(a, b);
-                if (noCarryMag !== null) {
-                    const signedNoCarry = correctAnswer < 0 ? -noCarryMag : noCarryMag;
-                    pushStructural(structural, signedNoCarry, correctAnswer, isNegative);
-                }
+                // Модель «сложил столбиком, забыл перенос» раньше строилась поразрядно по
+                // всем разрядам сразу. При одном переносе это ровно «ответ − 10» (17 + 18 → 25),
+                // а при двух давало мусор: 67 + 58 → 15, 64 + 57 → 11. Такой вариант отличался
+                // от ответа больше чем на треть в 42% случаев и отбрасывался, не считая.
+                // Теперь эта ошибка моделируется честно — см. tenDecoyFor.
                 pushStructural(structural, a - b, correctAnswer, isNegative);
             } else if (opKey === 'sub') {
                 const noBorrowMag = noBorrowSub(a, b);
@@ -2049,10 +2134,14 @@
             const used = new Set([correctAnswer]);
             const result = []; // числа и, возможно, строка 'NO_SOLUTION'
 
+            // Через этот фильтр проходит каждый вариант: невозможный ответ ученик
+            // отбрасывает не считая, и слот пропадает зря (см. plausibleWhole).
+            const plausible = (v) => plausibleWhole(opKey, a, b, v, isNegative);
+
             // Сначала — обязательный приоритет 1 (знак, нулевые кейсы умножения)
             for (const v of priority) {
                 if (result.length >= count) break;
-                if (!used.has(v)) { result.push(v); used.add(v); }
+                if (!used.has(v) && plausible(v)) { result.push(v); used.add(v); }
             }
 
             // "Нет решения" — отдельная сущность, тоже приоритет 1
@@ -2064,7 +2153,7 @@
             // Затем — структурные дистракторы, заполняем всё, что осталось (до 3 слотов)
             for (const v of structural) {
                 if (result.length >= count) break;
-                if (!used.has(v)) { result.push(v); used.add(v); }
+                if (!used.has(v) && plausible(v)) { result.push(v); used.add(v); }
             }
 
             // Остаток — случайный разброс. Масштаб считаем и от ответа, и от величины
@@ -2072,7 +2161,7 @@
             const scaleBase = Math.max(Math.abs(correctAnswer), Math.abs(a), Math.abs(b));
             const deltaMax = Math.max(3, Math.round(scaleBase * 0.15));
             let guard = 0;
-            while (result.length < count && guard < 100) {
+            while (result.length < count && guard < 200) {
                 guard++;
                 let delta = randInt(-deltaMax, deltaMax);
                 if (delta === 0) delta = 1;
@@ -2080,16 +2169,26 @@
                 if (!isNegative && fake < 0) continue;
                 if (fake === a || fake === b) continue;
                 if (used.has(fake)) continue;
+                if (!plausible(fake)) continue;
                 result.push(fake); used.add(fake);
             }
 
+            // Последний рубеж. Правдоподобных чисел рядом может физически не хватить:
+            // у 2 − 1 меньше уменьшаемого лежит ровно одно число, а слотов три. Пустой
+            // кнопки на экране быть не должно, поэтому после исчерпания попыток фильтр
+            // снимается. Случай редкий и только на самых маленьких примерах.
             let widen = deltaMax;
+            let relax = false;
             while (result.length < count) {
                 widen++;
+                // Сняв фильтр, начинаем поиск заново от ответа: иначе к моменту снятия
+                // счётчик уже уехал далеко, и в вариантах появляется нелепое «5 − 1 = 68».
+                if (!relax && widen > deltaMax + 60) { relax = true; widen = 1; }
                 const fake = correctAnswer + widen * (Math.random() < 0.5 ? -1 : 1);
                 if (!isNegative && fake < 0) continue;
                 if (fake === a || fake === b) continue; // выровнено с основным циклом выше
                 if (used.has(fake)) continue;
+                if (!relax && !plausible(fake)) continue;
                 result.push(fake); used.add(fake);
             }
 
@@ -3648,6 +3747,7 @@
             'таблица умножения':           'Ошибка в таблице умножения',
             'делил на ноль':               'Не заметил деления на ноль',
             'запятая не на месте':         'Запятая не на месте',
+            'ошибка в десятках':           'Единицы верные, ошибка в десятках',
             'не перенёс десяток':          'Не перенёс десяток',
             'не занял десяток':            'Не занял десяток при вычитании',
             'переставил числа':            'Поменял числа местами',
@@ -3682,6 +3782,7 @@
             'таблица умножения':           'таблица',
             'делил на ноль':               'деление на 0',
             'запятая не на месте':         'запятая',
+            'ошибка в десятках':           'мимо на десяток',
             'не перенёс десяток':          'без переноса',
             'не занял десяток':            'без займа',
             'переставил числа':            'числа местами',
@@ -3783,13 +3884,19 @@
 
             if (chosen === -correct && correct !== 0) return 'ошибся в знаке';
 
-            // Разряды: сложил столбиком, не перенеся десяток, или вычел, не заняв его.
-            // Это те же модели, по которым строятся варианты ответа, — см. buildDistractors.
+            // Единицы посчитаны верно, десятки — нет: 17 + 18 = 35, а названо 45 или 25.
+            // Проверяем раньше остальных разрядных моделей, потому что это самая частая
+            // ошибка и самая узкая примета — ровно десять мимо при верной последней цифре.
+            // Ярлык «не перенёс десяток» остался в словаре ради старых записей в журнале,
+            // но новые в него больше не пишутся: модель, по которой он ставился, считала
+            // разряды все сразу и на двух переносах давала не ошибку, а мусор.
+            if ((opKey === 'add' || opKey === 'sub') && Math.abs(chosen - correct) === 10) {
+                return 'ошибка в десятках';
+            }
+
+            // Разряды: вычел, не заняв десяток. Это та же модель, по которой строятся
+            // варианты ответа, — см. buildDistractors.
             if (haveOperands) {
-                if (opKey === 'add') {
-                    const nc = noCarryAdd(a, b);
-                    if (nc !== null && (chosen === nc || chosen === -nc)) return 'не перенёс десяток';
-                }
                 if (opKey === 'sub') {
                     const nb = noBorrowSub(a, b);
                     if (nb !== null && (chosen === nb || chosen === -nb)) return 'не занял десяток';
