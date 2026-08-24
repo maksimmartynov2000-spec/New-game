@@ -508,6 +508,158 @@ test('первая звезда: только суммы до десяти, бе
         `1★: пар с суммой ровно 10 вышло ${(share * 100).toFixed(1)}% вместо 30%`);
 });
 
+group('Вычитание положительных: то же устройство, что у сложения');
+
+function sampleSub(level, n) {
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(G.genSubPositive(level));
+    return out;
+}
+
+test('уменьшаемое в потолке, ответ сходится, нулей нет', () => {
+    // «7 − 0» и «7 − 7» раньше выпадали с одинаковой вероятностью 1/(a+1) и вместе
+    // занимали треть первой звезды. Ни то, ни другое ничему не учит.
+    const ceil = { 1: 10, 2: 20, 3: 50, 4: 100, 5: 200 };
+    for (let level = 1; level <= 5; level++) {
+        for (const p of sampleSub(level, 5000)) {
+            assert(p.a - p.b === p.answer, `${level}★: ответ не сходится в «${p.text}»`);
+            assert(p.b >= 1, `${level}★: «${p.text}» — вычитаемое ноль`);
+            assert(p.answer >= 1, `${level}★: «${p.text}» — ответ ноль`);
+            assert(p.a >= 2 && p.a <= ceil[level],
+                `${level}★: уменьшаемое ${p.a} вне потолка ${ceil[level]}`);
+        }
+    }
+});
+
+test('частоты полос по уменьшаемому те же, что у сложения', () => {
+    const N = 40000;
+    for (let level = 1; level <= 5; level++) {
+        const counts = [0, 0, 0, 0, 0];
+        for (const p of sampleSub(level, N)) {
+            const bi = bandOf(p.a);
+            assert(bi >= 0, `${level}★: уменьшаемое ${p.a} не попало ни в одну полосу`);
+            counts[bi]++;
+        }
+        const expected = ADD_WEIGHTS_EXPECTED[level];
+        for (let i = 0; i < counts.length; i++) {
+            const want = expected[i] || 0;
+            const got = counts[i] / N;
+            const tol = 0.01 + 0.02 * want;
+            assert(Math.abs(got - want) <= tol,
+                `${level}★ полоса ${ADD_BANDS_EXPECTED[i].join('-')}: ожидали ${(want * 100).toFixed(1)}%, вышло ${(got * 100).toFixed(1)}%`);
+        }
+    }
+});
+
+test('три класса заёма разложены по тем же долям', () => {
+    // Класс считается по вычитаемому и ответу — это два слагаемых зеркала b + c = a.
+    const N = 40000;
+    for (let level = 1; level <= 5; level++) {
+        const total = [0, 0, 0, 0, 0];
+        const byClass = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
+        for (const p of sampleSub(level, N)) {
+            const bi = bandOf(p.a);
+            total[bi]++;
+            byClass[bi][unitsClassOf(p.b, p.answer)]++;
+        }
+        for (let i = 0; i < total.length; i++) {
+            if (total[i] < 1000) continue;
+            const want = i === 0 ? ADD_CLASS_EXPECTED_SMALL : ADD_CLASS_EXPECTED;
+            for (let c = 0; c < 3; c++) {
+                const got = byClass[i][c] / total[i];
+                assert(Math.abs(got - want[c]) <= 0.03,
+                    `${level}★ полоса ${ADD_BANDS_EXPECTED[i].join('-')}, класс ${c}: `
+                    + `${(got * 100).toFixed(1)}% вместо ${(want[c] * 100).toFixed(0)}%`);
+            }
+        }
+    }
+});
+
+test('заём в вычитании и перенос в сложении — одно событие', () => {
+    // b%10 + c%10 = a%10 + 10·k, поэтому полный заём (последняя цифра уменьшаемого меньше
+    // последней цифры вычитаемого и сама не ноль) обязан совпадать с третьим классом.
+    for (let level = 2; level <= 5; level++) {
+        for (const p of sampleSub(level, 20000)) {
+            const borrow = (p.a % 10) < (p.b % 10) && (p.a % 10) !== 0;
+            const cls = unitsClassOf(p.b, p.answer);
+            assert(borrow === (cls === 2),
+                `${level}★: «${p.text}» — заём ${borrow}, а класс ${cls}`);
+        }
+    }
+});
+
+test('порог действует только на класс без заёма, 156 − 9 остаётся', () => {
+    const N = 30000;
+    let smallWithBorrow = 0;
+    for (let level = 2; level <= 5; level++) {
+        for (const p of sampleSub(level, N)) {
+            const bi = bandOf(p.a);
+            const min = Math.min(p.b, p.answer);
+            if (unitsClassOf(p.b, p.answer) === 0) {
+                assert(min >= ADD_FLOOR_EXPECTED[bi],
+                    `${level}★: «${p.text}» без заёма, а меньшее из пары ${min} ниже порога ${ADD_FLOOR_EXPECTED[bi]}`);
+            } else if (min < ADD_FLOOR_EXPECTED[bi]) {
+                smallWithBorrow++;
+            }
+        }
+    }
+    assert(smallWithBorrow > 0,
+        'не осталось примеров вида «трёхзначное минус однозначное с заёмом» (156 − 9)');
+});
+
+test('вычитание десятков не считается вычитанием из круглого', () => {
+    // 50 − 20 даёт сумму единиц ноль, а не десять: это вычитание десятков, и придержать
+    // такие примеры обязан порог, из-под которого средний класс выведен.
+    const missed = [];
+    for (let level = 3; level <= 5; level++) {
+        for (const p of sampleSub(level, 20000)) {
+            const bi = bandOf(p.a);
+            if (p.b % 10 === 0 && p.answer % 10 === 0
+                && Math.min(p.b, p.answer) < ADD_FLOOR_EXPECTED[bi]) {
+                missed.push(`${level}★ «${p.text}»`);
+            }
+        }
+    }
+    assert(missed.length === 0,
+        `вычитание десятков прошло мимо порога: ${missed.slice(0, 3).join(', ')}`);
+});
+
+test('первая звезда вычитания: 30% на вычитание из десяти, полного заёма нет', () => {
+    const N = 40000;
+    let fromTen = 0;
+    const counts = new Map();
+    for (const p of sampleSub(1, N)) {
+        assert(p.a >= 2 && p.a <= 10, `1★: уменьшаемое ${p.a} вне 2..10`);
+        assert(unitsClassOf(p.b, p.answer) !== 2, `1★: «${p.text}» с полным заёмом`);
+        if (p.a === 10) { fromTen++; counts.set(p.text, (counts.get(p.text) || 0) + 1); }
+    }
+    const share = fromTen / N;
+    assert(Math.abs(share - 0.30) <= 0.02,
+        `1★: вычитания из десяти вышло ${(share * 100).toFixed(1)}% вместо 30%`);
+    // Девять фактов идут поровну: вес к среднему классу не применяется.
+    assert(counts.size === 9, `фактов вида 10 − x нашлось ${counts.size} вместо девяти`);
+    for (const [text, n] of counts) {
+        const inside = n / fromTen;
+        assert(Math.abs(inside - 1 / 9) <= 0.025,
+            `«${text}» занимает ${(inside * 100).toFixed(1)}% вместо 11,1%`);
+    }
+});
+
+test('вес малых чисел действует и в вычитании', () => {
+    const N = 60000;
+    const byMin = [0, 0, 0, 0, 0, 0];
+    let inBand = 0;
+    for (const p of sampleSub(1, N)) {
+        const m = Math.min(p.b, p.answer);
+        byMin[m]++; inBand++;
+    }
+    const share = (m) => byMin[m] / inBand;
+    assert(share(1) < share(2),
+        `1★: с единицей ${(share(1) * 100).toFixed(1)}%, с двойкой ${(share(2) * 100).toFixed(1)}% — вес не работает`);
+    assert(share(1) < 0.27,
+        `1★: примеров, где вычитаемое или ответ равны единице, ${(share(1) * 100).toFixed(1)}%`);
+});
+
 group('Дроби: обещания уровней сложности');
 test('1★ сложение/вычитание — ответ никогда не требует сокращения', () => {
     const bad = [];
