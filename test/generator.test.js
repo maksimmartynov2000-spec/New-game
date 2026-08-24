@@ -319,7 +319,11 @@ const ADD_WEIGHTS_EXPECTED = {
     5: [0.01, 0.04, 0.125, 0.225, 0.60]
 };
 const ADD_FLOOR_EXPECTED = [1, 5, 8, 14, 24];
-const crossesTen = (a, b) => (a % 10 + b % 10) > 10;
+// 0 — без перехода, 1 — дополнение до круглого (сумма единиц ровно 10), 2 — полный переход
+const unitsClassOf = (a, b) => { const s = a % 10 + b % 10; return s < 10 ? 0 : (s === 10 ? 1 : 2); };
+const crossesTen = (a, b) => unitsClassOf(a, b) === 2;
+const ADD_CLASS_EXPECTED = [0.20, 0.10, 0.70];
+const ADD_CLASS_EXPECTED_SMALL = [0.70, 0.30, 0];
 
 function sampleAdd(level, n) {
     const out = [];
@@ -368,37 +372,67 @@ test('частоты полос сумм соответствуют заданн
     }
 });
 
-test('переход через десяток занимает 70% каждой полосы, кроме первой', () => {
-    // В полосе 2–10 перехода не бывает вовсе: сумма единиц равна самой сумме.
-    // 4 + 6 = 10 переходом не считается — это состав десятка, а не переход через него.
+test('три класса разложены по долям внутри каждой полосы', () => {
+    // Без перехода / дополнение до круглого / полный переход — 20/10/70.
+    // В полосе 2–10 полного перехода не бывает вовсе: сумма единиц равна самой сумме,
+    // а она не больше десяти. Там 70/30, и средний класс — девять пар состава десятка.
     const N = 40000;
     for (let level = 1; level <= 5; level++) {
-        const total = [0, 0, 0, 0, 0], carry = [0, 0, 0, 0, 0];
+        const total = [0, 0, 0, 0, 0];
+        const byClass = [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]];
         for (const p of sampleAdd(level, N)) {
             const bi = bandOf(p.answer);
             total[bi]++;
-            if (crossesTen(p.a, p.b)) carry[bi]++;
+            byClass[bi][unitsClassOf(p.a, p.b)]++;
         }
-        assert(carry[0] === 0, `${level}★: в полосе 2-10 нашёлся переход через десяток`);
-        for (let i = 1; i < total.length; i++) {
-            if (total[i] < 500) continue;   // слишком мало данных для доли
-            const got = carry[i] / total[i];
-            assert(Math.abs(got - 0.70) <= 0.03,
-                `${level}★ полоса ${ADD_BANDS_EXPECTED[i].join('-')}: переход в ${(got * 100).toFixed(1)}% вместо 70%`);
+        for (let i = 0; i < total.length; i++) {
+            if (total[i] < 1000) continue;   // слишком мало данных для доли
+            const want = i === 0 ? ADD_CLASS_EXPECTED_SMALL : ADD_CLASS_EXPECTED;
+            for (let c = 0; c < 3; c++) {
+                const got = byClass[i][c] / total[i];
+                assert(Math.abs(got - want[c]) <= 0.03,
+                    `${level}★ полоса ${ADD_BANDS_EXPECTED[i].join('-')}, класс ${c}: `
+                    + `${(got * 100).toFixed(1)}% вместо ${(want[c] * 100).toFixed(0)}%`);
+            }
         }
     }
 });
 
-test('порог на меньшее слагаемое действует только на примеры без перехода', () => {
+test('дополнение до круглого — это 36 + 4, а не 30 + 20', () => {
+    // Класс задуман ради приёма «дополнить до круглого». Сложение десятков в него
+    // попасть не должно: сумма единиц там ноль, а не десять, — и придержать такие
+    // примеры обязан порог, из-под которого класс дополнения выведен.
+    const missed = [];
+    let smallAndRound = 0;
+    for (let level = 3; level <= 5; level++) {
+        for (const p of sampleAdd(level, 20000)) {
+            const bi = bandOf(p.answer);
+            const min = Math.min(p.a, p.b);
+            if (p.a % 10 === 0 && p.b % 10 === 0 && min < ADD_FLOOR_EXPECTED[bi]) {
+                missed.push(`${level}★ «${p.text}»`);
+            }
+            if (unitsClassOf(p.a, p.b) === 1 && min < ADD_FLOOR_EXPECTED[bi]) smallAndRound++;
+        }
+    }
+    assert(missed.length === 0,
+        `сложение десятков прошло мимо порога: ${missed.slice(0, 3).join(', ')}`);
+    // И обратное: 36 + 4 и 88 + 12 обязаны остаться — к этому классу порог не применяется.
+    // Если однажды его туда распространят, приём «дополнить до круглого» исчезнет.
+    assert(smallAndRound > 0,
+        'не нашлось ни одного дополнения до круглого с маленьким слагаемым (36 + 4)');
+});
+
+test('порог на меньшее слагаемое действует только на класс без перехода', () => {
     // Без перехода маленькое слагаемое обесценивает пример (156 + 3 считать не надо),
-    // с переходом — нет (156 + 9 надо). Порог стоит там, где он что-то значит.
+    // с переходом — нет (156 + 9 надо), при дополнении до круглого — тоже нет (36 + 4).
+    // Порог стоит там, где он что-то значит.
     const N = 30000;
     const withCarryAndSmall = [0, 0, 0, 0, 0];
     for (let level = 2; level <= 5; level++) {
         for (const p of sampleAdd(level, N)) {
             const bi = bandOf(p.answer);
             const min = Math.min(p.a, p.b);
-            if (!crossesTen(p.a, p.b)) {
+            if (unitsClassOf(p.a, p.b) === 0) {
                 assert(min >= ADD_FLOOR_EXPECTED[bi],
                     `${level}★: «${p.text}» без перехода, а меньшее слагаемое ${min} ниже порога ${ADD_FLOOR_EXPECTED[bi]}`);
             } else if (min < ADD_FLOOR_EXPECTED[bi]) {
@@ -414,11 +448,18 @@ test('порог на меньшее слагаемое действует то�
         'в полосе 51-100 не осталось примеров с переходом и слагаемым меньше 14');
 });
 
-test('первая звезда не изменилась: только суммы до десяти, без перехода', () => {
-    for (const p of sampleAdd(1, 20000)) {
+test('первая звезда: только суммы до десяти, без полного перехода', () => {
+    let toTen = 0, total = 0;
+    for (const p of sampleAdd(1, 40000)) {
+        total++;
         assert(p.answer >= 2 && p.answer <= 10, `1★: сумма ${p.answer} вне 2..10`);
-        assert(!crossesTen(p.a, p.b), `1★: «${p.text}» с переходом через десяток`);
+        assert(!crossesTen(p.a, p.b), `1★: «${p.text}» с полным переходом через десяток`);
+        if (p.answer === 10) toTen++;
     }
+    // Состав числа 10 — главный сюжет первой звезды, ему отдано 30%.
+    const share = toTen / total;
+    assert(Math.abs(share - 0.30) <= 0.02,
+        `1★: пар с суммой ровно 10 вышло ${(share * 100).toFixed(1)}% вместо 30%`);
 });
 
 group('Дроби: обещания уровней сложности');
