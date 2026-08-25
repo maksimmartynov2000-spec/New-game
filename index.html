@@ -434,6 +434,16 @@
             padding: 7px 10px; border-radius: 8px;
             background: rgba(245,158,11,0.10); border: 1px solid rgba(245,158,11,0.25);
         }
+        /* Заголовок папки в списке учеников. Намеренно тихий: он делит список,
+           а не соревнуется с именами за внимание. */
+        .students-group {
+            font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
+            color: #94a3b8; font-weight: 700;
+            margin: 14px 0 6px; padding-bottom: 5px;
+            border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+        }
+        .students-group:first-child { margin-top: 0; }
+
         .list-row-main { flex: 1 1 100%; min-width: 0; }
         .list-row-name { font-size: 0.9rem; font-weight: bold; color: #f1f5f9; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
         .list-row-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; font-family: monospace; letter-spacing: 0.5px; }
@@ -960,6 +970,15 @@
         }
         textarea.dlg-input { min-height: 92px; resize: vertical; line-height: 1.4; }
         .dlg-hint { color: #64748b; font-size: 0.74rem; margin-top: 5px; }
+        /* Готовые варианты нажатием — там, где ответ обычно повторяет уже введённый
+           раньше (названия папок). Набирать одно и то же руками незачем. */
+        .dlg-picks { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+        .dlg-pick {
+            background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.14);
+            color: #cbd5e1; border-radius: 999px; padding: 5px 11px;
+            font-size: 0.78rem; font-family: inherit; cursor: pointer;
+        }
+        .dlg-pick.selected { background: rgba(6,182,212,0.15); border-color: var(--cyan); color: var(--cyan); }
         .dlg-err { color: #f87171; font-size: 0.84rem; margin-bottom: 12px; display: none; }
         .dlg-actions { display: flex; gap: 10px; margin-top: 4px; }
         .dlg-btn {
@@ -4994,6 +5013,7 @@
                     // РЕПЕТИТОРА, а не ученика — это рабочая запись преподавателя, и ученик
                     // не должен её видеть, открыв своё приложение.
                     studentNotes: {},
+                    studentGroups: {},     // { код ученика: название папки }
 
                     // Карточки эпох: замороженные сводки за прошедшие отрезки по 180 дней.
                     // { '1': { from, to, days, c, w, a, s, p, ms, mc, top: [...], badges: N } }
@@ -5152,6 +5172,12 @@
                 // запись целиком. Сливать пословно нечего, а склеивать две версии одной
                 // заметки было бы хуже, чем взять ту, что писали последней.
                 out.studentNotes = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.studentNotes : a.studentNotes) || {};
+
+                // Папки учеников — по той же причине, что и заметки: это раскладка,
+                // которую репетитор ведёт руками, а не прогресс, который надо копить.
+                // Побеждает более свежая запись целиком, иначе удалённая на одном
+                // устройстве папка возвращалась бы с другого.
+                out.studentGroups = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.studentGroups : a.studentGroups) || {};
 
                 // Кусочки пазла: если это одна и та же картинка — берём больший прогресс,
                 // если разные — берём тот, что записан позже.
@@ -5375,6 +5401,7 @@
                 pruneDaily(s.daily);
                 s.unlocks = toUnlockMap(s.unlocks);
                 if (!s.studentNotes || typeof s.studentNotes !== 'object' || Array.isArray(s.studentNotes)) s.studentNotes = {};
+                if (!s.studentGroups || typeof s.studentGroups !== 'object' || Array.isArray(s.studentGroups)) s.studentGroups = {};
                 if (!s.epochs || typeof s.epochs !== 'object' || Array.isArray(s.epochs)) s.epochs = {};
                 trimTopicSpeed(s.daily);
                 if (typeof s.profileLabel !== 'string') s.profileLabel = '';
@@ -5812,6 +5839,15 @@
                 epochLength() { return EPOCH_DAYS; },
 
                 // --- заметки репетитора об учениках ---
+                getStudentGroups() { return state.studentGroups || {}; },
+                getStudentGroup(code) { return (state.studentGroups || {})[code] || ''; },
+                setStudentGroup(code, name) {
+                    if (!code) return;
+                    if (!state.studentGroups || typeof state.studentGroups !== 'object') state.studentGroups = {};
+                    if (name) state.studentGroups[code] = name; else delete state.studentGroups[code];
+                    persistLocal();
+                },
+
                 getStudentNote(code) { return (state.studentNotes || {})[code] || ''; },
                 setStudentNote(code, text) {
                     if (!code) return;
@@ -8926,7 +8962,28 @@
                 wrap.appendChild(note);
             }
 
-            withSilence.forEach(({ s, days }) => {
+            // --- Раскладка по папкам ---
+            // Папка — это просто подпись, которую репетитор вешает на ученика: никакой
+            // силы у неё нет, ни на доступ, ни на прогресс она не влияет. Смысл один —
+            // чтобы на двадцати учениках список оставался списком, а не полотном.
+            //
+            // Именованные папки идут по алфавиту, «Без папки» — всегда последней: она
+            // не папка, а остаток, и держать её сверху значило бы прятать за ней всё
+            // разложенное. Внутри папки порядок прежний: молчащие наверх.
+            const groups = new Map();
+            withSilence.forEach(r => {
+                const g = Progress.getStudentGroup(r.s.code);
+                if (!groups.has(g)) groups.set(g, []);
+                groups.get(g).push(r);
+            });
+            const groupNames = [...groups.keys()].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ru'));
+            if (groups.has('')) groupNames.push('');
+
+            // Заголовки нужны, только когда папки вообще заведены: у одного репетитора
+            // с пятью учениками и без папок лишняя строка «Без папки» — это шум.
+            const showHeaders = groupNames.some(Boolean);
+
+            const renderRow = ({ s, days }) => {
                 const totals = s.totals || { correct: 0, wrong: 0 };
                 const total = (totals.correct || 0) + (totals.wrong || 0);
                 const pct = total > 0 ? Math.round((totals.correct || 0) / total * 100) + '%' : '—';
@@ -8944,6 +9001,7 @@
                     <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>
                     <button class="list-row-btn" data-act="grant" title="Открыть раздел">🔓</button>
                     <button class="list-row-btn" data-act="codes" title="Выданные коды">📋</button>
+                    <button class="list-row-btn" data-act="group" title="Папка">📁</button>
                     <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>
                     <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>
                 `;
@@ -8967,9 +9025,65 @@
                 row.querySelector('[data-act="grant"]').addEventListener('click', () => openIssueCode(s.code, s.label));
                 row.querySelector('[data-act="codes"]').addEventListener('click', () => openStudentCodes(s.code, s.label));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
+                row.querySelector('[data-act="group"]').addEventListener('click', () => editStudentGroup(s.code, s.label));
                 row.querySelector('[data-act="del"]').addEventListener('click', () => deleteStudentAccount(s.code));
                 wrap.appendChild(row);
+            };
+
+            groupNames.forEach(name => {
+                const rows = groups.get(name);
+                if (showHeaders) {
+                    const head = document.createElement('div');
+                    head.className = 'students-group';
+                    head.innerText = (name ? `📁 ${name}` : '📄 Без папки')
+                        + ` · ${rows.length} ${pluralStudents(rows.length)}`;
+                    wrap.appendChild(head);
+                }
+                rows.forEach(renderRow);
             });
+        }
+
+        // Папку задаём текстом, но существующие названия предлагаем нажатием: если
+        // «5 класс» и «5-й класс» станут двумя разными папками, толку от раскладки
+        // не будет никакого, а набирать одно и то же руками двадцать раз — тем более.
+        async function editStudentGroup(code, label) {
+            const all = Progress.getStudentGroups();
+            const known = [...new Set(Object.values(all).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'ru'));
+            const current = Progress.getStudentGroup(code);
+
+            const values = await askForm({
+                title: 'Папка ученика',
+                text: `Ученик: ${label || code}`,
+                build: (card) => {
+                    if (!known.length) return;
+                    const row = document.createElement('div');
+                    row.className = 'dlg-picks';
+                    known.forEach(name => {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.className = 'dlg-pick' + (name === current ? ' selected' : '');
+                        btn.innerText = name;
+                        // Поле ввода к этому моменту ещё не создано — ищем его при нажатии.
+                        btn.addEventListener('click', () => {
+                            const input = card.querySelector('.dlg-input');
+                            if (input) { input.value = name; input.focus(); }
+                        });
+                        row.appendChild(btn);
+                    });
+                    card.appendChild(row);
+                },
+                fields: [{
+                    key: 'name', label: 'Название папки', value: current,
+                    placeholder: 'например: 5 класс',
+                    autocapitalize: 'sentences',
+                    hint: 'Пустое поле — убрать из папки.'
+                }],
+                okText: 'Сохранить'
+            });
+            if (values === null) return;
+            Progress.setStudentGroup(code, values.name);
+            Progress.flush();
+            renderStudentsList();
         }
 
         async function viewStudentStats(code, summary) {
