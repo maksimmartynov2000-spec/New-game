@@ -1294,6 +1294,8 @@
 
         <div class="config-container">
             <div class="period-row" id="reportPeriodRow">
+                <button class="btn-period" data-period="today">Сегодня</button>
+                <button class="btn-period" data-period="yesterday">Вчера</button>
                 <button class="btn-period" data-period="7">Неделя</button>
                 <button class="btn-period selected" data-period="30">30 дней</button>
                 <button class="btn-period" data-period="90">90 дней</button>
@@ -1324,7 +1326,7 @@
             </div>
 
             <div class="report-block" id="repProgressBlock">
-                <div class="report-block-title">Динамика за период</div>
+                <div class="report-block-title" id="repProgressTitle">Динамика за период</div>
                 <div id="repProgressRows"></div>
                 <div class="report-chart" id="repChart"></div>
                 <div class="report-note" id="repProgressNote"></div>
@@ -4842,6 +4844,13 @@
         //  слияние = максимум по счётчикам и объединение по спискам, и потерять
         //  данные "последняя запись затёрла первую" структурно невозможно.
         // =====================================================================
+        // Идентификатор ступени лесенки: '<ключ темы>:<лесенка><ступень>', например
+        // 'integer+:add:1:s3'. Достижения «вообще» — старое 'streak7' и легаси
+        // 'master:fraction:add' — под это не подходят и нигде больше не считаются:
+        // достижения теперь бывают только по темам. Живёт здесь, а не рядом с лесенками,
+        // потому что нужен и модулю прогресса, который объявлен раньше.
+        const LADDER_ID_RE = /^(.+):([sac])([1-5])$/;
+
         const Progress = (() => {
             const LOCAL_KEY = 'mathCitadelState_v3';
             const SCHEMA = 2;
@@ -5415,8 +5424,15 @@
                         .filter(t => (t.c + t.w) >= 20)
                         .sort((x, y) => (y.c + y.w) - (x.c + x.w))
                         .slice(0, 6);
+                    // Только ступени лесенок. У старых профилей в unlocks могли остаться
+                    // достижения «вообще» из прошлой версии игры — они больше нигде не
+                    // показываются, и в счётчике их тоже быть не должно. Сами записи не
+                    // трогаем: удалять чужую историю ради счётчика ни к чему.
                     card.badges = Object.keys(state.unlocks || {})
-                        .filter(id => { const dt = state.unlocks[id]; return dt && dt >= from && dt <= to; }).length;
+                        .filter(id => {
+                            const dt = state.unlocks[id];
+                            return dt && dt >= from && dt <= to && LADDER_ID_RE.test(id);
+                        }).length;
                     state.epochs[n] = card;
                 }
             }
@@ -5720,9 +5736,7 @@
                     persistLocal();
                 },
 
-                // --- скины и достижения ---
-                isUnlocked(id) { return Object.prototype.hasOwnProperty.call(state.unlocks || {}, id); },
-                unlockedAt(id) { return (state.unlocks || {})[id] || null; },
+                // --- достижения ---
                 getUnlocks() { return state.unlocks || {}; },
                 unlock(id) {
                     if (!state.unlocks || typeof state.unlocks !== 'object') state.unlocks = {};
@@ -7859,11 +7873,6 @@
             return t;
         }
 
-        // Идентификатор ступени лесенки: '<ключ темы>:<лесенка><ступень>', например
-        // 'integer+:add:1:s3'. Общие достижения ('streak7') под это не подходят — там нет
-        // двоеточия; легаси 'master:fraction:add' тоже, там на конце не цифра.
-        const LADDER_ID_RE = /^(.+):([sac])([1-5])$/;
-
         // Даты ступеней, разложенные по темам: { тема: { ступень: { s, a, c } } }.
         // Отдельно нигде не хранится, считается из уже сохранённых достижений.
         function ladderDatesByTopic(unlocks) {
@@ -8072,7 +8081,9 @@
         document.getElementById('reportPeriodRow').addEventListener('click', (e) => {
             const btn = e.target.closest('.btn-period');
             if (!btn) return;
-            reportPeriod = Number(btn.getAttribute('data-period'));
+            reportPeriod = /^\d+$/.test(btn.getAttribute('data-period'))
+                ? Number(btn.getAttribute('data-period'))
+                : btn.getAttribute('data-period');
             document.getElementById('reportPeriodInput').value = '';
             renderReport();
         });
@@ -8117,31 +8128,46 @@
             const st = reportStudent.state;
             const daily = st.daily || {};
             const today = Progress.dayKey();
-            const fromKey = shiftDayKey(today, -(reportPeriod - 1));
+
+            // Как и на экране статистики: «вчера» кончается не сегодня, поэтому у периода
+            // есть и конец, а не только начало.
+            const isYesterday = reportPeriod === 'yesterday';
+            const isOneDay = isYesterday || reportPeriod === 'today' || reportPeriod === 1;
+            const spanDays = isOneDay ? 1 : reportPeriod;
+            const toKey = isYesterday ? shiftDayKey(today, -1) : today;
+            const fromKey = shiftDayKey(toKey, -(spanDays - 1));
 
             document.querySelectorAll('#reportPeriodRow .btn-period').forEach(b => {
-                b.classList.toggle('selected', Number(b.getAttribute('data-period')) === reportPeriod);
+                const dp = b.getAttribute('data-period');
+                b.classList.toggle('selected', /^\d+$/.test(dp) ? Number(dp) === reportPeriod : dp === reportPeriod);
             });
 
-            const cur = aggregateDaily(daily, fromKey, today);
+            const cur = aggregateDaily(daily, fromKey, toKey);
             document.getElementById('reportName').innerText = reportStudent.label;
-            document.getElementById('reportPeriod').innerText =
-                `${formatDayKeyHuman(fromKey)} — ${formatDayKeyHuman(today)}`;
+            document.getElementById('reportPeriod').innerText = isOneDay
+                ? formatDayKeyHuman(toKey)
+                : `${formatDayKeyHuman(fromKey)} — ${formatDayKeyHuman(toKey)}`;
 
             // --- Занятия ---
-            document.getElementById('repDays').innerText = `${cur.days} / ${reportPeriod}`;
+            document.getElementById('repDays').innerText = `${cur.days} / ${spanDays}`;
             document.getElementById('repTime').innerText = formatDuration(cur.s);
-            document.getElementById('repStreak').innerText = longestStreak(daily, fromKey, today);
+            document.getElementById('repStreak').innerText = longestStreak(daily, fromKey, toKey);
             document.getElementById('repSolved').innerText = cur.c + cur.w;
 
             // --- Динамика: первая половина периода против второй ---
             // Сравниваем именно половины, а не первый день с последним: один неудачный
             // день иначе переворачивал бы всю картину.
-            const midKey = shiftDayKey(fromKey, Math.floor(reportPeriod / 2) - 1);
-            const firstHalf = aggregateDaily(daily, fromKey, midKey);
-            const secondHalf = aggregateDaily(daily, shiftDayKey(midKey, 1), today);
+            // У однодневного периода половин нет: делить один день пополам нечестно,
+            // поэтому там сразу показываются средние за день (ветка ниже это умеет).
+            const EMPTY_HALF = aggregateDaily({}, '9999-01-01', '9999-01-01');
+            const midKey = shiftDayKey(fromKey, Math.floor(spanDays / 2) - 1);
+            const firstHalf = isOneDay ? EMPTY_HALF : aggregateDaily(daily, fromKey, midKey);
+            const secondHalf = isOneDay ? EMPTY_HALF : aggregateDaily(daily, shiftDayKey(midKey, 1), toKey);
             const rows = document.getElementById('repProgressRows');
             const note = document.getElementById('repProgressNote');
+            document.getElementById('repProgressTitle').innerText = isOneDay
+                ? (isYesterday ? 'Итоги за вчера' : 'Итоги за сегодня')
+                : 'Динамика за период';
             rows.innerHTML = '';
             note.innerText = '';
 
@@ -8182,13 +8208,18 @@
             // Подпись зависит от того, что реально удалось показать: обещать "средние за
             // период" там, где не выведено ни одной строки, — значит сбить читателя с толку.
             if (!rows.children.length) {
-                note.innerText = 'За этот период занятий не было.';
+                note.innerText = isOneDay ? 'В этот день занятий не было.' : 'За этот период занятий не было.';
+            } else if (isOneDay) {
+                note.innerText = 'За один день сравнивать не с чем — здесь средние за этот день.';
             } else if (accA === null || accB === null) {
                 note.innerText = 'Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.';
             }
 
             // --- Недельный график: сколько решено и с какой точностью ---
-            renderReportChart(daily, fromKey, today);
+            // Недельные столбики за один день — это один столбик с подписью «1 нед».
+            // За день график не рисуем: цифры выше и так всё сказали.
+            if (isOneDay) document.getElementById('repChart').style.display = 'none';
+            else renderReportChart(daily, fromKey, toKey);
 
             // --- Темы: сначала уверенные, потом те, что в работе ---
             // Уровни сложности схлопываем, как и на экране статистики: родителю нужна
@@ -8240,7 +8271,7 @@
             // Показываем две настоящие вехи — открытие следующей звезды и мастерство, —
             // а отдельные ступени сворачиваем в одну строку счётчиком.
             const unlocks = st.unlocks || {};
-            const inPeriod = (d) => d && d !== '?' && d >= fromKey && d <= today;
+            const inPeriod = (d) => d && d !== '?' && d >= fromKey && d <= toKey;
             const earned = [];
 
             gatePromotions(unlocks)
