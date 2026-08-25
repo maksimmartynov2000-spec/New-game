@@ -1093,6 +1093,7 @@
         <button class="menu-btn" onclick="menuGoCollection()">🏆 <span>Коллекция парадоксов</span></button>
         <button class="menu-btn" onclick="menuGoPuzzle()">🧩 <span>Текущий пазл</span></button>
         <button class="menu-btn" onclick="menuGoSettings()">⚙️ <span>Сменить настройки примеров</span></button>
+        <button class="menu-btn sound-toggle" onclick="toggleSound()">🔊 <span>Звук включён</span></button>
 
         <div class="menu-section-label">Мой код</div>
         <div class="menu-stat-card" style="text-align:center;">
@@ -1117,6 +1118,7 @@
         <button class="menu-btn" onclick="startMenuGoStats()">📊 <span>Статистика</span></button>
         <button class="menu-btn" onclick="startMenuGoAchievements()">🏅 <span>Достижения</span></button>
         <button class="menu-btn" onclick="startMenuGoProfile()">👤 <span>Профиль</span></button>
+        <button class="menu-btn sound-toggle" onclick="toggleSound()">🔊 <span>Звук включён</span></button>
     </div>
 
     <!-- Панель закрытого раздела: объясняет, почему закрыто, и что с этим делать. -->
@@ -4631,6 +4633,88 @@
             }, life);
         }
 
+        // ===================== ЗВУК =====================
+        // Звуки не лежат файлами и не качаются: они собираются на месте из синусоид через
+        // WebAudio. Причина простая — приложение живёт одним файлом и должно работать
+        // офлайн, а пять коротких сигналов в mp3 весили бы больше, чем весь остальной код.
+        // Синус к тому же самый мягкий звук из возможных: у него нет обертонов, поэтому он
+        // не режет ухо даже на дешёвом динамике планшета.
+        //
+        // Включённость звука — настройка устройства, а не профиля: она про то, тихо ли
+        // в комнате, а не про то, кто решает. Поэтому localStorage, а не синхронизируемый
+        // прогресс — иначе выключенный дома звук включался бы на занятии у репетитора.
+        const SOUND_KEY = 'mathCitadelSound_v1';
+        let soundOn = (() => {
+            try { return localStorage.getItem(SOUND_KEY) !== 'off'; } catch (e) { return true; }
+        })();
+        let audioCtx = null;
+
+        // Контекст создаётся лениво и только по ходу игры. На айпаде звук вообще не
+        // заводится, пока страница не получила касание, поэтому создавать его заранее
+        // бессмысленно: он родится в состоянии suspended и останется немым.
+        function audioOut() {
+            if (!soundOn) return null;
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!Ctx) return null;
+            if (!audioCtx) {
+                try { audioCtx = new Ctx(); } catch (e) { return null; }
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+            return audioCtx;
+        }
+
+        // Одна нота. Фронты сглажены намеренно: включить и выключить синусоиду мгновенно —
+        // это разрыв в волне, и слышен он как щелчок, который громче самой ноты.
+        function playTone(ctx, freq, delayMs, durMs, peak) {
+            const t0 = ctx.currentTime + delayMs / 1000;
+            const t1 = t0 + durMs / 1000;
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, t0);
+            gain.gain.setValueAtTime(0.0001, t0);
+            gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
+            gain.gain.exponentialRampToValueAtTime(0.0001, t1);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(t0);
+            osc.stop(t1 + 0.02);
+        }
+
+        // [частота, задержка мс, длительность мс, громкость]. Громкость везде маленькая:
+        // это отклик на действие, а не музыка, и перебивать голос репетитора он не должен.
+        //
+        // «Верно» — две ноты вверх, «ошибка» — две вниз и ниже тоном: направление слышно
+        // раньше, чем осознаётся сам звук. Ошибка при этом намеренно не резкая — она
+        // отмечает событие, а не ругает.
+        const SOUNDS = {
+            correct: [[660, 0, 90, 0.06], [988, 65, 120, 0.05]],
+            wrong:   [[196, 0, 190, 0.06], [147, 110, 240, 0.05]],
+            achieve: [[523, 0, 120, 0.06], [659, 95, 120, 0.06],
+                      [784, 190, 120, 0.06], [1047, 285, 300, 0.07]]
+        };
+
+        function playSound(name) {
+            const ctx = audioOut();
+            if (!ctx) return;
+            (SOUNDS[name] || []).forEach(n => playTone(ctx, n[0], n[1], n[2], n[3]));
+        }
+
+        function setSoundOn(on) {
+            soundOn = !!on;
+            try { localStorage.setItem(SOUND_KEY, soundOn ? 'on' : 'off'); } catch (e) { /* хранилище недоступно */ }
+            refreshSoundButtons();
+            if (soundOn) playSound('correct');   // чтобы было слышно, что именно включили
+        }
+
+        function refreshSoundButtons() {
+            document.querySelectorAll('.sound-toggle').forEach(b => {
+                b.innerHTML = soundOn ? '🔊 <span>Звук включён</span>' : '🔇 <span>Звук выключен</span>';
+            });
+        }
+
+        function toggleSound() { setSoundOn(!soundOn); }
+
         // Единственный открытый диалог за раз. Если что-то попробует открыть второй
         // поверх первого, первый честно завершится отменой, а не потеряется молча.
         let dialogClose = null;
@@ -8063,6 +8147,7 @@
             el.appendChild(icon);
             el.appendChild(body);
             wrap.appendChild(el);
+            playSound('achieve');
             buildSparks(18, 'var(--gold)');
 
             setTimeout(() => {
@@ -9713,6 +9798,7 @@
                 if (state.combo >= COMBO_FRENZY_AT) badge.classList.add('frenzy');
                 else badge.classList.remove('frenzy');
 
+                playSound('correct');
                 spawnRewardText('Верно!', clickX, clickY, '#22d3ee', false);
                 buildSparks(12, 'var(--cyan)');
 
@@ -9781,6 +9867,7 @@
                 badge.style.display = 'none';
                 badge.classList.remove('frenzy');
 
+                playSound('wrong');
                 if (clickedBtn) clickedBtn.classList.add('btn-wrong');
                 spawnRewardText('Ошибка!', clickX, clickY, '#f87171', false);
                 buildSparks(10, '#ef4444');
@@ -10027,6 +10114,7 @@
         // заново каждый раз (Progress.setConfig() всё ещё сохраняет последний выбор
         // в state — это часть схемы синхронизации, но на экран он больше не влияет).
         refreshSectionLocks();
+        refreshSoundButtons();   // подпись кнопки должна совпадать с тем, что запомнило устройство
         bootCodeScreen();
 
         // Офлайн-режим. Регистрируем после загрузки страницы, чтобы не отнимать канал
