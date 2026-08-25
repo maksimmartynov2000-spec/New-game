@@ -6592,7 +6592,9 @@
             document.getElementById('puzzleLiveSection').style.display = visible ? 'none' : '';
         }
         document.getElementById('puzzleMiniBtn').addEventListener('click', openPuzzleModal);
-        document.getElementById('puzzleCloseBtn').addEventListener('click', closePuzzleModal);
+        // Крестик ведёт по тому же пути, что и кнопка: иначе закрытие им обрывало бы
+        // показ отложенных пазлов и экран итогов не открылся бы вовсе.
+        document.getElementById('puzzleCloseBtn').addEventListener('click', () => dismissPuzzleReveal());
 
         // Снимок только что собранной картинки — независим от того, какой пазл стартует сейчас.
         let lastCompletedSrc = null;
@@ -6672,20 +6674,50 @@
                 document.getElementById('completeParadoxBody').innerText = px.body;
             }
 
+            // Показ откладывается до конца испытания. Раньше окно открывалось прямо
+            // посреди потока примеров — примерно раз в 140 ответов, то есть раз за
+            // занятие. Сама картинка с историей парадокса при этом не помеха, а награда,
+            // поэтому она никуда не девается: просто ждёт естественной паузы.
+            pendingPuzzleReveals.push({
+                index: completedIndex,
+                src: completedSrc,
+                paths: completedPaths,
+                collectedCount
+            });
+            // Сигнал всё-таки нужен сразу: иначе сотый кусочек встаёт, и внешне не
+            // происходит ничего — ученик может не заметить, что вообще что-то случилось.
+            showToast('🧩 Пазл собран! Покажу в конце испытания.', 'ok');
+            Progress.flush(); // контрольная точка синхронизации
+        }
+
+        // Собранные, но ещё не показанные пазлы. За одно испытание их обычно ноль или
+        // один: сотня кусочков минус два за ошибку — это около 140 ответов.
+        let pendingPuzzleReveals = [];
+
+        // Показывает следующий отложенный пазл. Возвращает false, если показывать нечего.
+        function showNextPuzzleReveal() {
+            const item = pendingPuzzleReveals.shift();
+            if (!item) return false;
+
+            const px = PARADOXES[item.index];
+            if (px) {
+                document.getElementById('completeParadoxName').innerText = px.name;
+                document.getElementById('completeParadoxEra').innerText = px.era;
+                document.getElementById('completeParadoxHook').innerText = px.hook;
+                document.getElementById('completeParadoxBody').innerText = px.body;
+            }
             document.getElementById('puzzleCompleteStats').innerText =
                 `⏱️ Время: ${formatTime(totalSeconds)}  |  ✅ ${correctCount}  |  ❌ ${wrongCount}  |  🧩 Пазлов собрано: ${puzzlesCompletedCount}`;
             document.getElementById('collectionAddedLine').innerText =
-                `🏆 Добавлено в коллекцию! (${collectedCount}/${PUZZLE_IMAGE_SRCS.length})`;
+                `🏆 Добавлено в коллекцию! (${item.collectedCount}/${PUZZLE_IMAGE_SRCS.length})`;
 
             const imgEl = document.getElementById('puzzleCompleteImg');
             imgEl.removeAttribute('src');
-            renderSnapshotDataURL(completedSrc, completedPaths, (dataUrl) => {
-                imgEl.src = dataUrl;
-            });
+            renderSnapshotDataURL(item.src, item.paths, (dataUrl) => { imgEl.src = dataUrl; });
 
             setPuzzleCompleteVisible(true);
             openPuzzleModal();
-            Progress.flush(); // контрольная точка синхронизации
+            return true;
         }
 
         // ===== ОКНО КОЛЛЕКЦИИ =====
@@ -8932,9 +8964,18 @@
         document.getElementById('btnDetailBack').addEventListener('click', showCollectionList);
         document.getElementById('collectionCloseBtn').addEventListener('click', closeCollectionModal);
 
-        // "Продолжить игру" — просто закрывает окно поздравления, без перезагрузки страницы:
-        // новый пазл уже давно собирается в фоне, прогресс никуда не делся.
-        document.getElementById('btnContinuePlaying').addEventListener('click', closePuzzleModal);
+        // Закрытие окна поздравления. Если за испытание собрался ещё один пазл — показываем
+        // его следом; если больше нечего, а игра уже завершена — открываем экран итогов,
+        // который всё это время ждал за окном пазла.
+        function dismissPuzzleReveal() {
+            closePuzzleModal();
+            // Окно могли открыть и по ходу игры, тапнув по миниатюре, — тогда просто
+            // закрываем и ничего не показываем следом.
+            if (gameActive) return;
+            if (showNextPuzzleReveal()) return;
+            document.getElementById('winScreen').classList.add('active');
+        }
+        document.getElementById('btnContinuePlaying').addEventListener('click', dismissPuzzleReveal);
 
         // ===================== ИГРОВАЯ ЛОГИКА (минимальная) =====================
         let gameActive = false;
@@ -9084,6 +9125,9 @@
         function startGame() {
             gameActive = true;
             sessionMistakes = []; // новое испытание — разбор начинается с чистого листа
+            // Отложенные пазлы тоже: показывать прошлый выигрыш вместе со статистикой
+            // текущего испытания было бы враньём, а картинка и так лежит в коллекции.
+            pendingPuzzleReveals = [];
             resizeCanvas();
             initPuzzle();
             generateMath();
@@ -9714,7 +9758,11 @@
             mistakesBtn.style.display = sessionMistakes.length ? '' : 'none';
             mistakesBtn.innerText = `📋 Разбор ошибок (${sessionMistakes.length})`;
 
-            document.getElementById('winScreen').classList.add('active');
+            // Собранные за испытание пазлы показываем здесь — в естественной паузе,
+            // а не посреди потока примеров. Экран итогов ждёт за ними.
+            if (!showNextPuzzleReveal()) {
+                document.getElementById('winScreen').classList.add('active');
+            }
             Progress.flush(); // контрольная точка синхронизации
         });
 
