@@ -60,22 +60,29 @@ const metrics = (o) => Object.assign({
 
 group('Порог выборки растёт вместе со ступенью');
 
-test('идеальная точность на тридцати ответах даёт серебро, а не легенду', () => {
-    // Тридцать из тридцати — не доказательство 99%: доверительный интервал тянется
-    // примерно от 88% до 100%. Именно здесь раньше выдавалось пять ступеней разом.
-    const t = L.ladderTierByMetrics('a', metrics({ attempts: 30, accuracy: 100 }), 1, 'integer');
-    eq(t, 2, 'ступень точности при 100% на 30 ответах');
+test('порог выборки совпадает с порогами количества', () => {
+    // Одно правило на все три лесенки: «бронза за двадцать пять» значит одно и то же
+    // везде. Раньше здесь стояло 30, не совпадавшее ни с чем.
+    eq(L.LADDER_MIN_SAMPLE[0], L.COUNT_TIERS[0], 'бронза');
+    eq(L.LADDER_MIN_SAMPLE[1], L.COUNT_TIERS[1], 'серебро');
+    eq(L.LADDER_MIN_SAMPLE[2], L.COUNT_TIERS[2], 'золото');
+    // Выше золота порог упирается в размер окна: больше сотни оно не помнит.
+    eq(L.LADDER_MIN_SAMPLE[3], 100, 'алмаз — потолок окна');
+    eq(L.LADDER_MIN_SAMPLE[4], 100, 'легенда — потолок окна');
 });
 
-test('золото по точности требует пятидесяти ответов', () => {
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 49, accuracy: 100 }), 1, 'integer'), 2, 'на 49 ответах');
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 50, accuracy: 100 }), 1, 'integer'), 3, 'на 50 ответах');
+test('идеальная точность на двадцати шести ответах даёт бронзу, а не легенду', () => {
+    // Ровно случай со скриншота: 26 верных, точность 90%. Бронза положена, легенда нет.
+    eq(L.ladderTierByMetrics('a', metrics({ attempts: 24, accuracy: 100 }), 1, 'integer'), 0, 'на 24 ответах ничего');
+    eq(L.ladderTierByMetrics('a', metrics({ attempts: 26, accuracy: 90 }), 1, 'integer'), 1, 'на 26 ответах при 90% — бронза');
+    eq(L.ladderTierByMetrics('a', metrics({ attempts: 26, accuracy: 100 }), 1, 'integer'), 1, 'даже при 100% — только бронза');
 });
 
-test('легенда по точности требует полного окна', () => {
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 75, accuracy: 100 }), 1, 'integer'), 4, 'на 75 ответах — алмаз');
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 99, accuracy: 100 }), 1, 'integer'), 4, 'на 99 ответах ещё алмаз');
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 100, accuracy: 100 }), 1, 'integer'), 5, 'на 100 ответах легенда');
+test('серебро требует шестидесяти ответов, золото — сотни', () => {
+    eq(L.ladderTierByMetrics('a', metrics({ attempts: 59, accuracy: 100 }), 1, 'integer'), 1, 'на 59 ответах');
+    eq(L.ladderTierByMetrics('a', metrics({ attempts: 60, accuracy: 100 }), 1, 'integer'), 2, 'на 60 ответах');
+    eq(L.ladderTierByMetrics('a', metrics({ attempts: 99, accuracy: 100 }), 1, 'integer'), 2, 'на 99 ответах ещё серебро');
+    eq(L.ladderTierByMetrics('a', metrics({ attempts: 100, accuracy: 100 }), 1, 'integer'), 5, 'на сотне сразу легенда, если точность идеальна');
 });
 
 test('слабая точность не поднимается выше своей ступени даже на полном окне', () => {
@@ -85,10 +92,10 @@ test('слабая точность не поднимается выше сво�
 
 test('у скорости тот же порог выборки', () => {
     const fast = { speedSec: 1.0 };
-    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 30 }, fast)), 1, 'integer'), 2, 'на 30 верных');
-    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 50 }, fast)), 1, 'integer'), 3, 'на 50 верных');
-    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 100 }, fast)), 1, 'integer'), 5, 'на 100 верных');
-    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 29 }, fast)), 1, 'integer'), 0, 'на 29 верных ничего');
+    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 24 }, fast)), 1, 'integer'), 0, 'на 24 верных ничего');
+    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 25 }, fast)), 1, 'integer'), 1, 'на 25 верных бронза');
+    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 60 }, fast)), 1, 'integer'), 2, 'на 60 верных серебро');
+    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 100 }, fast)), 1, 'integer'), 5, 'на сотне легенда');
 });
 
 test('количество порогом выборки не ограничено — оно само и есть выборка', () => {
@@ -111,7 +118,7 @@ test('ворота стоят на золоте, а золото — это тр
     // Числа ворот берутся из тех же таблиц, что показывает экран достижений.
     eq(L.ACCURACY_TIERS[2], 90, 'золото по точности');
     eq(L.COUNT_TIERS[2], 100, 'золото по количеству');
-    eq(L.LADDER_MIN_SAMPLE[2], 50, 'выборка для золота');
+    eq(L.LADDER_MIN_SAMPLE[2], 100, 'выборка для золота');
 });
 
 console.log('\n' + '─'.repeat(50));
