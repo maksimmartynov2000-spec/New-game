@@ -1368,7 +1368,7 @@
             <button id="btnBackToCategory" style="align-self:flex-start; background:none; border:none; color:#94a3b8; font-size:0.95rem; margin-bottom:8px; margin-left:4px; cursor:pointer; line-height:1;">◀️ назад</button>
             <div class="config-container">
                 <div class="config-section">
-                    <div class="config-section-title">1️⃣ Режимы вычислений</div>
+                    <div class="config-section-title">1️⃣ Что тренируем</div>
                     <div class="op-select-grid" id="opSelectGrid">
                         <button class="btn-op" data-op="add">➕ Сложение</button>
                         <button class="btn-op" data-op="sub">➖ Вычитание</button>
@@ -1389,9 +1389,9 @@
                 </div>
 
                 <div class="config-section" id="difficultyContainer" style="display:none;">
-                    <div class="config-section-title">2️⃣ Сложность по режимам</div>
+                    <div class="config-section-title">2️⃣ Сложность</div>
                     <div id="difficultyList"></div>
-                    <div class="config-hint">Для каждого выбранного режима — своя сложность</div>
+                    <div class="config-hint">Одно испытание — один вид примеров на одной звезде</div>
                 </div>
             </div>
             <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">⚔️ Начать испытание</button>
@@ -1638,17 +1638,34 @@
             if (changed) { renderDifficultyList(); updateConfigValidity(); }
         }
 
+        // Режим выбирается ОДИН. Вся конструкция приложения построена вокруг клетки
+        // «раздел · действие · звезда»: по ней идут ворота, лесенки, разбор по типам
+        // примеров и коды репетитора. Занятие, размазанное на четыре клетки, продвигает
+        // каждую на четверть, и ученик не видит движения ни в одной.
+        //
+        // Перемешивание типов при этом полезно — оно даёт лучшее удержание, чем практика
+        // блоками. Но как галочка в настройках оно конкурирует с практикой (и проигрывает
+        // привычке), поэтому вернётся отдельным режимом «проверка», а не опцией здесь.
+        //
+        // Форма exampleConfig.operations не меняется: это по-прежнему { режим: звезда },
+        // просто ключ в нём ровно один. Всё, что читает конфиг ниже по течению, работает
+        // как работало.
         document.querySelectorAll('.btn-op').forEach(btn => {
             btn.addEventListener('click', () => {
                 if (btn.classList.contains('disabled-op')) return; // затухшая кнопка недоступна
                 const op = btn.getAttribute('data-op');
-                if (btn.classList.contains('selected')) {
-                    btn.classList.remove('selected');
-                    delete exampleConfig.operations[op];
-                } else {
-                    btn.classList.add('selected');
-                    exampleConfig.operations[op] = null; // сложность ещё не выбрана
-                }
+                if (btn.classList.contains('selected')) return;    // уже выбран — снимать нечего
+
+                // Звезда переносится на новый режим, если она там открыта: обычно человек
+                // меняет действие, а не сложность, и заново тыкать ту же звезду незачем.
+                const prevLevel = Object.values(exampleConfig.operations)[0];
+                const secKey = sectionKeyOf(exampleConfig.category, exampleConfig.numberType);
+                const keepLevel = (prevLevel && isLevelOpen(secKey, op, prevLevel)) ? prevLevel : null;
+
+                document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('selected'));
+                btn.classList.add('selected');
+                exampleConfig.operations = { [op]: keepLevel };
+
                 renderDifficultyList();
                 updateConfigValidity();
             });
@@ -9040,8 +9057,13 @@
             }, 100);
 
             const isNegative = exampleConfig.numberType === 'negative';
+            // Режим в испытании ровно один — см. выбор режима на экране настройки.
+            // Случайный выбор из нескольких оставлен на случай старой сохранённой
+            // настройки: она в игру не подставляется, но лишний раз падать незачем.
             const opsKeys = Object.keys(exampleConfig.operations);
-            const opKey = opsKeys[Math.floor(Math.random() * opsKeys.length)];
+            const opKey = opsKeys.length === 1
+                ? opsKeys[0]
+                : opsKeys[Math.floor(Math.random() * opsKeys.length)];
             const level = exampleConfig.operations[opKey];
 
             currentProblemMeta = { isNegative, opKey, level, category: exampleConfig.category };
