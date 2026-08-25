@@ -608,6 +608,11 @@
         }
         .stats-counter-row span { font-weight: bold; }
         .stats-counter-row.live-row { font-size: 0.7rem; margin-top: -6px; gap: 12px; }
+        /* Медальный счётчик считается за всё время, а точность со скоростью — за забег.
+           Черта отделяет одно от другого: без неё три числа в ряд читаются как однородные. */
+        .stats-counter-row.live-row .live-sep {
+            border-left: 1px solid rgba(255,255,255,0.14); padding-left: 12px;
+        }
 
         .timer-bar-container { width: 100%; height: 5px; background: rgba(255,255,255,0.05); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
         .timer-bar { width: 100%; height: 100%; background: var(--cyan); }
@@ -1457,14 +1462,15 @@
                 <div>✅ Верно: <span id="stat-correct" style="color:#10b981;">0</span></div>
                 <div>❌ Ошибки: <span id="stat-wrong" style="color:#ef4444;">0</span></div>
             </div>
-            <!-- Точность и скорость — ЗА ИСПЫТАНИЕ, и это подписано. Окно лесенки в сто
-                 ответов почти не двигается: у ученика с пятью сотнями решённых один ответ
-                 сдвигает его на процент, и как живая обратная связь это бесполезно.
-                 А счётчик справа — уже от лесенки, он и открывает следующую звезду. -->
+            <!-- Точность и скорость — за текущий забег: окно лесенки в сто ответов почти
+                 не двигается и как живая обратная связь бесполезно. Подписи «за испытание»
+                 нет намеренно — рядом стоят «Верно» и «Ошибки» того же забега, и в этом
+                 ряду всё читается однозначно. А счётчик за чертой — уже от лесенки,
+                 он пожизненный и открывает следующую звезду. -->
             <div class="stats-counter-row live-row" id="liveStatsRow">
-                <div>за испытание: 🎯 <span id="live-acc">—</span></div>
+                <div>🎯 <span id="live-acc">—</span></div>
                 <div>⚡ <span id="live-speed">—</span></div>
-                <div id="live-goal-wrap">→ <span id="live-goal">—</span></div>
+                <div class="live-sep" id="live-goal-wrap"><span id="live-goal">—</span></div>
             </div>
             <div class="badge-container">
                 <div class="combo-badge" id="comboBadge" style="display:none;">Серия: 🔥 х1.0</div>
@@ -7726,17 +7732,20 @@
 
         // Сколько последних попыток считаем "текущей формой".
         const LADDER_WINDOW = 100;
-        // Сколько ответов должно быть в окне, чтобы выдать ступень. Порог растёт вместе
-        // со ступенью, и это не украшение: тридцать верных ответов подряд — не
-        // доказательство 99% точности. При 30 из 30 доверительный интервал тянется
-        // примерно от 88% до 100%, то есть ученик показал «ни разу не ошибся на короткой
-        // дистанции», а не заявленную точность.
+        // Сколько ответов должно быть в окне, чтобы выдать ступень.
         //
-        // Легенда требует полного окна — значит она и означает ровно то, что написано.
-        // Побочный и очень нужный эффект: ступени перестают выдаваться пачкой. Раньше на
-        // тридцатом ответе разом выпадало десять достижений — все пять ступеней точности
-        // и все пять скорости, — потому что порог был один на всех.
-        const LADDER_MIN_SAMPLE = [30, 30, 50, 75, 100];
+        // Числа взяты не с потолка: это ровно пороги количества (25 / 60 / 100 / 150 / 250),
+        // обрезанные размером окна. Правило получается одно на все три лесенки — «бронза
+        // за двадцать пять» значит одно и то же везде. Раньше здесь стояло 30, не совпадавшее
+        // ни с чем, и экран показывал «до Бронзы: 80%» при точности 90%: значение подходило,
+        // а выборки не хватало, и понять это было нельзя.
+        //
+        // Выше золота порог упирается в потолок: окно помнит последнюю сотню ответов,
+        // больше в него не влезает по определению.
+        //
+        // Сам минимум нужен потому, что три верных ответа подряд — это 100% точности,
+        // то есть по значению легенда. Выдавать легенду за три примера нельзя.
+        const LADDER_MIN_SAMPLE = [25, 60, 100, 100, 100];
 
         // Свежее окно по теме: идём по дням от сегодняшнего назад, пока не наберём
         // нужное число попыток. Это именно "как он решает сейчас", а не среднее за всё время.
@@ -8342,6 +8351,23 @@
                 `Звёзд взято: ${opened} из ${drawnOps * 5} · мастерство: ${mastered}`;
         }
 
+        // Подпись к строке лесенки. Если значение уже дотягивает до ступени, а не хватает
+        // только ответов, писать «до Бронзы: 80%» при точности 90% — вранье: ученик читает
+        // «мне нужно 80, у меня 90, почему не дают». Показываем то, что реально мешает.
+        function ladderGoalText(tierName, needText, valueOk, have, needSample) {
+            if (valueOk && have < needSample) {
+                const left = needSample - have;
+                return `до ${tierName}: ещё ${left} ${pluralAnswers(left)}`;
+            }
+            return `до ${tierName}: ${needText}`;
+        }
+        function pluralAnswers(n) {
+            const d10 = n % 10, d100 = n % 100;
+            if (d10 === 1 && d100 !== 11) return 'ответ';
+            if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return 'ответа';
+            return 'ответов';
+        }
+
         // Развёрнутая клетка: три лесенки и строка о том, что нужно для следующей звезды.
         function buildLadderCard(st, unlocks, key) {
             const p = parseTopicKey(key);
@@ -8384,10 +8410,16 @@
                     if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${COUNT_TIERS[next - 1]}`;
                 } else if (l.id === 'a') {
                     nowText = m.accuracy === null ? '—' : m.accuracy + '%';
-                    if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${ACCURACY_TIERS[next - 1]}%`;
+                    if (next <= 5) goalText = ladderGoalText(TIER_NAMES[next],
+                        `${ACCURACY_TIERS[next - 1]}%`,
+                        m.accuracy !== null && m.accuracy >= ACCURACY_TIERS[next - 1],
+                        m.attempts, LADDER_MIN_SAMPLE[next - 1]);
                 } else {
                     nowText = m.speedSec === null ? '—' : m.speedSec.toFixed(1) + ' с';
-                    if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${speedTiersFor(p.level, p.category)[next - 1]} с`;
+                    const need = speedTiersFor(p.level, p.category)[next - 1];
+                    if (next <= 5) goalText = ladderGoalText(TIER_NAMES[next], `${need} с`,
+                        m.speedSec !== null && m.speedSec <= need,
+                        m.speedSamples, LADDER_MIN_SAMPLE[next - 1]);
                 }
                 if (next > 5) goalText = 'максимум';
 
