@@ -328,7 +328,7 @@ test('ни один рекорд не утекает между профилям
     Progress.switchTo('Novichok', 'pw2');
     eq(Object.keys(Progress.getUnlocks()).length, 0, 'достижений у новичка');
     eq(Progress.get().totals.correct, 0, 'верных у новичка');
-    assert(!Progress.isUnlocked('integer+:add:1:s3'), 'чужое достижение видно новичку');
+    assert(!Progress.getUnlocks()['integer+:add:1:s3'], 'чужое достижение видно новичку');
 });
 
 test('забытый профиль уносит с собой пароль и токен', () => {
@@ -399,7 +399,7 @@ test('состояние переживает перезапуск прилож�
     eq(env2.Progress.getCode(), 'Vasya', 'активный профиль');
     eq(env2.Progress.get().totals.correct, 314, 'верных');
     eq(env2.Progress.getProfileLabel(), 'Вася', 'имя');
-    assert(env2.Progress.isUnlocked('fraction+:add:2:c1'), 'достижение');
+    assert(env2.Progress.getUnlocks()['fraction+:add:2:c1'], 'достижение');
 });
 
 test('битое хранилище не роняет приложение', () => {
