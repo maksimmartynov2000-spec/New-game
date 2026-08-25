@@ -3,8 +3,9 @@
   "private": true,
   "description": "Ключ — тренажёр устного счёта. Сборки нет: index.html открывается как есть.",
   "scripts": {
-    "test": "node test/generator.test.js && node test/storage.test.js",
+    "test": "node test/generator.test.js && node test/storage.test.js && node test/ladders.test.js",
     "test:generator": "node test/generator.test.js",
-    "test:storage": "node test/storage.test.js"
+    "test:storage": "node test/storage.test.js",
+    "test:ladders": "node test/ladders.test.js"
   }
 }
