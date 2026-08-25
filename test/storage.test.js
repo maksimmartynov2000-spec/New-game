@@ -498,6 +498,43 @@ test('виды ошибок сливаются как счётчики «тол�
     eq(m.errorKinds['integer+:mul:2']['таблица умножения'], 4, 'тема с другой стороны');
 });
 
+test('время всех ответов делится на число верных', () => {
+    // Раньше время ошибок не учитывалось вовсе: можно было думать над примером двадцать
+    // секунд, ошибиться — и на скорости это никак не сказывалось.
+    const { Progress } = fresh();
+    Progress.switchTo('AAA', 'pw');
+    Progress.recordAnswer('integer+:add:1', 'wrong', 4000);
+    Progress.recordAnswer('integer+:add:1', 'correct', 6000);
+    const day = Progress.getDaily()[Progress.dayKey()];
+    eq(day.ms, 10000, 'время сложилось по обоим ответам');
+    eq(day.mc, 1, 'в знаменателе только верный');
+    const slot = day.t['integer+:add:1'];
+    eq(slot[3], 10000, 'по теме время тоже по обоим');
+    eq(slot[4], 1, 'по теме знаменатель только верный');
+});
+
+test('время одного ответа обрезается сверху', () => {
+    // Таймер примера ничего не обрывает: полоска доходит до нуля, а пример висит.
+    // Без потолка отложенный телефон записывается как «думал пять минут».
+    const { Progress } = fresh();
+    Progress.switchTo('AAA', 'pw');
+    Progress.recordAnswer('integer+:add:1', 'correct', 300000);
+    const day = Progress.getDaily()[Progress.dayKey()];
+    eq(day.ms, 15000, 'пять минут обрезаны до пятнадцати секунд');
+    Progress.recordClass('integer+:add:1', { cls: '0', hundred: false }, true, 300000);
+    eq(Progress.getByClass()['integer+:add:1']['0'][2], 15000, 'в разборе по типам тот же потолок');
+});
+
+test('мусор вместо времени не портит счётчики', () => {
+    const { Progress } = fresh();
+    Progress.switchTo('AAA', 'pw');
+    Progress.recordAnswer('integer+:add:1', 'correct', NaN);
+    Progress.recordAnswer('integer+:add:1', 'correct', -5);
+    const day = Progress.getDaily()[Progress.dayKey()];
+    eq(day.ms, 0, 'нечисловое и отрицательное время дали ноль');
+    eq(day.mc, 2, 'верные ответы при этом посчитаны');
+});
+
 test('разбор по типам примеров сливается как счётчики «только вверх»', () => {
     const { Progress } = fresh();
     const m = Progress._merge(

@@ -322,6 +322,16 @@ const ADD_FLOOR_EXPECTED = [1, 5, 8, 14, 24];
 // 0 — без перехода, 1 — дополнение до круглого (сумма единиц ровно 10), 2 — полный переход
 const unitsClassOf = (a, b) => { const s = a % 10 + b % 10; return s < 10 ? 0 : (s === 10 ? 1 : 2); };
 const crossesTen = (a, b) => unitsClassOf(a, b) === 2;
+
+// Допуск на измеренную долю. Фиксированный процент здесь не годится: у редких полос
+// выборка на порядок меньше, и один и тот же допуск оказывается то запасом в двадцать
+// сигм, то в две с половиной — а значит тест иногда падает на верном коде, что хуже,
+// чем не проверять вовсе. Четыре сигмы биномиального разброса плюс полтора процента
+// на систематику: ложное падение на клетку реже одного раза на десять тысяч прогонов.
+function shareTolerance(want, n) {
+    if (!n) return 1;
+    return 0.015 + 4 * Math.sqrt(Math.max(want * (1 - want), 0.0001) / n);
+}
 const ADD_CLASS_EXPECTED = [0.20, 0.10, 0.70];
 const ADD_CLASS_EXPECTED_SMALL = [0.70, 0.30, 0];
 
@@ -390,7 +400,7 @@ test('три класса разложены по долям внутри каж
             const want = i === 0 ? ADD_CLASS_EXPECTED_SMALL : ADD_CLASS_EXPECTED;
             for (let c = 0; c < 3; c++) {
                 const got = byClass[i][c] / total[i];
-                assert(Math.abs(got - want[c]) <= 0.03,
+                assert(Math.abs(got - want[c]) <= shareTolerance(want[c], total[i]),
                     `${level}★ полоса ${ADD_BANDS_EXPECTED[i].join('-')}, класс ${c}: `
                     + `${(got * 100).toFixed(1)}% вместо ${(want[c] * 100).toFixed(0)}%`);
             }
@@ -567,7 +577,7 @@ test('три класса заёма разложены по тем же дол�
             const want = i === 0 ? ADD_CLASS_EXPECTED_SMALL : ADD_CLASS_EXPECTED;
             for (let c = 0; c < 3; c++) {
                 const got = byClass[i][c] / total[i];
-                assert(Math.abs(got - want[c]) <= 0.03,
+                assert(Math.abs(got - want[c]) <= shareTolerance(want[c], total[i]),
                     `${level}★ полоса ${ADD_BANDS_EXPECTED[i].join('-')}, класс ${c}: `
                     + `${(got * 100).toFixed(1)}% вместо ${(want[c] * 100).toFixed(0)}%`);
             }
