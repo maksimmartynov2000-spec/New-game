@@ -607,6 +607,7 @@
             display: flex; justify-content: center; gap: 16px; border: 1px solid rgba(255,255,255,0.05);
         }
         .stats-counter-row span { font-weight: bold; }
+        .stats-counter-row.live-row { font-size: 0.7rem; margin-top: -6px; gap: 12px; }
 
         .timer-bar-container { width: 100%; height: 5px; background: rgba(255,255,255,0.05); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
         .timer-bar { width: 100%; height: 100%; background: var(--cyan); }
@@ -1455,6 +1456,15 @@
             <div class="stats-counter-row">
                 <div>✅ Верно: <span id="stat-correct" style="color:#10b981;">0</span></div>
                 <div>❌ Ошибки: <span id="stat-wrong" style="color:#ef4444;">0</span></div>
+            </div>
+            <!-- Точность и скорость — ЗА ИСПЫТАНИЕ, и это подписано. Окно лесенки в сто
+                 ответов почти не двигается: у ученика с пятью сотнями решённых один ответ
+                 сдвигает его на процент, и как живая обратная связь это бесполезно.
+                 А счётчик справа — уже от лесенки, он и открывает следующую звезду. -->
+            <div class="stats-counter-row live-row" id="liveStatsRow">
+                <div>за испытание: 🎯 <span id="live-acc">—</span></div>
+                <div>⚡ <span id="live-speed">—</span></div>
+                <div id="live-goal-wrap">→ <span id="live-goal">—</span></div>
             </div>
             <div class="badge-container">
                 <div class="combo-badge" id="comboBadge" style="display:none;">Серия: 🔥 х1.0</div>
@@ -8273,13 +8283,14 @@
 
             let drawnOps = 0, opened = 0, mastered = 0;
 
+            // Показываем ВСЁ, включая нетронутое и закрытое. Раньше пустые разделы
+            // прятались — но то была защита от плоского списка карточек, где сотня
+            // конфигураций давала сотню карточек. В нынешней форме полная картина —
+            // это двадцать строк по пять чипов, один экран прокрутки. И по нему сразу
+            // видно, что вообще бывает и куда идти дальше.
             MAP_SECTIONS.forEach(sec => {
                 const secKey = `${sec.cat}${sec.sign}`;
-                // Раздел рисуем, только если в нём что-то решали: пустая стена из
-                // четырёх разделов по восемь действий — не мотивация, а шум.
-                const liveOps = sec.ops.filter(op =>
-                    [1, 2, 3, 4, 5].some(l => hasData(`${secKey}:${op}:${l}`)));
-                if (!liveOps.length) return;
+                const liveOps = sec.ops;
 
                 const block = document.createElement('div');
                 block.className = 'ach-section';
@@ -8327,13 +8338,8 @@
                 wrap.appendChild(block);
             });
 
-            document.getElementById('achievementsSubtitle').innerText = drawnOps
-                ? `Звёзд взято: ${opened} · мастерство: ${mastered}`
-                : 'Ранги по темам';
-            if (!drawnOps) {
-                wrap.innerHTML = '<div class="menu-empty">Пока нет тем в работе.<br>'
-                    + 'Начни решать — здесь появятся ранги.</div>';
-            }
+            document.getElementById('achievementsSubtitle').innerText =
+                `Звёзд взято: ${opened} из ${drawnOps * 5} · мастерство: ${mastered}`;
         }
 
         // Развёрнутая клетка: три лесенки и строка о том, что нужно для следующей звезды.
@@ -8897,8 +8903,10 @@
             clearInterval(timerInterval);
             gameActive = false;
             correctCount = 0; wrongCount = 0; totalSeconds = 0; state.combo = 0;
+            sessionAnswerMs = 0;
             document.getElementById('stat-correct').innerText = '0';
             document.getElementById('stat-wrong').innerText = '0';
+            renderLiveStats();
             document.getElementById('clockTimeText').innerText = formatTime(0);
             document.getElementById('comboBadge').style.display = 'none';
             document.getElementById('comboBadge').classList.remove('frenzy');
@@ -8998,6 +9006,36 @@
         let totalSeconds = 0;
         let correctCount = 0;
         let wrongCount = 0;
+        // Суммарное время всех ответов за испытание — для живой скорости на экране.
+        // Считается по тому же правилу, что и лесенка: всё время делится на число верных.
+        let sessionAnswerMs = 0;
+
+        // Живая строка под примером. Точность и скорость — за испытание: окно лесенки
+        // в сто ответов почти не двигается и как обратная связь бесполезно. А цель
+        // справа берётся из лесенки количества: именно она открывает следующую звезду.
+        function renderLiveStats() {
+            const done = correctCount + wrongCount;
+            document.getElementById('live-acc').innerText =
+                done ? Math.round(correctCount / done * 100) + '%' : '—';
+            document.getElementById('live-speed').innerText =
+                correctCount > 0 ? (sessionAnswerMs / correctCount / 1000).toFixed(1) + ' с' : '—';
+
+            const wrap = document.getElementById('live-goal-wrap');
+            const key = currentProblemMeta ? buildTopicKey(currentProblemMeta) : null;
+            if (!key) { wrap.style.display = 'none'; return; }
+            const lifetime = (Progress.get().byTopic || {})[key] || { correct: 0 };
+            const have = lifetime.correct || 0;
+            // Ближайшая невзятая ступень количества. Показываем именно её, а не сразу
+            // золото: «12 из 100» в начале обескураживает, «12 из 25» — нет.
+            let next = -1;
+            for (let i = 0; i < COUNT_TIERS.length; i++) {
+                if (have < COUNT_TIERS[i]) { next = i; break; }
+            }
+            wrap.style.display = '';
+            document.getElementById('live-goal').innerText = next < 0
+                ? `${TIER_ICONS[5]} ${have}`
+                : `${TIER_ICONS[next + 1]} ${have}/${COUNT_TIERS[next]}`;
+        }
 
         const speedBonusBaseFactor = 0.5; // сила бонуса "Молния" от оставшегося времени
         const comboStepBonus = 0.1;       // шаг усиления серии
@@ -9222,6 +9260,7 @@
             const level = exampleConfig.operations[opKey];
 
             currentProblemMeta = { isNegative, opKey, level, category: exampleConfig.category };
+            renderLiveStats();   // цель зависит от клетки, а она известна только здесь
 
             const questionEl = document.getElementById('mathQuestion');
             const grid = document.getElementById('answersGrid');
@@ -9495,6 +9534,10 @@
             const struct = structuralClassOf(currentProblemMeta, currentProblem);
             if (topicKey && struct) Progress.recordClass(topicKey, struct, isCorrect, elapsedMs);
 
+            // Тот же потолок, что и в хранилище: отложенный телефон не должен
+            // записываться как «думал пять минут».
+            sessionAnswerMs += Math.min(Math.max(elapsedMs, 0), 15000);
+
             if (isCorrect) {
                 correctCount++;
                 document.getElementById('stat-correct').innerText = correctCount;
@@ -9575,6 +9618,10 @@
                 buildSparks(10, '#ef4444');
                 removePuzzlePiecesOnMistake();
             }
+
+            // Живая строка обновляется сразу после ответа, а не со следующим примером:
+            // иначе цифры отставали бы ровно на тот момент, когда на них и смотрят.
+            renderLiveStats();
 
             setTimeout(() => {
                 answerLocked = false;
