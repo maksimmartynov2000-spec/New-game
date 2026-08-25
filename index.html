@@ -43,11 +43,13 @@
             background: radial-gradient(circle at center, #111428 0%, #06b6d4 100%);
             transition: background 0.5s ease;
         }
+        /* Юбилей меняет фон на тёмно-фиолетовый и на этом останавливается. Раньше
+           сверху крутилось hue-rotate на весь экран: цвета всей страницы, включая
+           сам пример и кнопки ответов, непрерывно уезжали по кругу минуту с лишним —
+           ровно в то время, когда надо считать. */
         body.mega-storm {
             background: radial-gradient(circle at center, #2e1065 0%, #030712 100%) !important;
-            animation: cosmicVibe 4s infinite linear;
         }
-        @keyframes cosmicVibe { 0% { filter: hue-rotate(0deg); } 100% { filter: hue-rotate(360deg); } }
 
         /* Системная настройка «Уменьшить движение» (Настройки → Универсальный доступ →
            Движение на айпаде). Её включают не из вредности: кому-то от мельтешения
@@ -56,15 +58,11 @@
            по WCAG (три вспышки в секунду) игра не переходит и без этого — здесь речь
            о комфорте, а не о безопасности.
 
-           Полностью гасим только то, что мельтешит: вращение оттенка всего экрана,
-           пульсацию рамки примера и полёт искр. Переходы между экранами, всплывашки
-           наград и подсветка верного ответа остаются — без них игра перестала бы
+           Полностью гасим только то, что мельтешит: пульсацию рамки примера и полёт
+           искр (вращение оттенка всего экрана убрано уже для всех). Переходы между
+           экранами, всплывашки наград и подсветка верного ответа остаются — без них игра перестала бы
            отвечать на действия. */
         @media (prefers-reduced-motion: reduce) {
-            body.mega-storm {
-                animation: none !important;
-                background: radial-gradient(circle at center, #2e1065 0%, #030712 100%) !important;
-            }
             #cityCanvas { display: none; }   /* холст с искрами — на нём больше ничего не рисуется */
             .floating-reward { animation-duration: 0.35s !important; }
             .dlg-card, .toast { animation: none !important; }
@@ -598,8 +596,6 @@
             padding: 2px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: bold;
         }
         .combo-badge.frenzy { background: linear-gradient(45deg, #a855f7, #ec4899); }
-        .speed-badge { background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; padding: 2px 10px; border-radius: 20px; font-size: 0.75rem; }
-        .speed-badge.active-speed { background: linear-gradient(45deg, #0284c7, #06b6d4); color: white; border: none; }
 
         .stats-counter-row {
             font-size: 0.75rem; color: #94a3b8; margin-bottom: 10px;
@@ -994,6 +990,37 @@
         .toast.hiding { animation: toastOut 0.22s ease-in forwards; }
         @keyframes toastIn { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: none; } }
         @keyframes toastOut { to { opacity: 0; transform: translateY(-8px); } }
+
+        /* Плашка о новом достижении. Раньше это был тот же короткий всплывающий текст,
+           что и «+10» за правильный ответ: он жил 0,62 секунды и улетал вверх вместе
+           с остальными числами. Достижение так прочитать нельзя — в нём название темы,
+           ступень и значок. Поэтому у достижений теперь своя плашка сверху: она въезжает,
+           стоит 2,5 секунды и уезжает, а следующая ждёт своей очереди, а не наезжает
+           на предыдущую. */
+        .ach-wrap {
+            position: fixed; z-index: 430; left: 50%; transform: translateX(-50%);
+            top: calc(12px + env(safe-area-inset-top));
+            width: 100%; max-width: 460px; padding: 0 12px; box-sizing: border-box;
+            display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+        }
+        .ach-banner {
+            display: flex; align-items: center; gap: 12px;
+            background: linear-gradient(180deg, rgba(38, 30, 6, 0.98), rgba(22, 18, 6, 0.98));
+            border: 1px solid var(--gold); border-radius: 14px;
+            padding: 12px 16px; color: #fdf3d0;
+            box-shadow: 0 12px 34px rgba(0, 0, 0, 0.55);
+            animation: achIn 0.26s ease-out;
+        }
+        .ach-banner.hiding { animation: achOut 0.3s ease-in forwards; }
+        .ach-banner .ach-icon { font-size: 1.7rem; line-height: 1; flex: none; }
+        .ach-banner .ach-body { min-width: 0; }
+        .ach-banner .ach-kicker {
+            font-size: 0.7rem; letter-spacing: 0.08em; text-transform: uppercase;
+            color: var(--gold); font-weight: 700; margin-bottom: 2px;
+        }
+        .ach-banner .ach-title { font-size: 0.95rem; font-weight: 600; line-height: 1.3; }
+        @keyframes achIn { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: none; } }
+        @keyframes achOut { to { opacity: 0; transform: translateY(-18px); } }
     </style>
     <!-- Библиотека лежит рядом, а не на чужом CDN. Раньше подключалась с jsdelivr, и при его
          недоступности вход не работал вообще: кнопка просто не реагировала, без объяснения.
@@ -1117,6 +1144,8 @@
         <div class="config-container">
             <div class="config-section">
                 <div class="period-row" id="statsPeriodRow">
+                    <button class="btn-period" data-period="today">Сегодня</button>
+                    <button class="btn-period" data-period="yesterday">Вчера</button>
                     <button class="btn-period" data-period="7">Неделя</button>
                     <button class="btn-period selected" data-period="30">30 дней</button>
                     <button class="btn-period" data-period="90">90 дней</button>
@@ -1473,8 +1502,11 @@
                 <div class="live-sep" id="live-goal-wrap"><span id="live-goal">—</span></div>
             </div>
             <div class="badge-container">
-                <div class="combo-badge" id="comboBadge" style="display:none;">Серия: 🔥 х1.0</div>
-                <div class="speed-badge" id="speedBadge">Скорость: +0%</div>
+                <!-- Раньше здесь стояли «Серия x1.4» и «Молния +43%». Оба числа выглядели
+                     как механика и обещали награду, которой не существовало: ни очков, ни
+                     кусочков пазла, ни достижений от них не зависело. Осталась честная
+                     серия — просто счётчик верных подряд, без выдуманного множителя. -->
+                <div class="combo-badge" id="comboBadge" style="display:none;">Подряд: 0</div>
             </div>
             <div class="timer-bar-container">
                 <div class="timer-bar" id="timerBar"></div>
@@ -1578,6 +1610,7 @@
         <div class="dlg-card" id="appDialogCard"></div>
     </div>
     <div class="toast-wrap" id="toastWrap" aria-live="polite"></div>
+    <div class="ach-wrap" id="achWrap" aria-live="polite"></div>
 
     <script>
         // ===================== НАСТРОЙКА ГЕНЕРАЦИИ ПРИМЕРОВ =====================
@@ -7071,8 +7104,9 @@
         }
 
         // ===================== ЭКРАН СТАТИСТИКИ =====================
-        // Какой период показан сейчас: 7 | 30 | 'all'. Живёт снаружи, чтобы перерисовка
-        // по кнопке периода не теряла, чью статистику мы вообще смотрим.
+        // Какой период показан сейчас: число дней (7, 30, …), 'all', 'today' или 'yesterday'.
+        // Живёт снаружи, чтобы перерисовка по кнопке периода не теряла, чью статистику
+        // мы вообще смотрим.
         let statsPeriod = 30;
         let statsViewState = null;   // null = своя статистика; иначе состояние ученика
         let statsViewLabel = '';
@@ -7081,7 +7115,7 @@
             const btn = e.target.closest('.btn-period');
             if (!btn) return;
             const p = btn.getAttribute('data-period');
-            statsPeriod = (p === 'all') ? 'all' : Number(p);
+            statsPeriod = /^\d+$/.test(p) ? Number(p) : p;
             document.getElementById('statsPeriodInput').value = '';
             renderStatsScreen(statsViewState, statsViewLabel);
         });
@@ -7119,18 +7153,33 @@
 
             document.querySelectorAll('#statsPeriodRow .btn-period').forEach(b => {
                 const p = b.getAttribute('data-period');
-                b.classList.toggle('selected', (p === 'all') ? statsPeriod === 'all' : Number(p) === statsPeriod);
+                b.classList.toggle('selected', /^\d+$/.test(p) ? Number(p) === statsPeriod : p === statsPeriod);
             });
 
             const today = Progress.dayKey();
             const isAll = statsPeriod === 'all';
-            const fromKey = isAll ? null : shiftDayKey(today, -(statsPeriod - 1));
-            const cur = aggregateDaily(daily, fromKey, today);
+
+            // Периоды бывают двух видов: «последние N дней, включая сегодняшний» (7, 30, 90…)
+            // и «один конкретный день» — сегодня или вчера. Второй вид через одно только N
+            // не выражается: он кончается не сегодня. Поэтому у периода теперь есть и конец,
+            // а не только начало, и вся отрисовка ниже смотрит на toKey, а не на today.
+            const isYesterday = statsPeriod === 'yesterday';
+            const isOneDay = isYesterday || statsPeriod === 'today' || statsPeriod === 1;
+            const spanDays = isAll ? null : (isOneDay ? 1 : statsPeriod);
+            const toKey = isYesterday ? shiftDayKey(today, -1) : today;
+            const fromKey = isAll ? null : shiftDayKey(toKey, -(spanDays - 1));
+            const cur = aggregateDaily(daily, fromKey, toKey);
+
+            // Подпись для заголовков блоков: «за сегодня» читается лучше, чем «за период»,
+            // когда период — ровно один день.
+            const periodLabel = isAll ? 'за всё время'
+                : (statsPeriod === 'today' ? 'за сегодня'
+                : (isYesterday ? 'за вчера' : 'за период'));
 
             // --- Занятия: всегда из журнала, даже в режиме "всё время" ---
             document.getElementById('statsDaysVal').innerText = cur.days;
             document.getElementById('statsTimeVal').innerText = formatDuration(cur.s);
-            document.getElementById('statsStreakVal').innerText = longestStreak(daily, fromKey, today);
+            document.getElementById('statsStreakVal').innerText = longestStreak(daily, fromKey, toKey);
 
             // --- Результат ---
             // В режиме "всё время" берём пожизненные totals/byTopic, а не журнал: журнал
@@ -7171,7 +7220,7 @@
 
             if (!isAll) {
                 const prevTo = shiftDayKey(fromKey, -1);
-                const prevFrom = shiftDayKey(prevTo, -(statsPeriod - 1));
+                const prevFrom = shiftDayKey(prevTo, -(spanDays - 1));
                 const prev = aggregateDaily(daily, prevFrom, prevTo);
                 const MIN = 10;
 
@@ -7196,14 +7245,13 @@
             }
 
             // --- "Почти": верный счёт, но забыли сократить — отдельный диагноз ---
-            const almost = isAll ? aggregateDaily(daily, null, today).a : cur.a;
+            const almost = isAll ? aggregateDaily(daily, null, toKey).a : cur.a;
             document.getElementById('statsAlmostHint').innerText = almost > 0
                 ? `«Почти» (посчитал верно, но забыл сократить): ${almost}`
                 : '';
 
             // --- По темам ---
-            document.getElementById('statsTopicTitle').innerText =
-                isAll ? 'По темам за всё время' : 'По темам за период';
+            document.getElementById('statsTopicTitle').innerText = 'По темам ' + periodLabel;
             renderTopicBreakdown(topicSource, 'statsTopicList');
 
             // --- С какого дня вообще есть дневник ---
@@ -7213,23 +7261,26 @@
                 : 'Дневник занятий начнётся с первого решённого примера.';
 
             // --- Полоса дней: занимается ли регулярно ---
-            const stripFrom = isAll ? (earliestDayKey(daily) || today) : fromKey;
-            const hasDays = Object.keys(daily).length > 0;
-            renderDayStrip(daily, stripFrom, today);
+            // За один день полоса — это один квадратик, а кривая — одна точка: показывать
+            // там нечего, поэтому оба блока прячем.
+            const stripFrom = isAll ? (earliestDayKey(daily) || toKey) : fromKey;
+            const hasDays = Object.keys(daily).length > 0 && !isOneDay;
+            if (hasDays) {
+                renderDayStrip(daily, stripFrom, toKey);
+                renderTrends(daily, stripFrom, toKey);
+            }
             document.getElementById('statsStripSection').style.display = hasDays ? 'block' : 'none';
 
             // --- Кривые: становится ли лучше ---
-            renderTrends(daily, stripFrom, today);
             document.getElementById('statsTrendSection').style.display = hasDays ? 'block' : 'none';
 
             // --- Карта разделов: где силён, где остановился ---
-            document.getElementById('statsMapTitle').innerText =
-                isAll ? 'Карта разделов за всё время' : 'Карта разделов за период';
+            document.getElementById('statsMapTitle').innerText = 'Карта разделов ' + periodLabel;
             const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap', {});
             document.getElementById('statsMapSection').style.display = mapDrawn ? 'block' : 'none';
 
             // --- Над чем работать: ошибки за период, разобранные по причине ---
-            const kinds = isAll ? aggregateDaily(daily, null, today).e : cur.e;
+            const kinds = isAll ? aggregateDaily(daily, null, toKey).e : cur.e;
             const drawn = renderMistakeKinds(kinds, 'statsMistakeList', 6);
             document.getElementById('statsMistakesSection').style.display = drawn ? 'block' : 'none';
 
@@ -7963,15 +8014,52 @@
             return fresh;
         }
 
-        // Показывает всплывашку о новом достижении прямо в игре.
+        // Показывает плашку о новом достижении прямо в игре.
+        //
+        // Раньше достижение показывалось тем же улетающим текстом, что и «+10» за верный
+        // ответ: 0,62 секунды, мелкий шрифт, посреди летящих чисел. Прочитать, за что именно
+        // дали ступень, было невозможно — а это единственное место, где игра об этом говорит.
+        // Теперь достижение получает свою плашку сверху на 2,5 секунды, и если их пришло
+        // несколько, они идут по очереди, а не накладываются друг на друга.
+        const ACH_BANNER_MS = 2500;
+        const achQueue = [];
+        let achShowing = false;
+
         function announceAchievements(list) {
-            list.forEach((a, i) => {
-                setTimeout(() => {
-                    spawnRewardText(`${a.icon} ${a.title}`, window.innerWidth / 2,
-                        window.innerHeight / 2 - 90, 'var(--gold)', true);
-                    buildSparks(18, 'var(--gold)');
-                }, 260 * i);
-            });
+            list.forEach((a) => achQueue.push(a));
+            if (!achShowing) showNextAchievement();
+        }
+
+        function showNextAchievement() {
+            const wrap = document.getElementById('achWrap');
+            const a = achQueue.shift();
+            if (!a || !wrap) { achShowing = false; return; }
+            achShowing = true;
+
+            const el = document.createElement('div');
+            el.className = 'ach-banner';
+            const icon = document.createElement('div');
+            icon.className = 'ach-icon';
+            icon.innerText = a.icon;
+            const body = document.createElement('div');
+            body.className = 'ach-body';
+            const kicker = document.createElement('div');
+            kicker.className = 'ach-kicker';
+            kicker.innerText = 'новое достижение';
+            const title = document.createElement('div');
+            title.className = 'ach-title';
+            title.innerText = a.title;     // innerText, не innerHTML: в названии бывает подпись профиля
+            body.appendChild(kicker);
+            body.appendChild(title);
+            el.appendChild(icon);
+            el.appendChild(body);
+            wrap.appendChild(el);
+            buildSparks(18, 'var(--gold)');
+
+            setTimeout(() => {
+                el.classList.add('hiding');
+                setTimeout(() => { el.remove(); showNextAchievement(); }, 320);
+            }, ACH_BANNER_MS);
         }
 
         // ===================== ОТЧЁТ ДЛЯ РОДИТЕЛЕЙ =====================
@@ -9069,8 +9157,9 @@
                 : `${TIER_ICONS[next + 1]} ${have}/${COUNT_TIERS[next]}`;
         }
 
-        const speedBonusBaseFactor = 0.5; // сила бонуса "Молния" от оставшегося времени
-        const comboStepBonus = 0.1;       // шаг усиления серии
+        // Серия — честный счётчик верных ответов подряд. Множителя у неё нет: он ни на
+        // что не влиял, а выглядел как обещание награды.
+        const COMBO_FRENZY_AT = 5;        // с этого места серия подсвечивается
 
         const state = {
             combo: 0
@@ -9104,8 +9193,6 @@
 
         let megaShowActive = false;
         let megaShowTimer = 0;
-        let stormSparkDebt = 0; // дробный остаток искр шторма между кадрами
-        let bgFlashState = 0;
         let isUltimateStorm = false;
 
         // ===================== РАЗБОР ОШИБОК =====================
@@ -9270,15 +9357,6 @@
                 if (timeRemaining <= 0) timeRemaining = 0;
                 document.getElementById('timerBar').style.width = `${timeRemaining}%`;
 
-                let currentSpeedBonus = Math.floor(timeRemaining * speedBonusBaseFactor);
-                let sBadge = document.getElementById('speedBadge');
-                if (currentSpeedBonus > 0) {
-                    sBadge.className = "speed-badge active-speed";
-                    sBadge.innerText = `Молния: +${currentSpeedBonus}%`;
-                } else {
-                    sBadge.className = "speed-badge";
-                    sBadge.innerText = `Скорость: +0%`;
-                }
             }, 100);
 
             const isNegative = exampleConfig.numberType === 'negative';
@@ -9576,12 +9654,11 @@
                 Progress.recordAnswer(topicKey, 'correct', elapsedMs);
 
                 state.combo++;
-                let comboMultiplier = 1 + (state.combo * comboStepBonus);
-
                 const badge = document.getElementById('comboBadge');
                 badge.style.display = 'inline-block';
-                badge.innerText = `Серия: 🔥 x${comboMultiplier.toFixed(1)}`;
-                if (state.combo >= 5) badge.classList.add('frenzy'); else badge.classList.remove('frenzy');
+                badge.innerText = `Подряд: ${state.combo}`;
+                if (state.combo >= COMBO_FRENZY_AT) badge.classList.add('frenzy');
+                else badge.classList.remove('frenzy');
 
                 spawnRewardText('Верно!', clickX, clickY, '#22d3ee', false);
                 buildSparks(12, 'var(--cyan)');
@@ -9634,16 +9711,12 @@
                 Progress.recordAnswer(topicKey, 'wrong', elapsedMs);
                 Progress.recordMistakeKind(topicKey, mistakeKind);
 
-                state.combo = Math.floor(state.combo / 2);
+                // Серия обрывается ошибкой целиком: «подряд» значит подряд, половинить
+                // счётчик верных ответов было бы ровно тем же враньём, что и множитель.
+                state.combo = 0;
                 const badge = document.getElementById('comboBadge');
-                if (state.combo > 0) {
-                    let comboMultiplier = 1 + (state.combo * comboStepBonus);
-                    badge.style.display = 'inline-block';
-                    badge.innerText = `Серия: 🔥 x${comboMultiplier.toFixed(1)}`;
-                    badge.classList.remove('frenzy');
-                } else {
-                    badge.style.display = 'none'; badge.classList.remove('frenzy');
-                }
+                badge.style.display = 'none';
+                badge.classList.remove('frenzy');
 
                 if (clickedBtn) clickedBtn.classList.add('btn-wrong');
                 spawnRewardText('Ошибка!', clickX, clickY, '#f87171', false);
@@ -9655,10 +9728,15 @@
             // иначе цифры отставали бы ровно на тот момент, когда на них и смотрят.
             renderLiveStats();
 
+            // При ошибке пауза работает — надо увидеть, какой ответ был верным.
+            // При верном ответе смотреть не на что, и полторы секунды на каждом примере
+            // складываются в половину занятия: при темпе в секунду на пример это больше
+            // времени ожидания, чем счёта.
+            const pause = isUnreducedMatch ? 1700 : (isCorrect ? 500 : 1400);
             setTimeout(() => {
                 answerLocked = false;
                 generateMath();
-            }, isUnreducedMatch ? 1700 : 1400);
+            }, pause);
         }
 
         function spawnRewardText(txt, x, y, color, isCrit) {
@@ -9717,7 +9795,7 @@
             }
         }
 
-        // Вся анимация раньше считала кадры, а не время: megaShowTimer--, bgFlashState += 0.1,
+        // Вся анимация раньше считала кадры, а не время: megaShowTimer--,
         // this.x += this.vx. На экране 120 Гц (айпады и айфоны Pro) кадров вдвое больше, и всё
         // шло вдвое быстрее: салют за тысячу примеров длился 37 секунд вместо 75, искры летели
         // вдвое быстрее, мерцание ускорялось с 1 до 2 Гц. Игра ощущалась по-разному на разных
@@ -9747,48 +9825,20 @@
 
             if (megaShowActive) {
                 megaShowTimer -= step;
-                bgFlashState += 0.1 * step;
+                const mathBox = document.getElementById('mainMathBox');
 
-                let mathBox = document.getElementById('mainMathBox');
-                const calm = wantsCalm();
-
-                if (isUltimateStorm && calm) {
-                    // «Уменьшить движение» включено: салют остаётся событием, но спокойным —
-                    // золотая рамка вместо мельтешения цветом, и без искр.
+                // Мельтешение цветом фона и штормовые искры убраны. Юбилей остаётся
+                // событием, но спокойным: золотая рамка вместо пульсации по всему экрану.
+                // Вспышки дёргали внимание ровно во время счёта и ели батарею, а работали
+                // один раз — при первом знакомстве.
+                if (isUltimateStorm) {
                     mathBox.style.backgroundColor = 'rgba(20, 16, 4, 0.93)';
                     mathBox.style.borderColor = 'var(--gold)';
-                } else if (isUltimateStorm) {
-                    let r = Math.floor(Math.sin(bgFlashState) * 127 + 128);
-                    let g = Math.floor(Math.sin(bgFlashState + 2) * 127 + 128);
-                    let b = Math.floor(Math.cos(bgFlashState) * 127 + 128);
-                    mathBox.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.35)`;
-                    mathBox.style.borderColor = `rgb(${g}, ${b}, ${r})`;
-
-                    let colors = ['#ff0055', '#00ffcc', '#ffcc00', '#ff00ff', '#00ff00', '#ffffff'];
-                    // Три искры на кадр при 60 Гц. Копим дробный остаток, иначе на быстром
-                    // экране округление дало бы вдвое больше искр, чем на обычном.
-                    stormSparkDebt += (calm ? 0 : 3) * step;
-                    const sparks = Math.floor(stormSparkDebt);
-                    stormSparkDebt -= sparks;
-                    for (let k = 0; k < sparks; k++) {
-                        let angle = Math.random() * Math.PI * 2;
-                        let spd = Math.random() * 8 + 4;
-                        let vx = Math.cos(angle) * spd;
-                        let vy = Math.sin(angle) * spd;
-                        let c = colors[Math.floor(Math.random() * colors.length)];
-                        particles.push(new CustomSpark(canvas.width / 2, canvas.height * 0.4, c, vx, vy, Math.random() * 5 + 2, 4.0));
-                    }
-                } else if (!calm) {
-                    let r = Math.floor(Math.sin(bgFlashState) * 30 + 15);
-                    let g = Math.floor(Math.sin(bgFlashState + 1) * 20 + 10);
-                    let b = Math.floor(Math.cos(bgFlashState) * 40 + 25);
-                    mathBox.style.backgroundColor = `rgba(${r}, ${g}, ${b}, 0.93)`;
                 }
 
                 if (megaShowTimer <= 0) {
                     megaShowActive = false;
                     isUltimateStorm = false;
-                    stormSparkDebt = 0;
                     document.body.classList.remove('mega-storm');
                     mathBox.style.backgroundColor = `rgba(5, 7, 15, 0.9)`;
                     mathBox.style.borderColor = 'var(--cyan)';
