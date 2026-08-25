@@ -185,7 +185,9 @@
             display: grid; grid-template-columns: 18px 1fr auto auto; gap: 6px;
             align-items: center; padding: 4px 0; font-size: 0.75rem;
         }
-        .ladder-row.blocked { opacity: 0.5; }
+        /* Скорость больше ничего не открывает — её строка приглушена, чтобы её не
+           принимали за требование. */
+        .ladder-row.optional { opacity: 0.62; }
         .ladder-icon { font-size: 0.85rem; }
         .ladder-name { color: #94a3b8; }
         .ladder-tier { font-size: 0.85rem; }
@@ -195,7 +197,7 @@
         }
         .ladder-league { margin-top: 7px; font-size: 0.72rem; color: #64748b; }
         .ladder-league.in { color: #fbbf24; font-weight: bold; }
-        .ladder-league.super { color: var(--royal); font-weight: bold; }
+
 
         /* Карточка прошедшей эпохи */
         .epoch-card {
@@ -1211,8 +1213,9 @@
         <p class="start-subtitle" id="achievementsSubtitle">Ранги по темам</p>
         <div class="config-container">
             <div class="config-hint" style="margin-bottom:10px;">
-                Три лесенки на каждую тему. Пока не собрана бронза во всех трёх, серебро
-                не откроется нигде — расти приходится равномерно.
+                Следующая звезда открывается золотом по точности и количеству.
+                Скорость ничего не открывает — это ориентир, и только алмаз с легендой
+                берутся за все три лесенки сразу.
             </div>
             <div id="ladderList"></div>
         </div>
@@ -1682,11 +1685,13 @@
                     const starBtn = document.createElement('button');
                     starBtn.className = 'btn-star';
                     starBtn.innerText = `${lvl}★`;
-                    // Код может открыть не весь раздел, а «дроби, сложение, 1–3★».
-                    // Закрытая звезда видна, но не нажимается: так понятно, что дальше есть куда расти.
+                    // Закрытая звезда видна, но не нажимается: так понятно, что дальше есть
+                    // куда расти. Причина написана в подсказке — их две, и они разные:
+                    // «код не открывал» и «не взято золото на предыдущей звезде».
                     if (!isLevelOpen(secKey, op, lvl)) {
                         starBtn.classList.add('locked');
                         starBtn.disabled = true;
+                        starBtn.title = levelLockReason(secKey, op, lvl);
                         starsWrap.appendChild(starBtn);
                         continue;
                     }
@@ -5232,6 +5237,14 @@
             }
 
             // Корзина сегодняшнего дня, создаётся при первом обращении за день.
+            // Потолок на время одного ответа. Таймер примера ничего не обрывает, поэтому
+            // без потолка отложенный телефон записывается в статистику как «думал пять минут».
+            const ANSWER_TIME_CAP_MS = 15000;
+            function cappedAnswerMs(ms) {
+                if (!Number.isFinite(ms) || ms <= 0) return 0;
+                return Math.min(Math.round(ms), ANSWER_TIME_CAP_MS);
+            }
+
             function touchDay() {
                 if (!state.daily || typeof state.daily !== 'object') state.daily = {};
                 const k = dayKey();
@@ -5500,8 +5513,8 @@
                 // как верный ответ (счёт-то был правильный), и дополнительно попадает в
                 // отдельный дневной счётчик — это отдельный диагноз, а не ошибка в счёте.
                 // Булево значение тоже принимается — на случай старых вызовов.
-                // elapsedMs — сколько ученик думал; учитывается только у верных ответов,
-                // время неверного ответа — шум (быстрый случайный тык считался бы "скоростью").
+                // elapsedMs — сколько ученик думал; учитывается у всех ответов, но делится
+                // потом на число верных, см. комментарий у recordAnswer.
                 // Вид ошибки пишется отдельным вызовом сразу после recordAnswer:
                 // так учёт ответов остаётся прежним, а разбор можно не звать вовсе,
                 // если разобрать не удалось.
@@ -5526,15 +5539,13 @@
                     if (!topicKey || !struct) return;
                     if (!state.byClass || typeof state.byClass !== 'object') state.byClass = {};
                     const t = state.byClass[topicKey] || (state.byClass[topicKey] = {});
+                    const spent = cappedAnswerMs(elapsedMs);
                     const bump = (key) => {
                         const slot = t[key] || (t[key] = [0, 0, 0, 0]);
                         if (isRight) slot[0]++; else slot[1]++;
-                        // Время, как и у лесенки, берём только у верных ответов: время
-                        // ошибки говорит не о скорости счёта, а о том, как быстро ткнули.
-                        if (isRight && Number.isFinite(elapsedMs) && elapsedMs > 0) {
-                            slot[2] += Math.round(elapsedMs);
-                            slot[3]++;
-                        }
+                        // Как и у лесенки: время всех ответов, счётчик только верных.
+                        slot[2] += spent;
+                        if (isRight) slot[3]++;
                     };
                     bump(struct.cls);
                     if (struct.hundred) bump('h');
@@ -5542,6 +5553,17 @@
                 },
                 getByClass() { return state.byClass || {}; },
 
+                // Скорость считается как «всё потраченное время, делённое на число верных
+                // ответов». Раньше время ошибок не учитывалось вовсе: можно было думать над
+                // примером двадцать секунд, ошибиться — и на скорости это никак не
+                // сказывалось. Новая формула отвечает на честный вопрос: сколько времени
+                // уходит на один правильный ответ.
+                //
+                // Потолок обязателен. Таймер примера ничего не обрывает: полоска доходит до
+                // нуля, а пример продолжает висеть. Без потолка один поход на кухню посреди
+                // занятия добавляет в клетку несколько минут и сдвигает среднее на две
+                // ступени лестницы. Пятнадцать секунд — чуть выше таймера в 13,3, поэтому
+                // любая настоящая попытка помещается целиком, а всё сверх — уже не счёт.
                 recordAnswer(topicKey, outcome, elapsedMs) {
                     const kind = (outcome === true) ? 'correct'
                         : (outcome === false) ? 'wrong'
@@ -5554,24 +5576,20 @@
                         if (isRight) t.correct++; else t.wrong++;
                     }
 
+                    const spent = cappedAnswerMs(elapsedMs);
                     const day = touchDay();
                     if (isRight) day.c++; else day.w++;
                     if (kind === 'almost') day.a++;
-                    if (isRight && Number.isFinite(elapsedMs) && elapsedMs > 0) {
-                        day.ms += Math.round(elapsedMs);
-                        day.mc++;
-                    }
+                    // ms — время ВСЕХ ответов, mc — число ВЕРНЫХ. Отношение и есть скорость.
+                    day.ms += spent;
+                    if (isRight) day.mc++;
                     if (topicKey) {
                         const slot = day.t[topicKey] || (day.t[topicKey] = [0, 0, 0, 0, 0]);
                         while (slot.length < 5) slot.push(0); // запись могла прийти из старой версии
                         if (isRight) slot[0]++; else slot[1]++;
                         if (kind === 'almost') slot[2]++;
-                        // Время по темам питает только лесенку скорости — и только у верных
-                        // ответов, по той же причине, что и дневное ms/mc выше.
-                        if (isRight && Number.isFinite(elapsedMs) && elapsedMs > 0) {
-                            slot[3] += Math.round(elapsedMs);
-                            slot[4]++;
-                        }
+                        slot[3] += spent;
+                        if (isRight) slot[4]++;
                     }
 
                     persistLocal();
@@ -5816,7 +5834,8 @@
             return lv === 'all' || (Array.isArray(lv) && lv.length > 0);
         }
 
-        function isLevelOpen(secKey, op, level) {
+        // Разрешает ли ДОСТУП (раздел открыт целиком или кодом репетитора).
+        function levelAllowedByAccess(secKey, op, level) {
             if (secKey === BASE_SECTION || hasFullAccess()) return true;
             const g = grantFor(secKey);
             if (g === 'all') return true;
@@ -5824,6 +5843,52 @@
             const lv = g[op];
             if (lv === 'all') return true;
             return Array.isArray(lv) && lv.indexOf(Number(level)) >= 0;
+        }
+
+        // Названа ли звезда в коде ПОИМЕННО. Это и есть аварийный выход: репетитор видит,
+        // что ученик застрял не из-за счёта, и открывает нужную звезду в обход ворот.
+        // Короткое 'all' сюда не годится: «весь раздел» означает «дойдёшь до всего», а не
+        // «получи всё сразу», иначе выданный раздел сразу лишался бы всякой постепенности.
+        function levelNamedByGrant(secKey, op, level) {
+            const g = grantFor(secKey);
+            if (!g || typeof g !== 'object') return false;
+            const lv = g[op];
+            return Array.isArray(lv) && lv.indexOf(Number(level)) >= 0;
+        }
+
+        // Ворота применяются только к ученикам репетитора. У личного аккаунта их нет:
+        // им пользуется сам репетитор, и заставлять его набивать золото на первой звезде,
+        // чтобы посмотреть примеры на пятой, — бессмысленно. Прогресс ворот при этом
+        // показывается всем одинаково, чтобы репетитор видел ровно то, что видит ученик.
+        function levelGateApplies() {
+            return Progress.getAccountType() === 'linked';
+        }
+
+        function isLevelOpen(secKey, op, level) {
+            if (!levelAllowedByAccess(secKey, op, level)) return false;
+            if (!levelGateApplies()) return true;
+            if (levelNamedByGrant(secKey, op, level)) return true;
+            return levelGateOpen(secKey, op, level);
+        }
+
+        // Почему звезда закрыта — человеческим языком, для подсказки на кнопке.
+        function levelLockReason(secKey, op, level) {
+            if (!levelAllowedByAccess(secKey, op, level)) return 'Этой звезды нет в коде от репетитора';
+            const lvl = Number(level) || 1;
+            return `Нужно золото на ${lvl - 1}★: точность ${ACCURACY_TIERS[LEVEL_GATE_TIER - 1]}%`
+                 + ` и ${COUNT_TIERS[LEVEL_GATE_TIER - 1]} верных ответов`;
+        }
+
+        // Ворота прогресса: первая звезда открыта всегда, каждая следующая — за золото
+        // по точности и количеству на предыдущей.
+        function levelGateOpen(secKey, op, level) {
+            const lvl = Number(level) || 1;
+            if (lvl <= 1) return true;
+            const parts = secKey.split('');
+            const sign = parts.pop();
+            const category = parts.join('');
+            const prevKey = `${category}${sign}:${op}:${lvl - 1}`;
+            return levelGatePassed(Progress.getUnlocks(), prevKey);
         }
 
         // Человеческое описание того, что открыто в разделе, — для панели замка.
@@ -5957,7 +6022,11 @@
         //  сложение и вычитание, 1–3★» — четыре касания вместо двенадцати.
         // =====================================================================
 
+        // Положительные целые тоже здесь: раздел открыт всегда, но звёзды в нём закрыты
+        // воротами прогресса, и код с поимённо названной звездой — единственный способ
+        // провести ученика в обход, когда видно, что дело не в счёте.
         const GRANT_SECTIONS = [
+            { key: 'integer+',  title: '🟢 Положительные', ops: ['add', 'sub', 'mul', 'div'] },
             { key: 'fraction+', title: '🧮 Дроби', ops: OP_ORDER },
             { key: 'decimal+',  title: '🔟 Десятичные', ops: ['add', 'sub', 'mul', 'div'] },
             { key: 'integer-',  title: '🔴 Отрицательные', ops: ['add', 'sub', 'mul', 'div'] }
@@ -7313,11 +7382,11 @@
                             nEl.innerText = c.attempts;
                             cell.appendChild(nEl);
 
-                            const tier = unlocks ? topicCompositeTier(unlocks, c.key) : 0;
-                            if (tier > 0) {
+                            const badge = unlocks ? topicBadge(unlocks, c.key) : '';
+                            if (badge) {
                                 const t = document.createElement('div');
                                 t.className = 'map-tier';
-                                t.innerText = TIER_ICONS[tier];
+                                t.innerText = badge;
                                 cell.appendChild(t);
                             }
                         }
@@ -7546,16 +7615,23 @@
             { id: 'a', icon: '🎯', name: 'Точность' },
             { id: 'c', icon: '🔢', name: 'Количество' }
         ];
-        const COUNT_TIERS = [100, 250, 500, 750, 1000];       // верных ответов по теме, за всё время
-        const ACCURACY_TIERS = [75, 80, 85, 90, 95];          // процент за последнюю сотню
-        const SPEED_BASE_TIERS = [13, 11, 9, 7, 5];           // секунд на ответ, за последнюю сотню
+        const COUNT_TIERS = [25, 60, 100, 150, 250];          // верных ответов по теме, за всё время
+        const ACCURACY_TIERS = [80, 85, 90, 95, 99];          // процент за последнюю сотню
 
-        // Пороги скорости растут вместе со сложностью: 13 секунд на "3 + 5" и на
-        // "5/12 + 7/18" — это несопоставимые требования, а одинаковая планка сделала бы
-        // выгодным сидеть на самой лёгкой теме. +2 секунды за каждую звезду сложности.
-        // База в 13 секунд не случайна: ровно столько длится таймер примера в игре,
-        // то есть бронза — это "успел, пока шкала не кончилась".
-        function speedTiersFor(level) {
+        // Пороги скорости у целых чисел плоские: они больше ничего не открывают, а служат
+        // ориентиром и условием двух высших ступеней. Плоская шкала честно говорит, что
+        // легенда на пятой звезде дороже легенды на первой, — вместо того чтобы выдавать
+        // обе за одинаковое усилие. Бронза в 11 секунд при таймере в 13,3 означает
+        // «успел с запасом».
+        const SPEED_TIERS_INTEGER = [11, 9, 7, 5, 3];
+
+        // Дроби и десятичные пока живут по прежнему правилу: та же база плюс две секунды
+        // за звезду. Не потому, что оно хорошее, а потому, что эти разделы закрыты и не
+        // проверены, а три секунды на «5/12 + 7/18» были бы бессмыслицей.
+        const SPEED_BASE_TIERS = [13, 11, 9, 7, 5];
+
+        function speedTiersFor(level, category) {
+            if (category === 'integer') return SPEED_TIERS_INTEGER;
             const add = 2 * (Math.max(1, level || 1) - 1);
             return SPEED_BASE_TIERS.map(t => t + add);
         }
@@ -7592,13 +7668,14 @@
                 count: lifetime.correct || 0,
                 attempts: win.attempts,
                 accuracy: win.attempts > 0 ? Math.round(win.c / win.attempts * 100) : null,
+                // Всё потраченное время, делённое на число верных ответов, — см. recordAnswer.
                 speedSec: win.mc > 0 ? (win.ms / win.mc / 1000) : null,
                 speedSamples: win.mc
             };
         }
 
         // Какая ступень заслужена ПО ФАКТУ (без учёта блокировки).
-        function ladderTierByMetrics(ladderId, m, level) {
+        function ladderTierByMetrics(ladderId, m, level, category) {
             let t = 0;
             if (ladderId === 'c') {
                 COUNT_TIERS.forEach((v, i) => { if (m.count >= v) t = i + 1; });
@@ -7611,7 +7688,7 @@
             }
             // Скорость: меньше — лучше
             if (m.speedSamples < LADDER_MIN_SAMPLE || m.speedSec === null) return 0;
-            speedTiersFor(level).forEach((v, i) => { if (m.speedSec <= v) t = i + 1; });
+            speedTiersFor(level, category).forEach((v, i) => { if (m.speedSec <= v) t = i + 1; });
             return t;
         }
 
@@ -7628,10 +7705,9 @@
         // двоеточия; легаси 'master:fraction:add' тоже, там на конце не цифра.
         const LADDER_ID_RE = /^(.+):([sac])([1-5])$/;
 
-        // Когда тема взяла сводный ранг. Ступень N считается взятой в день, когда её добрала
-        // ПОСЛЕДНЯЯ из трёх лесенок, — до этого сводного ранга ещё нет по определению.
-        // Считается из уже сохранённых ступеней, отдельно нигде не хранится.
-        function compositePromotions(unlocks) {
+        // Даты ступеней, разложенные по темам: { тема: { ступень: { s, a, c } } }.
+        // Отдельно нигде не хранится, считается из уже сохранённых достижений.
+        function ladderDatesByTopic(unlocks) {
             const byTopic = {};
             Object.keys(unlocks || {}).forEach(id => {
                 const m = LADDER_ID_RE.exec(id);
@@ -7640,15 +7716,38 @@
                 const slot = t[m[3]] || (t[m[3]] = {});
                 slot[m[2]] = unlocks[id];
             });
+            return byTopic;
+        }
+
+        // Когда открылась следующая звезда: день, в который добралась ПОСЛЕДНЯЯ из двух
+        // лесенок ворот — точности и количества. Для родителя это и есть событие.
+        function gatePromotions(unlocks) {
+            const byTopic = ladderDatesByTopic(unlocks);
             const out = [];
             Object.keys(byTopic).forEach(topicKey => {
-                Object.keys(byTopic[topicKey]).forEach(tier => {
-                    const slot = byTopic[topicKey][tier];
+                const slot = byTopic[topicKey][String(LEVEL_GATE_TIER)];
+                if (!slot) return;
+                const dates = ['a', 'c'].map(l => slot[l]).filter(d => d && d !== '?');
+                if (dates.length < 2) return;
+                dates.sort();
+                out.push({ topicKey, date: dates[1] });
+            });
+            return out;
+        }
+
+        // Когда тема взяла мастерство: минимум из трёх лесенок дошёл до алмаза или легенды.
+        function masteryPromotions(unlocks) {
+            const byTopic = ladderDatesByTopic(unlocks);
+            const out = [];
+            Object.keys(byTopic).forEach(topicKey => {
+                for (let tier = MASTERY_MIN_TIER; tier <= 5; tier++) {
+                    const slot = byTopic[topicKey][String(tier)];
+                    if (!slot) continue;
                     const dates = ['s', 'a', 'c'].map(l => slot[l]).filter(d => d && d !== '?');
-                    if (dates.length < 3) return; // не все три лесенки взяли эту ступень
+                    if (dates.length < 3) continue;
                     dates.sort();
-                    out.push({ topicKey, tier: Number(tier), date: dates[dates.length - 1] });
-                });
+                    out.push({ topicKey, tier, date: dates[2] });
+                }
             });
             return out;
         }
@@ -7660,8 +7759,17 @@
             return 'ступеней';
         }
 
-        // Сводный ранг темы — минимум из трёх лесенок.
-        function topicCompositeTier(unlocks, topicKey) {
+        // Мастерство темы — минимум из трёх лесенок. Раньше это был «сводный ранг»,
+        // и он же работал ограничителем: ни одна лесенка не могла уйти выше сводного плюс
+        // один. Из-за этого скорость блокировала всё: ученик с 95% точности и тысячей
+        // решённых примеров сидел на бронзе, если считал медленно. Скорость — единственный
+        // из трёх показателей, который не лечится старанием, она приходит сама за месяцы.
+        //
+        // Теперь лесенки идут независимо, а минимум из трёх остаётся только как метка
+        // мастерства и осмысленно лишь на двух верхних ступенях: алмаз и легенда даются
+        // за все три сразу, включая скорость. Ничего не открывают, берутся по желанию.
+        const MASTERY_MIN_TIER = 4;
+        function topicMasteryTier(unlocks, topicKey) {
             return Math.min(
                 ladderTierEarned(unlocks, topicKey, 's'),
                 ladderTierEarned(unlocks, topicKey, 'a'),
@@ -7669,10 +7777,24 @@
             );
         }
 
-        // Проверяет лесенки ОДНОЙ темы и выдаёт то, что заслужено.
-        // Правило блокировки: подняться выше "сводный + 1" нельзя ни в одной лесенке.
-        // Пока не собрана бронза во всех трёх, серебро не откроется нигде — так нельзя
-        // ни гнать на скорость с ошибками, ни топтаться в аккуратной медлительности.
+        // Ворота следующей звезды: золото по точности И по количеству на предыдущей.
+        // Скорость в воротах не участвует намеренно — см. выше.
+        const LEVEL_GATE_TIER = 3;
+        function levelGatePassed(unlocks, topicKey) {
+            return ladderTierEarned(unlocks, topicKey, 'a') >= LEVEL_GATE_TIER
+                && ladderTierEarned(unlocks, topicKey, 'c') >= LEVEL_GATE_TIER;
+        }
+
+        // Один значок на клетку карты: мастерство, если взято, иначе золото ворот.
+        // Ниже золота значка нет — там ещё нечего показывать, кроме процента.
+        function topicBadge(unlocks, topicKey) {
+            const mastery = topicMasteryTier(unlocks, topicKey);
+            if (mastery >= MASTERY_MIN_TIER) return TIER_ICONS[mastery];
+            return levelGatePassed(unlocks, topicKey) ? TIER_ICONS[LEVEL_GATE_TIER] : '';
+        }
+
+        // Проверяет лесенки ОДНОЙ темы и выдаёт то, что заслужено. Ограничителя больше нет:
+        // каждая лесенка идёт своим ходом до пятой ступени.
         function evaluateTopicLadders(topicKey) {
             if (!topicKey) return [];
             const p = parseTopicKey(topicKey);
@@ -7681,14 +7803,14 @@
             if (!st) return [];
 
             const unlocks = Progress.getUnlocks();
-            const cap = topicCompositeTier(unlocks, topicKey) + 1;
+            const masteryBefore = topicMasteryTier(unlocks, topicKey);
+            const gateBefore = levelGatePassed(unlocks, topicKey);
             const m = topicMetrics(st, topicKey);
             const fresh = [];
 
             LADDERS.forEach(l => {
                 const earned = ladderTierEarned(unlocks, topicKey, l.id);
-                if (earned >= cap) return; // упёрлись в блокировку, ждём отстающие лесенки
-                const target = Math.min(ladderTierByMetrics(l.id, m, p.level), cap);
+                const target = ladderTierByMetrics(l.id, m, p.level, p.category);
                 for (let t = earned + 1; t <= target; t++) {
                     if (Progress.unlock(`${topicKey}:${l.id}${t}`)) {
                         // Название темы здесь намеренно не пишем: всплывашка появляется прямо
@@ -7703,15 +7825,25 @@
                 }
             });
 
-            // Сводный ранг отдельным бейджем не выдаём — он вычисляется. Но о его повышении
-            // сообщаем: для ученика это и есть главное событие ("тема взята на серебро").
             if (fresh.length) {
-                const after = topicCompositeTier(Progress.getUnlocks(), topicKey);
-                if (after > cap - 1) {
+                const after = Progress.getUnlocks();
+                // Открылась следующая звезда — самое важное событие из всех, поэтому идёт
+                // отдельной строкой и человеческим языком, а не значком лесенки.
+                if (!gateBefore && levelGatePassed(after, topicKey) && (p.level || 1) < 5) {
                     fresh.push({
-                        id: `${topicKey}:composite${after}`,
-                        icon: TIER_ICONS[after],
-                        title: `${topicLabelWithLevel(topicKey)} — ${TIER_NAMES[after]}!`
+                        id: `${topicKey}:gate`,
+                        icon: '🔓',
+                        title: `Открыта ${(p.level || 1) + 1}★!`
+                    });
+                }
+                // Мастерство: минимум из трёх. Сообщаем только про алмаз и легенду —
+                // ниже этот минимум ничего не означает и только шумел бы.
+                const mastery = topicMasteryTier(after, topicKey);
+                if (mastery > masteryBefore && mastery >= MASTERY_MIN_TIER) {
+                    fresh.push({
+                        id: `${topicKey}:mastery${mastery}`,
+                        icon: TIER_ICONS[mastery],
+                        title: `${topicLabelWithLevel(topicKey)} — ${TIER_NAMES[mastery]}!`
                     });
                 }
             }
@@ -7903,14 +8035,20 @@
 
             // --- Достижения, полученные внутри периода ---
             // Ступени лесенок сюда идут НЕ поштучно: три лесенки × пять ступеней на каждой
-            // из тем дали бы родителю простыню из полутора десятков строк за месяц. Показываем
-            // взятие сводного ранга темы — это и есть настоящая веха («тема взята на серебро»),
+            // из тем дали бы родителю простыню из полутора десятков строк за месяц.
+            // Показываем две настоящие вехи — открытие следующей звезды и мастерство, —
             // а отдельные ступени сворачиваем в одну строку счётчиком.
             const unlocks = st.unlocks || {};
             const inPeriod = (d) => d && d !== '?' && d >= fromKey && d <= today;
             const earned = [];
 
-            compositePromotions(unlocks)
+            gatePromotions(unlocks)
+                .filter(p => inPeriod(p.date))
+                .forEach(p => {
+                    earned.push(`🔓 ${topicLabelWithLevel(p.topicKey)} — звезда взята`);
+                });
+
+            masteryPromotions(unlocks)
                 .filter(p => inPeriod(p.date))
                 .sort((x, y) => y.tier - x.tier)
                 .forEach(p => {
@@ -8023,21 +8161,27 @@
                 wrap.innerHTML = '<div class="menu-empty">Пока нет тем в работе.<br>Начни решать — здесь появятся ранги.</div>';
                 return;
             }
-            // Сверху — где ранг выше, при равенстве — где больше решено
-            const rows = keys.map(k => ({
-                key: k,
-                composite: topicCompositeTier(unlocks, k),
-                m: topicMetrics(st, k),
-                level: parseTopicKey(k).level
-            })).sort((x, y) => (y.composite - x.composite) || (y.m.count - x.m.count));
+            // Сверху — где взяты ворота, потом мастерство, при равенстве — где больше решено
+            const rows = keys.map(k => {
+                const p = parseTopicKey(k);
+                return {
+                    key: k,
+                    gate: levelGatePassed(unlocks, k),
+                    mastery: topicMasteryTier(unlocks, k),
+                    m: topicMetrics(st, k),
+                    level: p.level,
+                    category: p.category
+                };
+            }).sort((x, y) => (Number(y.gate) - Number(x.gate))
+                           || (y.mastery - x.mastery)
+                           || (y.m.count - x.m.count));
 
-            const inLeague = rows.filter(r => r.composite >= 1).length;
-            document.getElementById('achievementsSubtitle').innerText = inLeague
-                ? `Тем в работе: ${rows.length} · в лиге: ${inLeague}`
-                : `Тем в работе: ${rows.length}`;
+            const opened = rows.filter(r => r.gate).length;
+            const mastered = rows.filter(r => r.mastery >= MASTERY_MIN_TIER).length;
+            document.getElementById('achievementsSubtitle').innerText =
+                `Тем в работе: ${rows.length} · золото: ${opened} · мастерство: ${mastered}`;
 
             rows.forEach(r => {
-                const cap = r.composite + 1;
                 const card = document.createElement('div');
                 card.className = 'ladder-card';
                 card.innerHTML = `
@@ -8049,16 +8193,23 @@
                     <div class="ladder-league"></div>`;
                 card.querySelector('.ladder-topic').innerText = topicLabelWithLevel(r.key);
                 const rank = card.querySelector('.ladder-rank');
-                rank.innerText = r.composite > 0
-                    ? `${TIER_ICONS[r.composite]} ${TIER_NAMES[r.composite]}`
-                    : 'нет ранга';
-                if (r.composite > 0) rank.classList.add('has-rank');
+                if (r.mastery >= MASTERY_MIN_TIER) {
+                    rank.innerText = `${TIER_ICONS[r.mastery]} ${TIER_NAMES[r.mastery]}`;
+                    rank.classList.add('has-rank');
+                } else if (r.gate) {
+                    rank.innerText = `${TIER_ICONS[LEVEL_GATE_TIER]} звезда взята`;
+                    rank.classList.add('has-rank');
+                } else {
+                    rank.innerText = 'звезда не взята';
+                }
 
                 const rowsWrap = card.querySelector('.ladder-rows');
                 LADDERS.forEach(l => {
                     const earned = ladderTierEarned(unlocks, r.key, l.id);
                     const next = earned + 1;
-                    const blocked = earned >= cap && next <= 5;
+                    // Скорость больше ничего не открывает: её строка приглушена, чтобы
+                    // ученик не принимал её за требование.
+                    const optional = (l.id === 's');
 
                     let nowText = '—', goalText = '';
                     if (l.id === 'c') {
@@ -8069,13 +8220,12 @@
                         if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${ACCURACY_TIERS[next - 1]}%`;
                     } else {
                         nowText = r.m.speedSec === null ? '—' : r.m.speedSec.toFixed(1) + ' с';
-                        if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${speedTiersFor(r.level)[next - 1]} с`;
+                        if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${speedTiersFor(r.level, r.category)[next - 1]} с`;
                     }
                     if (next > 5) goalText = 'максимум';
-                    else if (blocked) goalText = 'ждёт остальные лесенки';
 
                     const row = document.createElement('div');
-                    row.className = 'ladder-row' + (blocked ? ' blocked' : '');
+                    row.className = 'ladder-row' + (optional ? ' optional' : '');
                     row.innerHTML = `
                         <span class="ladder-icon"></span>
                         <span class="ladder-name"></span>
@@ -8090,15 +8240,25 @@
                     rowsWrap.appendChild(row);
                 });
 
-                const league = card.querySelector('.ladder-league');
-                if (r.composite >= 5) {
-                    league.innerText = '👑 Супер-лига';
-                    league.classList.add('super');
-                } else if (r.composite >= 1) {
-                    league.innerText = '🏅 В лиге';
-                    league.classList.add('in');
+                // Внизу карточки — прямой ответ на вопрос, который ученика и волнует:
+                // что нужно, чтобы открылась следующая звезда. Раньше здесь была «лига» —
+                // она сообщала «ты в клубе», а не «столько осталось».
+                const foot = card.querySelector('.ladder-league');
+                const accTier = ladderTierEarned(unlocks, r.key, 'a');
+                const cntTier = ladderTierEarned(unlocks, r.key, 'c');
+                if ((r.level || 1) >= 5) {
+                    foot.innerText = r.mastery >= MASTERY_MIN_TIER
+                        ? 'Последняя звезда, мастерство взято'
+                        : 'Последняя звезда — дальше только мастерство';
+                    if (r.gate) foot.classList.add('in');
+                } else if (r.gate) {
+                    foot.innerText = `🔓 ${(r.level || 1) + 1}★ открыта`;
+                    foot.classList.add('in');
                 } else {
-                    league.innerText = 'Собери бронзу во всех трёх — и тема войдёт в лигу';
+                    const need = [];
+                    if (accTier < LEVEL_GATE_TIER) need.push(`точность ${ACCURACY_TIERS[LEVEL_GATE_TIER - 1]}%`);
+                    if (cntTier < LEVEL_GATE_TIER) need.push(`${COUNT_TIERS[LEVEL_GATE_TIER - 1]} верных`);
+                    foot.innerText = `До ${(r.level || 1) + 1}★: ${need.join(' и ')}`;
                 }
                 wrap.appendChild(card);
             });
