@@ -184,8 +184,13 @@
             align-items: center; padding: 4px 0; font-size: 0.75rem;
         }
         /* Скорость больше ничего не открывает — её строка приглушена, чтобы её не
-           принимали за требование. */
-        .ladder-row.optional { opacity: 0.62; }
+           принимали за требование. Но приглушается только то, что и есть требование:
+           название и «до следующей ступени». Взятая ступень и достигнутое значение
+           остаются в полную силу — легенда по скорости заработана так же честно, как
+           любая другая, и выцветшая корона обесценивала бы её ни за что. */
+        .ladder-row.optional .ladder-name,
+        .ladder-row.optional .ladder-icon,
+        .ladder-row.optional .ladder-goal { opacity: 0.62; }
 
         /* --- Достижения по разделам: раздел → действие → пять звёзд --- */
         .ach-section { margin-bottom: 16px; }
@@ -1038,6 +1043,8 @@
             color: var(--gold); font-weight: 700; margin-bottom: 2px;
         }
         .ach-banner .ach-title { font-size: 0.95rem; font-weight: 600; line-height: 1.3; }
+        /* Вторая строка — только у количества: там же и цель испытания. */
+        .ach-banner .ach-sub { font-size: 0.8rem; color: #c9b98a; margin-top: 3px; line-height: 1.3; }
         @keyframes achIn { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: none; } }
         @keyframes achOut { to { opacity: 0; transform: translateY(-18px); } }
     </style>
@@ -8115,26 +8122,58 @@
             const m = topicMetrics(st, topicKey);
             const fresh = [];
 
+            // Все три лесенки теперь считают выборку одним и тем же числом верных
+            // ответов, поэтому на пороге они трогаются с места вместе — и объявлять их
+            // по очереди значило бы держать плашки семь с половиной секунд об одном и
+            // том же событии. Собираем ступень в одну строку: «Бронза · скорость,
+            // точность и количество».
+            const byTier = new Map();
             LADDERS.forEach(l => {
                 const earned = ladderTierEarned(unlocks, topicKey, l.id);
                 const target = ladderTierByMetrics(l.id, m, p.level, p.category);
                 let top = 0;
+                // Показываем только верхнюю новую ступень лесенки. Промежуточные
+                // записываются молча: они настоящие, и их даты нужны отчёту, но четыре
+                // плашки подряд об одном и том же — это не праздник, а очередь.
                 for (let t = earned + 1; t <= target; t++) {
                     if (Progress.unlock(`${topicKey}:${l.id}${t}`)) top = t;
                 }
-                // Показываем только верхнюю новую ступень лесенки. Промежуточные
-                // записываются молча: они настоящие, и их даты нужны отчёту, но четыре
-                // всплывашки подряд об одном и том же — это не праздник, а очередь.
                 if (top) {
-                    // Название темы здесь намеренно не пишем: всплывашка появляется прямо
-                    // над примером, который ученик только что решил, — тема и так перед
-                    // глазами, а длинная строка заняла бы полэкрана.
-                    fresh.push({
-                        id: `${topicKey}:${l.id}${top}`,
-                        icon: TIER_ICONS[top],
-                        title: `${TIER_NAMES[top]} · ${l.name}`
-                    });
+                    if (!byTier.has(top)) byTier.set(top, []);
+                    byTier.get(top).push(l);
                 }
+            });
+
+            [...byTier.keys()].sort((x, y) => x - y).forEach(tier => {
+                const ls = byTier.get(tier);
+                const names = ls.map(l => l.name.toLowerCase());
+                const listed = names.length === 1
+                    ? names[0]
+                    : names.slice(0, -1).join(', ') + ' и ' + names[names.length - 1];
+
+                // У количества ступень — это ещё и цель испытания, поэтому вместе с ней
+                // сразу называем следующую. Раньше на этом месте открывалось окно
+                // «продолжить или закончить» — оно останавливало игру ровно в тот момент,
+                // когда получалось лучше всего. Теперь ничего не останавливается: плашка
+                // сказала, куда дальше, и примеры идут.
+                let sub = '';
+                if (ls.some(l => l.id === 'c')) {
+                    const next = sessionGoal(topicKey);
+                    sub = next
+                        ? `Дальше ${TIER_NAMES[next.tier]} ${TIER_ICONS[next.tier]} — ещё `
+                          + `${next.left} ${pluralAnswers(next.left)}`
+                        : 'Это последняя ступень количества в теме';
+                }
+
+                // Название темы намеренно не пишем: плашка появляется прямо над примером,
+                // который ученик только что решил, — тема и так перед глазами, а длинная
+                // строка заняла бы полэкрана.
+                fresh.push({
+                    id: `${topicKey}:tier${tier}`,
+                    icon: TIER_ICONS[tier],
+                    title: `${TIER_NAMES[tier]} · ${listed}`,
+                    sub
+                });
             });
 
             if (fresh.length) {
@@ -8199,6 +8238,12 @@
             title.innerText = a.title;     // innerText, не innerHTML: в названии бывает подпись профиля
             body.appendChild(kicker);
             body.appendChild(title);
+            if (a.sub) {
+                const sub = document.createElement('div');
+                sub.className = 'ach-sub';
+                sub.innerText = a.sub;
+                body.appendChild(sub);
+            }
             el.appendChild(icon);
             el.appendChild(body);
             wrap.appendChild(el);
@@ -9946,15 +9991,6 @@
                 const fresh = evaluateTopicLadders(topicKey);
                 announceAchievements(fresh);
 
-                // Цель испытания — это ступень количества. Если она только что взята,
-                // испытание дошло до своего конца: дальше решает ученик. Ступени точности
-                // и скорости сюда не попадают намеренно — они приходят когда придут, и
-                // прерывать ими поток примеров не за что.
-                if (fresh.some(a => /:c[1-5]$/.test(a.id))) {
-                    offerContinueOrFinish(topicKey);
-                    return;
-                }
-
                 generateMath();
                 return;
             }
@@ -10018,42 +10054,6 @@
                 answerLocked = false;
                 generateMath();
             }, isUnreducedMatch ? 1700 : 1400);
-        }
-
-        // Цель взята. Испытание останавливается — не заканчивается, а именно
-        // останавливается: примеры не идут, полоска времени не течёт, и ученик решает
-        // сам. Это и есть «длина испытания»: не число примеров, назначенное заранее,
-        // а расстояние до ближайшей награды.
-        async function offerContinueOrFinish(topicKey) {
-            answerLocked = true;               // пока думает — тапы по кнопкам ничего не делают
-            clearInterval(timerInterval);      // полоска времени не должна утекать в окне
-            renderLiveStats();                 // цель уже новая — пусть и на экране будет новая
-
-            const next = sessionGoal(topicKey);
-            const text = next
-                ? `Следующая цель — ${TIER_NAMES[next.tier]} ${TIER_ICONS[next.tier]}: ещё `
-                  + `${next.left} ${pluralAnswers(next.left)}. Можно пойти к ней сейчас, `
-                  + `а можно закончить — решённое засчитано.`
-                : `Это последняя ступень количества в этой теме. Дальше можно решать `
-                  + `просто так — на точность и скорость.`;
-
-            // Плашка о достижении держится 2,5 секунды сверху. Окно ждёт её: сначала
-            // награда, потом вопрос, а не оба сразу.
-            await new Promise(r => setTimeout(r, ACH_BANNER_MS));
-            if (!gameActive) return;           // пока ждали, испытание могли завершить кнопкой
-
-            const goOn = await askConfirm({
-                title: 'Цель взята!',
-                text,
-                okText: next ? 'Продолжить' : 'Решать дальше',
-                cancelText: 'Закончить'
-            });
-
-            if (!gameActive) return;
-            if (!goOn) { finishChallenge(); return; }
-
-            answerLocked = false;
-            generateMath();
         }
 
         function spawnRewardText(txt, x, y, color, isCrit) {
