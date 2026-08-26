@@ -55,7 +55,7 @@ const L = loadLadders();
 
 // Показатели темы в том виде, в каком их считает topicMetrics.
 const metrics = (o) => Object.assign({
-    count: 0, attempts: 0, accuracy: null, speedSec: null, speedSamples: 0
+    count: 0, attempts: 0, accuracy: null, speedSec: null
 }, o);
 
 group('Порог выборки растёт вместе со ступенью');
@@ -66,36 +66,61 @@ test('порог выборки совпадает с порогами коли�
     eq(L.LADDER_MIN_SAMPLE[0], L.COUNT_TIERS[0], 'бронза');
     eq(L.LADDER_MIN_SAMPLE[1], L.COUNT_TIERS[1], 'серебро');
     eq(L.LADDER_MIN_SAMPLE[2], L.COUNT_TIERS[2], 'золото');
-    // Выше золота порог упирается в размер окна: больше сотни оно не помнит.
-    eq(L.LADDER_MIN_SAMPLE[3], 100, 'алмаз — потолок окна');
-    eq(L.LADDER_MIN_SAMPLE[4], 100, 'легенда — потолок окна');
+    // Выше золота порог перестаёт расти: точность и скорость меряются по последней
+    // сотне ответов, и требовать больше верных незачем — надёжнее замер не станет.
+    eq(L.LADDER_MIN_SAMPLE[3], 100, 'алмаз — там же, где золото');
+    eq(L.LADDER_MIN_SAMPLE[4], 100, 'легенда — там же, где золото');
 });
 
-test('идеальная точность на двадцати шести ответах даёт бронзу, а не легенду', () => {
-    // Ровно случай со скриншота: 26 верных, точность 90%. Бронза положена, легенда нет.
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 24, accuracy: 100 }), 1, 'integer'), 0, 'на 24 ответах ничего');
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 26, accuracy: 90 }), 1, 'integer'), 1, 'на 26 ответах при 90% — бронза');
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 26, accuracy: 100 }), 1, 'integer'), 1, 'даже при 100% — только бронза');
+test('идеальная точность на двадцати шести верных даёт бронзу, а не легенду', () => {
+    eq(L.ladderTierByMetrics('a', metrics({ count: 24, accuracy: 100 }), 1, 'integer'), 0, 'на 24 верных ничего');
+    eq(L.ladderTierByMetrics('a', metrics({ count: 26, accuracy: 90 }), 1, 'integer'), 1, 'на 26 верных при 90% — бронза');
+    eq(L.ladderTierByMetrics('a', metrics({ count: 26, accuracy: 100 }), 1, 'integer'), 1, 'даже при 100% — только бронза');
 });
 
-test('серебро требует шестидесяти ответов, золото — сотни', () => {
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 59, accuracy: 100 }), 1, 'integer'), 1, 'на 59 ответах');
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 60, accuracy: 100 }), 1, 'integer'), 2, 'на 60 ответах');
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 99, accuracy: 100 }), 1, 'integer'), 2, 'на 99 ответах ещё серебро');
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 100, accuracy: 100 }), 1, 'integer'), 5, 'на сотне сразу легенда, если точность идеальна');
+test('серебро требует шестидесяти верных, золото — сотни', () => {
+    eq(L.ladderTierByMetrics('a', metrics({ count: 59, accuracy: 100 }), 1, 'integer'), 1, 'на 59 верных');
+    eq(L.ladderTierByMetrics('a', metrics({ count: 60, accuracy: 100 }), 1, 'integer'), 2, 'на 60 верных');
+    eq(L.ladderTierByMetrics('a', metrics({ count: 99, accuracy: 100 }), 1, 'integer'), 2, 'на 99 верных ещё серебро');
+    eq(L.ladderTierByMetrics('a', metrics({ count: 100, accuracy: 100 }), 1, 'integer'), 5, 'на сотне сразу легенда, если точность идеальна');
 });
 
-test('слабая точность не поднимается выше своей ступени даже на полном окне', () => {
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 200, accuracy: 86 }), 1, 'integer'), 2, '86% — серебро');
-    eq(L.ladderTierByMetrics('a', metrics({ attempts: 200, accuracy: 79 }), 1, 'integer'), 0, '79% — ниже бронзы');
+test('слабая точность не поднимается выше своей ступени даже на полной выборке', () => {
+    eq(L.ladderTierByMetrics('a', metrics({ count: 200, accuracy: 86 }), 1, 'integer'), 2, '86% — серебро');
+    eq(L.ladderTierByMetrics('a', metrics({ count: 200, accuracy: 79 }), 1, 'integer'), 0, '79% — ниже бронзы');
 });
 
 test('у скорости тот же порог выборки', () => {
     const fast = { speedSec: 1.0 };
-    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 24 }, fast)), 1, 'integer'), 0, 'на 24 верных ничего');
-    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 25 }, fast)), 1, 'integer'), 1, 'на 25 верных бронза');
-    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 60 }, fast)), 1, 'integer'), 2, 'на 60 верных серебро');
-    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ speedSamples: 100 }, fast)), 1, 'integer'), 5, 'на сотне легенда');
+    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ count: 24 }, fast)), 1, 'integer'), 0, 'на 24 верных ничего');
+    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ count: 25 }, fast)), 1, 'integer'), 1, 'на 25 верных бронза');
+    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ count: 60 }, fast)), 1, 'integer'), 2, 'на 60 верных серебро');
+    eq(L.ladderTierByMetrics('s', metrics(Object.assign({ count: 100 }, fast)), 1, 'integer'), 5, 'на сотне легенда');
+});
+
+// Ровно случай со скриншота: 57 верных и 3 ошибки. Раньше точность видела выборку 60
+// (верные плюс ошибки) и выдавала серебро, пока количество и скорость честно ждали
+// шестидесятого верного. Теперь все три считают одно и то же.
+test('ошибки больше не приближают ступень точности', () => {
+    const m = metrics({ count: 57, attempts: 60, accuracy: 95, speedSec: 2.5 });
+    eq(L.ladderTierByMetrics('a', m, 1, 'integer'), 1, 'точность — бронза, как количество и скорость');
+    eq(L.ladderTierByMetrics('c', m, 1, 'integer'), 1, 'количество — бронза');
+    eq(L.ladderTierByMetrics('s', m, 1, 'integer'), 1, 'скорость — бронза');
+
+    // А на шестидесятом верном все три поднимаются вместе.
+    const m60 = metrics({ count: 60, attempts: 63, accuracy: 95, speedSec: 2.5 });
+    eq(L.ladderTierByMetrics('a', m60, 1, 'integer'), 2, 'точность — серебро');
+    eq(L.ladderTierByMetrics('c', m60, 1, 'integer'), 2, 'количество — серебро');
+    eq(L.ladderTierByMetrics('s', m60, 1, 'integer'), 2, 'скорость — серебро');
+});
+
+// Выборка не может браться из окна: окно кончается на сотом ОТВЕТЕ, поэтому верных
+// в нём всегда меньше сотни, и золото с алмазом и легендой стали бы недостижимы для
+// всех, кто хоть раз ошибся.
+test('золото по точности достижимо с ошибками', () => {
+    // 100 верных, 10 ошибок: точность ровно 91%, порог золота — 90%.
+    eq(L.ladderTierByMetrics('a', metrics({ count: 100, attempts: 110, accuracy: 91 }), 1, 'integer'), 3, 'золото');
+    eq(L.ladderTierByMetrics('s', metrics({ count: 100, speedSec: 1.0 }), 1, 'integer'), 5, 'скорость тоже не заперта');
 });
 
 test('количество порогом выборки не ограничено — оно само и есть выборка', () => {
