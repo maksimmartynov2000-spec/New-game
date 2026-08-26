@@ -7930,6 +7930,24 @@
         //
         // Сам минимум нужен потому, что три верных ответа подряд — это 100% точности,
         // то есть по значению легенда. Выдавать легенду за три примера нельзя.
+        // Сколько ВЕРНЫХ ответов должно быть в клетке, чтобы ступень точности или скорости
+        // засчиталась. Числа те же, что и пороги количества, и считают они то же самое —
+        // иначе «бронза за 25» значило бы в трёх лесенках три разные двадцатьпятки.
+        //
+        // Раньше точность смотрела на все ответы вместе с ошибками, а скорость — на верные.
+        // При 57 верных и 3 ошибках точность видела выборку 60 и выдавала серебро, а
+        // количество и скорость честно ждали шестидесятого верного. Ступень приходила ровно
+        // на столько ответов раньше, сколько было ошибок: чем хуже решал, тем быстрее
+        // открывалась точность.
+        //
+        // Считать выборку по верным ответам внутри окна тоже нельзя: окно кончается на сотом
+        // ОТВЕТЕ, поэтому верных в нём всегда меньше сотни, и золото с алмазом и легендой
+        // стали бы недостижимы для всех, кто хоть раз ошибся. Поэтому порогом служит
+        // пожизненное число верных — то же самое, по которому идёт лесенка количества.
+        //
+        // Выше золота порог не растёт (100, а не 150 и 250, как у количества): точность и
+        // скорость меряются по последней сотне ответов, и требовать больше верных незачем —
+        // надёжнее замер от этого не станет.
         const LADDER_MIN_SAMPLE = [25, 60, 100, 100, 100];
 
         // Свежее окно по теме: идём по дням от сегодняшнего назад, пока не наберём
@@ -7958,8 +7976,9 @@
                 attempts: win.attempts,
                 accuracy: win.attempts > 0 ? Math.round(win.c / win.attempts * 100) : null,
                 // Всё потраченное время, делённое на число верных ответов, — см. recordAnswer.
-                speedSec: win.mc > 0 ? (win.ms / win.mc / 1000) : null,
-                speedSamples: win.mc
+                // Отдельного счётчика выборки у скорости больше нет: порогом всем трём
+                // лесенкам служит count, то есть одно и то же число верных ответов.
+                speedSec: win.mc > 0 ? (win.ms / win.mc / 1000) : null
             };
         }
 
@@ -7973,14 +7992,14 @@
             if (ladderId === 'a') {
                 if (m.accuracy === null) return 0;
                 ACCURACY_TIERS.forEach((v, i) => {
-                    if (m.accuracy >= v && m.attempts >= LADDER_MIN_SAMPLE[i]) t = i + 1;
+                    if (m.accuracy >= v && m.count >= LADDER_MIN_SAMPLE[i]) t = i + 1;
                 });
                 return t;
             }
             // Скорость: меньше — лучше
             if (m.speedSec === null) return 0;
             speedTiersFor(level, category).forEach((v, i) => {
-                if (m.speedSec <= v && m.speedSamples >= LADDER_MIN_SAMPLE[i]) t = i + 1;
+                if (m.speedSec <= v && m.count >= LADDER_MIN_SAMPLE[i]) t = i + 1;
             });
             return t;
         }
@@ -8653,13 +8672,13 @@
                     if (next <= 5) goalText = ladderGoalText(TIER_NAMES[next],
                         `${ACCURACY_TIERS[next - 1]}%`,
                         m.accuracy !== null && m.accuracy >= ACCURACY_TIERS[next - 1],
-                        m.attempts, LADDER_MIN_SAMPLE[next - 1]);
+                        m.count, LADDER_MIN_SAMPLE[next - 1]);
                 } else {
                     nowText = m.speedSec === null ? '—' : m.speedSec.toFixed(1) + ' с';
                     const need = speedTiersFor(p.level, p.category)[next - 1];
                     if (next <= 5) goalText = ladderGoalText(TIER_NAMES[next], `${need} с`,
                         m.speedSec !== null && m.speedSec <= need,
-                        m.speedSamples, LADDER_MIN_SAMPLE[next - 1]);
+                        m.count, LADDER_MIN_SAMPLE[next - 1]);
                 }
                 if (next > 5) goalText = 'максимум';
 
