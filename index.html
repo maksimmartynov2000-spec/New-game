@@ -662,14 +662,6 @@
             opacity: 1 !important;
         }
 
-        /* Отмена промаха существует с самого начала, но догадаться о ней невозможно:
-           никакого сигнала не было. Поэтому первые несколько запусков подсказываем
-           словами, дальше строка исчезает навсегда. */
-        .tap-hint {
-            margin-top: 10px; text-align: center; font-size: 0.72rem;
-            color: #64748b; line-height: 1.3; display: none;
-        }
-
         .floating-reward {
             position: fixed; pointer-events: none; font-weight: 900; font-size: 1.4rem; z-index: 300;
             font-family: 'Impact', 'Arial Black', sans-serif; text-align: center;
@@ -1560,7 +1552,6 @@
             </div>
             <div class="math-question" id="mathQuestion">Загрузка...</div>
             <div class="answers-grid" id="answersGrid"></div>
-            <div class="tap-hint" id="tapHint">Ткнул не туда? Не отпускай палец — уведи его с кнопки.</div>
         </div>
     </div>
 
@@ -6290,6 +6281,13 @@
         // короткое 'all': так и в базе понятнее, и панель ученика напишет
         // «открыт полностью», а не перечислит восемь режимов по пять звёзд.
         function grantFromPicks(sec, picks) {
+            // На положительных 'all' не сворачиваем — ни целиком, ни по действию.
+            // В остальных разделах 'all' значит «раздел открыт, дойдёшь до всего сам»:
+            // доступ есть, ворота внутри остаются. На положительных доступ и так у всех,
+            // ограничивают только ворота, а их приложение пропускает лишь для клетки,
+            // названной ПОИМЁННО. То есть 'all' там не открыл бы ни одной звезды —
+            // галочки стояли бы, а не менялось бы ничего.
+            const spellOut = sec.key === BASE_SECTION;
             const out = {};
             let total = 0, marked = 0;
             sec.ops.forEach(op => {
@@ -6298,12 +6296,32 @@
                     total++;
                     if (picks[`${op}:${i}`]) { lv.push(i); marked++; }
                 }
-                if (lv.length === 5) out[op] = 'all';
+                if (lv.length === 5 && !spellOut) out[op] = 'all';
                 else if (lv.length) out[op] = lv;
             });
             if (marked === 0) return null;
-            if (marked === total) return 'all';
+            if (marked === total && !spellOut) return 'all';
             return out;
+        }
+
+        // Обратное к grantFromPicks: разрешение с сервера — в отмеченные клетки.
+        // Нужно, чтобы сетка прямой выдачи открывалась уже заполненной: запись по
+        // разделу заменяется целиком, и открыть её пустой значило бы предложить
+        // стереть всё, что было выдано раньше.
+        function picksFromGrant(sec, grant) {
+            const picks = {};
+            if (!grant) return picks;
+            if (grant === 'all') {
+                sec.ops.forEach(op => { for (let i = 1; i <= 5; i++) picks[`${op}:${i}`] = true; });
+                return picks;
+            }
+            if (typeof grant !== 'object') return picks;
+            sec.ops.forEach(op => {
+                const lv = grant[op];
+                if (lv === 'all') { for (let i = 1; i <= 5; i++) picks[`${op}:${i}`] = true; }
+                else if (Array.isArray(lv)) lv.forEach(i => { picks[`${op}:${i}`] = true; });
+            });
+            return picks;
         }
 
         function grantHuman(sec, grant) {
@@ -6314,106 +6332,126 @@
             }).join('; ');
         }
 
+        // Сетка «раздел → действие → 1★…5★». Общая для двух окон — выдачи кода и
+        // прямого открытия, — потому что это буквально одна и та же таблица, и разъехаться
+        // они не должны. Отметки хранятся по разделам: у прямого открытия вкладок несколько,
+        // и переключение не имеет права терять уже проставленное.
+        function buildGrantGrid(card, state, opts) {
+            const o = opts || {};
+            const secRow = document.createElement('div');
+            secRow.className = 'grant-sections';
+            const grid = document.createElement('div');
+            grid.className = 'grant-grid';
+            const summary = document.createElement('div');
+            summary.className = 'grant-summary';
+
+            const picksOf = (i) => {
+                const sec = GRANT_SECTIONS[i];
+                if (!state.picks[sec.key]) {
+                    state.picks[sec.key] = o.initial ? o.initial(sec) : {};
+                }
+                return state.picks[sec.key];
+            };
+
+            const redraw = () => {
+                const sec = GRANT_SECTIONS[state.secIdx];
+                const picks = picksOf(state.secIdx);
+                [...secRow.children].forEach((b, i) => b.classList.toggle('on', i === state.secIdx));
+
+                grid.innerHTML = '';
+                grid.style.gridTemplateColumns = 'auto repeat(5, 1fr)';
+
+                const corner = document.createElement('button');
+                corner.type = 'button';
+                corner.className = 'grant-corner';
+                corner.innerText = 'всё';
+                corner.addEventListener('click', () => {
+                    const any = sec.ops.some(op => [1,2,3,4,5].some(i => picks[`${op}:${i}`]));
+                    sec.ops.forEach(op => [1,2,3,4,5].forEach(i => { picks[`${op}:${i}`] = !any; }));
+                    redraw();
+                });
+                grid.appendChild(corner);
+
+                for (let i = 1; i <= 5; i++) {
+                    const col = document.createElement('button');
+                    col.type = 'button';
+                    col.className = 'grant-col';
+                    col.innerText = `${i}★`;
+                    col.addEventListener('click', () => {
+                        const any = sec.ops.some(op => picks[`${op}:${i}`]);
+                        sec.ops.forEach(op => { picks[`${op}:${i}`] = !any; });
+                        redraw();
+                    });
+                    grid.appendChild(col);
+                }
+
+                sec.ops.forEach(op => {
+                    const lab = document.createElement('button');
+                    lab.type = 'button';
+                    lab.className = 'grant-row';
+                    lab.innerText = (OP_LABELS[op] || op).replace(/^\S+\s/, '');
+                    lab.addEventListener('click', () => {
+                        const any = [1,2,3,4,5].some(i => picks[`${op}:${i}`]);
+                        [1,2,3,4,5].forEach(i => { picks[`${op}:${i}`] = !any; });
+                        redraw();
+                    });
+                    grid.appendChild(lab);
+
+                    for (let i = 1; i <= 5; i++) {
+                        const cell = document.createElement('button');
+                        cell.type = 'button';
+                        cell.className = 'grant-cell' + (picks[`${op}:${i}`] ? ' on' : '');
+                        cell.addEventListener('click', () => {
+                            picks[`${op}:${i}`] = !picks[`${op}:${i}`];
+                            redraw();
+                        });
+                        grid.appendChild(cell);
+                    }
+                });
+
+                summary.innerText = o.summary
+                    ? o.summary(sec, grantFromPicks(sec, picks))
+                    : '';
+            };
+
+            GRANT_SECTIONS.forEach((sec, i) => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'grant-sec';
+                b.innerText = sec.title;
+                b.addEventListener('click', () => { state.secIdx = i; redraw(); });
+                secRow.appendChild(b);
+            });
+
+            card.appendChild(secRow);
+            card.appendChild(grid);
+            card.appendChild(summary);
+            redraw();
+        }
+
         async function openIssueCode(studentCode, studentLabel) {
-            let secIdx = 0;
-            let picks = {};
+            const state = { secIdx: 0, picks: {} };
 
             const values = await askForm({
-                title: 'Открыть раздел',
+                title: 'Код на раздел',
                 text: `Ученик: ${studentLabel || studentCode}. Код сработает только на этот логин, один раз.`,
                 fields: [],
                 okText: 'Выдать код',
                 // Проверка и одновременно источник результата: askForm отдаёт значения
-                // полей, а полей тут нет — разрешение живёт в picks выше.
-                validate: () => grantFromPicks(GRANT_SECTIONS[secIdx], picks) ? null : 'Отметь хотя бы одну клетку.',
-                build: (card) => {
-                    const secRow = document.createElement('div');
-                    secRow.className = 'grant-sections';
-                    const grid = document.createElement('div');
-                    grid.className = 'grant-grid';
-                    const summary = document.createElement('div');
-                    summary.className = 'grant-summary';
-
-                    const redraw = () => {
-                        const sec = GRANT_SECTIONS[secIdx];
-                        [...secRow.children].forEach((b, i) => b.classList.toggle('on', i === secIdx));
-
-                        grid.innerHTML = '';
-                        grid.style.gridTemplateColumns = 'auto repeat(5, 1fr)';
-
-                        const corner = document.createElement('button');
-                        corner.type = 'button';
-                        corner.className = 'grant-corner';
-                        corner.innerText = 'всё';
-                        corner.addEventListener('click', () => {
-                            const any = sec.ops.some(op => [1,2,3,4,5].some(i => picks[`${op}:${i}`]));
-                            sec.ops.forEach(op => [1,2,3,4,5].forEach(i => { picks[`${op}:${i}`] = !any; }));
-                            redraw();
-                        });
-                        grid.appendChild(corner);
-
-                        for (let i = 1; i <= 5; i++) {
-                            const col = document.createElement('button');
-                            col.type = 'button';
-                            col.className = 'grant-col';
-                            col.innerText = `${i}★`;
-                            col.addEventListener('click', () => {
-                                const any = sec.ops.some(op => picks[`${op}:${i}`]);
-                                sec.ops.forEach(op => { picks[`${op}:${i}`] = !any; });
-                                redraw();
-                            });
-                            grid.appendChild(col);
-                        }
-
-                        sec.ops.forEach(op => {
-                            const lab = document.createElement('button');
-                            lab.type = 'button';
-                            lab.className = 'grant-row';
-                            lab.innerText = (OP_LABELS[op] || op).replace(/^\S+\s/, '');
-                            lab.addEventListener('click', () => {
-                                const any = [1,2,3,4,5].some(i => picks[`${op}:${i}`]);
-                                [1,2,3,4,5].forEach(i => { picks[`${op}:${i}`] = !any; });
-                                redraw();
-                            });
-                            grid.appendChild(lab);
-
-                            for (let i = 1; i <= 5; i++) {
-                                const cell = document.createElement('button');
-                                cell.type = 'button';
-                                cell.className = 'grant-cell' + (picks[`${op}:${i}`] ? ' on' : '');
-                                cell.addEventListener('click', () => {
-                                    picks[`${op}:${i}`] = !picks[`${op}:${i}`];
-                                    redraw();
-                                });
-                                grid.appendChild(cell);
-                            }
-                        });
-
-                        const g = grantFromPicks(sec, picks);
-                        summary.innerText = g
-                            ? `Откроется: ${sec.title.replace(/^\S+\s/, '')} — ${grantHuman(sec, g)}.`
-                            : 'Ничего не выбрано.';
-                    };
-
-                    GRANT_SECTIONS.forEach((sec, i) => {
-                        const b = document.createElement('button');
-                        b.type = 'button';
-                        b.className = 'grant-sec';
-                        b.innerText = sec.title;
-                        b.addEventListener('click', () => { secIdx = i; picks = {}; redraw(); });
-                        secRow.appendChild(b);
-                    });
-
-                    card.appendChild(secRow);
-                    card.appendChild(grid);
-                    card.appendChild(summary);
-                    redraw();
-                }
+                // полей, а полей тут нет — разрешение живёт в state.picks.
+                validate: () => grantFromPicks(GRANT_SECTIONS[state.secIdx],
+                                               state.picks[GRANT_SECTIONS[state.secIdx].key] || {})
+                                ? null : 'Отметь хотя бы одну клетку.',
+                build: (card) => buildGrantGrid(card, state, {
+                    summary: (sec, g) => g
+                        ? `Откроется: ${sec.title.replace(/^\S+\s/, '')} — ${grantHuman(sec, g)}.`
+                        : 'Ничего не выбрано.'
+                })
             });
             if (values === null) return;
 
-            const sec = GRANT_SECTIONS[secIdx];
-            const grant = grantFromPicks(sec, picks);
+            const sec = GRANT_SECTIONS[state.secIdx];
+            const grant = grantFromPicks(sec, state.picks[sec.key] || {});
             const { data, error } = await callAuthed(
                 'session_issue_access_code', { p_student_code: studentCode, p_section: sec.key, p_grant: grant },
                 'issue_access_code', { p_student_code: studentCode, p_section: sec.key, p_grant: grant });
@@ -6421,7 +6459,7 @@
                 const messages = {
                     not_your_student: 'Это не твой ученик.',
                     bad_grant: 'Такой набор режимов сервер не принял.',
-                    bad_section: 'Этот раздел кодом не открывается.'
+                    bad_section: 'Этот раздел кодом не открывается. Запусти supabase/student-access.sql.'
                 };
                 showToast(messages[data && data.error] || 'Не удалось выдать код.', 'error');
                 return;
@@ -6429,6 +6467,75 @@
 
             await showCodeResult(data.code, studentLabel || studentCode, sec, grant);
             renderStudentsList();
+        }
+
+        // Прямое открытие, без кода. Код никуда не девается: он работает, когда вас нет
+        // рядом — продиктовал, ученик ввёл. Это для занятия, где три шага и пауза лишние.
+        //
+        // Сетка открывается УЖЕ отмеченной тем, что открыто сейчас: запись по разделу
+        // заменяется целиком, и пустая сетка означала бы «применить = стереть всё».
+        // Поэтому же снятая галочка закрывает звезду обратно — до сих пор выданное
+        // было необратимо, и ошибка стоила навсегда.
+        async function openStudentAccess(studentCode, studentLabel) {
+            const { data, error } = await callAuthed(
+                'session_student_access', { p_student_code: studentCode },
+                'student_access', { p_student_code: studentCode });
+            if (error || !data || !data.ok) {
+                showToast(error ? 'Нужно запустить supabase/student-access.sql в Supabase.'
+                                : 'Не удалось прочитать доступ ученика.', 'error');
+                return;
+            }
+            const before = data.access || {};
+
+            // Отметки заводим сразу по ВСЕМ разделам, а не лениво при открытии вкладки.
+            // Иначе раздел, куда репетитор не заглянул, при сравнении выглядит как
+            // «всё сняли» — и «Применить» стирало бы доступ, которого никто не касался.
+            const state = { secIdx: 0, picks: {} };
+            GRANT_SECTIONS.forEach(sec => { state.picks[sec.key] = picksFromGrant(sec, before[sec.key]); });
+
+            const values = await askForm({
+                title: 'Что открыто ученику',
+                text: `Ученик: ${studentLabel || studentCode}. Меняется сразу, без кода.`,
+                fields: [],
+                okText: 'Применить',
+                build: (card) => buildGrantGrid(card, state, {
+                    initial: (sec) => picksFromGrant(sec, before[sec.key]),
+                    summary: (sec, g) => g
+                        ? `${sec.title.replace(/^\S+\s/, '')}: ${grantHuman(sec, g)}.`
+                        : `${sec.title.replace(/^\S+\s/, '')}: закрыто полностью.`
+                })
+            });
+            if (values === null) return;
+
+            // Пишем только те разделы, где отметки реально изменились. Сравниваем не
+            // сырые ответы сервера, а результат одного и того же нормализатора: иначе
+            // ['add':[1,2,3,4,5]] и ['add':'all'] считались бы разными.
+            const changed = GRANT_SECTIONS.filter(sec => {
+                const was = JSON.stringify(grantFromPicks(sec, picksFromGrant(sec, before[sec.key])));
+                const now = JSON.stringify(grantFromPicks(sec, state.picks[sec.key]));
+                return was !== now;
+            });
+            if (!changed.length) { showToast('Ничего не изменилось.'); return; }
+
+            for (const sec of changed) {
+                const grant = grantFromPicks(sec, state.picks[sec.key] || {});
+                const res = await callAuthed(
+                    'session_set_student_access',
+                    { p_student_code: studentCode, p_section: sec.key, p_grant: grant },
+                    'set_student_access',
+                    { p_student_code: studentCode, p_section: sec.key, p_grant: grant });
+                if (res.error || !res.data || !res.data.ok) {
+                    const messages = {
+                        not_your_student: 'Это не твой ученик.',
+                        bad_grant: 'Такой набор режимов сервер не принял.',
+                        bad_section: 'Этот раздел так не открывается.'
+                    };
+                    showToast(messages[res.data && res.data.error]
+                              || `Не удалось изменить «${sec.title.replace(/^\S+\s/, '')}».`, 'error');
+                    return;
+                }
+            }
+            showToast(`Доступ обновлён: ${changed.map(x => x.title.replace(/^\S+\s/, '')).join(', ')}.`, 'ok');
         }
 
         // Код показывается крупно и не исчезает сам: его надо успеть переписать
@@ -9081,7 +9188,8 @@
                     </div>
                     <button class="list-row-btn" data-act="view">Смотреть</button>
                     <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>
-                    <button class="list-row-btn" data-act="grant" title="Открыть раздел">🔓</button>
+                    <button class="list-row-btn" data-act="access" title="Что открыто">⭐</button>
+                    <button class="list-row-btn" data-act="grant" title="Код на раздел">🔓</button>
                     <button class="list-row-btn" data-act="codes" title="Выданные коды">📋</button>
                     <button class="list-row-btn" data-act="group" title="Папка">📁</button>
                     <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>
@@ -9104,6 +9212,7 @@
                 }
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));
                 row.querySelector('[data-act="report"]').addEventListener('click', () => openReportFor(s.code, s));
+                row.querySelector('[data-act="access"]').addEventListener('click', () => openStudentAccess(s.code, s.label));
                 row.querySelector('[data-act="grant"]').addEventListener('click', () => openIssueCode(s.code, s.label));
                 row.querySelector('[data-act="codes"]').addEventListener('click', () => openStudentCodes(s.code, s.label));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
@@ -9581,22 +9690,6 @@
             window.addEventListener('blur', () => done(null));
         })();
 
-        // Подсказка про отмену промаха: первые пять испытаний показываем, дальше никогда.
-        // Счётчик лежит на устройстве, а не в профиле: это подсказка про то, как трогать
-        // экран, и синхронизировать её между устройствами незачем — на новом планшете
-        // она нужна снова.
-        const TAP_HINT_KEY = 'mathCitadelTapHint_v1';
-        const TAP_HINT_RUNS = 5;
-        function maybeShowTapHint() {
-            const el = document.getElementById('tapHint');
-            if (!el) return;
-            let runs = 0;
-            try { runs = Number(localStorage.getItem(TAP_HINT_KEY)) || 0; } catch (e) { runs = TAP_HINT_RUNS; }
-            if (runs >= TAP_HINT_RUNS) { el.style.display = 'none'; return; }
-            el.style.display = 'block';
-            try { localStorage.setItem(TAP_HINT_KEY, String(runs + 1)); } catch (e) { /* хранилище недоступно */ }
-        }
-
         let answerLocked = false;          // блокирует повторный тап, пока показываем разбор ошибки
         let currentIsFractionArith = false; // true только для +,-,×,÷ над дробями (нужно для проверки "забыл сократить")
 
@@ -9729,7 +9822,6 @@
         }
         function startGame() {
             gameActive = true;
-            maybeShowTapHint();
             sessionMistakes = []; // новое испытание — разбор начинается с чистого листа
             // Отложенные пазлы тоже: показывать прошлый выигрыш вместе со статистикой
             // текущего испытания было бы враньём, а картинка и так лежит в коллекции.
@@ -10356,7 +10448,11 @@
         // при этом может не быть вовсе. visibilitychange срабатывает надёжнее всего —
         // ловим момент, когда приложение уходит в фон, и отправляем накопленное.
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') Progress.flush();
+            if (document.visibilityState === 'hidden') { Progress.flush(); return; }
+            // Вернулись из фона — перечитываем доступ. Репетитор открывает звезду со
+            // своего устройства, и без этого правка доезжала бы только при следующем
+            // запуске приложения: открыл при ученике, а у него ничего не изменилось.
+            refreshAccess().then(refreshSectionLocks).catch(() => { /* сети нет — оставляем как было */ });
         });
 
         // Экран настройки испытания всегда открывается заново, с первого шага — не
