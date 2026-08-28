@@ -67,7 +67,11 @@ function loadGenerators() {
                          + '\n;globalThis.MUL_GROUPS = MUL_GROUPS;'
                          + '\n;globalThis.MUL_SHARES = MUL_SHARES;'
                          + '\n;globalThis.MUL_TWO_ROUND = MUL_TWO_ROUND;'
-                         + '\n;globalThis.MUL_TWO_BAND_WEIGHTS = MUL_TWO_BAND_WEIGHTS;',
+                         + '\n;globalThis.MUL_TWO_BAND_WEIGHTS = MUL_TWO_BAND_WEIGHTS;'
+                         + '\n;globalThis.DIV_GROUPS = DIV_GROUPS;'
+                         + '\n;globalThis.DIV_SHARES = DIV_SHARES;'
+                         + '\n;globalThis.DIV_TWO_ROUND = DIV_TWO_ROUND;'
+                         + '\n;globalThis.DIV_ZERO_SHARES = DIV_ZERO_SHARES;',
                     sandbox, { filename: 'index.html<script>' });
     return sandbox;
 }
@@ -1254,6 +1258,178 @@ test('оба порядка множителей встречаются', () => 
     }
     const ratio = big / (big + small);
     assert(ratio > 0.45 && ratio < 0.55, `перекос порядка: ${(ratio * 100).toFixed(1)}%`);
+});
+
+group('Деление: зеркало умножения');
+
+// Тот же инвариант, что у умножения, но считать надо ЗАДАЧИ, а не факты.
+// Один факт даёт две задачи (42÷6 и 42÷7), а квадрат — одну (36÷6). Если брать
+// равномерно по фактам, вся доля квадрата ложится на единственную задачу и 36÷6
+// выпадает ВДВОЕ ЧАЩЕ соседей — точная инверсия дефекта, который чинили в
+// умножении. Здесь проверяется, что этого нет.
+test('внутри ядра все девять задач равновероятны', () => {
+    const N = 300000, want = ['36/6', '42/6', '42/7', '48/6', '48/8', '49/7', '56/7', '56/8', '64/8'];
+    const seen = {};
+    for (let i = 0; i < N; i++) {
+        const e = G.genDivPositive(3);
+        const k = `${e.a}/${e.b}`;
+        if (want.includes(k)) seen[k] = (seen[k] || 0) + 1;
+    }
+    const missing = want.filter(k => !seen[k]);
+    assert(missing.length === 0, `задача ядра не встретилась: ${missing.join(', ')}`);
+    const vals = want.map(k => seen[k]);
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    assert(hi / lo < 1.1, `разброс внутри ядра ${(hi / lo).toFixed(2)}x — квадраты снова перекошены`);
+});
+
+test('доли деления по каждой звезде дают ровно единицу', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        const sum = G.DIV_SHARES[lvl].reduce((s, [, p]) => s + p, 0);
+        assert(Math.abs(sum - 1) < 1e-9, `звезда ${lvl}: сумма долей ${sum}`);
+    }
+});
+
+// Остатков в разделе нет вовсе: «17 ÷ 5» — это другая тема, и ученик, увидев её
+// среди кнопок с целыми ответами, решает не деление, а угадайку.
+test('ответ всегда целый и равен делимому, делённому на делитель', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 30000; i++) {
+            const e = G.genDivPositive(lvl);
+            if (e.noSolution) {
+                assert(e.b === 0, `«нет решения» не при делении на ноль: ${e.text}`);
+                continue;
+            }
+            assert(Number.isInteger(e.answer), `остаток: ${e.text} = ${e.answer}`);
+            assert(e.answer === e.a / e.b, `${e.text} даёт ${e.answer}`);
+            assert(e.text === `${e.a} ÷ ${e.b}`, `подпись разошлась с числами: ${e.text}`);
+        }
+    }
+});
+
+// Делим на однозначное и на круглое. Двузначный делитель (84 ÷ 12) — зеркало
+// двузначного на двузначное, которого в умножении нет тоже.
+test('делитель всегда однозначный или круглый', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 30000; i++) {
+            const e = G.genDivPositive(lvl);
+            if (e.noSolution) continue;
+            const ok = (e.b >= 1 && e.b <= 10) || (e.b % 10 === 0 && e.b >= 20 && e.b <= 90);
+            assert(ok, `недопустимый делитель: ${e.text}`);
+        }
+    }
+});
+
+test('ядро есть на 3, 4 и 5 звезде и его нет на 1 и 2', () => {
+    const N = 60000;
+    const share = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) {
+            const e = G.genDivPositive(lvl);
+            if (e.noSolution) continue;
+            const q = e.answer, b = e.b;
+            if (q >= 6 && q <= 8 && b >= 6 && b <= 8) c++;
+        }
+        return c / N;
+    };
+    assert(share(1) === 0, 'ядро на первой звезде');
+    assert(share(2) === 0, 'ядро на второй звезде');
+    assert(Math.abs(share(3) - 0.45) < 0.02, `на 3★ ядра ${(share(3) * 100).toFixed(1)}% вместо 45%`);
+    assert(share(4) > 0.15 && share(5) > 0.08, 'ядро исчезло на старших звёздах');
+});
+
+// «На ноль делить нельзя» — правило, а не пример: узнаётся один раз. Раньше оно
+// занимало ровно 10% всей игры на каждой звезде, то есть каждый десятый вопрос
+// пятой звезды не требовал счёта вообще.
+test('доля «÷ 0» убывает со звездой и нигде не больше пяти процентов', () => {
+    const N = 200000;
+    const zero = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) if (G.genDivPositive(lvl).noSolution) c++;
+        return c / N;
+    };
+    // Потолок и убывание — свойства ТАБЛИЦЫ, а не выборки: на первой звезде доля
+    // равна ровно 0,05, и проверка «замер не больше 5%» падала бы через раз просто
+    // от разброса. Поэтому таблицу проверяем точно, а генератор — с допуском.
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        assert(G.DIV_ZERO_SHARES[lvl] <= 0.05,
+            `${lvl}★: в таблице «÷ 0» ${G.DIV_ZERO_SHARES[lvl] * 100}% — больше пяти процентов`);
+        if (lvl > 1) assert(G.DIV_ZERO_SHARES[lvl] <= G.DIV_ZERO_SHARES[lvl - 1],
+            `доля выросла со звездой: ${G.DIV_ZERO_SHARES[lvl - 1]} -> ${G.DIV_ZERO_SHARES[lvl]}`);
+    }
+    assert(G.DIV_ZERO_SHARES[5] < G.DIV_ZERO_SHARES[1], 'доля «÷ 0» так и стоит на месте');
+
+    const z = [1, 2, 3, 4, 5].map(zero);
+    for (let i = 0; i < 5; i++) {
+        assert(Math.abs(z[i] - G.DIV_ZERO_SHARES[i + 1]) < 0.005,
+            `${i + 1}★: «÷ 0» ${(z[i] * 100).toFixed(1)}% вместо ${G.DIV_ZERO_SHARES[i + 1] * 100}%`);
+    }
+});
+
+// Кнопка «Нет решения» была прямой лазейкой мимо счёта: на пятой звезде она
+// показывалась в 12,6% примеров и в 79% из них оказывалась верной. Теперь она
+// подмешивается ОТ доли «÷ 0», поэтому верна примерно в четверти показов —
+// ровно случайный уровень при четырёх кнопках.
+test('«Нет решения» верно не чаще, чем наугад', () => {
+    const N = 120000;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        let shown = 0, right = 0;
+        for (let i = 0; i < N; i++) {
+            const e = G.genDivPositive(lvl);
+            if (e.noSolution) { shown++; right++; continue; }
+            const d = G.buildDistractors('div', e.a, e.b, e.answer, false, 3, lvl);
+            if (d.some(x => x === 'NO_SOLUTION')) shown++;
+        }
+        assert(shown > 0, `${lvl}★: вариант «Нет решения» не появился ни разу`);
+        const acc = right / shown;
+        assert(acc < 0.32, `${lvl}★: «Нет решения» верно в ${(acc * 100).toFixed(0)}% показов`);
+    }
+});
+
+// Нулевое частное — та самая путаница, ради которой вариант и нужен: 0 ÷ 7 = 0,
+// а не «нельзя». Здесь вариант обязан быть всегда.
+// Ответ не может быть не числом — но если станет, приложение обязано остаться
+// живым. Последний цикл добора вариантов раньше не имел предела, а Set считает
+// NaN равным самому себе: ни один вариант не проходил проверку used.has, и цикл
+// крутился без выхода. В браузере это не ошибка в консоли, а замерший телефон
+// посреди занятия. Именно так вешал страницу пример 0 ÷ 0, пока divisorAllowed
+// пропускал делитель 0.
+test('нечисловой ответ не вешает подбор вариантов', () => {
+    const started = Date.now();
+    const d = G.buildDistractors('div', 0, 0, NaN, false, 3, 3);
+    assert(Date.now() - started < 2000, 'подбор вариантов не завершился за две секунды');
+    assert(d.length === 3, `вариантов ${d.length} вместо 3 — на экране пустая кнопка`);
+    assert(new Set(d).size === 3, `варианты повторяются: ${d.join(', ')}`);
+});
+
+test('при нулевом частном «Нет решения» подмешивается всегда', () => {
+    for (let i = 0; i < 200; i++) {
+        const d = G.buildDistractors('div', 0, 7, 0, false, 3, 3);
+        assert(d.some(x => x === 'NO_SOLUTION'), 'ловушка не подмешана к 0 ÷ 7');
+    }
+});
+
+test('ни одно делимое во всей игре не длиннее трёх цифр', () => {
+    let worst = 0;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 60000; i++) {
+            const e = G.genDivPositive(lvl);
+            if (!e.noSolution && e.a > worst) worst = e.a;
+        }
+    }
+    assert(worst <= 960, `максимальное делимое ${worst}`);
+    const mx = Math.max(...G.DIV_TWO_ROUND.map(([a]) => a));
+    assert(mx === 960, `максимум в группе «двузначное ÷ круглое»: ${mx}`);
+});
+
+// Разнообразие: на третьей звезде ученик должен видеть таблицу, а не десяток
+// примеров по кругу. У старого генератора на первой звезде их было 24 на всю игру.
+test('на первой звезде примеров заметно больше двух десятков', () => {
+    const seen = new Set();
+    for (let i = 0; i < 60000; i++) {
+        const e = G.genDivPositive(1);
+        if (!e.noSolution) seen.add(`${e.a}/${e.b}`);
+    }
+    assert(seen.size >= 60, `на 1★ всего ${seen.size} разных примеров`);
 });
 
 // ---------- итог ----------
