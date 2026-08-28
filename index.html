@@ -1005,6 +1005,16 @@
         .dlg-btn:active { transform: scale(0.98); }
 
         /* Короткие сообщения, которые не требуют ответа: раньше это были alert(). */
+        /* Переключатель языка на экране входа: в углу, не мешает, но виден сразу. */
+        .lang-pill {
+            position: absolute; top: calc(14px + env(safe-area-inset-top)); right: 14px;
+            background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.18);
+            color: #cbd5e1; border-radius: 999px; padding: 6px 14px;
+            font-family: inherit; font-size: 0.8rem; font-weight: 700; letter-spacing: 0.06em;
+            cursor: pointer; z-index: 5;
+        }
+        .lang-pill:active { transform: scale(0.96); }
+
         .toast-wrap {
             position: fixed; z-index: 420; left: 50%; transform: translateX(-50%);
             top: calc(12px + env(safe-area-inset-top));
@@ -1077,6 +1087,9 @@
          входа. Сидит поверх экрана настройки (z-index выше) и блокирует его до входа.
          Свободной регистрации нет — код и пароль выдаёт репетитор. -->
     <div class="modal-screen" id="codeScreen" style="z-index:210; display:none;">
+        <!-- Язык выбирается до входа: экран логина — первое, что видит человек,
+             и другого места спросить у нас просто нет. -->
+        <button class="lang-pill" onclick="toggleLang()">EN</button>
         <h1 class="start-title" style="font-size:1.6rem;">Вход</h1>
 
         <div style="width:100%; max-width:420px; text-align:center;">
@@ -1129,6 +1142,7 @@
         <button class="menu-btn" onclick="menuGoPuzzle()">🧩 <span>Текущий пазл</span></button>
         <button class="menu-btn" onclick="menuGoSettings()">⚙️ <span>Сменить настройки примеров</span></button>
         <button class="menu-btn sound-toggle" onclick="toggleSound()">🔊 <span>Звук включён</span></button>
+        <button class="menu-btn lang-toggle" onclick="toggleLang()">🌐 <span>Язык: Русский</span></button>
 
         <div class="menu-section-label">Мой код</div>
         <div class="menu-stat-card" style="text-align:center;">
@@ -1154,6 +1168,7 @@
         <button class="menu-btn" onclick="startMenuGoAchievements()">🏅 <span>Достижения</span></button>
         <button class="menu-btn" onclick="startMenuGoProfile()">👤 <span>Профиль</span></button>
         <button class="menu-btn sound-toggle" onclick="toggleSound()">🔊 <span>Звук включён</span></button>
+        <button class="menu-btn lang-toggle" onclick="toggleLang()">🌐 <span>Язык: Русский</span></button>
     </div>
 
     <!-- Панель закрытого раздела: объясняет, почему закрыто, и что с этим делать. -->
@@ -1652,11 +1667,569 @@
     <div class="ach-wrap" id="achWrap" aria-live="polite"></div>
 
     <script>
+        // ===================== ЯЗЫК =====================
+        // Ключ словаря — сама русская строка. Так подстановка t() ничего не ломает,
+        // даже если строку забыли перевести: не нашли — вернули как есть, и в худшем
+        // случае останется русский текст, а не пустое место или «undefined».
+        //
+        // Выбор языка живёт на устройстве, а не в профиле: он про того, кто держит
+        // планшет, а не про того, чей прогресс. На первом запуске берём язык системы.
+        // Словарь: русская строка -> американский английский. Ключом служит сам
+        // русский текст, поэтому забытая строка не ломает экран, а просто остаётся
+        // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
+        // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
+        const TR_EN = {
+            "Вход": "Sign in",
+            "Логин": "Username",
+            "Пароль": "Password",
+            "Войти": "Log in",
+            "Проверяю…": "Checking…",
+            "Введите код и пароль.": "Enter your username and password.",
+            "Неверный код или пароль.": "Wrong username or password.",
+            "Вход в профиль": "Sign in",
+            "Сначала войди под своим логином.": "Sign in with your own username first.",
+            "Профиль": "Profile",
+            "👤 Профиль": "👤 Profile",
+            "Имя (необязательно)": "Name (optional)",
+            "Сохранить имя": "Save name",
+            "Без имени": "No name",
+            "Текущий аккаунт": "Current account",
+            "Личный аккаунт": "Personal account",
+            "🎓 Личный аккаунт": "🎓 Personal account",
+            "Мой код": "My username",
+            "🔑 Мой код": "🔑 My username",
+            "Код": "Username",
+            "Твой код для входа на другом устройстве:": "Your username for signing in on another device:",
+            "Открывает прогресс на другом устройстве": "Opens your progress on another device",
+            "Скопировать": "Copy",
+            "Скопировано": "Copied",
+            "Готово": "Done",
+            "Понятно": "Got it",
+            "Закрыть": "Close",
+            "Отмена": "Cancel",
+            "Да": "Yes",
+            "Подтверждение": "Confirm",
+            "Показать": "Show",
+            "Открыть": "Open",
+            "Назад": "Back",
+            "◀️ назад": "◀️ back",
+            "🏠 На главную": "🏠 Home",
+            "▶️ Продолжить игру": "▶️ Keep playing",
+            "Нет соединения с сервером.": "No connection to the server.",
+            "Нет соединения с сервером. Попробуйте позже.": "No connection to the server. Try again later.",
+            "Не удалось подключиться. Проверь интернет.": "Couldn't connect. Check your internet.",
+            "Не удалось подтвердить твой пароль — попробуй войти заново.": "Couldn't verify your password — try signing in again.",
+            "Пароль слишком короткий — минимум 4 символа.": "Password is too short — at least 4 characters.",
+            "Введи пароль.": "Enter your password.",
+            "Введи пароль, чтобы подтвердить": "Enter your password to confirm",
+            "Минимум 4 символа": "At least 4 characters",
+            "Новый пароль": "New password",
+            "Сменить": "Change",
+            "Управление аккаунтом": "Account",
+            "Опасная зона": "Danger zone",
+            "Сбросить": "Reset",
+            "Удалить": "Delete",
+            "Сбросить прогресс (новая игра)": "Reset progress (start over)",
+            "Сбросить весь прогресс?": "Reset all progress?",
+            "Решённые примеры, пазл, коллекция и достижения обнулятся. Логин останется тот же. Отменить это нельзя.": "Solved problems, your puzzle, collection and achievements will all reset. Your username stays the same. This can't be undone.",
+            "Удалить профиль полностью": "Delete profile completely",
+            "Удалить профиль насовсем?": "Delete this profile for good?",
+            "Не удалось удалить профиль.": "Couldn't delete the profile.",
+            "Неверный пароль — профиль не тронут.": "Wrong password — nothing was deleted.",
+            "🔮 Настройка Испытаний": "🔮 Set up a challenge",
+            "Настройка испытаний": "Challenge setup",
+            "1️⃣ Что тренируем": "1️⃣ What to practice",
+            "2️⃣ Сложность": "2️⃣ Difficulty",
+            "Можно выбрать один или несколько режимов": "Pick one mode",
+            "Одно испытание — один вид примеров на одной звезде": "One challenge — one kind of problem on one star",
+            "⚔️ Начать испытание": "⚔️ Start challenge",
+            "Целые": "Whole numbers",
+            "Дроби": "Fractions",
+            "Десятичные": "Decimals",
+            "Положительные": "Positive",
+            "Отрицательные": "Negative",
+            "🔟 Десятичные": "🔟 Decimals",
+            "🔴 Отрицательные": "🔴 Negative",
+            "➕ Сложение": "➕ Addition",
+            "➖ Вычитание": "➖ Subtraction",
+            "✖️ Умножение": "✖️ Multiplication",
+            "➗ Деление": "➗ Division",
+            "➗ Сокращение": "➗ Simplifying",
+            "🔼 В смешанное число": "🔼 To a mixed number",
+            "🔽 В неправильную дробь": "🔽 To an improper fraction",
+            "🎯 Дробь от числа": "🎯 Fraction of a number",
+            "✨ Особые режимы дробей — только положительные числа": "✨ Special fraction modes — positive numbers only",
+            "Сменить настройки примеров": "Change problem settings",
+            "Сменить настройки примеров?": "Change problem settings?",
+            "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущего испытания.": "Your puzzle and all saved progress stay put. Only this challenge's counters reset.",
+            "Открыть настройки": "Open settings",
+            "Загляни в настройку испытаний.": "Take a look at the challenge setup.",
+            "Этот режим больше не открыт — выбери другой.": "That mode isn't open anymore — pick another one.",
+            "Загрузка...": "Loading…",
+            "Верно!": "Correct!",
+            "Ошибка!": "Not quite!",
+            "Почти! Не забудь сократить": "So close! Simplify it",
+            "Нет решения": "No answer",
+            "✅ Верно:": "✅ Correct:",
+            "❌ Ошибки:": "❌ Wrong:",
+            "Подряд: %1": "Streak: %1",
+            "Подряд: 0": "Streak: 0",
+            "⏳ Время Эпохи:": "⏳ Era time:",
+            "⚔️ Завершить испытание": "⚔️ Finish challenge",
+            "Завершить испытание": "Finish challenge",
+            "Завершить испытание?": "Finish the challenge?",
+            "Завершить": "Finish",
+            "Покажу результат и разбор ошибок. Решённое засчитано и никуда не денется.": "I'll show your results and go over the mistakes. Everything you solved is saved.",
+            "Экзамен сдан!": "Challenge complete!",
+            "📋 Разбор ошибок": "📋 Review mistakes",
+            "📋 Разбор ошибок (%1)": "📋 Review mistakes (%1)",
+            "⏱️ Время: %1\\n✅ Верно: %2 | ❌ Ошибок: %3": "⏱️ Time: %1\\n✅ Correct: %2 | ❌ Wrong: %3",
+            "⏱️ Время: %1  |  ✅ %2  |  ❌ %3  |  🧩 Пазлов собрано: %4": "⏱️ Time: %1  |  ✅ %2  |  ❌ %3  |  🧩 Puzzles finished: %4",
+            "твой ответ": "your answer",
+            "✓ верно": "✓ correct",
+            "Ошибок не было": "No mistakes",
+            "Ошибок: %1": "Wrong: %1",
+            "Ошибок: %1 · «почти»: %2": "Wrong: %1 · almost: %2",
+            "🎉 Пазл собран полностью!": "🎉 Puzzle complete!",
+            "🏆 Добавлено в коллекцию!": "🏆 Added to your collection!",
+            "🏆 Добавлено в коллекцию! (%1/%2)": "🏆 Added to your collection! (%1/%2)",
+            "Собранный пазл": "Finished puzzle",
+            "👑 ЮБИЛЕЙ: %1 РЕШЕННЫХ ЗАДАЧ! 👑": "👑 MILESTONE: %1 PROBLEMS SOLVED! 👑",
+            "🌌 %1 РЕШЕНО! АБСОЛЮТНЫЙ РАЗУМ! 🌌": "🌌 %1 SOLVED! ABSOLUTE GENIUS! 🌌",
+            "Переведи в неправильную дробь:": "Write as an improper fraction:",
+            "Переведи в смешанное число:": "Write as a mixed number:",
+            "от числа": "of",
+            "сокр.": "simplify",
+            "в см.": "to mixed",
+            "в непр.": "to improper",
+            "☰ Меню": "☰ Menu",
+            "Меню": "Menu",
+            "Разделы": "Sections",
+            "🏆 Коллекция": "🏆 Collection",
+            "🏆 Моя коллекция парадоксов": "🏆 My paradox collection",
+            "Коллекция пазлов": "Puzzle collection",
+            "Коллекция парадоксов": "Paradox collection",
+            "Текущий пазл": "Current puzzle",
+            "📊 Статистика": "📊 Stats",
+            "Статистика": "Stats",
+            "🏅 Достижения": "🏅 Achievements",
+            "Достижения": "Achievements",
+            "Прогресс": "Progress",
+            "Прогресс ученика": "Your progress",
+            "✅ Решено всего": "✅ Solved in total",
+            "🎯 Точность": "🎯 Accuracy",
+            "Точность по темам": "Accuracy by topic",
+            "Темы": "Topics",
+            "Решено": "Solved",
+            "примеров": "problems",
+            "Звук включён": "Sound on",
+            "🔇 <span>Звук выключен</span>": "🔇 <span>Sound off</span>",
+            "← К коллекции": "← To collection",
+            "← Назад к пазлу": "← Back to puzzle",
+            "Нажми на собранную картинку — узнаешь, что это за парадокс": "Tap a finished picture to read about its paradox",
+            "Парадокс": "Paradox",
+            "🏆 Парадоксы математики:": "🏆 Paradoxes of mathematics:",
+            "🔒 Заблокировано": "🔒 Locked",
+            "Занятия": "Sessions",
+            "Занятия по дням": "Sessions by day",
+            "Как меняется": "How it's changing",
+            "Скорость ответа": "Answer time",
+            "Точность": "Accuracy",
+            "Скорость": "Speed",
+            "Количество": "Count",
+            "Сегодня": "Today",
+            "Вчера": "Yesterday",
+            "Неделя": "Week",
+            "30 дней": "30 days",
+            "90 дней": "90 days",
+            "180 дней": "180 days",
+            "Всё время": "All time",
+            "Свой период:": "Custom range:",
+            "за сегодня": "today",
+            "за вчера": "yesterday",
+            "за период": "for this range",
+            "за всё время": "all time",
+            "По темам ": "Topics ",
+            "По темам за период": "Topics for this range",
+            "Карта разделов": "Section map",
+            "Карта разделов ": "Section map ",
+            "Что освоено": "What's mastered",
+            "Над чем работать": "What to work on",
+            "Над чем работаем": "What to work on",
+            "Разбор по типам примеров": "Breakdown by problem type",
+            "Ошибки за период, разобранные по причине.": "Mistakes in this range, sorted by cause.",
+            "Дневник занятий ведётся с %1.": "Your session log starts on %1.",
+            "Дневник занятий начнётся с первого решённого примера.": "Your session log starts with your first solved problem.",
+            "%1 — %2% из %3": "%1 — %2% of %3",
+            "%1 — ещё не решал": "%1 — not started yet",
+            "Ещё не открыто": "Not open yet",
+            "«Почти» (посчитал верно, но забыл сократить): %1": "Almost (right value, not simplified): %1",
+            "📅 дней:": "📅 days:",
+            "⏱️ время:": "⏱️ time:",
+            "🔥 подряд:": "🔥 streak:",
+            "❌ ошибок:": "❌ wrong:",
+            "🏅 достижений получено: %1": "🏅 achievements earned: %1",
+            "примеров решено": "problems solved",
+            "дней занимался": "days practiced",
+            "дней подряд": "days in a row",
+            "всего времени": "total time",
+            "времени": "time",
+            "Прошедшие эпохи": "Past eras",
+            "Эпоха %1": "Era %1",
+            "▼ показать": "▼ show",
+            "▲ скрыть": "▲ hide",
+            "Мало данных<br>для кривой": "Not enough data<br>for a chart",
+            "%1 м": "%1 m",
+            "%1 ч %2 м": "%1 h %2 m",
+            "0 м": "0 m",
+            "0м": "0m",
+            "%1 с": "%1 s",
+            " с": " s",
+            "%1 с → %2 s": "%1 s → %2 s",
+            "%1 с → %2 с": "%1 s → %2 s",
+            "сегодня": "today",
+            "вчера": "yesterday",
+            "%1 дн. назад": "%1 d ago",
+            "%1 нед. назад": "%1 wk ago",
+            "%1 нед": "%1 wk",
+            "день": "day",
+            "дня": "days",
+            "дней": "days",
+            "ответ": "answer",
+            "ответа": "answers",
+            "ответов": "answers",
+            "%1 ответов": "%1 answers",
+            "%1 верных": "%1 correct",
+            "ступень": "step",
+            "ступени": "steps",
+            "ступеней": "steps",
+            "Ранги по темам": "Ranks by topic",
+            "Звёзд взято: %1 из %2 · мастерство: %3": "Stars earned: %1 of %2 · mastery: %3",
+            "Бронза": "Bronze",
+            "Серебро": "Silver",
+            "Золото": "Gold",
+            "Алмаз": "Diamond",
+            "Легенда": "Legend",
+            "новое достижение": "new achievement",
+            "звезда не взята": "star not earned",
+            "%1 звезда взята": "%1 star earned",
+            "🔓 %1★ открыта": "🔓 %1★ unlocked",
+            "🔓 %1 — звезда взята": "🔓 %1 — star earned",
+            "Открыта %1★!": "%1★ unlocked!",
+            "до %1: %2": "to %1: %2",
+            "до %1: ещё %2 %3": "to %1: %2 more %3",
+            "До %1★: %2": "To %1★: %2",
+            "Дальше %1 %2 — ещё ": "Next up: %1 %2 — ",
+            "Это последняя ступень количества в теме": "That's the top count step for this topic",
+            "максимум": "maxed out",
+            "Нужно золото на %1★: точность %2%": "You need gold on %1★: %2% accuracy",
+            " и %1 верных ответов": " and %1 correct answers",
+            "Последняя звезда — дальше только мастерство": "Last star — only mastery left",
+            "Последняя звезда, мастерство взято": "Last star, mastery earned",
+            "Уверенно": "Confident",
+            "В работе": "In progress",
+            "ждёт": "waiting",
+            "Следующая звезда открывается золотом по точности и количеству.\\n                Скорость ничего не открывает — это ориентир, и только алмаз с легендой\\n                берутся за все три лесенки сразу.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything — it's just a guide, and only diamond and legend need all three at once.",
+            "без перехода": "no carrying",
+            "дополнение до круглого": "making ten",
+            "полный переход": "carrying",
+            "через сотню": "past a hundred",
+            "без заёма": "no borrowing",
+            "без займа": "no borrowing",
+            "вычитание из круглого": "from a round number",
+            "полный заём": "borrowing",
+            "двойной заём": "double borrowing",
+            "без счёта (×0, ×1, ×10)": "no thinking (×0, ×1, ×10)",
+            "удвоение": "doubling",
+            "пятёрки": "fives",
+            "тройки и четвёрки": "threes and fours",
+            "девятки": "nines",
+            "ядро 6·7·8": "core: 6, 7, 8",
+            "круглые": "round numbers",
+            "двузначное × круглое": "two-digit × round",
+            "двузначное без переноса": "two-digit, no carrying",
+            "двузначное с переносом": "two-digit with carrying",
+            "режим\\tзвезда\\tтип\\tответов\\tточность\\tсекунд": "mode\\tstar\\ttype\\tanswers\\taccuracy\\tseconds",
+            "Скопировать таблицей": "Copy as a table",
+            "Таблица скопирована.": "Table copied.",
+            "Пока нечего копировать.": "Nothing to copy yet.",
+            "Не сократил ответ": "Didn't simplify the answer",
+            "Зря привёл к общему знаменателю": "Found a common denominator for no reason",
+            "Сложил (вычел) и числители, и знаменатели": "Added (subtracted) both numerators and denominators",
+            "Перепутал действие": "Used the wrong operation",
+            "При делении не перевернул вторую дробь": "Didn't flip the second fraction when dividing",
+            "Потерял целую часть": "Lost the whole number part",
+            "Ошибся при переводе дроби": "Slipped converting the fraction",
+            "Сократил не до конца": "Didn't simplify all the way",
+            "Ошибся в сокращении": "Slipped while simplifying",
+            "Ошибся в знаке": "Wrong sign",
+            "Промахнулся на единицу": "Off by one",
+            "Ошибка в таблице умножения": "Multiplication table slip",
+            "Не заметил деления на ноль": "Missed a division by zero",
+            "Запятая не на месте": "Decimal point in the wrong place",
+            "Единицы верные, ошибка в десятках": "Ones are right, tens are off",
+            "Не перенёс десяток": "Didn't carry the ten",
+            "Не занял десяток при вычитании": "Didn't borrow a ten",
+            "Поменял числа местами": "Swapped the numbers",
+            "Назвал одно из чисел примера": "Picked a number from the problem",
+            "Сложил вместо того чтобы умножить": "Added instead of multiplying",
+            "Не выровнял запятые перед сложением": "Didn't line up the decimal points",
+            "Другая ошибка": "Something else",
+            "Перевернул первую дробь вместо второй": "Flipped the first fraction instead of the second",
+            "Перемножил числители, но не знаменатели": "Multiplied numerators but not denominators",
+            "Умножил, но забыл поделить на знаменатель": "Multiplied but forgot to divide by the denominator",
+            "Нашёл одну долю, но не умножил": "Found one part but didn't multiply",
+            "Нашёл остаток вместо самой доли": "Found the leftover instead of the part",
+            "Промахнулся на одну долю": "Off by one part",
+            "Привёл к общему знаменателю только одну дробь": "Converted only one of the fractions",
+            "знак": "sign",
+            "мимо на 1": "off by one",
+            "таблица": "table",
+            "деление на 0": "divide by 0",
+            "запятая": "decimal point",
+            "ошибка в десятках": "tens are off",
+            "не занял десяток": "no borrow",
+            "числа местами": "swapped",
+            "число из примера": "a given number",
+            "сложил вместо ×": "added, not ×",
+            "запятые не выровнены": "points not lined up",
+            "не сократил": "not simplified",
+            "не до конца": "not all the way",
+            "сокращение": "simplifying",
+            "не перевернул": "didn't flip",
+            "перевод дроби": "converting",
+            "без целой части": "lost whole part",
+            "без знаменателей": "no denominators",
+            "лишнее приведение": "extra conversion",
+            "другое действие": "wrong operation",
+            "одна доля": "one part",
+            "остаток": "leftover",
+            "мимо на долю": "off by a part",
+            "привёл одну": "converted one",
+            "перевернул не ту дробь": "flipped the wrong one",
+            "забыл поделить": "forgot to divide",
+            "забыл перемножить знаменатели": "forgot denominators",
+            "не та дробь": "wrong fraction",
+            "перевёл не обе дроби": "converted one only",
+            "ошибка": "mistake",
+            "больше": "more",
+            "меньше": "less",
+            "мимо на десяток": "off by ten",
+            "нашёл остаток": "found the leftover",
+            "нашёл только одну долю": "only one part",
+            "ошибся на одну долю": "off by one part",
+            "Раздел закрыт": "Section locked",
+            "Этот раздел пока закрыт. Открыть его может только репетитор — попроси у него код.": "This section is locked. Only your tutor can open it — ask them for a code.",
+            "🔑 У меня есть код": "🔑 I have a code",
+            "Код от репетитора": "Code from your tutor",
+            "Введи код, который тебе прислали. Он откроет раздел насовсем.": "Enter the code you were given. It opens the section for good.",
+            "Код открывает раздел насовсем и действует только на твой логин.": "The code opens the section for good and works only for your username.",
+            "Ввести код от репетитора": "Enter a tutor code",
+            "например, ГМ4КР7": "e.g. GM4KR7",
+            "Код короче, чем бывает.": "That code is too short.",
+            "Такого кода нет — проверь, правильно ли переписал.": "No such code — check that you typed it right.",
+            "Этот код уже использован.": "That code has already been used.",
+            "Этот код отозвал репетитор.": "Your tutor revoked that code.",
+            "Не удалось открыть по этому коду.": "Couldn't open anything with that code.",
+            "Открыто!": "Unlocked!",
+            "Раздел «%1» теперь доступен.\\n": "Section “%1” is now open.\\n",
+            "В этом разделе тебе открыто: %1. Остальное — по коду от репетитора.": "In this section you have: %1. The rest needs a code from your tutor.",
+            "Кроме целых положительных пока ничего не открыто.": "Nothing beyond positive whole numbers is open yet.",
+            "Открыто кодами: ": "Opened with codes: ",
+            "весь раздел": "the whole section",
+            "открыт полностью": "fully open",
+            "Этой звезды нет в коде от репетитора": "This star isn't in your tutor's code",
+            "всё": "all",
+            "<div class=\"menu-empty\">Загружаю…</div>": "<div class=\"menu-empty\">Loading…</div>",
+            "<div class=\"menu-empty\">Ни одной ошибки за испытание.<br>Так держать!</div>": "<div class=\"menu-empty\">Not a single mistake this challenge.<br>Keep it up!</div>",
+            "<div class=\"menu-empty\">Пока мало данных.<br>Реши несколько примеров — здесь появится разбор по темам.</div>": "<div class=\"menu-empty\">Not enough data yet.<br>Solve a few problems and your topics will show up here.</div>",
+            "<div class=\"menu-empty\">Пока пусто.<br>Реши несколько примеров — здесь появится карта.</div>": "<div class=\"menu-empty\">Nothing here yet.<br>Solve a few problems and the map will appear.</div>",
+            "<div class=\"trend-empty\">Мало данных<br>для кривой</div>": "<div class=\"trend-empty\">Not enough data<br>for a chart</div>",
+            "<span class=\"compound-question\"><span class=\"task-label\">Найди дробь от числа:</span><span class=\"frac-row\">%1<span class=\"frac-op-symbol\">от %2</span></span></span>": "<span class=\"compound-question\"><span class=\"task-label\">Find the fraction of a number:</span><span class=\"frac-row\">%1<span class=\"frac-op-symbol\">of %2</span></span></span>",
+            "<span class=\"compound-question\"><span class=\"task-label\">Сократи дробь:</span><span class=\"frac-row\">%1</span></span>": "<span class=\"compound-question\"><span class=\"task-label\">Simplify the fraction:</span><span class=\"frac-row\">%1</span></span>",
+            "Динамика за период": "How it changed",
+            "Итоги за сегодня": "Today's totals",
+            "Достижения за период": "Achievements in this range",
+            "За этот период занятий не было.": "No sessions in this range.",
+            "За один день сравнивать не с чем — здесь средние за этот день.": "One day has nothing to compare against — these are the averages for that day.",
+            "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Not enough data to compare the two halves — these are the averages for the whole range.",
+            "точность": "accuracy",
+            "скорость": "speed",
+            "точность %1%": "%1% accuracy",
+            "без переноса": "no carrying",
+            "⚡ Скорость": "⚡ Speed",
+            "%1 ещё %2": "%1 %2 to go",
+            "%1: закрыто полностью.": "%1: fully locked.",
+            "📈 Продвижение по лесенкам тем: %1 %2": "📈 Ladder progress across topics: %1 %2",
+            "Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни\n                        уже не хранятся, а итоги остаются навсегда.": "Every 180 days your sessions fold into a card — the daily details are dropped, but the totals stay forever.",
+            "Клетка — действие на своей сложности. Цвет по точности:\n                    зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено,\n                    значок — ранг темы.": "Each cell is one operation at one difficulty. Color shows accuracy: green from 85%, yellow from 65%, red below. Under the percentage is how many you've solved, and the icon is the topic's rank.",
+            "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Пустая клетка: до неё ещё не дошли.": "Rows are operations, columns are difficulty levels. Green means solid (85% correct or better), yellow means there's work to do, red means the topic just started. An empty cell means you haven't gotten there yet.",
+            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир, и только алмаз с легендой\n                берутся за все три лесенки сразу.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything — it's just a guide, and only diamond and legend need all three ladders at once.",
+            "🧩 Текущий пазл": "🧩 Current puzzle",
+            "🧩 Пазл собирается:": "🧩 Puzzle in progress:",
+            "🧩 Пазл собран! Покажу в конце испытания.": "🧩 Puzzle complete! I'll show it at the end of the challenge.",
+            "🧩 пазлов:": "🧩 puzzles:",
+            "🖼️ Моя коллекция": "🖼️ My collection",
+            "🔵 Положительные": "🔵 Positive",
+            "🟢 Положительные": "🟢 Positive",
+            "🧮 Дроби": "🧮 Fractions",
+            "Раздел": "Section",
+            "Ключ": "Mathkey",
+            "Язык: Русский": "Language: English",
+            "Профили на этом устройстве": "Profiles on this device",
+            "Добавить профиль": "Add a profile",
+            "Добавить по логину": "Add by username",
+            "Профиль появится в списке на этом устройстве — переключаться можно будет без пароля.": "The profile shows up in the list on this device — you'll be able to switch without a password.",
+            "Профилей пока нет.": "No profiles yet.",
+            "<div class=\"menu-empty\">Профилей пока нет.</div>": "<div class=\"menu-empty\">No profiles yet.</div>",
+            "Как показывать в списке": "How it shows in the list",
+            "Сохранить": "Save",
+            "Создать": "Create",
+            "Применить": "Apply",
+            "Логин — от 6 до 20 символов.": "Username must be 6 to 20 characters.",
+            "6–20 символов, можно имя + число": "6–20 characters, a name plus a number works",
+            "Пароль — минимум 4 символа.": "Password must be at least 4 characters.",
+            "Пароль для «%1».": "Password for “%1”.",
+            "Пароль изменён": "Password changed",
+            "Не удалось сменить пароль.": "Couldn't change the password.",
+            "Этот код уже занят, придумай другой.": "That username is taken — pick another one.",
+            "Не вышло — перепиши": "Didn't work — try again",
+            "Пропадёт всё: прогресс, пазл, коллекция, достижения и сам логин «%1». Восстановить будет нельзя.": "Everything goes: progress, puzzle, collection, achievements and the username “%1” itself. There's no getting it back.",
+            "Ничего не выбрано.": "Nothing selected.",
+            "Ничего не изменилось.": "Nothing changed.",
+            "Код готов": "Code ready",
+            "Код %1 отозван — раздел закрылся.": "Code %1 revoked — the section is locked again.",
+            "Откроется: %1 — %2.": "Opens: %1 — %2.",
+            "Отметь хотя бы одну клетку.": "Check at least one cell.",
+            "Отозвать": "Revoke",
+            "Доступ обновлён: %1.": "Access updated: %1.",
+            "Не удалось выдать код.": "Couldn't issue the code.",
+            "Не удалось отозвать.": "Couldn't revoke it.",
+            "Не удалось получить список кодов.": "Couldn't load the list of codes.",
+            "Не удалось изменить «%1».": "Couldn't change “%1”.",
+            "Такой набор режимов сервер не принял.": "The server didn't accept that set of modes.",
+            "Этот раздел так не открывается.": "That section doesn't open this way.",
+            "<1 м": "<1 m",
+            "🔊 <span>Звук включён</span>": "🔊 <span>Sound on</span>",
+            "🌐 <span>Язык: Русский</span>": "🌐 <span>Language: English</span>",
+            "отозван": "revoked",
+            "использован": "used",
+            "Итоги за вчера": "Yesterday's totals",
+            "В этот день занятий не было.": "No sessions that day.",
+            "Введи логин.": "Enter your username.",
+            "<span class=\"list-row-badge\">Сейчас</span>": "<span class=\"list-row-badge\">Now</span>",
+            " и ": " and ",
+        };
+
+        const LANG_KEY = 'mathCitadelLang_v1';
+        let LANG = (() => {
+            try {
+                const saved = localStorage.getItem(LANG_KEY);
+                if (saved === 'ru' || saved === 'en') return saved;
+            } catch (e) { /* хранилище недоступно */ }
+            const nav = (navigator.language || 'ru').toLowerCase();
+            return nav.startsWith('ru') ? 'ru' : 'en';
+        })();
+
+        function t(ru) {
+            if (LANG === 'ru') return ru;
+            const v = TR_EN[ru];
+            return v === undefined ? ru : v;
+        }
+        // То же для строк с подстановками: tf('Подряд: %1', n).
+        function tf(ru) {
+            let out = t(ru);
+            for (let i = 1; i < arguments.length; i++) {
+                out = out.split('%' + i).join(String(arguments[i]));
+            }
+            return out;
+        }
+
+        // Разделитель дробной части: в русском запятая, в английском точка.
+        // Числа собираются через toFixed, поэтому правим на выходе.
+        function num(x, digits) {
+            const v = Number(x).toFixed(digits === undefined ? 1 : digits);
+            return LANG === 'ru' ? v.replace('.', ',') : v;
+        }
+
+        // Склонение. В русском три формы, в английском две — поэтому у формы
+        // общий вход, а внутри у каждого языка своё правило.
+        function plural(n, ruOne, ruFew, ruMany, enOne, enMany) {
+            if (LANG === 'en') return n === 1 ? enOne : enMany;
+            const d10 = n % 10, d100 = n % 100;
+            if (d10 === 1 && d100 !== 11) return ruOne;
+            if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return ruFew;
+            return ruMany;
+        }
+
+        // Статическая разметка переводится обходом дерева, а не правкой ста пятидесяти
+        // мест в HTML: текст в ней не меняется по ходу игры, а значит его достаточно
+        // один раз подменить при загрузке и ещё раз при переключении языка.
+        // Оригиналы запоминаем в data-атрибуте — иначе обратно на русский уже не вернуть.
+        function applyStaticI18n(root) {
+            const scope = root || document.body;
+            const walker = document.createTreeWalker(scope, NodeFilter.SHOW_TEXT);
+            const nodes = [];
+            while (walker.nextNode()) nodes.push(walker.currentNode);
+            nodes.forEach(node => {
+                const el = node.parentElement;
+                if (!el || el.tagName === 'SCRIPT' || el.tagName === 'STYLE') return;
+                let src = node.__i18nSrc;
+                if (src === undefined) {
+                    src = node.textContent;
+                    if (!/[А-Яа-яЁё]/.test(src)) return;   // нечего переводить
+                    node.__i18nSrc = src;
+                }
+                const key = src.trim();
+                const translated = t(key);
+                if (translated !== key) node.textContent = src.replace(key, translated);
+                else node.textContent = src;
+            });
+            ['placeholder', 'title', 'aria-label', 'alt'].forEach(attr => {
+                scope.querySelectorAll('[' + attr + ']').forEach(el => {
+                    const store = '__i18n_' + attr;
+                    let src = el[store];
+                    if (src === undefined) {
+                        src = el.getAttribute(attr);
+                        if (!src || !/[А-Яа-яЁё]/.test(src)) return;
+                        el[store] = src;
+                    }
+                    el.setAttribute(attr, t(src));
+                });
+            });
+        }
+
+        // Переключение — через перезагрузку страницы, и это осознанно. Подписи вроде
+        // OP_LABELS и TIER_NAMES собираются один раз при загрузке; менять язык без
+        // перезагрузки означало бы вручную перестроить десяток таких таблиц и заново
+        // отрисовать каждый экран — и первая же забытая строка осталась бы на прежнем
+        // языке. Перезагрузка стоит долю секунды и гарантирует, что несоответствий нет.
+        // Прогресс при этом не теряется: он лежит в хранилище, а не в памяти страницы.
+        function setLang(next) {
+            const target = (next === 'en') ? 'en' : 'ru';
+            if (target === LANG) return;
+            try { localStorage.setItem(LANG_KEY, target); } catch (e) { /* хранилище недоступно */ }
+            if (typeof Progress !== 'undefined' && Progress.flush) Progress.flush(true);
+            location.reload();
+        }
+        function toggleLang() { setLang(LANG === 'ru' ? 'en' : 'ru'); }
+        function refreshLangButtons() {
+            document.querySelectorAll('.lang-toggle').forEach(b => {
+                b.innerHTML = LANG === 'ru'
+                    ? t('\ud83c\udf10 <span>Язык: Русский</span>')
+                    : '\ud83c\udf10 <span>Language: English</span>';
+            });
+            document.querySelectorAll('.lang-pill').forEach(b => {
+                b.innerText = LANG === 'ru' ? 'EN' : 'RU';
+                b.setAttribute('aria-label', LANG === 'ru' ? 'Switch to English' : 'Переключить на русский');
+            });
+        }
+
         // ===================== НАСТРОЙКА ГЕНЕРАЦИИ ПРИМЕРОВ =====================
         const OP_LABELS = {
-            add: '➕ Сложение', sub: '➖ Вычитание', mul: '✖️ Умножение', div: '➗ Деление',
-            simplify: '➗ Сокращение', toMixed: '🔼 В смешанное число', toImproper: '🔽 В неправильную дробь',
-            fracOfNumber: '🎯 Дробь от числа'
+            add: t('➕ Сложение'), sub: t('➖ Вычитание'), mul: t('✖️ Умножение'), div: t('➗ Деление'),
+            simplify: t('➗ Сокращение'), toMixed: t('🔼 В смешанное число'), toImproper: t('🔽 В неправильную дробь'),
+            fracOfNumber: t('🎯 Дробь от числа')
         };
         const OP_ORDER = ['add', 'sub', 'mul', 'div', 'simplify', 'toMixed', 'toImproper', 'fracOfNumber'];
 
@@ -1674,7 +2247,7 @@
                 // Закрытый раздел ведёт не в игру, а в панель с объяснением.
                 const lockKey = sectionKeyOf(btn.getAttribute('data-value'), btn.getAttribute('data-sign'));
                 if (!isSectionOpen(lockKey)) {
-                    openLockedPanel(lockKey, btn.getAttribute('data-title') || 'Раздел');
+                    openLockedPanel(lockKey, btn.getAttribute('data-title') || t('Раздел'));
                     return;
                 }
                 document.querySelectorAll('.btn-category').forEach(b => b.classList.remove('selected'));
@@ -1865,7 +2438,7 @@
             if (blocked.length) {
                 resetConfigScreen();
                 refreshSectionLocks();
-                showToast('Этот режим больше не открыт — выбери другой.', 'error');
+                showToast(t('Этот режим больше не открыт — выбери другой.'), 'error');
                 return;
             }
 
@@ -4177,35 +4750,35 @@
         // =====================================================================
 
         const MISTAKE_LABELS = {
-            'не сократил':                 'Не сократил ответ',
-            'общий знаменатель зря':       'Зря привёл к общему знаменателю',
-            'сложил знаменатели':          'Сложил (вычел) и числители, и знаменатели',
-            'перепутал действие':          'Перепутал действие',
-            'не перевернул дробь':         'При делении не перевернул вторую дробь',
-            'забыл целую часть':           'Потерял целую часть',
-            'ошибся в переводе':           'Ошибся при переводе дроби',
-            'сократил не до конца':        'Сократил не до конца',
-            'ошибся в сокращении':         'Ошибся в сокращении',
-            'ошибся в знаке':              'Ошибся в знаке',
-            'ошибся на единицу':           'Промахнулся на единицу',
-            'таблица умножения':           'Ошибка в таблице умножения',
-            'делил на ноль':               'Не заметил деления на ноль',
-            'запятая не на месте':         'Запятая не на месте',
-            'ошибка в десятках':           'Единицы верные, ошибка в десятках',
-            'не перенёс десяток':          'Не перенёс десяток',
-            'не занял десяток':            'Не занял десяток при вычитании',
-            'переставил числа':            'Поменял числа местами',
-            'взял одно из чисел':          'Назвал одно из чисел примера',
-            'сложил вместо умножения':     'Сложил вместо того чтобы умножить',
-            'не выровнял запятую':         'Не выровнял запятые перед сложением',
-            'забыл поделить':              'Умножил, но забыл поделить на знаменатель',
-            'нашёл только одну долю':      'Нашёл одну долю, но не умножил',
-            'нашёл остаток':               'Нашёл остаток вместо самой доли',
-            'ошибся на одну долю':         'Промахнулся на одну долю',
-            'забыл перемножить знаменатели': 'Перемножил числители, но не знаменатели',
-            'перевернул не ту дробь':      'Перевернул первую дробь вместо второй',
-            'перевёл не обе дроби':        'Привёл к общему знаменателю только одну дробь',
-            'другая ошибка':               'Другая ошибка'
+            'не сократил':                 t('Не сократил ответ'),
+            'общий знаменатель зря':       t('Зря привёл к общему знаменателю'),
+            'сложил знаменатели':          t('Сложил (вычел) и числители, и знаменатели'),
+            'перепутал действие':          t('Перепутал действие'),
+            'не перевернул дробь':         t('При делении не перевернул вторую дробь'),
+            'забыл целую часть':           t('Потерял целую часть'),
+            'ошибся в переводе':           t('Ошибся при переводе дроби'),
+            'сократил не до конца':        t('Сократил не до конца'),
+            'ошибся в сокращении':         t('Ошибся в сокращении'),
+            'ошибся в знаке':              t('Ошибся в знаке'),
+            'ошибся на единицу':           t('Промахнулся на единицу'),
+            'таблица умножения':           t('Ошибка в таблице умножения'),
+            'делил на ноль':               t('Не заметил деления на ноль'),
+            'запятая не на месте':         t('Запятая не на месте'),
+            'ошибка в десятках':           t('Единицы верные, ошибка в десятках'),
+            'не перенёс десяток':          t('Не перенёс десяток'),
+            'не занял десяток':            t('Не занял десяток при вычитании'),
+            'переставил числа':            t('Поменял числа местами'),
+            'взял одно из чисел':          t('Назвал одно из чисел примера'),
+            'сложил вместо умножения':     t('Сложил вместо того чтобы умножить'),
+            'не выровнял запятую':         t('Не выровнял запятые перед сложением'),
+            'забыл поделить':              t('Умножил, но забыл поделить на знаменатель'),
+            'нашёл только одну долю':      t('Нашёл одну долю, но не умножил'),
+            'нашёл остаток':               t('Нашёл остаток вместо самой доли'),
+            'ошибся на одну долю':         t('Промахнулся на одну долю'),
+            'забыл перемножить знаменатели': t('Перемножил числители, но не знаменатели'),
+            'перевернул не ту дробь':      t('Перевернул первую дробь вместо второй'),
+            'перевёл не обе дроби':        t('Привёл к общему знаменателю только одну дробь'),
+            'другая ошибка':               t('Другая ошибка')
         };
 
         // Короткие подписи для ярлычка на карточке разбора: там места на одну-две строки,
@@ -4213,34 +4786,34 @@
         // и уезжают за край карточки.
         const MISTAKE_SHORT = {
             'не сократил':                 'не сократил',
-            'общий знаменатель зря':       'лишнее приведение',
+            'общий знаменатель зря':       t('лишнее приведение'),
             'сложил знаменатели':          'сложил знаменатели',
-            'перепутал действие':          'другое действие',
-            'не перевернул дробь':         'не перевернул',
-            'забыл целую часть':           'без целой части',
-            'ошибся в переводе':           'перевод дроби',
-            'сократил не до конца':        'не до конца',
-            'ошибся в сокращении':         'сокращение',
-            'ошибся в знаке':              'знак',
-            'ошибся на единицу':           'мимо на 1',
-            'таблица умножения':           'таблица',
-            'делил на ноль':               'деление на 0',
-            'запятая не на месте':         'запятая',
-            'ошибка в десятках':           'мимо на десяток',
-            'не перенёс десяток':          'без переноса',
-            'не занял десяток':            'без займа',
-            'переставил числа':            'числа местами',
-            'взял одно из чисел':          'число из примера',
-            'сложил вместо умножения':     'сложил вместо ×',
-            'не выровнял запятую':         'запятые не выровнены',
+            'перепутал действие':          t('другое действие'),
+            'не перевернул дробь':         t('не перевернул'),
+            'забыл целую часть':           t('без целой части'),
+            'ошибся в переводе':           t('перевод дроби'),
+            'сократил не до конца':        t('не до конца'),
+            'ошибся в сокращении':         t('сокращение'),
+            'ошибся в знаке':              t('знак'),
+            'ошибся на единицу':           t('мимо на 1'),
+            'таблица умножения':           t('таблица'),
+            'делил на ноль':               t('деление на 0'),
+            'запятая не на месте':         t('запятая'),
+            'ошибка в десятках':           t('мимо на десяток'),
+            'не перенёс десяток':          t('без переноса'),
+            'не занял десяток':            t('без займа'),
+            'переставил числа':            t('числа местами'),
+            'взял одно из чисел':          t('число из примера'),
+            'сложил вместо умножения':     t('сложил вместо ×'),
+            'не выровнял запятую':         t('запятые не выровнены'),
             'забыл поделить':              'забыл поделить',
-            'нашёл только одну долю':      'одна доля',
-            'нашёл остаток':               'остаток',
-            'ошибся на одну долю':         'мимо на долю',
-            'забыл перемножить знаменатели': 'без знаменателей',
-            'перевернул не ту дробь':      'не та дробь',
-            'перевёл не обе дроби':        'привёл одну',
-            'другая ошибка':               'ошибка'
+            'нашёл только одну долю':      t('одна доля'),
+            'нашёл остаток':               t('остаток'),
+            'ошибся на одну долю':         t('мимо на долю'),
+            'забыл перемножить знаменатели': t('без знаменателей'),
+            'перевернул не ту дробь':      t('не та дробь'),
+            'перевёл не обе дроби':        t('привёл одну'),
+            'другая ошибка':               t('ошибка')
         };
 
         function mistakeLabel(kind) { return MISTAKE_LABELS[kind] || kind; }
@@ -4647,124 +5220,124 @@
         // hook — одна дерзкая строчка "в чём подвох", body — короткое объяснение без формул.
         const PARADOXES = [
             {
-                name: 'Ахиллес и черепаха',
-                era: 'Зенон Элейский, ~450 до н.э.',
-                hook: 'Самый быстрый бегун никогда не догонит черепаху.',
-                body: 'Пока Ахиллес добежит туда, где была черепаха, она уже чуть уползёт. И так бесконечно много раз. Разгадка: бесконечное число шагов помещается в конечное время — сумма 1 + ½ + ¼ + … не растёт бесконечно, а упирается в 2.'
+                name: t('Ахиллес и черепаха'),
+                era: t('Зенон Элейский, ~450 до н.э.'),
+                hook: t('Самый быстрый бегун никогда не догонит черепаху.'),
+                body: t('Пока Ахиллес добежит туда, где была черепаха, она уже чуть уползёт. И так бесконечно много раз. Разгадка: бесконечное число шагов помещается в конечное время — сумма 1 + ½ + ¼ + … не растёт бесконечно, а упирается в 2.')
             },
             {
-                name: 'Гранд-отель Гильберта',
-                era: 'Давид Гильберт, 1924',
-                hook: 'В отеле бесконечно много номеров, и все заняты. Мест — сколько угодно.',
-                body: 'Просим каждого гостя переехать в номер на 1 больше — первый освободился. Так можно поселить хоть автобус с бесконечностью гостей. У бесконечности «всё занято» и «есть места» уживаются спокойно.'
+                name: t('Гранд-отель Гильберта'),
+                era: t('Давид Гильберт, 1924'),
+                hook: t('В отеле бесконечно много номеров, и все заняты. Мест — сколько угодно.'),
+                body: t('Просим каждого гостя переехать в номер на 1 больше — первый освободился. Так можно поселить хоть автобус с бесконечностью гостей. У бесконечности «всё занято» и «есть места» уживаются спокойно.')
             },
             {
-                name: 'Парадокс Монти Холла',
-                era: 'Телешоу, 1975',
-                hook: 'Три двери, за одной приз. Поменять выбор — выгоднее ровно вдвое.',
-                body: 'Выбрал дверь — шанс 1/3. Ведущий (он знает, где что) открывает дверь с козой. Кажется, что теперь 50/50 — но нет: у оставшейся двери шанс 2/3. Меняй выбор всегда.'
+                name: t('Парадокс Монти Холла'),
+                era: t('Телешоу, 1975'),
+                hook: t('Три двери, за одной приз. Поменять выбор — выгоднее ровно вдвое.'),
+                body: t('Выбрал дверь — шанс 1/3. Ведущий (он знает, где что) открывает дверь с козой. Кажется, что теперь 50/50 — но нет: у оставшейся двери шанс 2/3. Меняй выбор всегда.')
             },
             {
-                name: 'Парадокс дней рождения',
-                era: 'Рихард фон Мизес, 1939',
-                hook: 'В компании из 23 человек шанс совпадения дней рождения — больше половины.',
-                body: 'Кажется, «365 дней, а нас всего 23». Но считать надо не людей, а пары: их 253. Совпадение ищем не с собой, а между всеми — и вероятность взлетает. При 70 людях совпадение почти гарантировано.'
+                name: t('Парадокс дней рождения'),
+                era: t('Рихард фон Мизес, 1939'),
+                hook: t('В компании из 23 человек шанс совпадения дней рождения — больше половины.'),
+                body: t('Кажется, «365 дней, а нас всего 23». Но считать надо не людей, а пары: их 253. Совпадение ищем не с собой, а между всеми — и вероятность взлетает. При 70 людях совпадение почти гарантировано.')
             },
             {
-                name: 'Корабль Тесея',
-                era: 'Плутарх, I век',
-                hook: 'Заменили все доски по одной. Это тот же корабль или уже другой?',
-                body: 'А если из старых досок собрать второй корабль — какой настоящий? Строгого ответа нет: парадокс показывает, что «тот же самый» — не свойство предмета, а наше соглашение о том, что считать тождеством.'
+                name: t('Корабль Тесея'),
+                era: t('Плутарх, I век'),
+                hook: t('Заменили все доски по одной. Это тот же корабль или уже другой?'),
+                body: t('А если из старых досок собрать второй корабль — какой настоящий? Строгого ответа нет: парадокс показывает, что «тот же самый» — не свойство предмета, а наше соглашение о том, что считать тождеством.')
             },
             {
-                name: 'Парадокс Банаха — Тарского',
-                era: 'Банах и Тарский, 1924',
-                hook: 'Шар можно разрезать на 5 частей и собрать из них два таких же шара.',
-                body: 'Причём без растягивания — только повороты и сдвиги. Фокус в том, что «части» — не ломтики, а бесконечно рваные множества, у которых объёма попросту не существует. С апельсином так не выйдет.'
+                name: t('Парадокс Банаха — Тарского'),
+                era: t('Банах и Тарский, 1924'),
+                hook: t('Шар можно разрезать на 5 частей и собрать из них два таких же шара.'),
+                body: t('Причём без растягивания — только повороты и сдвиги. Фокус в том, что «части» — не ломтики, а бесконечно рваные множества, у которых объёма попросту не существует. С апельсином так не выйдет.')
             },
             {
-                name: 'Рог Гавриила',
-                era: 'Эванджелиста Торричелли, 1641',
-                hook: 'Фигура с бесконечной поверхностью и конечным объёмом.',
-                body: 'Бесконечно длинная воронка: краски, чтобы покрасить её снаружи, нужно бесконечно много, а чтобы залить внутрь — конечное ведро. Залил — значит, изнутри уже покрашено. Разгадка: у слоя краски есть толщина, а у математической поверхности — нет.'
+                name: t('Рог Гавриила'),
+                era: t('Эванджелиста Торричелли, 1641'),
+                hook: t('Фигура с бесконечной поверхностью и конечным объёмом.'),
+                body: t('Бесконечно длинная воронка: краски, чтобы покрасить её снаружи, нужно бесконечно много, а чтобы залить внутрь — конечное ведро. Залил — значит, изнутри уже покрашено. Разгадка: у слоя краски есть толщина, а у математической поверхности — нет.')
             },
             {
-                name: 'Парадокс брадобрея',
-                era: 'Бертран Рассел, 1901',
-                hook: 'Брадобрей бреет всех, кто не бреется сам. А себя?',
-                body: 'Бреет — значит, не должен. Не бреет — значит, обязан. Это народная версия парадокса Рассела: множество всех множеств, не содержащих себя, разнесло наивную теорию множеств и заставило переписать основания математики.'
+                name: t('Парадокс брадобрея'),
+                era: t('Бертран Рассел, 1901'),
+                hook: t('Брадобрей бреет всех, кто не бреется сам. А себя?'),
+                body: t('Бреет — значит, не должен. Не бреет — значит, обязан. Это народная версия парадокса Рассела: множество всех множеств, не содержащих себя, разнесло наивную теорию множеств и заставило переписать основания математики.')
             },
             {
-                name: 'Парадокс дедушки',
-                era: 'Рене Баржавель, 1943',
-                hook: 'Отправился в прошлое и помешал своему рождению. Кто тогда отправился?',
-                body: 'Тест на логическую непротиворечивость времени. Варианты выхода: в прошлое попасть нельзя; история самосогласована и помешать не выйдет; либо возникает новая ветка вселенной, где ты — просто гость.'
+                name: t('Парадокс дедушки'),
+                era: t('Рене Баржавель, 1943'),
+                hook: t('Отправился в прошлое и помешал своему рождению. Кто тогда отправился?'),
+                body: t('Тест на логическую непротиворечивость времени. Варианты выхода: в прошлое попасть нельзя; история самосогласована и помешать не выйдет; либо возникает новая ветка вселенной, где ты — просто гость.')
             },
             {
-                name: 'Кот Шрёдингера',
-                era: 'Эрвин Шрёдингер, 1935',
-                hook: 'Кот в ящике жив и мёртв одновременно — пока не заглянешь.',
-                body: 'Шрёдингер придумал это как насмешку: если частица бывает в двух состояниях сразу, то и кот тоже. Насмешка прижилась и стала главной иллюстрацией суперпозиции. Кот, впрочем, всегда был против.'
+                name: t('Кот Шрёдингера'),
+                era: t('Эрвин Шрёдингер, 1935'),
+                hook: t('Кот в ящике жив и мёртв одновременно — пока не заглянешь.'),
+                body: t('Шрёдингер придумал это как насмешку: если частица бывает в двух состояниях сразу, то и кот тоже. Насмешка прижилась и стала главной иллюстрацией суперпозиции. Кот, впрочем, всегда был против.')
             },
             {
-                name: 'Парадокс береговой линии',
-                era: 'Льюис Ричардсон, 1951',
-                hook: 'У береговой линии нет длины. Совсем.',
-                body: 'Мерь линейкой в километр — получишь одно число. Метровой — больше, ведь проявились изгибы. Сантиметровой — ещё больше. Длина растёт без предела. Отсюда выросли фракталы и дробная размерность.'
+                name: t('Парадокс береговой линии'),
+                era: t('Льюис Ричардсон, 1951'),
+                hook: t('У береговой линии нет длины. Совсем.'),
+                body: t('Мерь линейкой в километр — получишь одно число. Метровой — больше, ведь проявились изгибы. Сантиметровой — ещё больше. Длина растёт без предела. Отсюда выросли фракталы и дробная размерность.')
             },
             {
-                name: 'Парадокс Симпсона',
-                era: 'Эдвард Симпсон, 1951',
-                hook: 'Лекарство помогает мужчинам, помогает женщинам — и не помогает людям.',
-                body: 'Тренд, устойчивый в каждой группе, разворачивается наоборот, когда группы сложили вместе. Виноваты разные размеры групп. Поэтому «средние по больнице» цифры — лёгкий способ соврать честной статистикой.'
+                name: t('Парадокс Симпсона'),
+                era: t('Эдвард Симпсон, 1951'),
+                hook: t('Лекарство помогает мужчинам, помогает женщинам — и не помогает людям.'),
+                body: t('Тренд, устойчивый в каждой группе, разворачивается наоборот, когда группы сложили вместе. Виноваты разные размеры групп. Поэтому «средние по больнице» цифры — лёгкий способ соврать честной статистикой.')
             },
             {
-                name: 'Парадокс кучи (сорит)',
-                era: 'Евбулид, IV век до н.э.',
-                hook: 'Убери из кучи песчинку — куча останется. Повторяй. Где она кончилась?',
-                body: 'Одна песчинка — не куча, миллион — куча, а границы нет ни на каком шаге. Парадокс не про песок, а про то, что обычные слова размыты, тогда как логика требует чёткого «да/нет». Отсюда — нечёткая логика.'
+                name: t('Парадокс кучи (сорит)'),
+                era: t('Евбулид, IV век до н.э.'),
+                hook: t('Убери из кучи песчинку — куча останется. Повторяй. Где она кончилась?'),
+                body: t('Одна песчинка — не куча, миллион — куча, а границы нет ни на каком шаге. Парадокс не про песок, а про то, что обычные слова размыты, тогда как логика требует чёткого «да/нет». Отсюда — нечёткая логика.')
             },
             {
-                name: 'Парадокс неожиданной контрольной',
-                era: 'обсуждается с 1940-х',
-                hook: 'Учитель обещал внезапную контрольную на неделе. Логика доказала: её не будет.',
-                body: 'В пятницу она уже не внезапна — значит, не пятница. Тогда и не четверг, и так до понедельника. Ученик спокоен... и получает контрольную в среду, совершенно внезапно. Безупречное рассуждение с неверным выводом — общепринятого решения до сих пор нет.'
+                name: t('Парадокс неожиданной контрольной'),
+                era: t('обсуждается с 1940-х'),
+                hook: t('Учитель обещал внезапную контрольную на неделе. Логика доказала: её не будет.'),
+                body: t('В пятницу она уже не внезапна — значит, не пятница. Тогда и не четверг, и так до понедельника. Ученик спокоен... и получает контрольную в среду, совершенно внезапно. Безупречное рассуждение с неверным выводом — общепринятого решения до сих пор нет.')
             },
             {
-                name: 'Санкт-Петербургский парадокс',
-                era: 'Даниил Бернулли, 1738',
-                hook: 'Игра с бесконечным средним выигрышем. Никто не отдаст за неё и сотни.',
-                body: 'Бросаем монету, пока не выпадет орёл, выигрыш каждый раз удваивается. Средний выигрыш — бесконечность, значит, играть стоит за любые деньги. Но люди платят копейки — и правы. Так родилась идея полезности: вторая сотня нужна нам меньше первой.'
+                name: t('Санкт-Петербургский парадокс'),
+                era: t('Даниил Бернулли, 1738'),
+                hook: t('Игра с бесконечным средним выигрышем. Никто не отдаст за неё и сотни.'),
+                body: t('Бросаем монету, пока не выпадет орёл, выигрыш каждый раз удваивается. Средний выигрыш — бесконечность, значит, играть стоит за любые деньги. Но люди платят копейки — и правы. Так родилась идея полезности: вторая сотня нужна нам меньше первой.')
             },
             {
-                name: 'Треугольник Пенроуза',
-                era: 'Оскар Рутерсвард, 1934',
-                hook: 'Фигура, безупречная в каждом углу и невозможная целиком.',
-                body: 'Любые две грани стыкуются идеально, а весь объект в трёхмерном пространстве существовать не может. Мозг честно достраивает глубину по местным подсказкам — и попадается. Из таких фигур выросла половина работ Эшера.'
+                name: t('Треугольник Пенроуза'),
+                era: t('Оскар Рутерсвард, 1934'),
+                hook: t('Фигура, безупречная в каждом углу и невозможная целиком.'),
+                body: t('Любые две грани стыкуются идеально, а весь объект в трёхмерном пространстве существовать не может. Мозг честно достраивает глубину по местным подсказкам — и попадается. Из таких фигур выросла половина работ Эшера.')
             },
             {
-                name: 'Лента Мёбиуса',
-                era: 'Мёбиус и Листинг, 1858',
-                hook: 'У поверхности одна сторона и один край: муравей обойдёт всё, не переползая грань.',
-                body: 'Склей полоску бумаги, перекрутив один конец, — изнанка исчезнет. Разрежь вдоль посередине — получишь не две ленты, а одну длинную. Так начинается топология: форма важнее размеров.'
+                name: t('Лента Мёбиуса'),
+                era: t('Мёбиус и Листинг, 1858'),
+                hook: t('У поверхности одна сторона и один край: муравей обойдёт всё, не переползая грань.'),
+                body: t('Склей полоску бумаги, перекрутив один конец, — изнанка исчезнет. Разрежь вдоль посередине — получишь не две ленты, а одну длинную. Так начинается топология: форма важнее размеров.')
             },
             {
-                name: 'Теорема о бесконечных обезьянах',
-                era: 'Эмиль Борель, 1913',
-                hook: 'Обезьяна за печатной машинкой рано или поздно напечатает Шекспира.',
-                body: 'При бесконечном числе попыток вероятность любой конкретной последовательности стремится к единице. Математически — правда. Практически — на «Гамлета» не хватит ни возраста Вселенной, ни атомов в ней. Вот она, разница между «возможно» и «бывает».'
+                name: t('Теорема о бесконечных обезьянах'),
+                era: t('Эмиль Борель, 1913'),
+                hook: t('Обезьяна за печатной машинкой рано или поздно напечатает Шекспира.'),
+                body: t('При бесконечном числе попыток вероятность любой конкретной последовательности стремится к единице. Математически — правда. Практически — на «Гамлета» не хватит ни возраста Вселенной, ни атомов в ней. Вот она, разница между «возможно» и «бывает».')
             },
             {
-                name: 'Парадокс близнецов',
-                era: 'Поль Ланжевен, 1911',
-                hook: 'Один брат слетал к звёздам и вернулся моложе второго.',
-                body: 'На околосветовой скорости время путешественника идёт медленнее. Почему не симметрично? Симметрию ломает разворот: ускорялся только один из братьев. Эффект реальный — его каждый день учитывают спутники GPS.'
+                name: t('Парадокс близнецов'),
+                era: t('Поль Ланжевен, 1911'),
+                hook: t('Один брат слетал к звёздам и вернулся моложе второго.'),
+                body: t('На околосветовой скорости время путешественника идёт медленнее. Почему не симметрично? Симметрию ломает разворот: ускорялся только один из братьев. Эффект реальный — его каждый день учитывают спутники GPS.')
             },
             {
-                name: 'Парадокс лжеца',
-                era: 'Евбулид, IV век до н.э.',
-                hook: '«Это утверждение ложно». Ну и как оно вам?',
-                body: 'Истинно — значит, ложно. Ложно — значит, истинно. Змея кусает свой хвост. Из попыток обезвредить эту фразу Гёдель вывел теоремы о неполноте: в любой достаточно богатой системе есть истины, которые она сама доказать не может.'
+                name: t('Парадокс лжеца'),
+                era: t('Евбулид, IV век до н.э.'),
+                hook: t('«Это утверждение ложно». Ну и как оно вам?'),
+                body: t('Истинно — значит, ложно. Ложно — значит, истинно. Змея кусает свой хвост. Из попыток обезвредить эту фразу Гёдель вывел теоремы о неполноте: в любой достаточно богатой системе есть истины, которые она сама доказать не может.')
             }
         ];
 
@@ -4881,7 +5454,7 @@
 
         function refreshSoundButtons() {
             document.querySelectorAll('.sound-toggle').forEach(b => {
-                b.innerHTML = soundOn ? '🔊 <span>Звук включён</span>' : '🔇 <span>Звук выключен</span>';
+                b.innerHTML = soundOn ? t('🔊 <span>Звук включён</span>') : t('🔇 <span>Звук выключен</span>');
             });
         }
 
@@ -4976,7 +5549,7 @@
                 const ok = document.createElement('button');
                 ok.className = 'dlg-btn primary';
                 ok.type = 'button';
-                ok.innerText = o.okText || 'Понятно';
+                ok.innerText = o.okText || t('Понятно');
                 ok.addEventListener('click', () => submit(undefined));
                 row.appendChild(ok);
                 card.appendChild(row);
@@ -4988,9 +5561,9 @@
         function askConfirm(opts) {
             const o = opts || {};
             return openAppDialog(false, (card, submit) => {
-                dlgHead(card, o.title || 'Подтверждение', o.text || '');
+                dlgHead(card, o.title || t('Подтверждение'), o.text || '');
                 const ok = dlgActions(
-                    card, o.okText || 'Да', o.cancelText || 'Отмена', !!o.danger,
+                    card, o.okText || t('Да'), o.cancelText || t('Отмена'), !!o.danger,
                     () => submit(true), () => submit(false)
                 );
                 // Фокус на кнопке подтверждения — но не у опасных действий:
@@ -5067,7 +5640,7 @@
                     submit(values);
                 };
 
-                dlgActions(card, o.okText || 'Готово', o.cancelText || 'Отмена', !!o.danger,
+                dlgActions(card, o.okText || t('Готово'), o.cancelText || t('Отмена'), !!o.danger,
                     tryOk, () => submit(null));
 
                 // Enter в однострочном поле = подтверждение: так же, как в обычной форме.
@@ -6255,10 +6828,10 @@
 
         // Почему звезда закрыта — человеческим языком, для подсказки на кнопке.
         function levelLockReason(secKey, op, level) {
-            if (!levelAllowedByAccess(secKey, op, level)) return 'Этой звезды нет в коде от репетитора';
+            if (!levelAllowedByAccess(secKey, op, level)) return t('Этой звезды нет в коде от репетитора');
             const lvl = Number(level) || 1;
-            return `Нужно золото на ${lvl - 1}★: точность ${ACCURACY_TIERS[LEVEL_GATE_TIER - 1]}%`
-                 + ` и ${COUNT_TIERS[LEVEL_GATE_TIER - 1]} верных ответов`;
+            return tf('Нужно золото на %1★: точность %2%', lvl - 1, ACCURACY_TIERS[LEVEL_GATE_TIER - 1])
+                 + tf(' и %1 верных ответов', COUNT_TIERS[LEVEL_GATE_TIER - 1]);
         }
 
         // Ворота прогресса: первая звезда открыта всегда, каждая следующая — за золото
@@ -6276,7 +6849,7 @@
         // Человеческое описание того, что открыто в разделе, — для панели замка.
         function grantSummary(secKey) {
             const g = grantFor(secKey);
-            if (g === 'all') return 'открыт полностью';
+            if (g === 'all') return t('открыт полностью');
             if (!g || typeof g !== 'object') return '';
             const parts = Object.keys(g).map(op => {
                 const name = (OP_LABELS[op] || op).replace(/^\S+\s/, '').toLowerCase();
@@ -6323,7 +6896,7 @@
                 if (!open && !badge) {
                     badge = document.createElement('span');
                     badge.className = 'cat-lock';
-                    badge.innerText = '🔒 Заблокировано';
+                    badge.innerText = t('🔒 Заблокировано');
                     btn.appendChild(badge);
                 } else if (open && badge) {
                     badge.remove();
@@ -6337,8 +6910,8 @@
             const partial = grantSummary(secKey);
             document.getElementById('lockedTitle').innerText = label;
             document.getElementById('lockedText').innerText = partial
-                ? `В этом разделе тебе открыто: ${partial}. Остальное — по коду от репетитора.`
-                : 'Этот раздел пока закрыт. Открыть его может только репетитор — попроси у него код.';
+                ? tf('В этом разделе тебе открыто: %1. Остальное — по коду от репетитора.', partial)
+                : t('Этот раздел пока закрыт. Открыть его может только репетитор — попроси у него код.');
             document.getElementById('lockedScreen').style.display = 'flex';
         }
 
@@ -6351,18 +6924,18 @@
         // пришёл заранее и до закрытого раздела он ещё не дошёл.
         async function askAccessCode() {
             const values = await askForm({
-                title: 'Код от репетитора',
-                text: 'Введи код, который тебе прислали. Он откроет раздел насовсем.',
-                fields: [{ key: 'code', label: 'Код', placeholder: 'например, ГМ4КР7' }],
-                okText: 'Открыть',
-                validate: (v) => v.code.length >= 4 ? null : 'Код короче, чем бывает.'
+                title: t('Код от репетитора'),
+                text: t('Введи код, который тебе прислали. Он откроет раздел насовсем.'),
+                fields: [{ key: 'code', label: t('Код'), placeholder: t('например, ГМ4КР7') }],
+                okText: t('Открыть'),
+                validate: (v) => v.code.length >= 4 ? null : t('Код короче, чем бывает.')
             });
             if (values === null) return;
-            if (!supabaseClient) { showToast('Нет соединения с сервером.', 'error'); return; }
+            if (!supabaseClient) { showToast(t('Нет соединения с сервером.'), 'error'); return; }
 
             const code = Progress.getCode();
             const auth = Progress.authFor(code);
-            if (!code || !auth) { showToast('Сначала войди под своим логином.', 'error'); return; }
+            if (!code || !auth) { showToast(t('Сначала войди под своим логином.'), 'error'); return; }
 
             const typed = values.code.trim().toUpperCase();
             try {
@@ -6373,24 +6946,24 @@
                 if (error) throw error;
                 if (!data || !data.ok) {
                     const messages = {
-                        bad_code: 'Такого кода нет — проверь, правильно ли переписал.',
-                        already_used: 'Этот код уже использован.',
-                        revoked: 'Этот код отозвал репетитор.'
+                        bad_code: t('Такого кода нет — проверь, правильно ли переписал.'),
+                        already_used: t('Этот код уже использован.'),
+                        revoked: t('Этот код отозвал репетитор.')
                     };
-                    showToast(messages[data && data.error] || 'Не удалось открыть по этому коду.', 'error');
+                    showToast(messages[data && data.error] || t('Не удалось открыть по этому коду.'), 'error');
                     return;
                 }
                 await refreshAccess();
                 refreshSectionLocks();
                 closeLockedPanel();
                 await showNotice({
-                    title: 'Открыто!',
-                    text: `Раздел «${SECTION_TITLES[data.section] || data.section}» теперь доступен.\n`
-                        + `Загляни в настройку испытаний.`
+                    title: t('Открыто!'),
+                    text: tf('Раздел «%1» теперь доступен.\\n', SECTION_TITLES[data.section] || data.section)
+                        + tf('Загляни в настройку испытаний.')
                 });
                 resetConfigScreen();
             } catch (e) {
-                showToast('Не удалось подключиться. Проверь интернет.', 'error');
+                showToast(t('Не удалось подключиться. Проверь интернет.'), 'error');
             }
         }
 
@@ -6408,10 +6981,10 @@
         // воротами прогресса, и код с поимённо названной звездой — единственный способ
         // провести ученика в обход, когда видно, что дело не в счёте.
         const GRANT_SECTIONS = [
-            { key: 'integer+',  title: '🟢 Положительные', ops: ['add', 'sub', 'mul', 'div'] },
-            { key: 'fraction+', title: '🧮 Дроби', ops: OP_ORDER },
-            { key: 'decimal+',  title: '🔟 Десятичные', ops: ['add', 'sub', 'mul', 'div'] },
-            { key: 'integer-',  title: '🔴 Отрицательные', ops: ['add', 'sub', 'mul', 'div'] }
+            { key: 'integer+',  title: t('🟢 Положительные'), ops: ['add', 'sub', 'mul', 'div'] },
+            { key: 'fraction+', title: t('🧮 Дроби'), ops: OP_ORDER },
+            { key: 'decimal+',  title: t('🔟 Десятичные'), ops: ['add', 'sub', 'mul', 'div'] },
+            { key: 'integer-',  title: t('🔴 Отрицательные'), ops: ['add', 'sub', 'mul', 'div'] }
         ];
 
         // Собирает разрешение из отмеченных клеток. Если отмечено всё — отдаём
@@ -6462,7 +7035,7 @@
         }
 
         function grantHuman(sec, grant) {
-            if (grant === 'all') return 'весь раздел';
+            if (grant === 'all') return t('весь раздел');
             return Object.keys(grant).map(op => {
                 const name = (OP_LABELS[op] || op).replace(/^\S+\s/, '').toLowerCase();
                 return grant[op] === 'all' ? name : `${name} ${grant[op].join(', ')}★`;
@@ -6501,7 +7074,7 @@
                 const corner = document.createElement('button');
                 corner.type = 'button';
                 corner.className = 'grant-corner';
-                corner.innerText = 'всё';
+                corner.innerText = t('всё');
                 corner.addEventListener('click', () => {
                     const any = sec.ops.some(op => [1,2,3,4,5].some(i => picks[`${op}:${i}`]));
                     sec.ops.forEach(op => [1,2,3,4,5].forEach(i => { picks[`${op}:${i}`] = !any; }));
@@ -6570,19 +7143,19 @@
             const state = { secIdx: 0, picks: {} };
 
             const values = await askForm({
-                title: 'Код на раздел',
-                text: `Ученик: ${studentLabel || studentCode}. Код сработает только на этот логин, один раз.`,
+                title: t('Код на раздел'),
+                text: tf('Ученик: %1. Код сработает только на этот логин, один раз.', studentLabel || studentCode),
                 fields: [],
-                okText: 'Выдать код',
+                okText: t('Выдать код'),
                 // Проверка и одновременно источник результата: askForm отдаёт значения
                 // полей, а полей тут нет — разрешение живёт в state.picks.
                 validate: () => grantFromPicks(GRANT_SECTIONS[state.secIdx],
                                                state.picks[GRANT_SECTIONS[state.secIdx].key] || {})
-                                ? null : 'Отметь хотя бы одну клетку.',
+                                ? null : t('Отметь хотя бы одну клетку.'),
                 build: (card) => buildGrantGrid(card, state, {
                     summary: (sec, g) => g
-                        ? `Откроется: ${sec.title.replace(/^\S+\s/, '')} — ${grantHuman(sec, g)}.`
-                        : 'Ничего не выбрано.'
+                        ? tf('Откроется: %1 — %2.', sec.title.replace(/^\S+\s/, ''), grantHuman(sec, g))
+                        : t('Ничего не выбрано.')
                 })
             });
             if (values === null) return;
@@ -6594,11 +7167,11 @@
                 'issue_access_code', { p_student_code: studentCode, p_section: sec.key, p_grant: grant });
             if (error || !data || !data.ok) {
                 const messages = {
-                    not_your_student: 'Это не твой ученик.',
-                    bad_grant: 'Такой набор режимов сервер не принял.',
-                    bad_section: 'Этот раздел кодом не открывается. Запусти supabase/student-access.sql.'
+                    not_your_student: t('Это не твой ученик.'),
+                    bad_grant: t('Такой набор режимов сервер не принял.'),
+                    bad_section: t('Этот раздел кодом не открывается. Запусти supabase/student-access.sql.')
                 };
-                showToast(messages[data && data.error] || 'Не удалось выдать код.', 'error');
+                showToast(messages[data && data.error] || t('Не удалось выдать код.'), 'error');
                 return;
             }
 
@@ -6618,8 +7191,8 @@
                 'session_student_access', { p_student_code: studentCode },
                 'student_access', { p_student_code: studentCode });
             if (error || !data || !data.ok) {
-                showToast(error ? 'Нужно запустить supabase/student-access.sql в Supabase.'
-                                : 'Не удалось прочитать доступ ученика.', 'error');
+                showToast(error ? t('Нужно запустить supabase/student-access.sql в Supabase.')
+                                : t('Не удалось прочитать доступ ученика.'), 'error');
                 return;
             }
             const before = data.access || {};
@@ -6631,15 +7204,15 @@
             GRANT_SECTIONS.forEach(sec => { state.picks[sec.key] = picksFromGrant(sec, before[sec.key]); });
 
             const values = await askForm({
-                title: 'Что открыто ученику',
-                text: `Ученик: ${studentLabel || studentCode}. Меняется сразу, без кода.`,
+                title: t('Что открыто ученику'),
+                text: tf('Ученик: %1. Меняется сразу, без кода.', studentLabel || studentCode),
                 fields: [],
-                okText: 'Применить',
+                okText: t('Применить'),
                 build: (card) => buildGrantGrid(card, state, {
                     initial: (sec) => picksFromGrant(sec, before[sec.key]),
                     summary: (sec, g) => g
                         ? `${sec.title.replace(/^\S+\s/, '')}: ${grantHuman(sec, g)}.`
-                        : `${sec.title.replace(/^\S+\s/, '')}: закрыто полностью.`
+                        : tf('%1: закрыто полностью.', sec.title.replace(/^\S+\s/, ''))
                 })
             });
             if (values === null) return;
@@ -6652,7 +7225,7 @@
                 const now = JSON.stringify(grantFromPicks(sec, state.picks[sec.key]));
                 return was !== now;
             });
-            if (!changed.length) { showToast('Ничего не изменилось.'); return; }
+            if (!changed.length) { showToast(t('Ничего не изменилось.')); return; }
 
             for (const sec of changed) {
                 const grant = grantFromPicks(sec, state.picks[sec.key] || {});
@@ -6663,23 +7236,23 @@
                     { p_student_code: studentCode, p_section: sec.key, p_grant: grant });
                 if (res.error || !res.data || !res.data.ok) {
                     const messages = {
-                        not_your_student: 'Это не твой ученик.',
-                        bad_grant: 'Такой набор режимов сервер не принял.',
-                        bad_section: 'Этот раздел так не открывается.'
+                        not_your_student: t('Это не твой ученик.'),
+                        bad_grant: t('Такой набор режимов сервер не принял.'),
+                        bad_section: t('Этот раздел так не открывается.')
                     };
                     showToast(messages[res.data && res.data.error]
-                              || `Не удалось изменить «${sec.title.replace(/^\S+\s/, '')}».`, 'error');
+                              || tf('Не удалось изменить «%1».', sec.title.replace(/^\S+\s/, '')), 'error');
                     return;
                 }
             }
-            showToast(`Доступ обновлён: ${changed.map(x => x.title.replace(/^\S+\s/, '')).join(', ')}.`, 'ok');
+            showToast(tf('Доступ обновлён: %1.', changed.map(x => x.title.replace(/^\S+\s/, '')).join(', ')), 'ok');
         }
 
         // Код показывается крупно и не исчезает сам: его надо успеть переписать
         // или скопировать, а исчезающая через три секунды всплывашка для этого не годится.
         function showCodeResult(code, who, sec, grant) {
             return openAppDialog(undefined, (card, submit) => {
-                dlgHead(card, 'Код готов', `Для ученика ${who}.\nОткроет: ${sec.title.replace(/^\S+\s/, '')} — ${grantHuman(sec, grant)}.`);
+                dlgHead(card, t('Код готов'), tf('Для ученика %1.\\nОткроет: %2 — %3.', who, sec.title.replace(/^\S+\s/, ''), grantHuman(sec, grant)));
 
                 const big = document.createElement('div');
                 big.className = 'code-big';
@@ -6689,7 +7262,7 @@
                 const hint = document.createElement('div');
                 hint.className = 'dlg-hint';
                 hint.style.marginBottom = '12px';
-                hint.innerText = 'Отправь его ученику. Код сработает один раз и только на его логин.';
+                hint.innerText = t('Отправь его ученику. Код сработает один раз и только на его логин.');
                 card.appendChild(hint);
 
                 const row = document.createElement('div');
@@ -6697,19 +7270,19 @@
                 const copy = document.createElement('button');
                 copy.className = 'dlg-btn';
                 copy.type = 'button';
-                copy.innerText = 'Скопировать';
+                copy.innerText = t('Скопировать');
                 copy.addEventListener('click', () => {
                     try {
                         navigator.clipboard.writeText(code);
-                        copy.innerText = 'Скопировано';
+                        copy.innerText = t('Скопировано');
                     } catch (e) {
-                        copy.innerText = 'Не вышло — перепиши';
+                        copy.innerText = t('Не вышло — перепиши');
                     }
                 });
                 const ok = document.createElement('button');
                 ok.className = 'dlg-btn primary';
                 ok.type = 'button';
-                ok.innerText = 'Готово';
+                ok.innerText = t('Готово');
                 ok.addEventListener('click', () => submit(undefined));
                 row.appendChild(copy);
                 row.appendChild(ok);
@@ -6723,15 +7296,15 @@
             const { data, error } = await callAuthed(
                 'session_list_access_codes', { p_student_code: studentCode },
                 'list_access_codes', { p_student_code: studentCode });
-            if (error || !data || !data.ok) { showToast('Не удалось получить список кодов.', 'error'); return; }
+            if (error || !data || !data.ok) { showToast(t('Не удалось получить список кодов.'), 'error'); return; }
             const codes = data.codes || [];
 
             await openAppDialog(undefined, (card, submit) => {
-                dlgHead(card, 'Выданные коды', `Ученик: ${studentLabel || studentCode}`);
+                dlgHead(card, t('Выданные коды'), tf('Ученик: %1', studentLabel || studentCode));
                 if (!codes.length) {
                     const empty = document.createElement('div');
                     empty.className = 'dlg-text';
-                    empty.innerText = 'Этому ученику коды ещё не выдавались.';
+                    empty.innerText = t('Этому ученику коды ещё не выдавались.');
                     card.appendChild(empty);
                 }
                 codes.forEach(c => {
@@ -6748,24 +7321,24 @@
                     row.querySelector('.code-row-sub').innerText =
                         `${SECTION_TITLES[c.section] || c.section} — ${grantHuman(secDef, c.grant)}`;
                     row.querySelector('.code-row-state').innerText =
-                        c.revokedAt ? 'отозван' : (c.redeemedAt ? 'использован' : 'ждёт');
+                        c.revokedAt ? t('отозван') : (c.redeemedAt ? t('использован') : t('ждёт'));
 
                     if (!c.revokedAt) {
                         const btn = document.createElement('button');
                         btn.className = 'list-row-btn';
                         btn.type = 'button';
-                        btn.innerText = 'Отозвать';
+                        btn.innerText = t('Отозвать');
                         btn.addEventListener('click', async () => {
                             btn.disabled = true;
                             const res = await callAuthed('session_revoke_access_code', { p_code: c.code },
                                                          'revoke_access_code', { p_code: c.code });
                             if (res.error || !res.data || !res.data.ok) {
-                                showToast('Не удалось отозвать.', 'error');
+                                showToast(t('Не удалось отозвать.'), 'error');
                                 btn.disabled = false;
                                 return;
                             }
                             submit(undefined);
-                            showToast(`Код ${c.code} отозван — раздел закрылся.`, 'ok');
+                            showToast(tf('Код %1 отозван — раздел закрылся.', c.code), 'ok');
                         });
                         row.appendChild(btn);
                     }
@@ -6777,7 +7350,7 @@
                 const ok = document.createElement('button');
                 ok.className = 'dlg-btn primary';
                 ok.type = 'button';
-                ok.innerText = 'Закрыть';
+                ok.innerText = t('Закрыть');
                 ok.addEventListener('click', () => submit(undefined));
                 row.appendChild(ok);
                 card.appendChild(row);
@@ -6785,9 +7358,9 @@
         }
 
         const SECTION_TITLES = {
-            'integer-': 'Отрицательные',
-            'decimal+': 'Десятичные',
-            'fraction+': 'Дроби'
+            'integer-': t('Отрицательные'),
+            'decimal+': t('Десятичные'),
+            'fraction+': t('Дроби')
         };
 
         // Случайная заготовка кода — репетитор её видит как подсказку в поле ввода
@@ -6807,9 +7380,9 @@
             const loadingEl = document.getElementById('codeLoadingMsg');
             errEl.style.display = 'none';
 
-            if (!raw || !pw) { errEl.innerText = 'Введите код и пароль.'; errEl.style.display = 'block'; return; }
+            if (!raw || !pw) { errEl.innerText = t('Введите код и пароль.'); errEl.style.display = 'block'; return; }
             if (!supabaseClient) {
-                errEl.innerText = 'Нет соединения с сервером. Попробуйте позже.';
+                errEl.innerText = t('Нет соединения с сервером. Попробуйте позже.');
                 errEl.style.display = 'block';
                 return;
             }
@@ -6828,7 +7401,7 @@
                 loadingEl.style.display = 'none';
                 if (error) throw error;
                 if (!data || !data.ok) {
-                    errEl.innerText = 'Неверный код или пароль.';
+                    errEl.innerText = t('Неверный код или пароль.');
                     errEl.style.display = 'block';
                     return;
                 }
@@ -6840,7 +7413,7 @@
                 updateCollectionBadge();
             } catch (e) {
                 loadingEl.style.display = 'none';
-                errEl.innerText = 'Не удалось подключиться. Проверь интернет.';
+                errEl.innerText = t('Не удалось подключиться. Проверь интернет.');
                 errEl.style.display = 'block';
             }
         }
@@ -7138,7 +7711,7 @@
             });
             // Сигнал всё-таки нужен сразу: иначе сотый кусочек встаёт, и внешне не
             // происходит ничего — ученик может не заметить, что вообще что-то случилось.
-            showToast('🧩 Пазл собран! Покажу в конце испытания.', 'ok');
+            showToast(t('🧩 Пазл собран! Покажу в конце испытания.'), 'ok');
             Progress.flush(); // контрольная точка синхронизации
         }
 
@@ -7159,9 +7732,9 @@
                 document.getElementById('completeParadoxBody').innerText = px.body;
             }
             document.getElementById('puzzleCompleteStats').innerText =
-                `⏱️ Время: ${formatTime(totalSeconds)}  |  ✅ ${correctCount}  |  ❌ ${wrongCount}  |  🧩 Пазлов собрано: ${puzzlesCompletedCount}`;
+                tf('⏱️ Время: %1  |  ✅ %2  |  ❌ %3  |  🧩 Пазлов собрано: %4', formatTime(totalSeconds), correctCount, wrongCount, puzzlesCompletedCount);
             document.getElementById('collectionAddedLine').innerText =
-                `🏆 Добавлено в коллекцию! (${item.collectedCount}/${PUZZLE_IMAGE_SRCS.length})`;
+                tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length);
 
             const imgEl = document.getElementById('puzzleCompleteImg');
             imgEl.removeAttribute('src');
@@ -7201,7 +7774,7 @@
                 img.src = puzzleThumbSrc(i);
                 img.loading = 'lazy';
                 img.decoding = 'async';
-                img.alt = collection[i] ? ((PARADOXES[i] && PARADOXES[i].name) || 'Парадокс') : 'Ещё не открыто';
+                img.alt = collection[i] ? ((PARADOXES[i] && PARADOXES[i].name) || t('Парадокс')) : t('Ещё не открыто');
                 item.appendChild(img);
 
                 // Название парадокса подписываем только у собранных — у остальных
@@ -7231,7 +7804,7 @@
         document.getElementById('btnShowMyCode').addEventListener('click', openMyCodePanel);
 
         // ===================== ГЛАВНОЕ МЕНЮ =====================
-        const CATEGORY_LABELS = { integer: 'Целые', decimal: 'Десятичные', fraction: 'Дроби' };
+        const CATEGORY_LABELS = { integer: t('Целые'), decimal: t('Десятичные'), fraction: t('Дроби') };
 
         // У целых чисел знак и есть название раздела. Слово «целые» из подписей убрано:
         // оно ничего не добавляло, а место занимало в самых тесных местах — на кнопке
@@ -7241,8 +7814,8 @@
         // его нельзя — для них остаётся прежнее нейтральное «Целые».
         function categoryLabel(category, sign) {
             if (category !== 'integer') return CATEGORY_LABELS[category] || category;
-            if (sign === '-' || sign === 'negative') return 'Отрицательные';
-            if (sign === '+' || sign === 'positive') return 'Положительные';
+            if (sign === '-' || sign === 'negative') return t('Отрицательные');
+            if (sign === '+' || sign === 'positive') return t('Положительные');
             return CATEGORY_LABELS.integer;
         }
 
@@ -7400,7 +7973,7 @@
               .sort((a, b) => a.pct - b.pct);
 
             if (!rows.length) {
-                wrap.innerHTML = '<div class="menu-empty">Пока мало данных.<br>Реши несколько примеров — здесь появится разбор по темам.</div>';
+                wrap.innerHTML = t('<div class="menu-empty">Пока мало данных.<br>Реши несколько примеров — здесь появится разбор по темам.</div>');
                 return;
             }
 
@@ -7504,14 +8077,17 @@
             const total = Math.max(0, Math.round(seconds || 0));
             const h = Math.floor(total / 3600);
             const m = Math.round((total % 3600) / 60);
-            if (h > 0) return `${h} ч ${m} м`;
-            if (m > 0) return `${m} м`;
-            return total > 0 ? '<1 м' : '0 м';
+            if (h > 0) return tf('%1 ч %2 м', h, m);
+            if (m > 0) return tf('%1 м', m);
+            return total > 0 ? t('<1 м') : t('0 м');
         }
         function formatDayKeyHuman(key) {
             if (!key) return '';
             const [y, m, d] = key.split('-').map(Number);
-            return new Date(y, m - 1, d).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+            // Локаль от языка приложения, а не от системы: иначе в английском
+            // интерфейсе даты остались бы «28 августа».
+            return new Date(y, m - 1, d).toLocaleDateString(
+                LANG === 'en' ? 'en-US' : 'ru-RU', { day: 'numeric', month: 'long' });
         }
 
         // Периодные счётчики [верно, ошибок, почти] → та же форма, что у пожизненного byTopic,
@@ -7577,8 +8153,8 @@
             const st = foreignState || Progress.get();
             const daily = st.daily || {};
             document.getElementById('statsSubtitle').innerText = foreignState
-                ? `Ученик: ${foreignLabel || st.playerCode || '—'}`
-                : 'Прогресс ученика';
+                ? tf('Ученик: %1', foreignLabel || st.playerCode || '—')
+                : t('Прогресс ученика');
 
             document.querySelectorAll('#statsPeriodRow .btn-period').forEach(b => {
                 const p = b.getAttribute('data-period');
@@ -7601,9 +8177,9 @@
 
             // Подпись для заголовков блоков: «за сегодня» читается лучше, чем «за период»,
             // когда период — ровно один день.
-            const periodLabel = isAll ? 'за всё время'
-                : (statsPeriod === 'today' ? 'за сегодня'
-                : (isYesterday ? 'за вчера' : 'за период'));
+            const periodLabel = isAll ? t('за всё время')
+                : (statsPeriod === 'today' ? t('за сегодня')
+                : (isYesterday ? t('за вчера') : t('за период')));
 
             // --- Занятия: всегда из журнала, даже в режиме "всё время" ---
             document.getElementById('statsDaysVal').innerText = cur.days;
@@ -7635,7 +8211,7 @@
             document.getElementById('statsAccuracyVal').innerText = accuracy === null ? '—' : accuracy + '%';
 
             const avgSec = cur.mc > 0 ? (cur.ms / cur.mc / 1000) : null;
-            document.getElementById('statsSpeedVal').innerText = avgSec === null ? '—' : avgSec.toFixed(1) + ' с';
+            document.getElementById('statsSpeedVal').innerText = avgSec === null ? '—' : avgSec.toFixed(1) + t(' с');
 
             // --- Динамика: сравнение с предыдущим таким же по длине периодом ---
             // Только для 7/30 дней (у "всего времени" нет предыдущего периода) и только
@@ -7668,7 +8244,7 @@
                     // отрицательная разница, а не положительная.
                     if (Math.abs(d) >= 0.2) {
                         speedDeltaEl.className = 'stat-hero-delta ' + (d < 0 ? 'up' : 'down');
-                        speedDeltaEl.innerText = (d < 0 ? '↑ ' : '↓ ') + Math.abs(d).toFixed(1) + ' с';
+                        speedDeltaEl.innerText = (d < 0 ? '↑ ' : '↓ ') + Math.abs(d).toFixed(1) + t(' с');
                     }
                 }
             }
@@ -7676,18 +8252,18 @@
             // --- "Почти": верный счёт, но забыли сократить — отдельный диагноз ---
             const almost = isAll ? aggregateDaily(daily, null, toKey).a : cur.a;
             document.getElementById('statsAlmostHint').innerText = almost > 0
-                ? `«Почти» (посчитал верно, но забыл сократить): ${almost}`
+                ? tf('«Почти» (посчитал верно, но забыл сократить): %1', almost)
                 : '';
 
             // --- По темам ---
-            document.getElementById('statsTopicTitle').innerText = 'По темам ' + periodLabel;
+            document.getElementById('statsTopicTitle').innerText = t('По темам ') + periodLabel;
             renderTopicBreakdown(topicSource, 'statsTopicList');
 
             // --- С какого дня вообще есть дневник ---
             const first = earliestDayKey(daily);
             document.getElementById('statsPeriodHint').innerText = first
-                ? `Дневник занятий ведётся с ${formatDayKeyHuman(first)}.`
-                : 'Дневник занятий начнётся с первого решённого примера.';
+                ? tf('Дневник занятий ведётся с %1.', formatDayKeyHuman(first))
+                : t('Дневник занятий начнётся с первого решённого примера.');
 
             // --- Полоса дней: занимается ли регулярно ---
             // За один день полоса — это один квадратик, а кривая — одна точка: показывать
@@ -7704,7 +8280,7 @@
             document.getElementById('statsTrendSection').style.display = hasDays ? 'block' : 'none';
 
             // --- Карта разделов: где силён, где остановился ---
-            document.getElementById('statsMapTitle').innerText = 'Карта разделов ' + periodLabel;
+            document.getElementById('statsMapTitle').innerText = t('Карта разделов ') + periodLabel;
             const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap', {});
             document.getElementById('statsMapSection').style.display = mapDrawn ? 'block' : 'none';
 
@@ -7791,7 +8367,7 @@
                 }
                 if (key === toKey) cls += ' today';
                 cell.className = cls;
-                cell.title = `${formatDayKeyHuman(key)} — ${cnt ? cnt + ' примеров' : 'не занимался'}`;
+                cell.title = tf('%1 — %2', formatDayKeyHuman(key), cnt ? cnt + ' примеров' : 'не занимался');
                 wrap.appendChild(cell);
             });
         }
@@ -7866,11 +8442,11 @@
             const accNow = lastOf(accVals), spdNow = lastOf(spdVals);
 
             document.getElementById('trendAccNow').innerText = accNow === null ? '—' : accNow + '%';
-            document.getElementById('trendSpeedNow').innerText = spdNow === null ? '—' : spdNow + ' с';
+            document.getElementById('trendSpeedNow').innerText = spdNow === null ? '—' : spdNow + t(' с');
             document.getElementById('trendAccBody').innerHTML = accSvg
-                || '<div class="trend-empty">Мало данных<br>для кривой</div>';
+                || t('<div class="trend-empty">Мало данных<br>для кривой</div>');
             document.getElementById('trendSpeedBody').innerHTML = spdSvg
-                || '<div class="trend-empty">Мало данных<br>для кривой</div>';
+                || t('<div class="trend-empty">Мало данных<br>для кривой</div>');
         }
 
         // --- Карта разделов ---
@@ -7878,14 +8454,14 @@
         // не помещаются. Когда раздел один, двадцать клеток читаются одним взглядом —
         // сразу видно и где силён, и где остановился, и куда идти дальше.
         const MAP_SECTIONS = [
-            { cat: 'integer', sign: '+', label: '🔵 Положительные', ops: ['add', 'sub', 'mul', 'div'] },
-            { cat: 'integer', sign: '-', label: '🔴 Отрицательные', ops: ['add', 'sub', 'mul', 'div'] },
-            { cat: 'decimal', sign: '+', label: '🔟 Десятичные',          ops: ['add', 'sub', 'mul', 'div'] },
-            { cat: 'fraction', sign: '+', label: '🧮 Дроби',              ops: OP_ORDER }
+            { cat: 'integer', sign: '+', label: t('🔵 Положительные'), ops: ['add', 'sub', 'mul', 'div'] },
+            { cat: 'integer', sign: '-', label: t('🔴 Отрицательные'), ops: ['add', 'sub', 'mul', 'div'] },
+            { cat: 'decimal', sign: '+', label: t('🔟 Десятичные'),          ops: ['add', 'sub', 'mul', 'div'] },
+            { cat: 'fraction', sign: '+', label: t('🧮 Дроби'),              ops: OP_ORDER }
         ];
         const OP_SHORT = {
             add: '➕', sub: '➖', mul: '✖️', div: '➗',
-            simplify: 'сокр.', toMixed: 'в см.', toImproper: 'в непр.', fracOfNumber: 'от числа'
+            simplify: t('сокр.'), toMixed: t('в см.'), toImproper: t('в непр.'), fracOfNumber: t('от числа')
         };
 
         // byTopic — { 'integer+:add:1': {correct, wrong} }. Рисуем только те разделы,
@@ -7965,8 +8541,8 @@
                             }
                         }
                         cell.title = pct === null
-                            ? `${topicLabelWithLevel(c.key)} — ещё не решал`
-                            : `${topicLabelWithLevel(c.key)} — ${pct}% из ${c.attempts}`;
+                            ? tf('%1 — ещё не решал', topicLabelWithLevel(c.key))
+                            : tf('%1 — %2% из %3', topicLabelWithLevel(c.key), pct, c.attempts);
                         grid.appendChild(cell);
                     }
                 });
@@ -7976,7 +8552,7 @@
             });
 
             if (!drawn) {
-                wrap.innerHTML = '<div class="menu-empty">Пока пусто.<br>Реши несколько примеров — здесь появится карта.</div>';
+                wrap.innerHTML = t('<div class="menu-empty">Пока пусто.<br>Реши несколько примеров — здесь появится карта.</div>');
             }
             return drawn;
         }
@@ -7986,19 +8562,19 @@
         // проседает всё подряд или конкретный тип примера. Нужен для двух отложенных
         // решений — про двойной заём и про маленький ответ при заёме.
         const CLASS_TITLES = {
-            add: { '0': 'без перехода', '1': 'дополнение до круглого', '2': 'полный переход', 'h': 'через сотню' },
-            sub: { '0': 'без заёма', '1': 'вычитание из круглого', '2': 'полный заём', 'h': 'двойной заём' },
+            add: { '0': t('без перехода'), '1': t('дополнение до круглого'), '2': t('полный переход'), 'h': t('через сотню') },
+            sub: { '0': t('без заёма'), '1': t('вычитание из круглого'), '2': t('полный заём'), 'h': t('двойной заём') },
             mul: {
-                triv: 'без счёта (×0, ×1, ×10)',
-                two: 'удвоение',
-                five: 'пятёрки',
-                small: 'тройки и четвёрки',
-                nine: 'девятки',
-                core: 'ядро 6·7·8',
-                round: 'круглые',
-                tworound: 'двузначное × круглое',
-                twoPlain: 'двузначное без переноса',
-                twoCarry: 'двузначное с переносом'
+                triv: t('без счёта (×0, ×1, ×10)'),
+                two: t('удвоение'),
+                five: t('пятёрки'),
+                small: t('тройки и четвёрки'),
+                nine: t('девятки'),
+                core: t('ядро 6·7·8'),
+                round: t('круглые'),
+                tworound: t('двузначное × круглое'),
+                twoPlain: t('двузначное без переноса'),
+                twoCarry: t('двузначное с переносом')
             }
         };
         // Порядок строк в разборе — по возрастанию трудности, а не по алфавиту.
@@ -8061,7 +8637,7 @@
                 // умножения «не add» перестало означать «вычитание».
                 c1.innerText = `${(OP_LABELS[cell.opKey] || cell.opKey).replace(/^\S+\s/, '')} ${cell.level}★`;
                 const c2 = head.insertCell(); c2.colSpan = 2;
-                c2.innerText = `${total} ответов`;
+                c2.innerText = tf('%1 ответов', total);
 
                 cell.rows.forEach(r => {
                     const tr = table.insertRow();
@@ -8069,7 +8645,7 @@
                     tr.insertCell().innerText = r.title;
                     tr.insertCell().innerText = r.attempts;
                     tr.insertCell().innerText = `${r.acc}%`;
-                    tr.insertCell().innerText = r.sec === null ? '—' : `${r.sec.toFixed(1)} с`;
+                    tr.insertCell().innerText = r.sec === null ? '—' : tf('%1 с', r.sec.toFixed(1));
                 });
             });
             wrap.innerHTML = '';
@@ -8081,13 +8657,13 @@
             const arrow = document.getElementById('statsClassArrow');
             const open = body.style.display !== 'none';
             body.style.display = open ? 'none' : 'block';
-            arrow.innerText = open ? '▼ показать' : '▲ скрыть';
+            arrow.innerText = open ? t('▼ показать') : t('▲ скрыть');
         }
 
         // Текст для отправки — колонки через табуляцию, чтобы вставлялось таблицей.
         function classAsText(st) {
             const cells = classRows((st && st.byClass) || {});
-            const lines = ['режим\tзвезда\tтип\tответов\tточность\tсекунд'];
+            const lines = [t('режим\tзвезда\tтип\tответов\tточность\tсекунд')];
             cells.forEach(cell => {
                 cell.rows.forEach(r => {
                     lines.push([
@@ -8105,12 +8681,12 @@
             // если репетитор смотрит чужую статистику.
             const st = statsViewState || Progress.get();
             const text = classAsText(st);
-            if (!text || text.indexOf('\n') < 0) { showToast('Пока нечего копировать.', 'error'); return; }
+            if (!text || text.indexOf('\n') < 0) { showToast(t('Пока нечего копировать.'), 'error'); return; }
             try {
                 await navigator.clipboard.writeText(text);
-                showToast('Таблица скопирована.', 'ok');
+                showToast(t('Таблица скопирована.'), 'ok');
             } catch (e) {
-                await showNotice({ title: 'Разбор по типам примеров', text, okText: 'Закрыть' });
+                await showNotice({ title: t('Разбор по типам примеров'), text, okText: t('Закрыть') });
             }
         }
 
@@ -8119,7 +8695,7 @@
             const arrow = document.getElementById('statsEpochsArrow');
             const open = body.style.display !== 'none';
             body.style.display = open ? 'none' : 'block';
-            arrow.innerText = open ? '▼ показать' : '▲ скрыть';
+            arrow.innerText = open ? t('▼ показать') : t('▲ скрыть');
         }
 
         // Карточки прошедших эпох. Это замороженные снимки: их числа НЕ складываются
@@ -8138,7 +8714,7 @@
                 if (!e) return;
                 const total = (e.c || 0) + (e.w || 0);
                 const acc = accuracyPct(e.c, e.w, 1);
-                const speed = e.mc > 0 ? (e.ms / e.mc / 1000).toFixed(1) + ' с' : '—';
+                const speed = e.mc > 0 ? (e.ms / e.mc / 1000).toFixed(1) + t(' с') : '—';
                 const card = document.createElement('div');
                 card.className = 'epoch-card';
                 card.innerHTML = `
@@ -8148,17 +8724,17 @@
                     </div>
                     <div class="epoch-grid"></div>
                     <div class="epoch-topics"></div>`;
-                card.querySelector('.epoch-title').innerText = `Эпоха ${n}`;
+                card.querySelector('.epoch-title').innerText = tf('Эпоха %1', n);
                 card.querySelector('.epoch-dates').innerText =
                     `${formatDayKeyHuman(e.from)} — ${formatDayKeyHuman(e.to)}`;
 
                 const cells = [
-                    [`${e.days || 0}`, 'дней занимался'],
-                    [formatDuration(e.s), 'времени'],
-                    [`${total}`, 'примеров'],
-                    [acc === null ? '—' : acc + '%', 'точность'],
-                    [speed, 'скорость'],
-                    [`${e.streak || 0}`, 'дней подряд']
+                    [`${e.days || 0}`, t('дней занимался')],
+                    [formatDuration(e.s), t('времени')],
+                    [`${total}`, t('примеров')],
+                    [acc === null ? '—' : acc + '%', t('точность')],
+                    [speed, t('скорость')],
+                    [`${e.streak || 0}`, t('дней подряд')]
                 ];
                 const grid = card.querySelector('.epoch-grid');
                 cells.forEach(([v, l]) => {
@@ -8187,7 +8763,7 @@
                 if (e.badges) {
                     const badge = document.createElement('div');
                     badge.className = 'epoch-badges';
-                    badge.innerText = `🏅 достижений получено: ${e.badges}`;
+                    badge.innerText = tf('🏅 достижений получено: %1', e.badges);
                     card.appendChild(badge);
                 }
                 wrap.appendChild(card);
@@ -8205,12 +8781,12 @@
         // На каждую тему (с учётом знака и уровня) — три лесенки по пять ступеней и сводный
         // ранг. Сводный не хранится, а выводится как минимум из трёх: так он не может
         // разойтись с ними ни при каком слиянии.
-        const TIER_NAMES = ['—', 'Бронза', 'Серебро', 'Золото', 'Алмаз', 'Легенда'];
+        const TIER_NAMES = ['—', t('Бронза'), t('Серебро'), t('Золото'), t('Алмаз'), t('Легенда')];
         const TIER_ICONS = ['', '🥉', '🥈', '🥇', '💎', '👑'];
         const LADDERS = [
-            { id: 's', icon: '⚡', name: 'Скорость' },
-            { id: 'a', icon: '🎯', name: 'Точность' },
-            { id: 'c', icon: '🔢', name: 'Количество' }
+            { id: 's', icon: '⚡', name: t('Скорость') },
+            { id: 'a', icon: '🎯', name: t('Точность') },
+            { id: 'c', icon: '🔢', name: t('Количество') }
         ];
         const COUNT_TIERS = [25, 60, 100, 150, 250];          // верных ответов по теме, за всё время
         const ACCURACY_TIERS = [80, 85, 90, 95, 99];          // процент за последнюю сотню
@@ -8379,9 +8955,9 @@
 
         function pluralSteps(n) {
             const d10 = n % 10, d100 = n % 100;
-            if (d10 === 1 && d100 !== 11) return 'ступень';
-            if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return 'ступени';
-            return 'ступеней';
+            if (d10 === 1 && d100 !== 11) return t('ступень');
+            if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return t('ступени');
+            return t('ступеней');
         }
 
         // Мастерство темы — минимум из трёх лесенок. Раньше это был «сводный ранг»,
@@ -8460,7 +9036,7 @@
                 const names = ls.map(l => l.name.toLowerCase());
                 const listed = names.length === 1
                     ? names[0]
-                    : names.slice(0, -1).join(', ') + ' и ' + names[names.length - 1];
+                    : names.slice(0, -1).join(', ') + t(' и ') + names[names.length - 1];
 
                 // У количества ступень — это ещё и цель испытания, поэтому вместе с ней
                 // сразу называем следующую. Раньше на этом месте открывалось окно
@@ -8471,9 +9047,9 @@
                 if (ls.some(l => l.id === 'c')) {
                     const next = sessionGoal(topicKey);
                     sub = next
-                        ? `Дальше ${TIER_NAMES[next.tier]} ${TIER_ICONS[next.tier]} — ещё `
+                        ? tf('Дальше %1 %2 — ещё ', TIER_NAMES[next.tier], TIER_ICONS[next.tier])
                           + `${next.left} ${pluralAnswers(next.left)}`
-                        : 'Это последняя ступень количества в теме';
+                        : t('Это последняя ступень количества в теме');
                 }
 
                 // Название темы намеренно не пишем: плашка появляется прямо над примером,
@@ -8495,7 +9071,7 @@
                     fresh.push({
                         id: `${topicKey}:gate`,
                         icon: '🔓',
-                        title: `Открыта ${(p.level || 1) + 1}★!`
+                        title: tf('Открыта %1★!', (p.level || 1) + 1)
                     });
                 }
                 // Мастерство: минимум из трёх. Сообщаем только про алмаз и легенду —
@@ -8543,7 +9119,7 @@
             body.className = 'ach-body';
             const kicker = document.createElement('div');
             kicker.className = 'ach-kicker';
-            kicker.innerText = 'новое достижение';
+            kicker.innerText = t('новое достижение');
             const title = document.createElement('div');
             title.className = 'ach-title';
             title.innerText = a.title;     // innerText, не innerHTML: в названии бывает подпись профиля
@@ -8592,7 +9168,7 @@
 
         async function openReportFor(code, summary) {
             const st = await fetchStudentState(code, summary && summary.state);
-            if (!st) { showToast('Не удалось загрузить данные ученика.', 'error'); return; }
+            if (!st) { showToast(t('Не удалось загрузить данные ученика.'), 'error'); return; }
             reportStudent = { code, label: (summary && summary.label) || st.profileLabel || code, state: st };
             closeProfileScreen();
             renderReport();
@@ -8607,11 +9183,11 @@
             if (!reportStudent) return;
             const cur = Progress.getStudentNote(reportStudent.code);
             const values = await askForm({
-                title: 'Комментарий для родителей',
-                text: 'Что отметить, над чем работаем. Попадёт в отчёт под цифрами.',
+                title: t('Комментарий для родителей'),
+                text: t('Что отметить, над чем работаем. Попадёт в отчёт под цифрами.'),
                 fields: [{ key: 'note', label: '', value: cur, multiline: true,
-                           placeholder: 'Например: уверенно считает в уме до 20, беру дроби помедленнее.' }],
-                okText: 'Сохранить'
+                           placeholder: t('Например: уверенно считает в уме до 20, беру дроби помедленнее.') }],
+                okText: t('Сохранить')
             });
             if (values === null) return;
             Progress.setStudentNote(reportStudent.code, values.note);
@@ -8662,8 +9238,8 @@
             const rows = document.getElementById('repProgressRows');
             const note = document.getElementById('repProgressNote');
             document.getElementById('repProgressTitle').innerText = isOneDay
-                ? (isYesterday ? 'Итоги за вчера' : 'Итоги за сегодня')
-                : 'Динамика за период';
+                ? (isYesterday ? t('Итоги за вчера') : t('Итоги за сегодня'))
+                : t('Динамика за период');
             rows.innerHTML = '';
             note.innerText = '';
 
@@ -8684,10 +9260,10 @@
                 const d = accB - accA;
                 const cls = d >= 0 ? 'up' : 'down';
                 const sign = d > 0 ? '+' : '';
-                addMetric('Точность', `${accA}% → ${accB}%`,
+                addMetric(t('Точность'), `${accA}% → ${accB}%`,
                     d !== 0 ? ` <span class="arrow ${cls}">${sign}${d}</span>` : '');
             } else if (accTotal !== null) {
-                addMetric('Точность', `${accTotal}%`, '');
+                addMetric(t('Точность'), `${accTotal}%`, '');
             }
 
             const spA = firstHalf.mc >= MIN_HALF ? firstHalf.ms / firstHalf.mc / 1000 : null;
@@ -8695,20 +9271,20 @@
             if (spA !== null && spB !== null) {
                 const d = spB - spA;
                 const cls = d <= 0 ? 'up' : 'down';
-                addMetric('Скорость ответа', `${spA.toFixed(1)} с → ${spB.toFixed(1)} с`,
-                    Math.abs(d) >= 0.1 ? ` <span class="arrow ${cls}">${d < 0 ? '−' : '+'}${Math.abs(d).toFixed(1)} с</span>` : '');
+                addMetric(t('Скорость ответа'), tf('%1 с → %2 с', spA.toFixed(1), spB.toFixed(1)),
+                    Math.abs(d) >= 0.1 ? tf(' <span class="arrow %1">%2%3 с</span>', cls, d < 0 ? '−' : '+', Math.abs(d).toFixed(1)) : '');
             } else if (cur.mc > 0) {
-                addMetric('Скорость ответа', `${(cur.ms / cur.mc / 1000).toFixed(1)} с`, '');
+                addMetric(t('Скорость ответа'), tf('%1 с', (cur.ms / cur.mc / 1000).toFixed(1)), '');
             }
 
             // Подпись зависит от того, что реально удалось показать: обещать "средние за
             // период" там, где не выведено ни одной строки, — значит сбить читателя с толку.
             if (!rows.children.length) {
-                note.innerText = isOneDay ? 'В этот день занятий не было.' : 'За этот период занятий не было.';
+                note.innerText = isOneDay ? t('В этот день занятий не было.') : t('За этот период занятий не было.');
             } else if (isOneDay) {
-                note.innerText = 'За один день сравнивать не с чем — здесь средние за этот день.';
+                note.innerText = t('За один день сравнивать не с чем — здесь средние за этот день.');
             } else if (accA === null || accB === null) {
-                note.innerText = 'Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.';
+                note.innerText = t('Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.');
             }
 
             // --- Недельный график: сколько решено и с какой точностью ---
@@ -8736,7 +9312,7 @@
             const tWrap = document.getElementById('repTopics');
             tWrap.innerHTML = '';
             if (!topics.length) {
-                tWrap.innerHTML = '<div class="report-empty">За этот период данных по темам пока мало.</div>';
+                tWrap.innerHTML = t('<div class="report-empty">За этот период данных по темам пока мало.</div>');
             } else {
                 const strong = topics.filter(t => t.pct >= 85);
                 const working = topics.filter(t => t.pct < 85);
@@ -8757,8 +9333,8 @@
                         tWrap.appendChild(row);
                     });
                 };
-                section('Уверенно', strong);
-                section('В работе', working);
+                section(t('Уверенно'), strong);
+                section(t('В работе'), working);
             }
 
             // --- Достижения, полученные внутри периода ---
@@ -8773,7 +9349,7 @@
             gatePromotions(unlocks)
                 .filter(p => inPeriod(p.date))
                 .forEach(p => {
-                    earned.push(`🔓 ${topicLabelWithLevel(p.topicKey)} — звезда взята`);
+                    earned.push(tf('🔓 %1 — звезда взята', topicLabelWithLevel(p.topicKey)));
                 });
 
             masteryPromotions(unlocks)
@@ -8790,10 +9366,10 @@
             const aWrap = document.getElementById('repAch');
             aWrap.innerHTML = '';
             if (!earned.length && !stepCount) {
-                aWrap.innerHTML = '<div class="report-empty">В этот период новых достижений не было.</div>';
+                aWrap.innerHTML = t('<div class="report-empty">В этот период новых достижений не было.</div>');
             } else {
                 if (stepCount) {
-                    earned.push(`📈 Продвижение по лесенкам тем: ${stepCount} ${pluralSteps(stepCount)}`);
+                    earned.push(tf('📈 Продвижение по лесенкам тем: %1 %2', stepCount, pluralSteps(stepCount)));
                 }
                 earned.forEach(t => {
                     const el = document.createElement('div');
@@ -8819,7 +9395,7 @@
             // --- Комментарий репетитора ---
             const noteText = Progress.getStudentNote(reportStudent.code);
             const nEl = document.getElementById('repNoteText');
-            nEl.innerText = noteText || 'Комментарий не добавлен.';
+            nEl.innerText = noteText || t('Комментарий не добавлен.');
             nEl.className = noteText ? 'report-comment' : 'report-empty';
         }
 
@@ -8854,7 +9430,7 @@
                 // Цвет столбика — по точности за эту неделю, чтобы динамика читалась с одного взгляда
                 bar.style.background = pct === null ? '#cbd5e1'
                     : (pct >= 85 ? '#059669' : (pct >= 65 ? '#f59e0b' : '#ef4444'));
-                wrap.querySelector('.rep-bar-label').innerText = `${i + 1} нед`;
+                wrap.querySelector('.rep-bar-label').innerText = tf('%1 нед', i + 1);
                 chart.appendChild(wrap);
             });
         }
@@ -8963,7 +9539,7 @@
             });
 
             document.getElementById('achievementsSubtitle').innerText =
-                `Звёзд взято: ${opened} из ${drawnOps * 5} · мастерство: ${mastered}`;
+                tf('Звёзд взято: %1 из %2 · мастерство: %3', opened, drawnOps * 5, mastered);
         }
 
         // Подпись к строке лесенки. Если значение уже дотягивает до ступени, а не хватает
@@ -8972,15 +9548,15 @@
         function ladderGoalText(tierName, needText, valueOk, have, needSample) {
             if (valueOk && have < needSample) {
                 const left = needSample - have;
-                return `до ${tierName}: ещё ${left} ${pluralAnswers(left)}`;
+                return tf('до %1: ещё %2 %3', tierName, left, pluralAnswers(left));
             }
-            return `до ${tierName}: ${needText}`;
+            return tf('до %1: %2', tierName, needText);
         }
         function pluralAnswers(n) {
             const d10 = n % 10, d100 = n % 100;
-            if (d10 === 1 && d100 !== 11) return 'ответ';
-            if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return 'ответа';
-            return 'ответов';
+            if (d10 === 1 && d100 !== 11) return t('ответ');
+            if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return t('ответа');
+            return t('ответов');
         }
 
         // Развёрнутая клетка: три лесенки и строка о том, что нужно для следующей звезды.
@@ -9005,10 +9581,10 @@
                 rank.innerText = `${TIER_ICONS[mastery]} ${TIER_NAMES[mastery]}`;
                 rank.classList.add('has-rank');
             } else if (gate) {
-                rank.innerText = `${TIER_ICONS[LEVEL_GATE_TIER]} звезда взята`;
+                rank.innerText = tf('%1 звезда взята', TIER_ICONS[LEVEL_GATE_TIER]);
                 rank.classList.add('has-rank');
             } else {
-                rank.innerText = 'звезда не взята';
+                rank.innerText = t('звезда не взята');
             }
 
             const rowsWrap = card.querySelector('.ladder-rows');
@@ -9022,7 +9598,7 @@
                 let nowText = '—', goalText = '';
                 if (l.id === 'c') {
                     nowText = String(m.count);
-                    if (next <= 5) goalText = `до ${TIER_NAMES[next]}: ${COUNT_TIERS[next - 1]}`;
+                    if (next <= 5) goalText = tf('до %1: %2', TIER_NAMES[next], COUNT_TIERS[next - 1]);
                 } else if (l.id === 'a') {
                     nowText = m.accuracy === null ? '—' : m.accuracy + '%';
                     if (next <= 5) goalText = ladderGoalText(TIER_NAMES[next],
@@ -9030,13 +9606,13 @@
                         m.accuracy !== null && m.accuracy >= ACCURACY_TIERS[next - 1],
                         m.count, LADDER_MIN_SAMPLE[next - 1]);
                 } else {
-                    nowText = m.speedSec === null ? '—' : m.speedSec.toFixed(1) + ' с';
+                    nowText = m.speedSec === null ? '—' : m.speedSec.toFixed(1) + t(' с');
                     const need = speedTiersFor(p.level, p.category)[next - 1];
-                    if (next <= 5) goalText = ladderGoalText(TIER_NAMES[next], `${need} с`,
+                    if (next <= 5) goalText = ladderGoalText(TIER_NAMES[next], tf('%1 с', need),
                         m.speedSec !== null && m.speedSec <= need,
                         m.count, LADDER_MIN_SAMPLE[next - 1]);
                 }
-                if (next > 5) goalText = 'максимум';
+                if (next > 5) goalText = t('максимум');
 
                 const row = document.createElement('div');
                 row.className = 'ladder-row' + (optional ? ' optional' : '');
@@ -9062,23 +9638,23 @@
             const lvl = p.level || 1;
             if (lvl >= 5) {
                 foot.innerText = mastery >= MASTERY_MIN_TIER
-                    ? 'Последняя звезда, мастерство взято'
-                    : 'Последняя звезда — дальше только мастерство';
+                    ? t('Последняя звезда, мастерство взято')
+                    : t('Последняя звезда — дальше только мастерство');
                 if (gate) foot.classList.add('in');
             } else if (gate) {
-                foot.innerText = `🔓 ${lvl + 1}★ открыта`;
+                foot.innerText = tf('🔓 %1★ открыта', lvl + 1);
                 foot.classList.add('in');
             } else {
                 const need = [];
-                if (accTier < LEVEL_GATE_TIER) need.push(`точность ${ACCURACY_TIERS[LEVEL_GATE_TIER - 1]}%`);
-                if (cntTier < LEVEL_GATE_TIER) need.push(`${COUNT_TIERS[LEVEL_GATE_TIER - 1]} верных`);
-                foot.innerText = `До ${lvl + 1}★: ${need.join(' и ')}`;
+                if (accTier < LEVEL_GATE_TIER) need.push(tf('точность %1%', ACCURACY_TIERS[LEVEL_GATE_TIER - 1]));
+                if (cntTier < LEVEL_GATE_TIER) need.push(tf('%1 верных', COUNT_TIERS[LEVEL_GATE_TIER - 1]));
+                foot.innerText = tf('До %1★: %2', lvl + 1, need.join(t(' и ')));
             }
             return card;
         }
 
         // ===================== ПРОФИЛЬ =====================
-        const ACCOUNT_TYPE_LABELS = { self: '🎓 Личный аккаунт', linked: '📚 Ученик по коду репетитора' };
+        const ACCOUNT_TYPE_LABELS = { self: t('🎓 Личный аккаунт'), linked: t('📚 Ученик по коду репетитора') };
 
         function startMenuGoProfile() {
             closeStartMenu();
@@ -9097,7 +9673,7 @@
             const type = Progress.getAccountType();
             const owner = Progress.getOwnerCode();
             document.getElementById('profileCodeVal').innerText = code || '—';
-            document.getElementById('profileSubtitle').innerText = Progress.getProfileLabel() || 'Управление аккаунтом';
+            document.getElementById('profileSubtitle').innerText = Progress.getProfileLabel() || t('Управление аккаунтом');
             document.getElementById('profileTypeVal').innerText =
                 type === 'linked' ? `${ACCOUNT_TYPE_LABELS.linked} ${owner || ''}` : ACCOUNT_TYPE_LABELS.self;
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
@@ -9112,10 +9688,10 @@
             } else {
                 const opened = ['integer-', 'decimal+', 'fraction+']
                     .filter(k => isSectionOpen(k))
-                    .map(k => `${SECTION_TITLES[k]}${grantSummary(k) && grantSummary(k) !== 'открыт полностью' ? ' (' + grantSummary(k) + ')' : ''}`);
+                    .map(k => tf('%1%2', SECTION_TITLES[k], grantSummary(k) && grantSummary(k) !== 'открыт полностью' ? ' (' + grantSummary(k) + ')' : ''));
                 sum.innerText = opened.length
-                    ? 'Открыто кодами: ' + opened.join(', ') + '.'
-                    : 'Кроме целых положительных пока ничего не открыто.';
+                    ? t('Открыто кодами: ') + opened.join(', ') + '.'
+                    : t('Кроме целых положительных пока ничего не открыто.');
             }
 
             // Заводить учеников может только сам репетитор (self) — сервер тоже это
@@ -9142,19 +9718,13 @@
         function renderProfileList() {
             const wrap = document.getElementById('profileList');
             const list = Progress.listProfiles();
-            if (!list.length) { wrap.innerHTML = '<div class="menu-empty">Профилей пока нет.</div>'; return; }
+            if (!list.length) { wrap.innerHTML = t('<div class="menu-empty">Профилей пока нет.</div>'); return; }
             wrap.innerHTML = '';
             list.forEach(p => {
                 const row = document.createElement('div');
                 row.className = 'list-row' + (p.active ? ' active' : '');
-                row.innerHTML = `
-                    <div class="list-row-main">
-                        <div class="list-row-name"></div>
-                        <div class="list-row-sub"></div>
-                    </div>
-                    ${p.active ? '<span class="list-row-badge">Сейчас</span>' : '<button class="list-row-btn">Войти</button>'}
-                `;
-                row.querySelector('.list-row-name').innerText = p.label || 'Без имени';
+                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    %1\n                ', p.active ? t('<span class="list-row-badge">Сейчас</span>') : '<button class="list-row-btn">Войти</button>');
+                row.querySelector('.list-row-name').innerText = p.label || t('Без имени');
                 row.querySelector('.list-row-sub').innerText = p.code;
                 if (!p.active) {
                     row.querySelector('.list-row-btn').addEventListener('click', () => profileLoginTo(p.code));
@@ -9166,7 +9736,7 @@
         // Общий вход по коду+паролю: проверяет через RPC, потом переключает профиль и
         // перезагружает страницу — проще и надёжнее, чем вручную обновлять десяток виджетов.
         async function loginAndSwitch(code, password) {
-            if (!supabaseClient) { showToast('Нет соединения с сервером.', 'error'); return false; }
+            if (!supabaseClient) { showToast(t('Нет соединения с сервером.'), 'error'); return false; }
             let res = await supabaseClient.rpc('session_login', { p_code: code, p_password: password });
             let token = res.data && res.data.ok ? res.data.token : null;
             if (res.error || !res.data) {
@@ -9174,7 +9744,7 @@
                 token = null;
             }
             const { data, error } = res;
-            if (error || !data || !data.ok) { showToast('Неверный код или пароль.', 'error'); return false; }
+            if (error || !data || !data.ok) { showToast(t('Неверный код или пароль.'), 'error'); return false; }
             Progress.switchTo(code, password);
             if (token) Progress.setToken(code, token); // пароль при этом стирается
             await Progress.flush(true);
@@ -9195,11 +9765,11 @@
             let pw = Progress.getPasswordFor(code);
             if (!pw) {
                 const values = await askForm({
-                    title: 'Вход в профиль',
-                    text: `Пароль для «${code}».`,
-                    fields: [{ key: 'pw', label: 'Пароль', type: 'password' }],
-                    okText: 'Войти',
-                    validate: (v) => v.pw ? null : 'Введи пароль.'
+                    title: t('Вход в профиль'),
+                    text: tf('Пароль для «%1».', code),
+                    fields: [{ key: 'pw', label: t('Пароль'), type: 'password' }],
+                    okText: t('Войти'),
+                    validate: (v) => v.pw ? null : t('Введи пароль.')
                 });
                 if (values === null) return;
                 pw = values.pw;
@@ -9209,14 +9779,14 @@
 
         async function profileAddExisting() {
             const values = await askForm({
-                title: 'Добавить профиль',
-                text: 'Профиль появится в списке на этом устройстве — переключаться можно будет без пароля.',
+                title: t('Добавить профиль'),
+                text: t('Профиль появится в списке на этом устройстве — переключаться можно будет без пароля.'),
                 fields: [
-                    { key: 'code', label: 'Логин' },
-                    { key: 'pw', label: 'Пароль', type: 'password' }
+                    { key: 'code', label: t('Логин') },
+                    { key: 'pw', label: t('Пароль'), type: 'password' }
                 ],
-                okText: 'Войти',
-                validate: (v) => !v.code ? 'Введи логин.' : (!v.pw ? 'Введи пароль.' : null)
+                okText: t('Войти'),
+                validate: (v) => !v.code ? t('Введи логин.') : (!v.pw ? t('Введи пароль.') : null)
             });
             if (values === null) return;
             loginAndSwitch(values.code, values.pw);
@@ -9287,17 +9857,17 @@
 
         function pluralDays(n) {
             const t = n % 100, o = n % 10;
-            if (t >= 11 && t <= 14) return 'дней';
-            if (o === 1) return 'день';
-            if (o >= 2 && o <= 4) return 'дня';
-            return 'дней';
+            if (t >= 11 && t <= 14) return t('дней');
+            if (o === 1) return t('день');
+            if (o >= 2 && o <= 4) return t('дня');
+            return t('дней');
         }
         function pluralStudents(n) {
             const t = n % 100, o = n % 10;
-            if (t >= 11 && t <= 14) return 'учеников';
-            if (o === 1) return 'ученик';
-            if (o >= 2 && o <= 4) return 'ученика';
-            return 'учеников';
+            if (t >= 11 && t <= 14) return t('учеников');
+            if (o === 1) return t('ученик');
+            if (o >= 2 && o <= 4) return t('ученика');
+            return t('учеников');
         }
 
         function lastSeenText(iso) {
@@ -9305,19 +9875,19 @@
             const then = new Date(iso);
             if (isNaN(then.getTime())) return '';
             const days = Math.floor((Date.now() - then.getTime()) / 86400000);
-            if (days <= 0) return 'сегодня';
-            if (days === 1) return 'вчера';
-            if (days < 7) return `${days} дн. назад`;
-            if (days < 30) return `${Math.floor(days / 7)} нед. назад`;
+            if (days <= 0) return t('сегодня');
+            if (days === 1) return t('вчера');
+            if (days < 7) return tf('%1 дн. назад', days);
+            if (days < 30) return tf('%1 нед. назад', Math.floor(days / 7));
             return then.toLocaleDateString('ru-RU');
         }
 
         async function renderStudentsList() {
             const wrap = document.getElementById('studentsList');
-            wrap.innerHTML = '<div class="menu-empty">Загружаю…</div>';
+            wrap.innerHTML = t('<div class="menu-empty">Загружаю…</div>');
             const students = await fetchMyStudents();
             if (!students.length) {
-                wrap.innerHTML = '<div class="menu-empty">Пока нет учеников.<br>Добавь первого кнопкой ниже.</div>';
+                wrap.innerHTML = t('<div class="menu-empty">Пока нет учеников.<br>Добавь первого кнопкой ниже.</div>');
                 return;
             }
             wrap.innerHTML = '';
@@ -9332,8 +9902,8 @@
             if (quietCount) {
                 const note = document.createElement('div');
                 note.className = 'students-summary';
-                note.innerText = `${quietCount} ${pluralStudents(quietCount)} не выходил${quietCount === 1 ? '' : 'и'}`
-                    + ` на связь больше недели. Проверь, занимается ли и доходит ли прогресс.`;
+                note.innerText = tf('%1 %2 не выходил%3', quietCount, pluralStudents(quietCount), quietCount === 1 ? '' : 'и')
+                    + tf(' на связь больше недели. Проверь, занимается ли и доходит ли прогресс.');
                 wrap.appendChild(note);
             }
 
@@ -9367,20 +9937,7 @@
                 row.className = 'list-row'
                     + (days === null || days >= SILENT_DAYS ? ' silent'
                        : days >= QUIET_DAYS ? ' quiet' : '');
-                row.innerHTML = `
-                    <div class="list-row-main">
-                        <div class="list-row-name"></div>
-                        <div class="list-row-sub"></div>
-                    </div>
-                    <button class="list-row-btn" data-act="view">Смотреть</button>
-                    <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>
-                    <button class="list-row-btn" data-act="access" title="Что открыто">⭐</button>
-                    <button class="list-row-btn" data-act="grant" title="Код на раздел">🔓</button>
-                    <button class="list-row-btn" data-act="codes" title="Выданные коды">📋</button>
-                    <button class="list-row-btn" data-act="group" title="Папка">📁</button>
-                    <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>
-                    <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>
-                `;
+                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    <button class="list-row-btn" data-act="view">Смотреть</button>\n                    <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>\n                    <button class="list-row-btn" data-act="access" title="Что открыто">⭐</button>\n                    <button class="list-row-btn" data-act="grant" title="Код на раздел">🔓</button>\n                    <button class="list-row-btn" data-act="codes" title="Выданные коды">📋</button>\n                    <button class="list-row-btn" data-act="group" title="Папка">📁</button>\n                    <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>\n                    <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>\n                ');
                 row.querySelector('.list-row-name').innerText = s.label || s.code;
                 row.querySelector('.list-row-sub').innerText =
                     `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}${seen ? ' · ' + seen : ''}`;
@@ -9391,9 +9948,9 @@
                     const warn = document.createElement('div');
                     warn.className = 'list-row-warn';
                     warn.innerText = days === null
-                        ? '⚠️ ни разу не выходил на связь'
-                        : (days >= SILENT_DAYS ? `⚠️ молчит ${days} ${pluralDays(days)}`
-                                               : `⏳ не было ${days} ${pluralDays(days)}`);
+                        ? t('⚠️ ни разу не выходил на связь')
+                        : (days >= SILENT_DAYS ? tf('⚠️ молчит %1 %2', days, pluralDays(days))
+                                               : tf('⏳ не было %1 %2', days, pluralDays(days)));
                     row.querySelector('.list-row-main').appendChild(warn);
                 }
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));
@@ -9412,7 +9969,7 @@
                 if (showHeaders) {
                     const head = document.createElement('div');
                     head.className = 'students-group';
-                    head.innerText = (name ? `📁 ${name}` : '📄 Без папки')
+                    head.innerText = (name ? `📁 ${name}` : t('📄 Без папки'))
                         + ` · ${rows.length} ${pluralStudents(rows.length)}`;
                     wrap.appendChild(head);
                 }
@@ -9429,8 +9986,8 @@
             const current = Progress.getStudentGroup(code);
 
             const values = await askForm({
-                title: 'Папка ученика',
-                text: `Ученик: ${label || code}`,
+                title: t('Папка ученика'),
+                text: tf('Ученик: %1', label || code),
                 build: (card) => {
                     if (!known.length) return;
                     const row = document.createElement('div');
@@ -9450,12 +10007,12 @@
                     card.appendChild(row);
                 },
                 fields: [{
-                    key: 'name', label: 'Название папки', value: current,
-                    placeholder: 'например: 5 класс',
+                    key: 'name', label: t('Название папки'), value: current,
+                    placeholder: t('например: 5 класс'),
                     autocapitalize: 'sentences',
-                    hint: 'Пустое поле — убрать из папки.'
+                    hint: t('Пустое поле — убрать из папки.')
                 }],
-                okText: 'Сохранить'
+                okText: t('Сохранить')
             });
             if (values === null) return;
             Progress.setStudentGroup(code, values.name);
@@ -9465,7 +10022,7 @@
 
         async function viewStudentStats(code, summary) {
             const state = await fetchStudentState(code, summary && summary.state);
-            if (!state) { showToast('Не удалось загрузить статистику ученика.', 'error'); return; }
+            if (!state) { showToast(t('Не удалось загрузить статистику ученика.'), 'error'); return; }
             statsReturnTo = 'profile';
             closeProfileScreen();
             renderStatsScreen(state, (summary && summary.label) || state.profileLabel || code);
@@ -9473,23 +10030,23 @@
         }
 
         async function addStudent() {
-            if (!supabaseClient) { showToast('Нет соединения с сервером.', 'error'); return; }
-            if (!Progress.authFor()) { showToast('Сначала войди под своим логином.', 'error'); return; }
+            if (!supabaseClient) { showToast(t('Нет соединения с сервером.'), 'error'); return; }
+            if (!Progress.authFor()) { showToast(t('Сначала войди под своим логином.'), 'error'); return; }
 
             // Все три поля сразу: раньше это были три окна подряд, и опечатку в логине
             // можно было заметить только когда сервер откажет — после ввода пароля.
             const values = await askForm({
-                title: 'Новый ученик',
-                text: 'Логин и пароль нужно будет передать ученику — под ними он войдёт со своего устройства.',
+                title: t('Новый ученик'),
+                text: t('Логин и пароль нужно будет передать ученику — под ними он войдёт со своего устройства.'),
                 fields: [
-                    { key: 'code', label: 'Логин ученика', value: suggestCode(), hint: '6–20 символов, можно имя + число' },
-                    { key: 'password', label: 'Пароль', type: 'password', hint: 'Минимум 4 символа' },
-                    { key: 'label', label: 'Имя (необязательно)', autocapitalize: 'words', placeholder: 'Как показывать в списке' }
+                    { key: 'code', label: t('Логин ученика'), value: suggestCode(), hint: t('6–20 символов, можно имя + число') },
+                    { key: 'password', label: t('Пароль'), type: 'password', hint: t('Минимум 4 символа') },
+                    { key: 'label', label: t('Имя (необязательно)'), autocapitalize: 'words', placeholder: t('Как показывать в списке') }
                 ],
-                okText: 'Создать',
+                okText: t('Создать'),
                 validate: (v) => {
-                    if (v.code.length < 6 || v.code.length > 20) return 'Логин — от 6 до 20 символов.';
-                    if (v.password.length < 4) return 'Пароль — минимум 4 символа.';
+                    if (v.code.length < 6 || v.code.length > 20) return t('Логин — от 6 до 20 символов.');
+                    if (v.password.length < 4) return t('Пароль — минимум 4 символа.');
                     return null;
                 }
             });
@@ -9507,12 +10064,12 @@
                 if (error) throw error;
                 if (!data || !data.ok) {
                     const messages = {
-                        tutor_auth_failed: 'Не удалось подтвердить твой пароль — попробуй войти заново.',
-                        not_a_tutor: 'Добавлять учеников может только репетитор.',
-                        code_taken: 'Этот код уже занят, придумай другой.',
-                        password_too_short: 'Пароль слишком короткий — минимум 4 символа.'
+                        tutor_auth_failed: t('Не удалось подтвердить твой пароль — попробуй войти заново.'),
+                        not_a_tutor: t('Добавлять учеников может только репетитор.'),
+                        code_taken: t('Этот код уже занят, придумай другой.'),
+                        password_too_short: t('Пароль слишком короткий — минимум 4 символа.')
                     };
-                    showToast(messages[data && data.error] || 'Не удалось создать ученика.', 'error');
+                    showToast(messages[data && data.error] || t('Не удалось создать ученика.'), 'error');
                     return;
                 }
                 const banner = document.getElementById('studentsBanner');
@@ -9521,22 +10078,22 @@
                 box.className = 'menu-stat-card';
                 box.style.textAlign = 'center';
                 box.style.marginBottom = '10px';
-                box.innerHTML = `<div class="menu-code-line"></div><div class="menu-stat-label" style="margin-top:6px;">Код и пароль ученика — передай их, чтобы он вошёл</div>`;
+                box.innerHTML = tf('<div class="menu-code-line"></div><div class="menu-stat-label" style="margin-top:6px;">Код и пароль ученика — передай их, чтобы он вошёл</div>');
                 box.querySelector('.menu-code-line').innerText = code;
                 banner.appendChild(box);
                 renderStudentsList();
             } catch (e) {
-                showToast('Не удалось создать ученика. Проверь интернет.', 'error');
+                showToast(t('Не удалось создать ученика. Проверь интернет.'), 'error');
             }
         }
 
         async function resetStudentPassword(code) {
             const values = await askForm({
-                title: 'Новый пароль',
-                text: `Пароль для ученика «${code}». Старый перестанет работать сразу.`,
-                fields: [{ key: 'pw', label: 'Новый пароль', type: 'password', hint: 'Минимум 4 символа' }],
-                okText: 'Сменить',
-                validate: (v) => v.pw.length < 4 ? 'Пароль — минимум 4 символа.' : null
+                title: t('Новый пароль'),
+                text: tf('Пароль для ученика «%1». Старый перестанет работать сразу.', code),
+                fields: [{ key: 'pw', label: t('Новый пароль'), type: 'password', hint: t('Минимум 4 символа') }],
+                okText: t('Сменить'),
+                validate: (v) => v.pw.length < 4 ? t('Пароль — минимум 4 символа.') : null
             });
             if (values === null) return;
             const newPw = values.pw;
@@ -9545,24 +10102,24 @@
                     'session_reset_student_password', { p_student_code: code, p_new_password: newPw },
                     'reset_student_password', { p_student_code: code, p_new_password: newPw });
                 if (error) throw error;
-                if (!data || !data.ok) { showToast('Не удалось сменить пароль.', 'error'); return; }
+                if (!data || !data.ok) { showToast(t('Не удалось сменить пароль.'), 'error'); return; }
                 // Не всплывашкой: пароль нужно успеть прочитать и передать ученику,
                 // а исчезающее через три секунды сообщение для этого не годится.
                 await showNotice({
-                    title: 'Пароль изменён',
-                    text: `Ученик: ${code}\nНовый пароль: ${newPw}\n\nПередай его — старый больше не работает,`
-                        + `\nа устройства, где он уже был введён, попросят войти заново.`
+                    title: t('Пароль изменён'),
+                    text: tf('Ученик: %1\\nНовый пароль: %2\\n\\nПередай его — старый больше не работает,', code, newPw)
+                        + tf('\\nа устройства, где он уже был введён, попросят войти заново.')
                 });
             } catch (e) {
-                showToast('Не удалось подключиться. Проверь интернет.', 'error');
+                showToast(t('Не удалось подключиться. Проверь интернет.'), 'error');
             }
         }
 
         async function deleteStudentAccount(code) {
             const ok = await askConfirm({
-                title: 'Удалить ученика?',
-                text: `Ученик «${code}» пропадёт насовсем — весь прогресс и сам логин, без возможности восстановить.`,
-                okText: 'Удалить', danger: true
+                title: t('Удалить ученика?'),
+                text: tf('Ученик «%1» пропадёт насовсем — весь прогресс и сам логин, без возможности восстановить.', code),
+                okText: t('Удалить'), danger: true
             });
             if (!ok) return;
             try {
@@ -9570,13 +10127,13 @@
                     'session_delete_student', { p_student_code: code },
                     'delete_student', { p_student_code: code });
                 if (error) throw error;
-                if (!data || !data.ok) { showToast('Не удалось удалить ученика.', 'error'); return; }
+                if (!data || !data.ok) { showToast(t('Не удалось удалить ученика.'), 'error'); return; }
                 Progress.forgetProfile(code); // если он был и в списке профилей на этом устройстве
                 renderStudentsList();
                 renderProfileList();
-                showToast(`Ученик «${code}» удалён.`, 'ok');
+                showToast(tf('Ученик «%1» удалён.', code), 'ok');
             } catch (e) {
-                showToast('Не удалось подключиться. Проверь интернет.', 'error');
+                showToast(t('Не удалось подключиться. Проверь интернет.'), 'error');
             }
         }
 
@@ -9585,9 +10142,9 @@
             const code = Progress.getCode();
             if (!code) return;
             const ok = await askConfirm({
-                title: 'Сбросить весь прогресс?',
-                text: 'Решённые примеры, пазл, коллекция и достижения обнулятся. Логин останется тот же. Отменить это нельзя.',
-                okText: 'Сбросить', danger: true
+                title: t('Сбросить весь прогресс?'),
+                text: t('Решённые примеры, пазл, коллекция и достижения обнулятся. Логин останется тот же. Отменить это нельзя.'),
+                okText: t('Сбросить'), danger: true
             });
             if (!ok) return;
             await Progress.hardReset();
@@ -9601,11 +10158,11 @@
             const code = Progress.getCode();
             if (!code || !Progress.authFor(code)) return;
             const values = await askForm({
-                title: 'Удалить профиль насовсем?',
-                text: `Пропадёт всё: прогресс, пазл, коллекция, достижения и сам логин «${code}». Восстановить будет нельзя.`,
-                fields: [{ key: 'pw', label: 'Введи пароль, чтобы подтвердить', type: 'password' }],
-                okText: 'Удалить', danger: true,
-                validate: (v) => v.pw ? null : 'Введи пароль.'
+                title: t('Удалить профиль насовсем?'),
+                text: tf('Пропадёт всё: прогресс, пазл, коллекция, достижения и сам логин «%1». Восстановить будет нельзя.', code),
+                fields: [{ key: 'pw', label: t('Введи пароль, чтобы подтвердить'), type: 'password' }],
+                okText: t('Удалить'), danger: true,
+                validate: (v) => v.pw ? null : t('Введи пароль.')
             });
             if (values === null) return;
             try {
@@ -9615,12 +10172,12 @@
                     : await supabaseClient.rpc('delete_own_account', { p_code: code, p_password: values.pw });
                 if (error) throw error;
                 // Ошибку пароля показываем отдельно от сетевой: это разные беды.
-                if (data && data.error === 'bad_credentials') { showToast('Неверный пароль — профиль не тронут.', 'error'); return; }
-                if (!data || !data.ok) { showToast('Не удалось удалить профиль.', 'error'); return; }
+                if (data && data.error === 'bad_credentials') { showToast(t('Неверный пароль — профиль не тронут.'), 'error'); return; }
+                if (!data || !data.ok) { showToast(t('Не удалось удалить профиль.'), 'error'); return; }
                 Progress.wipeAllLocal();
                 location.reload();
             } catch (e) {
-                showToast('Не удалось подключиться. Проверь интернет.', 'error');
+                showToast(t('Не удалось подключиться. Проверь интернет.'), 'error');
             }
         }
 
@@ -9662,9 +10219,9 @@
         // сюда приходят, чтобы подправить настройку на ходу, а не начать с нуля.
         async function menuGoSettings() {
             const ok = await askConfirm({
-                title: 'Сменить настройки примеров?',
-                text: 'Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущего испытания.',
-                okText: 'Открыть настройки'
+                title: t('Сменить настройки примеров?'),
+                text: t('Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущего испытания.'),
+                okText: t('Открыть настройки')
             });
             if (!ok) return;
             closeMainMenu();
@@ -9770,7 +10327,7 @@
             document.getElementById('live-acc').innerText =
                 done ? Math.round(correctCount / done * 100) + '%' : '—';
             document.getElementById('live-speed').innerText =
-                correctCount > 0 ? (sessionAnswerMs / correctCount / 1000).toFixed(1) + ' с' : '—';
+                correctCount > 0 ? (sessionAnswerMs / correctCount / 1000).toFixed(1) + t(' с') : '—';
 
             const wrap = document.getElementById('live-goal-wrap');
             const key = currentProblemMeta ? buildTopicKey(currentProblemMeta) : null;
@@ -9782,7 +10339,7 @@
             const goal = sessionGoal(key);
             wrap.style.display = '';
             document.getElementById('live-goal').innerText = goal
-                ? `${TIER_ICONS[goal.tier]} ещё ${goal.left}`
+                ? tf('%1 ещё %2', TIER_ICONS[goal.tier], goal.left)
                 : `${TIER_ICONS[5]} ${((Progress.get().byTopic || {})[key] || {}).correct || 0}`;
         }
 
@@ -9952,16 +10509,16 @@
             wrap.innerHTML = '';
 
             if (!sessionMistakes.length) {
-                sub.innerText = 'Ошибок не было';
-                wrap.innerHTML = '<div class="menu-empty">Ни одной ошибки за испытание.<br>Так держать!</div>';
+                sub.innerText = t('Ошибок не было');
+                wrap.innerHTML = t('<div class="menu-empty">Ни одной ошибки за испытание.<br>Так держать!</div>');
                 return;
             }
             // "Почти" и настоящая ошибка — разные исходы, в подписи не сливаем их в одну цифру.
             const real = sessionMistakes.filter(m => !m.isAlmost).length;
             const almost = sessionMistakes.length - real;
             sub.innerText = almost > 0
-                ? `Ошибок: ${real} · «почти»: ${almost}`
-                : `Ошибок: ${real}`;
+                ? tf('Ошибок: %1 · «почти»: %2', real, almost)
+                : tf('Ошибок: %1', real);
 
             sessionMistakes.forEach(m => {
                 const card = document.createElement('div');
@@ -9997,8 +10554,8 @@
                     opt.innerHTML = `<span class="mistake-opt-val"></span><span class="mistake-opt-mark"></span>`;
                     opt.querySelector('.mistake-opt-val').innerHTML = o.html;
                     opt.querySelector('.mistake-opt-mark').innerText =
-                        (o.key === m.correctKey) ? '✓ верно'
-                        : (o.key === m.chosenKey) ? 'твой ответ'
+                        (o.key === m.correctKey) ? t('✓ верно')
+                        : (o.key === m.chosenKey) ? t('твой ответ')
                         : '';
                     grid.appendChild(opt);
                 });
@@ -10097,7 +10654,7 @@
                         (p) => `frac|simplify|${p.given.num}_${p.given.den}`
                     );
                     correctAnswer = problem.answer;
-                    questionEl.innerHTML = `<span class="compound-question"><span class="task-label">Сократи дробь:</span><span class="frac-row">${renderFracValue(problem.given, false)}</span></span>`;
+                    questionEl.innerHTML = tf('<span class="compound-question"><span class="task-label">Сократи дробь:</span><span class="frac-row">%1</span></span>', renderFracValue(problem.given, false));
 
                     const fakeFracs = buildSimplifyDistractors(problem.given, correctAnswer, 3, problem.m);
                     const options = shuffleArray([correctAnswer, ...fakeFracs]);
@@ -10125,8 +10682,8 @@
                     const questionAsMixed = problem.direction === 'toImproper';
                     const answerAsMixed = problem.direction === 'toMixed';
                     const label = problem.direction === 'toMixed'
-                        ? 'Переведи в смешанное число:'
-                        : 'Переведи в неправильную дробь:';
+                        ? t('Переведи в смешанное число:')
+                        : t('Переведи в неправильную дробь:');
                     questionEl.innerHTML = `<span class="compound-question"><span class="task-label">${label}</span><span class="frac-row">${renderFracValue(problem.given, questionAsMixed)}</span></span>`;
 
                     const fakeFracs = buildMixedConvertDistractors(problem, 3);
@@ -10150,7 +10707,7 @@
                     );
                     correctAnswer = problem.answer;
                     const fracHtml = renderFracValue({ num: problem.fracNum, den: problem.fracDen }, false);
-                    questionEl.innerHTML = `<span class="compound-question"><span class="task-label">Найди дробь от числа:</span><span class="frac-row">${fracHtml}<span class="frac-op-symbol">от ${problem.N}</span></span></span>`;
+                    questionEl.innerHTML = tf('<span class="compound-question"><span class="task-label">Найди дробь от числа:</span><span class="frac-row">%1<span class="frac-op-symbol">от %2</span></span></span>', fracHtml, problem.N);
 
                     const fakeNums = buildFracOfNumberDistractors(problem, 3);
                     const options = shuffleArray([correctAnswer, ...fakeNums]);
@@ -10220,14 +10777,14 @@
             if (problem.noSolution) {
                 correctAnswer = 'NO_SOLUTION';
                 const fakeNums = buildNoSolutionOptions(problem.a, isNegative);
-                let opts = ['Нет решения', ...fakeNums.map(String)];
+                let opts = [t('Нет решения'), ...fakeNums.map(String)];
                 opts = shuffleArray(opts);
                 opts.forEach(optText => {
                     const b = document.createElement('button');
                     b.className = 'btn-answer';
                     b.innerText = optText;
-                    b.dataset.key = answerKey(optText === 'Нет решения' ? 'NO_SOLUTION' : Number(optText));
-                    b.onclick = (e) => checkAnswer(optText === 'Нет решения' ? 'NO_SOLUTION' : Number(optText), e);
+                    b.dataset.key = answerKey(optText === t('Нет решения') ? 'NO_SOLUTION' : Number(optText));
+                    b.onclick = (e) => checkAnswer(optText === t('Нет решения') ? 'NO_SOLUTION' : Number(optText), e);
                     grid.appendChild(b);
                 });
             } else {
@@ -10237,7 +10794,7 @@
                 arr.forEach(ans => {
                     const b = document.createElement('button');
                     b.className = 'btn-answer';
-                    b.innerText = ans === 'NO_SOLUTION' ? 'Нет решения' : ans;
+                    b.innerText = ans === 'NO_SOLUTION' ? t('Нет решения') : ans;
                     b.dataset.key = answerKey(ans);
                     b.onclick = (e) => checkAnswer(ans, e);
                     grid.appendChild(b);
@@ -10257,7 +10814,7 @@
                 mathBox.style.borderColor = 'var(--gold)';
                 mathBox.style.boxShadow = '0 0 50px rgba(255, 215, 0, 0.9)';
 
-                spawnRewardText(`🌌 ${count} РЕШЕНО! АБСОЛЮТНЫЙ РАЗУМ! 🌌`, window.innerWidth / 2, window.innerHeight / 2 - 50, 'var(--gold)', true);
+                spawnRewardText(tf('🌌 %1 РЕШЕНО! АБСОЛЮТНЫЙ РАЗУМ! 🌌', count), window.innerWidth / 2, window.innerHeight / 2 - 50, 'var(--gold)', true);
                 return;
             }
 
@@ -10271,7 +10828,7 @@
                 mathBox.style.borderColor = 'var(--royal)';
                 mathBox.style.boxShadow = '0 0 40px rgba(168, 85, 247, 0.8)';
 
-                spawnRewardText(`👑 ЮБИЛЕЙ: ${count} РЕШЕННЫХ ЗАДАЧ! 👑`, window.innerWidth / 2, window.innerHeight / 2 - 30, 'var(--royal)', true);
+                spawnRewardText(tf('👑 ЮБИЛЕЙ: %1 РЕШЕННЫХ ЗАДАЧ! 👑', count), window.innerWidth / 2, window.innerHeight / 2 - 30, 'var(--royal)', true);
 
                 let bursts = 0;
                 let interval = setInterval(() => {
@@ -10367,12 +10924,12 @@
                 state.combo++;
                 const badge = document.getElementById('comboBadge');
                 badge.style.display = 'inline-block';
-                badge.innerText = `Подряд: ${state.combo}`;
+                badge.innerText = tf('Подряд: %1', state.combo);
                 if (state.combo >= COMBO_FRENZY_AT) badge.classList.add('frenzy');
                 else badge.classList.remove('frenzy');
 
                 playSound('correct');
-                spawnRewardText('Верно!', clickX, clickY, '#22d3ee', false);
+                spawnRewardText(t('Верно!'), clickX, clickY, '#22d3ee', false);
                 buildSparks(12, 'var(--cyan)');
 
                 triggerAnniversaryEffects(correctCount);
@@ -10413,10 +10970,10 @@
 
             if (isUnreducedMatch) {
                 if (clickedBtn) clickedBtn.classList.add('btn-almost');
-                spawnRewardText('Почти! Не забудь сократить', clickX, clickY, '#f59e0b', false);
+                spawnRewardText(t('Почти! Не забудь сократить'), clickX, clickY, '#f59e0b', false);
                 buildSparks(10, '#f59e0b');
                 Progress.recordAnswer(topicKey, 'almost', elapsedMs);
-                Progress.recordMistakeKind(topicKey, 'не сократил');
+                Progress.recordMistakeKind(topicKey, 'не сократил');   // код, а не текст: переводить нельзя
                 // Пропускаем штраф за пазл и не портим статистику "Ошибки" — это не ошибка в счёте.
             } else {
                 wrongCount++;
@@ -10433,7 +10990,7 @@
 
                 playSound('wrong');
                 if (clickedBtn) clickedBtn.classList.add('btn-wrong');
-                spawnRewardText('Ошибка!', clickX, clickY, '#f87171', false);
+                spawnRewardText(t('Ошибка!'), clickX, clickY, '#f87171', false);
                 buildSparks(10, '#ef4444');
                 removePuzzlePiecesOnMistake();
             }
@@ -10601,12 +11158,12 @@
             if (!gameActive) return;
             gameActive = false;
             document.getElementById('winDesc').innerText =
-                `⏱️ Время: ${formatTime(totalSeconds)}\n✅ Верно: ${correctCount} | ❌ Ошибок: ${wrongCount}`;
+                tf('⏱️ Время: %1\\n✅ Верно: %2 | ❌ Ошибок: %3', formatTime(totalSeconds), correctCount, wrongCount);
 
             // Кнопка разбора появляется, только если разбирать действительно есть что
             const mistakesBtn = document.getElementById('btnWinMistakes');
             mistakesBtn.style.display = sessionMistakes.length ? '' : 'none';
-            mistakesBtn.innerText = `📋 Разбор ошибок (${sessionMistakes.length})`;
+            mistakesBtn.innerText = tf('📋 Разбор ошибок (%1)', sessionMistakes.length);
 
             // Собранные за испытание пазлы показываем здесь — в естественной паузе,
             // а не посреди потока примеров. Экран итогов ждёт за ними.
@@ -10619,9 +11176,9 @@
         document.getElementById('btn-exam').addEventListener('click', async () => {
             if (!gameActive) return;
             const confirmed = await askConfirm({
-                title: 'Завершить испытание?',
-                text: 'Покажу результат и разбор ошибок. Решённое засчитано и никуда не денется.',
-                okText: 'Завершить'
+                title: t('Завершить испытание?'),
+                text: t('Покажу результат и разбор ошибок. Решённое засчитано и никуда не денется.'),
+                okText: t('Завершить')
             });
             // Пока окно открыто, испытание продолжается — таймер не стоит, как это было
             // с системным confirm(). Поэтому проверяем ещё раз: за это время игру могли
@@ -10646,6 +11203,10 @@
         // заново каждый раз (Progress.setConfig() всё ещё сохраняет последний выбор
         // в state — это часть схемы синхронизации, но на экран он больше не влияет).
         refreshSectionLocks();
+        applyStaticI18n();       // статическая разметка — один раз при загрузке
+        refreshLangButtons();
+        document.documentElement.setAttribute('lang', LANG);
+        if (LANG === 'en') document.title = 'Mathkey';
         refreshSoundButtons();   // подпись кнопки должна совпадать с тем, что запомнило устройство
         bootCodeScreen();
 

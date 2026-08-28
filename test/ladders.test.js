@@ -25,7 +25,9 @@ function loadLadders() {
     const to = script.indexOf(END);
     if (from < 0 || to < 0) throw new Error('не найдены границы блока лесенок');
 
-    const sandbox = { console, Math, Number, Object, Array, String, JSON, Set, Map, Date, isNaN };
+    // Подписи проходят через t(); в этом срезе перевода нет, поэтому заглушка.
+    const sandbox = { console, Math, Number, Object, Array, String, JSON, Set, Map, Date, isNaN,
+                      t: (x) => x, tf: (x) => x };
     sandbox.globalThis = sandbox;
     vm.createContext(sandbox);
     // Объявления через const не становятся свойствами глобального объекта.
