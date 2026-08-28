@@ -1015,6 +1015,18 @@
         }
         .lang-pill:active { transform: scale(0.96); }
 
+        /* Выбор языка: строки-кнопки, у текущей галочка. */
+        .lang-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+        .lang-option {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 10px; padding: 13px 15px; color: #e2e8f0;
+            font-family: inherit; font-size: 1rem; cursor: pointer; text-align: left;
+        }
+        .lang-option.on { border-color: var(--cyan); background: rgba(6,182,212,0.12); color: var(--cyan); }
+        .lang-option:active { transform: scale(0.99); }
+        .lang-option-mark { font-weight: 700; }
+
         .toast-wrap {
             position: fixed; z-index: 420; left: 50%; transform: translateX(-50%);
             top: calc(12px + env(safe-area-inset-top));
@@ -1089,7 +1101,7 @@
     <div class="modal-screen" id="codeScreen" style="z-index:210; display:none;">
         <!-- Язык выбирается до входа: экран логина — первое, что видит человек,
              и другого места спросить у нас просто нет. -->
-        <button class="lang-pill" onclick="toggleLang()">EN</button>
+        <button class="lang-pill" onclick="openLangPicker()">EN</button>
         <h1 class="start-title" style="font-size:1.6rem;">Вход</h1>
 
         <div style="width:100%; max-width:420px; text-align:center;">
@@ -1142,7 +1154,7 @@
         <button class="menu-btn" onclick="menuGoPuzzle()">🧩 <span>Текущий пазл</span></button>
         <button class="menu-btn" onclick="menuGoSettings()">⚙️ <span>Сменить настройки примеров</span></button>
         <button class="menu-btn sound-toggle" onclick="toggleSound()">🔊 <span>Звук включён</span></button>
-        <button class="menu-btn lang-toggle" onclick="toggleLang()">🌐 <span>Язык: Русский</span></button>
+        <button class="menu-btn lang-toggle" onclick="openLangPicker()">🌐 <span>Язык: Русский</span></button>
 
         <div class="menu-section-label">Мой код</div>
         <div class="menu-stat-card" style="text-align:center;">
@@ -1168,7 +1180,7 @@
         <button class="menu-btn" onclick="startMenuGoAchievements()">🏅 <span>Достижения</span></button>
         <button class="menu-btn" onclick="startMenuGoProfile()">👤 <span>Профиль</span></button>
         <button class="menu-btn sound-toggle" onclick="toggleSound()">🔊 <span>Звук включён</span></button>
-        <button class="menu-btn lang-toggle" onclick="toggleLang()">🌐 <span>Язык: Русский</span></button>
+        <button class="menu-btn lang-toggle" onclick="openLangPicker()">🌐 <span>Язык: Русский</span></button>
     </div>
 
     <!-- Панель закрытого раздела: объясняет, почему закрыто, и что с этим делать. -->
@@ -2121,14 +2133,23 @@
             " и ": " and ",
         };
 
+        // Языки перечислены списком, а не парой. Переключатель «туда-обратно» работает
+        // ровно до третьего языка, а дальше его приходится выбрасывать. Здесь добавить
+        // язык — это строчка тут и словарь рядом, ничего больше.
+        // name — на своём языке: человек ищет в списке «Espanol», а не «испанский».
+        const LANGS = [
+            { code: 'ru', name: 'Русский', short: 'RU' },
+            { code: 'en', name: 'English', short: 'EN' }
+        ];
         const LANG_KEY = 'mathCitadelLang_v1';
         let LANG = (() => {
+            const known = (c) => LANGS.some(l => l.code === c);
             try {
                 const saved = localStorage.getItem(LANG_KEY);
-                if (saved === 'ru' || saved === 'en') return saved;
+                if (known(saved)) return saved;
             } catch (e) { /* хранилище недоступно */ }
-            const nav = (navigator.language || 'ru').toLowerCase();
-            return nav.startsWith('ru') ? 'ru' : 'en';
+            const nav = (navigator.language || 'ru').toLowerCase().slice(0, 2);
+            return known(nav) ? nav : 'en';
         })();
 
         function t(ru) {
@@ -2206,25 +2227,59 @@
         // языке. Перезагрузка стоит долю секунды и гарантирует, что несоответствий нет.
         // Прогресс при этом не теряется: он лежит в хранилище, а не в памяти страницы.
         function setLang(next) {
-            const target = (next === 'en') ? 'en' : 'ru';
+            const target = LANGS.some(l => l.code === next) ? next : LANGS[0].code;
             if (target === LANG) return;
             try { localStorage.setItem(LANG_KEY, target); } catch (e) { /* хранилище недоступно */ }
             if (typeof Progress !== 'undefined' && Progress.flush) Progress.flush(true);
             location.reload();
         }
-        function toggleLang() { setLang(LANG === 'ru' ? 'en' : 'ru'); }
-        function refreshLangButtons() {
-            document.querySelectorAll('.lang-toggle').forEach(b => {
-                b.innerHTML = LANG === 'ru'
-                    ? t('\ud83c\udf10 <span>Язык: Русский</span>')
-                    : '\ud83c\udf10 <span>Language: English</span>';
-            });
-            document.querySelectorAll('.lang-pill').forEach(b => {
-                b.innerText = LANG === 'ru' ? 'EN' : 'RU';
-                b.setAttribute('aria-label', LANG === 'ru' ? 'Switch to English' : 'Переключить на русский');
+        function currentLang() {
+            return LANGS.find(l => l.code === LANG) || LANGS[0];
+        }
+
+        // Нажал — выбрал. Переключатель «туда-обратно» на двух языках ещё сходил за
+        // удобство, но он не говорит, куда переключит, и ломается на третьем языке.
+        function openLangPicker() {
+            return openAppDialog(null, (card, submit) => {
+                // Заголовок нарочно на обоих языках: тот, кто попал не в тот язык,
+                // должен узнать это окно, даже не читая незнакомых слов.
+                dlgHead(card, 'Язык \u00b7 Language', '');
+                const list = document.createElement('div');
+                list.className = 'lang-list';
+                LANGS.forEach(l => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'lang-option' + (l.code === LANG ? ' on' : '');
+                    btn.innerHTML = '<span class="lang-option-name"></span><span class="lang-option-mark"></span>';
+                    btn.querySelector('.lang-option-name').innerText = l.name;
+                    btn.querySelector('.lang-option-mark').innerText = l.code === LANG ? '\u2713' : '';
+                    btn.addEventListener('click', () => { submit(null); setLang(l.code); });
+                    list.appendChild(btn);
+                });
+                card.appendChild(list);
+                const cancel = document.createElement('button');
+                cancel.type = 'button';
+                cancel.className = 'dlg-btn';
+                cancel.style.width = '100%';
+                cancel.innerText = t('Отмена');
+                cancel.addEventListener('click', () => submit(null));
+                card.appendChild(cancel);
             });
         }
 
+        function refreshLangButtons() {
+            const cur = currentLang();
+            document.querySelectorAll('.lang-toggle').forEach(b => {
+                b.innerHTML = '\ud83c\udf10 <span></span>';
+                b.querySelector('span').innerText = (LANG === 'ru' ? 'Язык: ' : 'Language: ') + cur.name;
+            });
+            // На пилюле — ТЕКУЩИЙ язык, а не тот, куда переключит: она теперь открывает
+            // список, а не меняет язык сама.
+            document.querySelectorAll('.lang-pill').forEach(b => {
+                b.innerText = cur.short;
+                b.setAttribute('aria-label', 'Язык \u00b7 Language');
+            });
+        }
         // ===================== НАСТРОЙКА ГЕНЕРАЦИИ ПРИМЕРОВ =====================
         const OP_LABELS = {
             add: t('➕ Сложение'), sub: t('➖ Вычитание'), mul: t('✖️ Умножение'), div: t('➗ Деление'),
