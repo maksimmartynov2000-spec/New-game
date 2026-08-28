@@ -63,7 +63,11 @@ function loadGenerators() {
     // Объявления через const не становятся свойствами глобального объекта, а таблицы
     // подписей проверять надо — поднимаем их наружу явно.
     vm.runInContext(head + '\n;globalThis.MISTAKE_LABELS = MISTAKE_LABELS;'
-                         + '\n;globalThis.MISTAKE_SHORT = MISTAKE_SHORT;',
+                         + '\n;globalThis.MISTAKE_SHORT = MISTAKE_SHORT;'
+                         + '\n;globalThis.MUL_GROUPS = MUL_GROUPS;'
+                         + '\n;globalThis.MUL_SHARES = MUL_SHARES;'
+                         + '\n;globalThis.MUL_TWO_ROUND = MUL_TWO_ROUND;'
+                         + '\n;globalThis.MUL_TWO_BAND_WEIGHTS = MUL_TWO_BAND_WEIGHTS;',
                     sandbox, { filename: 'index.html<script>' });
     return sandbox;
 }
@@ -1091,6 +1095,165 @@ test('у каждой причины есть и полная подпись, и
         if (!G.MISTAKE_LABELS[k]) missing.push(`нет полной подписи: ${k}`);
     });
     assert(missing.length === 0, missing.join('; '));
+});
+
+group('Умножение: разбор таблицы на группы');
+
+// Главный инвариант всей схемы. Пять групп обязаны РОВНО покрыть таблицу от 2×2
+// до 9×9: без дыр (иначе факт не встретится никогда) и без наложений (иначе доли
+// врут, а факт на пересечении выпадает вдвое чаще соседей — ровно тот дефект,
+// из-за которого в старом генераторе {1,2,5,10} занимали 27,7% первой звезды).
+test('пять групп ровно покрывают таблицу 2..9', () => {
+    const inTable = new Set();
+    for (let a = 2; a <= 9; a++) for (let b = a; b <= 9; b++) inTable.add(`${a}×${b}`);
+
+    const seen = new Map();
+    ['two', 'five', 'small', 'nine', 'core'].forEach(name => {
+        G.MUL_GROUPS[name].forEach(([a, b]) => {
+            const k = `${Math.min(a, b)}×${Math.max(a, b)}`;
+            seen.set(k, (seen.get(k) || 0) + 1);
+        });
+    });
+
+    const dup = [...seen.entries()].filter(([, n]) => n > 1).map(([k]) => k);
+    const missing = [...inTable].filter(k => !seen.has(k));
+    const extra = [...seen.keys()].filter(k => !inTable.has(k));
+
+    assert(dup.length === 0, `факт в двух группах сразу: ${dup.join(', ')}`);
+    assert(missing.length === 0, `факт не попал ни в одну группу: ${missing.join(', ')}`);
+    assert(extra.length === 0, `лишний факт вне таблицы: ${extra.join(', ')}`);
+    assert(seen.size === 36, `в таблице 36 фактов, а покрыто ${seen.size}`);
+});
+
+test('ядро — ровно шесть фактов, и это те самые шесть', () => {
+    const core = G.MUL_GROUPS.core.map(([a, b]) => `${a}×${b}`).sort().join(' ');
+    assert(core === '6×6 6×7 6×8 7×7 7×8 8×8', `состав ядра: ${core}`);
+});
+
+test('доли по каждой звезде дают ровно единицу', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        const sum = G.MUL_SHARES[lvl].reduce((s, [, p]) => s + p, 0);
+        assert(Math.abs(sum - 1) < 1e-9, `звезда ${lvl}: сумма долей ${sum}`);
+    }
+    const bands = G.MUL_TWO_BAND_WEIGHTS.reduce((s, p) => s + p, 0);
+    assert(Math.abs(bands - 1) < 1e-9, `полосы двузначного: сумма ${bands}`);
+});
+
+test('ни один ответ во всей игре не длиннее трёх цифр', () => {
+    let worst = null;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 60000; i++) {
+            const e = G.genMulPositive(lvl);
+            if (e.answer > 960 && (!worst || e.answer > worst.answer)) worst = e;
+        }
+    }
+    assert(worst === null, worst && `${worst.text} = ${worst.answer}`);
+    // И тот же предел заложен в списке двузначное × круглое: 25…29 × 40 выброшены.
+    const mx = Math.max(...G.MUL_TWO_ROUND.map(([a, b]) => a * b));
+    assert(mx === 960, `максимум в группе «двузначное × круглое»: ${mx}`);
+});
+
+group('Умножение: что выдаёт генератор');
+
+// Шесть фактов ядра обязаны идти РОВНО одинаково. Если факты не перечислять
+// списком, а собирать как «выбрать множитель, потом партнёра», то 6×7 рождается
+// двумя путями, а 6×6 одним — и квадраты выпадают вдвое реже. Проверяем именно это.
+test('внутри ядра все шесть фактов равновероятны', () => {
+    const N = 200000, seen = {};
+    for (let i = 0; i < N; i++) {
+        const e = G.genMulPositive(3);
+        const k = `${Math.min(e.a, e.b)}×${Math.max(e.a, e.b)}`;
+        if (['6×6', '6×7', '6×8', '7×7', '7×8', '8×8'].includes(k)) seen[k] = (seen[k] || 0) + 1;
+    }
+    const vals = Object.values(seen);
+    assert(vals.length === 6, `встретилось фактов ядра: ${vals.length} из 6`);
+    const lo = Math.min(...vals), hi = Math.max(...vals);
+    assert(hi / lo < 1.1, `разброс внутри ядра ${(hi / lo).toFixed(2)}x — квадраты снова просели`);
+});
+
+test('ядро есть на 3, 4 и 5 звезде и его нет на 1 и 2', () => {
+    const N = 60000;
+    const share = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) {
+            const e = G.genMulPositive(lvl);
+            const lo = Math.min(e.a, e.b), hi = Math.max(e.a, e.b);
+            if (lo >= 6 && lo <= 8 && hi >= 6 && hi <= 8) c++;
+        }
+        return c / N;
+    };
+    assert(share(1) === 0, 'ядро на первой звезде');
+    assert(share(2) === 0, 'ядро на второй звезде');
+    assert(Math.abs(share(3) - 0.45) < 0.02, `на 3★ ядра ${(share(3) * 100).toFixed(1)}% вместо 45%`);
+    assert(share(4) > 0.15 && share(5) > 0.08, 'ядро исчезло на старших звёздах — ровно то, что чинили');
+});
+
+test('«без счёта» убывает со звездой и на пятой почти исчезает', () => {
+    const N = 60000;
+    const triv = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) {
+            const e = G.genMulPositive(lvl);
+            if (e.a < 2 || e.b < 2 || e.a === 10 || e.b === 10) c++;
+        }
+        return c / N;
+    };
+    const t = [1, 2, 3, 4, 5].map(triv);
+    assert(t[0] < 0.13, `на 1★ без счёта ${(t[0] * 100).toFixed(1)}% — было 63%`);
+    for (let i = 1; i < 5; i++) {
+        assert(t[i] <= t[i - 1] + 0.005, `доля выросла со звездой: ${t[i - 1]} -> ${t[i]}`);
+    }
+    assert(t[4] < 0.04, `на 5★ без счёта ${(t[4] * 100).toFixed(1)}%`);
+});
+
+test('полосы двузначного соблюдаются', () => {
+    const N = 300000, band = [0, 0, 0];
+    let n = 0;
+    for (let i = 0; i < N; i++) {
+        const e = G.genMulPositive(5);
+        const hi = Math.max(e.a, e.b), lo = Math.min(e.a, e.b);
+        if (hi < 11 || lo > 9 || hi % 10 === 0) continue;   // только двузначное × однозначное
+        n++;
+        band[hi <= 30 ? 0 : hi <= 50 ? 1 : 2]++;
+    }
+    const got = band.map(v => v / n);
+    [0.60, 0.30, 0.10].forEach((want, i) => {
+        assert(Math.abs(got[i] - want) < 0.03,
+            `полоса ${i}: ${(got[i] * 100).toFixed(1)}% вместо ${(want * 100)}%`);
+    });
+    assert(got[2] > 0.05, 'верхняя полоса пропала — 78 × 7 снова невозможен');
+});
+
+test('перенос на пятой звезде занимает заявленную долю', () => {
+    const N = 300000;
+    let c = 0;
+    for (let i = 0; i < N; i++) {
+        const e = G.genMulPositive(5);
+        const hi = Math.max(e.a, e.b), lo = Math.min(e.a, e.b);
+        if (hi >= 11 && lo < 10 && (hi % 10) * lo >= 10) c++;
+    }
+    const share = c / N;
+    assert(Math.abs(share - 0.40) < 0.02, `перенос ${(share * 100).toFixed(1)}% вместо 40%`);
+});
+
+test('ответ всегда равен произведению', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const e = G.genMulPositive(lvl);
+            assert(e.answer === e.a * e.b, `${e.text} даёт ${e.answer}`);
+            assert(e.text === `${e.a} × ${e.b}`, `подпись разошлась с числами: ${e.text}`);
+        }
+    }
+});
+
+test('оба порядка множителей встречаются', () => {
+    let big = 0, small = 0;
+    for (let i = 0; i < 40000; i++) {
+        const e = G.genMulPositive(5);
+        if (e.a > e.b) big++; else if (e.a < e.b) small++;
+    }
+    const ratio = big / (big + small);
+    assert(ratio > 0.45 && ratio < 0.55, `перекос порядка: ${(ratio * 100).toFixed(1)}%`);
 });
 
 // ---------- итог ----------
