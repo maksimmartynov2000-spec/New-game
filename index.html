@@ -2548,6 +2548,12 @@
 
         // --- ОБЩИЕ ТАБЛИЦЫ СЛОЖНОСТИ (единые для + и - режимов чисел) ---
         const ADD_SUB_RANGE = { 1: 10, 2: 20, 3: 50, 4: 100, 5: 200 };
+        // В отрицательном режиме доля примеров с нулём (умножение на 0, деление на/в 0) снижена —
+        // не больше 5% суммарно, как и для остальных "нулевых" случаев
+        const MUL_ZERO_CHANCE_NEG = 0.04;
+        const DIV_ZERO_CHANCE_NEG = 0.04;
+        // Делители и потолки частного для ОТРИЦАТЕЛЬНОГО деления. У положительного
+        // своя схема — зеркало умножения, см. ниже.
         const DIVISOR_POOL = {
             1: [1, 2, 5, 10],
             2: [1, 2, 3, 4, 5, 10],
@@ -2556,11 +2562,7 @@
             5: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         };
         const QUOTIENT_MAX = { 1: 5, 2: 10, 3: 15, 4: 25, 5: 50 };
-        const DIV_ZERO_CHANCE = 0.10; // фиксированная доля примеров "деление на 0", не зависит от таблиц (положительный режим)
-        // В отрицательном режиме доля примеров с нулём (умножение на 0, деление на/в 0) снижена —
-        // не больше 5% суммарно, как и для остальных "нулевых" случаев
-        const MUL_ZERO_CHANCE_NEG = 0.04;
-        const DIV_ZERO_CHANCE_NEG = 0.04;
+
         // Таблицы для ОТРИЦАТЕЛЬНОГО умножения. У положительного своя схема — см. ниже.
         const MUL_TABLE = {
             1: [1, 2, 5, 10],
@@ -2668,6 +2670,83 @@
         // Доля продолжения внутри группы удвоения. Четверть: 2 × 13 полезно, но
         // 2 × 7 полезнее.
         const MUL_TWO_EXT_SHARE = 0.25;
+
+        // ===================== ДЕЛЕНИЕ ПОЛОЖИТЕЛЬНЫХ =====================
+        //
+        // Деление — зеркало умножения: 56 ÷ 7 = 8 и 7 × 8 = 56 это один и тот же факт.
+        // Поэтому groups, доли и полосы берутся у умножения целиком, а не изобретаются
+        // заново: всё, что мы там настроили, деление получает даром.
+        //
+        // Но зеркало ломается в трёх местах, и каждое пришлось учесть.
+        //
+        // ПЕРВОЕ. Один факт умножения даёт ДВЕ задачи на деление — кроме квадратов.
+        // 6 × 7 = 42 даёт 42÷6 и 42÷7, а 6 × 6 = 36 — только 36÷6. Значит, ядро из
+        // шести фактов превращается в девять задач. И если брать равномерно по фактам,
+        // вся доля квадрата ложится на единственную задачу: 36÷6 выпадает ВДВОЕ ЧАЩЕ
+        // соседей — точная инверсия того бага, из-за которого в умножении квадраты
+        // выпадали вдвое реже. Причина одна: считали не то, что выдаём. Поэтому здесь
+        // перечисляются именно ЗАДАЧИ НА ДЕЛЕНИЕ.
+        //
+        // ВТОРОЕ. Перестановки нет. В умножении 7 × 8 и 8 × 7 — один факт в двух видах,
+        // и порядок был оформлением. В делении 56÷7 и 56÷8 — разные задачи с разными
+        // ответами, и выбор делителя это содержание, а не вид.
+        //
+        // ТРЕТЬЕ. Особый случай не один, а четыре: 7÷1 (переписать), 7÷7 (правило),
+        // 0÷7 (правило) и 7÷0 (нет решения). Последнее — единственное, что надо помнить
+        // всерьёз, и держать его на 10% всю игру, как было, незачем.
+        function divProblems(pairs) {
+            const seen = new Set(), out = [];
+            pairs.forEach(pair => {
+                const c = pair[0] * pair[1];
+                [[c, pair[0]], [c, pair[1]]].forEach(pr => {
+                    const dividend = pr[0], divisor = pr[1];
+                    if (!divisorAllowed(divisor)) return;
+                    const key = dividend + '/' + divisor;
+                    if (seen.has(key)) return;
+                    seen.add(key);
+                    out.push([dividend, divisor]);
+                });
+            });
+            return out;
+        }
+
+        // Делить учимся на однозначное и на круглое. Двузначный делитель (84 ÷ 12) —
+        // зеркало двузначного на двузначное, которого в умножении нет тоже.
+        function divisorAllowed(d) {
+            if (d >= 1 && d <= 10) return true;
+            return d % 10 === 0 && d >= 20 && d <= 90;
+        }
+
+        const DIV_GROUPS = {
+            triv:   divProblems(MUL_GROUPS.triv),
+            two:    divProblems(MUL_GROUPS.two),
+            twoExt: divProblems(MUL_GROUPS.twoExt),
+            five:   divProblems(MUL_GROUPS.five),
+            small:  divProblems(MUL_GROUPS.small),
+            nine:   divProblems(MUL_GROUPS.nine),
+            core:   divProblems(MUL_GROUPS.core),
+            round:  divProblems(MUL_GROUPS.round)
+        };
+        // Двузначное на круглое делим ТОЛЬКО на круглое: 720 ÷ 30 = 24 — это приём
+        // (убрать ноль и поделить), а 720 ÷ 24 — двузначный делитель, которого мы не берём.
+        const DIV_TWO_ROUND = MUL_TWO_ROUND.map(pr => [pr[0] * pr[1], pr[1]]);
+
+        // «Деление на ноль» — не лёгкий пример, а отдельное правило. Узнаётся один раз,
+        // поэтому доля убывает, а не стоит на месте.
+        const DIV_ZERO_SHARES = { 1: 0.05, 2: 0.03, 3: 0.02, 4: 0.01, 5: 0.01 };
+
+        const DIV_SHARES = {
+            1: [['zero', 0.05], ['triv', 0.10], ['two', 0.45], ['five', 0.40]],
+            2: [['zero', 0.03], ['triv', 0.04], ['two', 0.12], ['five', 0.12],
+                ['small', 0.38], ['nine', 0.31]],
+            3: [['zero', 0.02], ['triv', 0.02], ['two', 0.05], ['five', 0.05],
+                ['small', 0.19], ['nine', 0.22], ['core', 0.45]],
+            4: [['zero', 0.01], ['triv', 0.02], ['two', 0.04], ['five', 0.04],
+                ['small', 0.08], ['nine', 0.07], ['core', 0.19], ['round', 0.55]],
+            5: [['zero', 0.01], ['triv', 0.02], ['two', 0.03], ['five', 0.03],
+                ['small', 0.04], ['nine', 0.04], ['core', 0.11], ['round', 0.06],
+                ['tworound', 0.12], ['twoPlain', 0.14], ['twoCarry', 0.40]]
+        };
 
         // --- "МЕШОК" ЗНАКОВ: гарантирует, что все 4 комбинации (+/+ +/- -/+ -/-)
         // встретятся равномерно, но порядок внутри цикла остаётся случайным ---
@@ -2900,16 +2979,44 @@
             return { text: `${a} × ${b}`, answer: a * b, a, b };
         }
 
+        function pickDivGroup(level) {
+            const rows = DIV_SHARES[level] || DIV_SHARES[5];
+            let r = Math.random();
+            for (let i = 0; i < rows.length; i++) {
+                r -= rows[i][1];
+                if (r < 0) return rows[i][0];
+            }
+            return rows[rows.length - 1][0];
+        }
+
         function genDivPositive(level) {
-            if (Math.random() < DIV_ZERO_CHANCE) {
-                const dividend = randInt(1, Math.max(10, QUOTIENT_MAX[level] * 2));
+            const group = pickDivGroup(level);
+
+            if (group === 'zero') {
+                // Делимое случайное: иначе «на ноль» узнавалось бы по самому числу,
+                // а не по делителю.
+                const dividend = randInt(2, 99);
                 return { text: `${dividend} ÷ 0`, answer: null, noSolution: true, a: dividend, b: 0 };
             }
-            const pool = DIVISOR_POOL[level];
-            const divisor = pool[randInt(0, pool.length - 1)];
-            const quotient = randInt(0, QUOTIENT_MAX[level]);
-            const dividend = divisor * quotient;
-            return { text: `${dividend} ÷ ${divisor}`, answer: quotient, a: dividend, b: divisor };
+
+            let pair;
+            if (group === 'two') {
+                pair = pickMulFact(Math.random() < MUL_TWO_EXT_SHARE
+                    ? DIV_GROUPS.twoExt : DIV_GROUPS.two);
+            } else if (group === 'tworound') {
+                pair = pickMulFact(DIV_TWO_ROUND);
+            } else if (group === 'twoPlain' || group === 'twoCarry') {
+                // Зеркало двузначного на однозначное: частное двузначное, делитель
+                // однозначный. Признак «надо сносить» тот же, что перенос в умножении:
+                // 84 ÷ 7 = 12, потому что 12 × 7 идёт с переносом.
+                const mul = genMulTwoDigit(group === 'twoCarry');
+                pair = [mul[0] * mul[1], mul[1]];
+            } else {
+                pair = pickMulFact(DIV_GROUPS[group]);
+            }
+
+            const dividend = pair[0], divisor = pair[1];
+            return { text: `${dividend} ÷ ${divisor}`, answer: dividend / divisor, a: dividend, b: divisor };
         }
 
         // --- ОТРИЦАТЕЛЬНЫЕ ЧИСЛА ---
@@ -3136,7 +3243,7 @@
             return copy;
         }
 
-        function buildDistractors(opKey, a, b, correctAnswer, isNegative, count) {
+        function buildDistractors(opKey, a, b, correctAnswer, isNegative, count, level) {
             // ===== ПРИОРИТЕТ 1: самые частые реальные ошибки =====
             let priority = [];
 
@@ -3158,13 +3265,30 @@
                 else if (b === 0 && a !== 0) pushStructural(priority, a, correctAnswer, isNegative);
             }
 
-            // Деление: нулевое частное (делимое = 0) → "Нет решения" как ловушка,
-            // путают с правилом "на 0 делить нельзя". Плюс редкая (1%) случайная
-            // приманка в обычных примерах — чтобы вариант не был 100%-ным индикатором нуля.
+            // Деление: «Нет решения» как вариант. Раньше он подмешивался только при
+            // нулевом частном плюс один процент наугад — и это была прямая лазейка мимо
+            // счёта. Замер: на пятой звезде вариант показывался в 12,7% примеров и в 79%
+            // из них оказывался верным. То есть «вижу „Нет решения“ — жму» давало четыре
+            // попадания из пяти.
+            //
+            // Причина: доля самих примеров «÷ 0» была фиксированной, а приманок с ростом
+            // звезды становилось меньше. Теперь приманка считается ОТ доли «÷ 0»: вариант
+            // показывается примерно вчетверо чаще, чем бывает верным. При четырёх кнопках
+            // это ровно случайный уровень — увидел и всё равно надо считать.
+            const NO_SOLUTION_DECOY_FACTOR = 4;
             let includeNoSolutionDecoy = false;
             if (opKey === 'div') {
-                if (correctAnswer === 0) includeNoSolutionDecoy = true;
-                else if (Math.random() < 0.01) includeNoSolutionDecoy = true;
+                if (correctAnswer === 0) {
+                    // Нулевое частное: 0 ÷ 7 = 0. Здесь вариант обязателен — это и есть
+                    // путаница с правилом «на ноль делить нельзя».
+                    includeNoSolutionDecoy = true;
+                } else {
+                    const zeroShare = DIV_ZERO_SHARES[level] || DIV_ZERO_SHARES[5];
+                    // Доля приманок среди ОСТАЛЬНЫХ примеров: столько, чтобы вместе с
+                    // настоящими «÷ 0» вариант был верен примерно в четверти показов.
+                    const need = zeroShare * (NO_SOLUTION_DECOY_FACTOR - 1) / (1 - zeroShare);
+                    if (Math.random() < need) includeNoSolutionDecoy = true;
+                }
             }
 
             // ===== ПРИОРИТЕТ 2: типовые структурные ошибки по операциям =====
@@ -7909,11 +8033,33 @@
             return 'core';
         }
 
+        // Класс примера на деление — та же группа, что и у зеркального умножения.
+        // Считаем по делимому и делителю: 56 ÷ 7 разбирается как факт 7 × 8.
+        function divClassOf(a, b) {
+            if (b === 0) return 'zero';
+            if (a === 0 || b === 1 || b === 10 || a === b) return 'triv';
+            const q = a / b;
+            if (!Number.isInteger(q)) return null;      // остатков у нас нет
+            // Дальше — ровно тот же разбор, что у зеркального умножения. Своей
+            // ветки для двузначного частного здесь быть не должно: mulClassOf уже
+            // знает и про круглые (210 ÷ 30 → «круглые»), и про снос (84 ÷ 7 → «со
+            // сносом»), и про исключение «2 × 13 — это всё ещё пополам». Написанная
+            // заново, эта ветка расходилась с ним: 30 ÷ 2 = 15 попадало в
+            // «двузначный ответ», хотя это половина, и первая звезда получала в
+            // разборе класс, которого на ней нет.
+            return mulClassOf(q, b);
+        }
+
         function structuralClassOf(meta, problem) {
             if (!meta || !problem) return null;
             if (meta.category !== 'integer' || meta.isNegative) return null;
             const a = problem.a, b = problem.b;
             if (typeof a !== 'number' || typeof b !== 'number') return null;
+            if (meta.opKey === 'div') {
+                if (a < 0 || b < 0) return null;
+                const cls = divClassOf(a, b);
+                return cls ? { cls, hundred: false } : null;
+            }
             if (meta.opKey === 'mul') {
                 if (a < 0 || b < 0) return null;
                 // «Через сотню» — про разряды сложения; к умножению не относится.
@@ -8619,6 +8765,19 @@
         const CLASS_TITLES = {
             add: { '0': t('без перехода'), '1': t('дополнение до круглого'), '2': t('полный переход'), 'h': t('через сотню') },
             sub: { '0': t('без заёма'), '1': t('вычитание из круглого'), '2': t('полный заём'), 'h': t('двойной заём') },
+            div: {
+                zero: t('деление на ноль'),
+                triv: t('без счёта (÷1, ÷10, 0÷n)'),
+                two: t('пополам'),
+                five: t('пятёрки'),
+                small: t('тройки и четвёрки'),
+                nine: t('девятки'),
+                core: t('ядро 6·7·8'),
+                round: t('круглые'),
+                tworound: t('деление на круглое'),
+                twoPlain: t('двузначный ответ без сноса'),
+                twoCarry: t('двузначный ответ со сносом')
+            },
             mul: {
                 triv: t('без счёта (×0, ×1, ×10)'),
                 two: t('удвоение'),
@@ -8637,9 +8796,11 @@
             add: ['0', '1', '2', 'h'],
             sub: ['0', '1', '2', 'h'],
             mul: ['triv', 'two', 'five', 'small', 'nine', 'core',
+                  'round', 'tworound', 'twoPlain', 'twoCarry'],
+            div: ['zero', 'triv', 'two', 'five', 'small', 'nine', 'core',
                   'round', 'tworound', 'twoPlain', 'twoCarry']
         };
-        const CLASS_OP_ORDER = ['add', 'sub', 'mul'];
+        const CLASS_OP_ORDER = ['add', 'sub', 'mul', 'div'];
         const CLASS_MIN_SAMPLE = 20;   // ниже этого считать рано
 
         // Строки разбора: [{ topicKey, opKey, level, rows: [{ key, title, right, wrong, acc, sec }] }]
@@ -10844,7 +11005,7 @@
                 });
             } else {
                 correctAnswer = problem.answer;
-                const fakeNums = buildDistractors(opKey, problem.a, problem.b, correctAnswer, isNegative, 3);
+                const fakeNums = buildDistractors(opKey, problem.a, problem.b, correctAnswer, isNegative, 3, level);
                 let arr = shuffleArray([correctAnswer, ...fakeNums]);
                 arr.forEach(ans => {
                     const b = document.createElement('button');
