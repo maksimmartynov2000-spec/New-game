@@ -1795,7 +1795,7 @@
             "Экзамен сдан!": "Challenge complete!",
             "📋 Разбор ошибок": "📋 Review mistakes",
             "📋 Разбор ошибок (%1)": "📋 Review mistakes (%1)",
-            "⏱️ Время: %1\\n✅ Верно: %2 | ❌ Ошибок: %3": "⏱️ Time: %1\\n✅ Correct: %2 | ❌ Wrong: %3",
+            "⏱️ Время: %1\n✅ Верно: %2 | ❌ Ошибок: %3": "⏱️ Time: %1\n✅ Correct: %2 | ❌ Wrong: %3",
             "⏱️ Время: %1  |  ✅ %2  |  ❌ %3  |  🧩 Пазлов собрано: %4": "⏱️ Time: %1  |  ✅ %2  |  ❌ %3  |  🧩 Puzzles finished: %4",
             "твой ответ": "your answer",
             "✓ верно": "✓ correct",
@@ -1941,7 +1941,7 @@
             "Уверенно": "Confident",
             "В работе": "In progress",
             "ждёт": "waiting",
-            "Следующая звезда открывается золотом по точности и количеству.\\n                Скорость ничего не открывает — это ориентир, и только алмаз с легендой\\n                берутся за все три лесенки сразу.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything — it's just a guide, and only diamond and legend need all three at once.",
+            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир, и только алмаз с легендой\n                берутся за все три лесенки сразу.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything — it's just a guide, and only diamond and legend need all three at once.",
             "без перехода": "no carrying",
             "дополнение до круглого": "making ten",
             "полный переход": "carrying",
@@ -2044,7 +2044,7 @@
             "Этот код отозвал репетитор.": "Your tutor revoked that code.",
             "Не удалось открыть по этому коду.": "Couldn't open anything with that code.",
             "Открыто!": "Unlocked!",
-            "Раздел «%1» теперь доступен.\\n": "Section “%1” is now open.\\n",
+            "Раздел «%1» теперь доступен.\n": "Section “%1” is now open.\n",
             "В этом разделе тебе открыто: %1. Остальное — по коду от репетитора.": "In this section you have: %1. The rest needs a code from your tutor.",
             "Кроме целых положительных пока ничего не открыто.": "Nothing beyond positive whole numbers is open yet.",
             "Открыто кодами: ": "Opened with codes: ",
@@ -7013,7 +7013,7 @@
                 closeLockedPanel();
                 await showNotice({
                     title: t('Открыто!'),
-                    text: tf('Раздел «%1» теперь доступен.\\n', SECTION_TITLES[data.section] || data.section)
+                    text: tf('Раздел «%1» теперь доступен.\n', SECTION_TITLES[data.section] || data.section)
                         + tf('Загляни в настройку испытаний.')
                 });
                 resetConfigScreen();
@@ -7307,7 +7307,7 @@
         // или скопировать, а исчезающая через три секунды всплывашка для этого не годится.
         function showCodeResult(code, who, sec, grant) {
             return openAppDialog(undefined, (card, submit) => {
-                dlgHead(card, t('Код готов'), tf('Для ученика %1.\\nОткроет: %2 — %3.', who, sec.title.replace(/^\S+\s/, ''), grantHuman(sec, grant)));
+                dlgHead(card, t('Код готов'), tf('Для ученика %1.\nОткроет: %2 — %3.', who, sec.title.replace(/^\S+\s/, ''), grantHuman(sec, grant)));
 
                 const big = document.createElement('div');
                 big.className = 'code-big';
@@ -10162,8 +10162,8 @@
                 // а исчезающее через три секунды сообщение для этого не годится.
                 await showNotice({
                     title: t('Пароль изменён'),
-                    text: tf('Ученик: %1\\nНовый пароль: %2\\n\\nПередай его — старый больше не работает,', code, newPw)
-                        + tf('\\nа устройства, где он уже был введён, попросят войти заново.')
+                    text: tf('Ученик: %1\nНовый пароль: %2\n\nПередай его — старый больше не работает,', code, newPw)
+                        + tf('\nа устройства, где он уже был введён, попросят войти заново.')
                 });
             } catch (e) {
                 showToast(t('Не удалось подключиться. Проверь интернет.'), 'error');
@@ -11213,7 +11213,7 @@
             if (!gameActive) return;
             gameActive = false;
             document.getElementById('winDesc').innerText =
-                tf('⏱️ Время: %1\\n✅ Верно: %2 | ❌ Ошибок: %3', formatTime(totalSeconds), correctCount, wrongCount);
+                tf('⏱️ Время: %1\n✅ Верно: %2 | ❌ Ошибок: %3', formatTime(totalSeconds), correctCount, wrongCount);
 
             // Кнопка разбора появляется, только если разбирать действительно есть что
             const mistakesBtn = document.getElementById('btnWinMistakes');
