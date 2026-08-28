@@ -628,7 +628,9 @@
         .timer-bar-container { width: 100%; height: 5px; background: rgba(255,255,255,0.05); border-radius: 3px; margin-bottom: 12px; overflow: hidden; }
         .timer-bar { width: 100%; height: 100%; background: var(--cyan); }
         .math-question { font-size: 2.2rem; font-weight: bold; margin-bottom: 14px; color: var(--text-light); }
-        .answers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        /* Зазор был 8 px. Для пальца это мало: половина промахов — это попадание
+           в соседнюю кнопку через слишком узкую щель. */
+        .answers-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 
         .btn-answer {
             background: rgba(6, 182, 212, 0.06); border: 1px solid rgba(6, 182, 212, 0.3);
@@ -637,7 +639,14 @@
             min-height: 64px; display: flex; align-items: center; justify-content: center;
             text-align: center; line-height: 1.15;
         }
-        .btn-answer:active { transform: scale(0.95); background: rgba(6, 182, 212, 0.2); }
+        /* Подсветка нажатия ведётся вручную, а не через :active.
+           Причина: на тач-экране :active держится, пока палец не отпущен, — даже если
+           палец давно ушёл с кнопки. А ответ в этом случае НЕ засчитывается: браузер
+           отдаёт click, только если палец опустился и поднялся на одном элементе.
+           То есть кнопка выглядела нажатой, когда нажатия уже не было, и учила ровно
+           обратному тому, как всё работает: ткнул не туда — увёл палец — спасся.
+           Теперь подсветка гаснет в тот момент, когда палец пересёк край. */
+        .btn-answer.pressed { transform: scale(0.95); background: rgba(6, 182, 212, 0.2); }
         .btn-answer.locked { pointer-events: none; }
         .btn-answer.locked:not(.btn-correct):not(.btn-wrong):not(.btn-almost) { opacity: 0.35; }
         .btn-answer.btn-correct {
@@ -651,6 +660,14 @@
         .btn-answer.btn-almost {
             border-color: #f59e0b !important; background: rgba(245, 158, 11, 0.22) !important;
             opacity: 1 !important;
+        }
+
+        /* Отмена промаха существует с самого начала, но догадаться о ней невозможно:
+           никакого сигнала не было. Поэтому первые несколько запусков подсказываем
+           словами, дальше строка исчезает навсегда. */
+        .tap-hint {
+            margin-top: 10px; text-align: center; font-size: 0.72rem;
+            color: #64748b; line-height: 1.3; display: none;
         }
 
         .floating-reward {
@@ -1543,6 +1560,7 @@
             </div>
             <div class="math-question" id="mathQuestion">Загрузка...</div>
             <div class="answers-grid" id="answersGrid"></div>
+            <div class="tap-hint" id="tapHint">Ткнул не туда? Не отпускай палец — уведи его с кнопки.</div>
         </div>
     </div>
 
@@ -9481,6 +9499,104 @@
             combo: 0
         };
 
+        // ===================== ПОДСВЕТКА НАЖАТИЯ =====================
+        // Логику ответа это не меняет вообще. Ответ по-прежнему выдаёт click, а браузер
+        // отдаёт click, только если палец опустился и поднялся на одной и той же кнопке.
+        // То есть отмена промаха — увести палец, не отпуская, — работала всегда. Не работало
+        // другое: об этом было невозможно догадаться, потому что кнопка под пальцем
+        // продолжала выглядеть нажатой и после того, как палец с неё ушёл.
+        //
+        // Поэтому подсветку ведём сами. Хит-тест идёт по координатам, а не по e.target:
+        // при касании браузер захватывает указатель на элемент, получивший pointerdown,
+        // и все последующие события приходят ему же, где бы палец ни находился, — то есть
+        // e.target соврал бы ровно в том случае, ради которого всё и делается.
+        let pressedBtn = null, pressedPointer = null;
+
+        function setPressed(btn) {
+            if (pressedBtn === btn) return;
+            if (pressedBtn) pressedBtn.classList.remove('pressed');
+            pressedBtn = btn;
+            if (pressedBtn) pressedBtn.classList.add('pressed');
+        }
+        function clearPressed() { setPressed(null); pressedPointer = null; }
+
+        // Кнопка под точкой — или null, если там пусто либо другая кнопка. Вторая
+        // подсвечиваться не должна: палец на ней не опускался, ответа по ней не будет,
+        // и подсветка обещала бы то, чего не случится.
+        function pointerOverArmed(x, y, armed) {
+            const el = document.elementFromPoint(x, y);
+            return !!(el && armed && armed.contains(el));
+        }
+
+        (() => {
+            const grid = document.getElementById('answersGrid');
+            let armed = null;
+            let left = false;   // палец хоть раз пересёк край кнопки
+
+            grid.addEventListener('pointerdown', (e) => {
+                const btn = e.target.closest('.btn-answer');
+                if (!btn || btn.classList.contains('locked')) return;
+                // Снимаем захват указателя: без этого pointermove при касании уходит
+                // только этой кнопке, и понять, что палец ушёл, было бы нечем.
+                if (btn.hasPointerCapture && btn.hasPointerCapture(e.pointerId)) {
+                    btn.releasePointerCapture(e.pointerId);
+                }
+                armed = btn;
+                left = false;
+                pressedPointer = e.pointerId;
+                setPressed(btn);
+            });
+
+            // Слушаем на документе: палец уходит за пределы сетки, и события там уже не её.
+            document.addEventListener('pointermove', (e) => {
+                if (!armed || e.pointerId !== pressedPointer) return;
+                if (!pointerOverArmed(e.clientX, e.clientY, armed)) left = true;
+                // Вернуться назад нельзя: ушёл — значит не нажал. Это правило простое,
+                // и оно должно быть одним для пальца и для мыши. При касании браузер и
+                // сам отменяет тап, стоит увести палец подальше, а мышь click бы отдала —
+                // и одно и то же движение считалось бы по-разному.
+                setPressed(left ? null : armed);
+            }, { passive: true });
+
+            // Тот же запрет, но уже для события ответа: клик по кнопке, с которой уходили,
+            // не считается. Гасим на перехвате, до обработчиков самих кнопок.
+            grid.addEventListener('click', (e) => {
+                if (!left) return;
+                const btn = e.target.closest('.btn-answer');
+                if (!btn || btn !== armed) return;
+                e.stopPropagation();
+                e.preventDefault();
+            }, true);
+
+            const done = (e) => {
+                if (e && e.pointerId !== pressedPointer && pressedPointer !== null) return;
+                clearPressed();
+                // armed и left держим до конца текущего клика: click приходит после
+                // pointerup, и перехватчику выше надо знать, уходил ли палец.
+                setTimeout(() => { armed = null; left = false; }, 0);
+            };
+            document.addEventListener('pointerup', done);
+            document.addEventListener('pointercancel', done);
+            // Палец увели за край экрана — pointerup может не прийти вовсе.
+            window.addEventListener('blur', () => done(null));
+        })();
+
+        // Подсказка про отмену промаха: первые пять испытаний показываем, дальше никогда.
+        // Счётчик лежит на устройстве, а не в профиле: это подсказка про то, как трогать
+        // экран, и синхронизировать её между устройствами незачем — на новом планшете
+        // она нужна снова.
+        const TAP_HINT_KEY = 'mathCitadelTapHint_v1';
+        const TAP_HINT_RUNS = 5;
+        function maybeShowTapHint() {
+            const el = document.getElementById('tapHint');
+            if (!el) return;
+            let runs = 0;
+            try { runs = Number(localStorage.getItem(TAP_HINT_KEY)) || 0; } catch (e) { runs = TAP_HINT_RUNS; }
+            if (runs >= TAP_HINT_RUNS) { el.style.display = 'none'; return; }
+            el.style.display = 'block';
+            try { localStorage.setItem(TAP_HINT_KEY, String(runs + 1)); } catch (e) { /* хранилище недоступно */ }
+        }
+
         let answerLocked = false;          // блокирует повторный тап, пока показываем разбор ошибки
         let currentIsFractionArith = false; // true только для +,-,×,÷ над дробями (нужно для проверки "забыл сократить")
 
@@ -9613,6 +9729,7 @@
         }
         function startGame() {
             gameActive = true;
+            maybeShowTapHint();
             sessionMistakes = []; // новое испытание — разбор начинается с чистого листа
             // Отложенные пазлы тоже: показывать прошлый выигрыш вместе со статистикой
             // текущего испытания было бы враньём, а картинка и так лежит в коллекции.
