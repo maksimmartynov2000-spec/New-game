@@ -2554,27 +2554,6 @@
 
         // --- ОБЩИЕ ТАБЛИЦЫ СЛОЖНОСТИ (единые для + и - режимов чисел) ---
         const ADD_SUB_RANGE = { 1: 10, 2: 20, 3: 50, 4: 100, 5: 200 };
-        // В отрицательном режиме доля примеров с нулём (умножение на 0, деление на/в 0) снижена —
-        // не больше 5% суммарно, как и для остальных "нулевых" случаев
-        const MUL_ZERO_CHANCE_NEG = 0.04;
-        const DIV_ZERO_CHANCE_NEG = 0.04;
-        // Делители и потолки частного для ОТРИЦАТЕЛЬНОГО деления. У положительного
-        // своя схема — зеркало умножения, см. ниже.
-        const DIVISOR_POOL = {
-            1: [1, 2, 5, 10],
-            2: [1, 2, 3, 4, 5, 10],
-            3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            4: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
-            5: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        };
-        const QUOTIENT_MAX = { 1: 5, 2: 10, 3: 15, 4: 25, 5: 50 };
-
-        // Таблицы для ОТРИЦАТЕЛЬНОГО умножения. У положительного своя схема — см. ниже.
-        const MUL_TABLE = {
-            1: [1, 2, 5, 10],
-            2: [1, 2, 3, 4, 5, 10],
-            3: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        };
 
         // ===================== УМНОЖЕНИЕ ПОЛОЖИТЕЛЬНЫХ =====================
         //
@@ -2753,6 +2732,78 @@
                 ['small', 0.04], ['nine', 0.04], ['core', 0.11], ['round', 0.06],
                 ['tworound', 0.12], ['twoPlain', 0.14], ['twoCarry', 0.40]]
         };
+
+        // ===================== ОТРИЦАТЕЛЬНЫЕ УМНОЖЕНИЕ И ДЕЛЕНИЕ =====================
+        //
+        // Здесь знак — НЕ содержание. Правило «одинаковые дают плюс, разные минус»
+        // осваивается за один урок и дальше просто применяется; вся оставшаяся работа
+        // арифметическая, то есть ровно та, что уже разобрана у положительных. Поэтому
+        // отрицательное умножение — это положительное умножение плюс знак, а
+        // отрицательное деление — положительное деление плюс знак. Своих таблиц у них
+        // больше нет: MUL_TABLE, DIVISOR_POOL и QUOTIENT_MAX держались только ради них.
+        //
+        // Что это чинит. Старая схема брала первый множитель из списка вида {1,2,5,10},
+        // а второй наугад до десяти. Замер: на первой звезде 61,6% примеров не требовали
+        // счёта вообще (×0, ×1, ×10), а на четвёртой и пятой таблицы умножения не было
+        // ВОВСЕ — там первый множитель шёл из 10…20 и 10…99, и факты таблицы просто
+        // выпадали. Примеры выглядели как «−33 × 1» и «−52 × 10». У деления то же самое:
+        // 57,8% без счёта на первой звезде.
+        //
+        // Почему НЕ зеркалим положительные целиком. Двузначного на однозначное
+        // («−78 × (−7)») здесь нет намеренно. Если арифметика идёт на пределе, знак
+        // приписывается в последний момент почти не думая — то есть навык, ради которого
+        // раздел существует, тренируется хуже всего там, где считается самым сложным.
+        // Потолок отрицательных — таблица и круглые. При вдвое более коротком примере
+        // за то же время выходит вдвое больше знаковых решений.
+        //
+        // Пятая звезда. У положительных её занимает двузначное на однозначное, а его мы
+        // не берём. Содержание ей даёт «двузначное на круглое» (−24 × (−30), −720 ÷ (−30)):
+        // приём «убрать ноль и посчитать» лёгкий, то есть принципу не противоречит, но
+        // без него пятая звезда оказывалась ТОЧНОЙ копией четвёртой — замер показывал
+        // 1153 разных примера против 1155.
+        const NEG_MUL_SHARES = {
+            1: MUL_SHARES[1],
+            2: MUL_SHARES[2],
+            3: MUL_SHARES[3],
+            4: MUL_SHARES[4],
+            5: [['triv', 0.01], ['two', 0.03], ['five', 0.03], ['small', 0.05], ['nine', 0.05],
+                ['core', 0.13], ['round', 0.35], ['tworound', 0.35]]
+        };
+        const NEG_DIV_SHARES = {
+            1: DIV_SHARES[1],
+            2: DIV_SHARES[2],
+            3: DIV_SHARES[3],
+            4: DIV_SHARES[4],
+            5: [['zero', 0.01], ['triv', 0.01], ['two', 0.03], ['five', 0.03], ['small', 0.05],
+                ['nine', 0.05], ['core', 0.12], ['round', 0.35], ['tworound', 0.35]]
+        };
+
+        function pickFromShares(rows) {
+            let r = Math.random();
+            for (let i = 0; i < rows.length; i++) {
+                r -= rows[i][1];
+                if (r < 0) return rows[i][0];
+            }
+            return rows[rows.length - 1][0];
+        }
+
+        // Пара множителей по имени группы. Общая для обоих режимов: положительный
+        // вызывает её через свои доли, отрицательный — через свои. Двузначное на
+        // однозначное сюда не входит: у него своя механика полос, и в долях
+        // отрицательных его не бывает — genMulPositive разбирает этот случай сам.
+        //
+        // Незнакомое имя группы не роняет генератор. Опечатка в таблице долей — это
+        // ошибка разработчика, и ловить её должны проверки (см. «генератор знает
+        // каждую группу, названную в долях»), а не ученик посреди занятия: исключение
+        // здесь означало бы, что пример не отрисуется вовсе и экран замрёт.
+        function mulPairForGroup(group) {
+            if (group === 'two') {
+                return pickMulFact(Math.random() < MUL_TWO_EXT_SHARE
+                    ? MUL_GROUPS.twoExt : MUL_GROUPS.two);
+            }
+            if (group === 'tworound') return pickMulFact(MUL_TWO_ROUND);
+            return pickMulFact(MUL_GROUPS[group] || MUL_GROUPS.small);
+        }
 
         // --- "МЕШОК" ЗНАКОВ: гарантирует, что все 4 комбинации (+/+ +/- -/+ -/-)
         // встретятся равномерно, но порядок внутри цикла остаётся случайным ---
@@ -2963,18 +3014,11 @@
 
         function genMulPositive(level) {
             const group = pickMulGroup(level);
-            let pair;
-            if (group === 'two') {
-                // Продолжение (2 × 11…15) — четверть группы: 2 × 13 полезно, 2 × 7 полезнее.
-                pair = pickMulFact(Math.random() < MUL_TWO_EXT_SHARE
-                    ? MUL_GROUPS.twoExt : MUL_GROUPS.two);
-            } else if (group === 'tworound') {
-                pair = pickMulFact(MUL_TWO_ROUND);
-            } else if (group === 'twoPlain' || group === 'twoCarry') {
-                pair = genMulTwoDigit(group === 'twoCarry');
-            } else {
-                pair = pickMulFact(MUL_GROUPS[group]);
-            }
+            // Продолжение двойки (2 × 11…15) и двузначное на круглое разбираются
+            // в mulPairForGroup — она общая с отрицательным режимом.
+            const pair = (group === 'twoPlain' || group === 'twoCarry')
+                ? genMulTwoDigit(group === 'twoCarry')
+                : mulPairForGroup(group);
 
             // Порядок случайный: «тринадцать умножить на два» и «два умножить на
             // тринадцать» читаются по-разному, и вторая форма встречается реже, значит
@@ -3074,28 +3118,12 @@
         }
 
         function genMulNegative(level) {
-            if (Math.random() < MUL_ZERO_CHANCE_NEG) {
-                // Намеренный, управляемый случай "умножение на 0" — знак ненулевого множителя
-                // берём напрямую (не через выбор комбинации), как и в аналогичном случае деления на 0
-                const maxOther = level <= 3 ? 10 : (level === 4 ? 20 : 99);
-                const other = randInt(1, maxOther) * randSign();
-                const zeroFirst = Math.random() < 0.5;
-                const a = zeroFirst ? 0 : other;
-                const b = zeroFirst ? other : 0;
-                return { text: `${a} × ${fmt(b)}`, answer: 0, a, b };
-            }
-            let magA, magB;
-            if (level <= 3) {
-                const table = MUL_TABLE[level];
-                magA = table[randInt(0, table.length - 1)];
-                magB = randInt(1, 10);
-            } else if (level === 4) {
-                magA = randInt(10, 20);
-                magB = randInt(1, 10);
-            } else {
-                magA = randInt(10, 99);
-                magB = randInt(1, 10);
-            }
+            // Умножение на ноль отдельным случаем больше не нужно: ноль входит в группу
+            // «без счёта» наравне с единицей и десяткой и получает её долю.
+            const pair = mulPairForGroup(pickFromShares(NEG_MUL_SHARES[level] || NEG_MUL_SHARES[5]));
+            const swap = Math.random() < 0.5;
+            const magA = swap ? pair[1] : pair[0];
+            const magB = swap ? pair[0] : pair[1];
             const [s1, s2] = comboToSigns(pickIntegerSignCombo('mul', level));
             const a = magA * s1;
             const b = magB * s2;
@@ -3103,17 +3131,34 @@
         }
 
         function genDivNegative(level) {
-            if (Math.random() < DIV_ZERO_CHANCE_NEG) {
-                const dividendMag = randInt(1, Math.max(10, QUOTIENT_MAX[level] * 2));
-                const dividend = dividendMag * randSign();
+            const group = pickFromShares(NEG_DIV_SHARES[level] || NEG_DIV_SHARES[5]);
+
+            if (group === 'zero') {
+                // «На ноль делить нельзя» — правило, а не пример, и доля у него теперь
+                // убывающая, как у положительных, а не фиксированные 4% всю игру.
+                const dividend = randInt(2, 99) * randSign();
                 return { text: `${dividend} ÷ 0`, answer: null, noSolution: true, a: dividend, b: 0 };
             }
-            const pool = DIVISOR_POOL[level];
-            const divisorMag = pool[randInt(0, pool.length - 1)];
-            const allowZeroQuotient = Math.random() < 0.05; // нулевое частное — редкость, не больше ~5%
-            const quotientMag = allowZeroQuotient ? randInt(0, QUOTIENT_MAX[level]) : randInt(1, QUOTIENT_MAX[level]);
-            const [s1, s2] = comboToSigns(pickIntegerSignCombo('div', level)); // s1 — знак делителя, s2 — знак частного
-            const divisor = divisorMag * s1;
+
+            // Пара берётся у положительного деления — там уже перечислены именно ЗАДАЧИ
+            // НА ДЕЛЕНИЕ, а не факты умножения, поэтому квадраты не перекошены.
+            let pair;
+            if (group === 'two') {
+                pair = pickMulFact(Math.random() < MUL_TWO_EXT_SHARE
+                    ? DIV_GROUPS.twoExt : DIV_GROUPS.two);
+            } else if (group === 'tworound') {
+                pair = pickMulFact(DIV_TWO_ROUND);
+            } else {
+                // Незнакомая группа не роняет генератор — по той же причине, что и в
+                // умножении: опечатку в таблице долей ловят проверки, а не ученик.
+                pair = pickMulFact(DIV_GROUPS[group] || DIV_GROUPS.small);
+            }
+
+            // Знаки те же, что и раньше: s1 — знак делителя, s2 — знак частного, а знак
+            // делимого получается из них. Так знак ОТВЕТА остаётся управляемым.
+            const [s1, s2] = comboToSigns(pickIntegerSignCombo('div', level));
+            const quotientMag = pair[0] / pair[1];
+            const divisor = pair[1] * s1;
             const quotient = quotientMag === 0 ? 0 : quotientMag * s2;
             const dividend = divisor * quotient;
             return { text: `${dividend} ÷ ${fmt(divisor)}`, answer: quotient, a: dividend, b: divisor };
