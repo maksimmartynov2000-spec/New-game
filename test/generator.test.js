@@ -71,8 +71,24 @@ function loadGenerators() {
                          + '\n;globalThis.DIV_GROUPS = DIV_GROUPS;'
                          + '\n;globalThis.DIV_SHARES = DIV_SHARES;'
                          + '\n;globalThis.DIV_TWO_ROUND = DIV_TWO_ROUND;'
-                         + '\n;globalThis.DIV_ZERO_SHARES = DIV_ZERO_SHARES;',
+                         + '\n;globalThis.DIV_ZERO_SHARES = DIV_ZERO_SHARES;'
+                         + '\n;globalThis.NEG_MUL_SHARES = NEG_MUL_SHARES;'
+                         + '\n;globalThis.NEG_DIV_SHARES = NEG_DIV_SHARES;',
                     sandbox, { filename: 'index.html<script>' });
+
+    // Разбор примера на классы объявлен НИЖЕ метки обрыва — он нужен экранам, а не
+    // генератору. Проверкам он всё равно нужен: инвариант «двузначного на однозначное
+    // в отрицательных нет» удобнее всего формулировать через тот же классификатор,
+    // которым пользуется разбор. Поэтому достаём его отдельно, по телу функции.
+    const fnStart = script.indexOf('function mulClassOf(');
+    if (fnStart < 0) throw new Error('не найдена функция mulClassOf');
+    let depth = 0, fnEnd = script.indexOf('{', fnStart);
+    for (let i = fnEnd; i < script.length; i++) {
+        if (script[i] === '{') depth++;
+        else if (script[i] === '}' && --depth === 0) { fnEnd = i + 1; break; }
+    }
+    vm.runInContext(script.slice(fnStart, fnEnd) + '\n;globalThis.mulClassOf = mulClassOf;',
+                    sandbox, { filename: 'index.html<mulClassOf>' });
     return sandbox;
 }
 
@@ -1430,6 +1446,199 @@ test('на первой звезде примеров заметно больш�
         if (!e.noSolution) seen.add(`${e.a}/${e.b}`);
     }
     assert(seen.size >= 60, `на 1★ всего ${seen.size} разных примеров`);
+});
+
+group('Отрицательные умножение и деление: положительные плюс знак');
+
+// Старая схема брала первый множитель из списка вида {1,2,5,10}, а второй наугад.
+// Замер до правки: 61,6% примеров первой звезды не требовали счёта вообще, а на
+// четвёртой и пятой таблицы умножения не было ВОВСЕ — первый множитель шёл из
+// 10…20 и 10…99, и факты таблицы просто выпадали. Это была худшая клетка приложения.
+test('таблица умножения есть на всех старших звёздах, а не только на третьей', () => {
+    const N = 40000;
+    const coreShare = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) {
+            const e = G.genMulNegative(lvl);
+            const A = Math.abs(e.a), B = Math.abs(e.b);
+            const lo = Math.min(A, B), hi = Math.max(A, B);
+            if (lo >= 6 && lo <= 8 && hi >= 6 && hi <= 8) c++;
+        }
+        return c / N;
+    };
+    assert(Math.abs(coreShare(3) - 0.45) < 0.02, `на 3★ ядра ${(coreShare(3) * 100).toFixed(1)}% вместо 45%`);
+    assert(coreShare(4) > 0.15, `на 4★ ядра ${(coreShare(4) * 100).toFixed(1)}% — было ровно 0`);
+    assert(coreShare(5) > 0.08, `на 5★ ядра ${(coreShare(5) * 100).toFixed(1)}% — было ровно 0`);
+});
+
+test('«без счёта» в отрицательном умножении нигде не больше десятой части', () => {
+    const N = 40000;
+    const triv = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) {
+            const e = G.genMulNegative(lvl);
+            const A = Math.abs(e.a), B = Math.abs(e.b);
+            if (A < 2 || B < 2 || A === 10 || B === 10) c++;
+        }
+        return c / N;
+    };
+    const t = [1, 2, 3, 4, 5].map(triv);
+    assert(t[0] < 0.12, `на 1★ без счёта ${(t[0] * 100).toFixed(1)}% — было 61,6%`);
+    for (let i = 1; i < 5; i++) {
+        assert(t[i] <= t[i - 1] + 0.005, `доля выросла со звездой: ${t[i - 1]} -> ${t[i]}`);
+    }
+    assert(t[4] < 0.03, `на 5★ без счёта ${(t[4] * 100).toFixed(1)}%`);
+});
+
+// Двузначное на однозначное («−78 × (−7)») здесь не берётся намеренно: если
+// арифметика идёт на пределе, знак приписывается в последний момент не думая, и
+// навык, ради которого раздел существует, тренируется хуже всего.
+test('двузначного на однозначное в отрицательных нет', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const e = G.genMulNegative(lvl);
+            const cls = G.mulClassOf(Math.abs(e.a), Math.abs(e.b));
+            assert(cls !== 'twoPlain' && cls !== 'twoCarry',
+                `${e.text} — двузначное на однозначное (${cls})`);
+        }
+    }
+});
+
+// Без этого пятая звезда была ТОЧНОЙ копией четвёртой: замер давал 1153 разных
+// примера против 1155.
+test('пятой звезде даёт содержание двузначное на круглое', () => {
+    const N = 40000;
+    let tw = 0;
+    for (let i = 0; i < N; i++) {
+        const e = G.genMulNegative(5);
+        if (G.mulClassOf(Math.abs(e.a), Math.abs(e.b)) === 'tworound') tw++;
+    }
+    assert(Math.abs(tw / N - 0.35) < 0.02, `двузначного на круглое ${(100 * tw / N).toFixed(1)}% вместо 35%`);
+    let four = 0;
+    for (let i = 0; i < N; i++) {
+        const e = G.genMulNegative(4);
+        if (G.mulClassOf(Math.abs(e.a), Math.abs(e.b)) === 'tworound') four++;
+    }
+    assert(four === 0, 'двузначное на круглое пролезло на четвёртую звезду');
+});
+
+// Опечатка в имени группы больше не роняет генератор — mulPairForGroup подставит
+// запасную. Значит, ловить её обязаны проверки, иначе звезда молча наполнится не тем.
+test('генератор знает каждую группу, названную в долях', () => {
+    // Списки РАЗНЫЕ по режимам, и это главное в проверке. Двузначное на однозначное
+    // умеют только положительные генераторы: у отрицательных ветки для него нет, и
+    // группа молча свалится в запасную, наполнив звезду не тем. Один общий список
+    // такую подмену пропустил бы.
+    const base = Object.keys(G.MUL_GROUPS).concat(['tworound']);
+    const divBase = Object.keys(G.DIV_GROUPS).concat(['tworound', 'zero']);
+    [['умножение', G.MUL_SHARES, base.concat(['twoPlain', 'twoCarry'])],
+     ['умножение (отр.)', G.NEG_MUL_SHARES, base],
+     ['деление', G.DIV_SHARES, divBase.concat(['twoPlain', 'twoCarry'])],
+     ['деление (отр.)', G.NEG_DIV_SHARES, divBase]
+    ].forEach(([name, shares, known]) => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            shares[lvl].forEach(([g]) => {
+                assert(known.indexOf(g) >= 0, `${name}, звезда ${lvl}: группа «${g}» генератору неизвестна`);
+            });
+        }
+    });
+});
+
+test('доли отрицательных по каждой звезде дают ровно единицу', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        const m = G.NEG_MUL_SHARES[lvl].reduce((s, [, p]) => s + p, 0);
+        const d = G.NEG_DIV_SHARES[lvl].reduce((s, [, p]) => s + p, 0);
+        assert(Math.abs(m - 1) < 1e-9, `умножение, звезда ${lvl}: сумма долей ${m}`);
+        assert(Math.abs(d - 1) < 1e-9, `деление, звезда ${lvl}: сумма долей ${d}`);
+    }
+});
+
+test('ответ равен произведению вместе со знаком', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const e = G.genMulNegative(lvl);
+            assert(e.answer === e.a * e.b, `${e.text} даёт ${e.answer}`);
+        }
+    }
+});
+
+test('деление отрицательных: ответ целый, делимое равно частному на делитель', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const e = G.genDivNegative(lvl);
+            if (e.noSolution) {
+                assert(e.b === 0, `«нет решения» не при делении на ноль: ${e.text}`);
+                continue;
+            }
+            assert(Number.isInteger(e.answer), `остаток: ${e.text} = ${e.answer}`);
+            assert(e.a === e.answer * e.b, `${e.text} = ${e.answer} не сходится`);
+        }
+    }
+});
+
+test('делитель в отрицательных всегда однозначный или круглый', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const e = G.genDivNegative(lvl);
+            if (e.noSolution) continue;
+            const B = Math.abs(e.b);
+            const ok = (B >= 1 && B <= 10) || (B % 10 === 0 && B >= 20 && B <= 90);
+            assert(ok, `недопустимый делитель: ${e.text}`);
+        }
+    }
+});
+
+// Раньше «÷ 0» стояло ровно на 4% всю игру. Это правило, а не пример: узнаётся один раз.
+test('доля «÷ 0» в отрицательных убывает со звездой', () => {
+    const N = 60000;
+    const zero = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) if (G.genDivNegative(lvl).noSolution) c++;
+        return c / N;
+    };
+    const z = [1, 2, 3, 4, 5].map(zero);
+    for (let i = 0; i < 5; i++) {
+        const row = G.NEG_DIV_SHARES[i + 1].filter(r => r[0] === 'zero');
+        const want = row.length ? row[0][1] : 0;
+        assert(Math.abs(z[i] - want) < 0.006,
+            `${i + 1}★: «÷ 0» ${(z[i] * 100).toFixed(1)}% вместо ${(want * 100).toFixed(0)}%`);
+        assert(z[i] <= 0.06, `${i + 1}★: «÷ 0» ${(z[i] * 100).toFixed(1)}%`);
+    }
+    assert(z[4] < z[0] - 0.01, `доля не убыла со звездой: ${z[0]} -> ${z[4]}`);
+});
+
+test('таблица есть и в отрицательном делении на всех старших звёздах', () => {
+    const N = 40000;
+    const core = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) {
+            const e = G.genDivNegative(lvl);
+            if (e.noSolution) continue;
+            const q = Math.abs(e.answer), B = Math.abs(e.b);
+            if (q >= 6 && q <= 8 && B >= 6 && B <= 8) c++;
+        }
+        return c / N;
+    };
+    assert(Math.abs(core(3) - 0.45) < 0.02, `на 3★ ядра ${(core(3) * 100).toFixed(1)}% вместо 45%`);
+    assert(core(4) > 0.14, `на 4★ ядра ${(core(4) * 100).toFixed(1)}% — было 3,4%`);
+    assert(core(5) > 0.07, `на 5★ ядра ${(core(5) * 100).toFixed(1)}% — было 1,7%`);
+});
+
+// Знак — предмет раздела, поэтому все четыре комбинации обязаны встречаться, а
+// «оба положительных» остаётся редким: такой пример выглядит случайно попавшим.
+test('встречаются все четыре комбинации знаков, «оба плюса» — редкость', () => {
+    const N = 60000;
+    ['genMulNegative', 'genDivNegative'].forEach(fn => {
+        const seen = { '++': 0, '+-': 0, '-+': 0, '--': 0 };
+        for (let i = 0; i < N; i++) {
+            const e = G[fn](3);
+            if (e.noSolution || e.a === 0 || e.b === 0) continue;
+            seen[(e.a > 0 ? '+' : '-') + (e.b > 0 ? '+' : '-')]++;
+        }
+        Object.keys(seen).forEach(k => assert(seen[k] > 0, `${fn}: комбинация ${k} не встретилась`));
+        const total = Object.values(seen).reduce((a, b) => a + b, 0);
+        assert(seen['++'] / total < 0.10, `${fn}: «оба плюса» ${(100 * seen['++'] / total).toFixed(1)}%`);
+    });
 });
 
 // ---------- итог ----------
