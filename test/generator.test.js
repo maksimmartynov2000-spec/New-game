@@ -73,7 +73,12 @@ function loadGenerators() {
                          + '\n;globalThis.DIV_TWO_ROUND = DIV_TWO_ROUND;'
                          + '\n;globalThis.DIV_ZERO_SHARES = DIV_ZERO_SHARES;'
                          + '\n;globalThis.NEG_MUL_SHARES = NEG_MUL_SHARES;'
-                         + '\n;globalThis.NEG_DIV_SHARES = NEG_DIV_SHARES;',
+                         + '\n;globalThis.NEG_DIV_SHARES = NEG_DIV_SHARES;'
+                         + '\n;globalThis.NEG_ADD_CLASS_SHARES = NEG_ADD_CLASS_SHARES;'
+                         + '\n;globalThis.NEG_PAREN_SHARE = NEG_PAREN_SHARE;'
+                         + '\n;globalThis.NEG_ADD_RANGE = NEG_ADD_RANGE;'
+                         + '\n;globalThis.NEG_ADD_MIN = NEG_ADD_MIN;'
+                         + '\n;globalThis.ADD_SUB_RANGE = ADD_SUB_RANGE;',
                     sandbox, { filename: 'index.html<script>' });
 
     // Разбор примера на классы объявлен НИЖЕ метки обрыва — он нужен экранам, а не
@@ -1639,6 +1644,195 @@ test('встречаются все четыре комбинации знако
         const total = Object.values(seen).reduce((a, b) => a + b, 0);
         assert(seen['++'] / total < 0.10, `${fn}: «оба плюса» ${(100 * seen['++'] / total).toFixed(1)}%`);
     });
+});
+
+group('Отрицательные сложение и вычитание: знак как содержание');
+
+// Класс считаем ТОЧНО, а не по видимому знаку: генератор переворачивает оператор
+// при отображении («7 − (−3)» может показаться как «7 + 3»), поэтому второе число
+// восстанавливаем из ответа. a — всегда первое число, answer = x + y.
+function negParts(e) {
+    const x = e.a, y = e.answer - e.a;
+    let cls;
+    if (Math.sign(x) === Math.sign(y)) cls = 0;                  // модули складываются
+    else if (Math.abs(x) > Math.abs(y)) cls = 1;                 // ноль не переходим
+    else cls = 2;                                                // ноль переходим
+    return { x, y, cls };
+}
+
+test('классы идут ровно по заданным долям', () => {
+    const N = 120000;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        const c = [0, 0, 0];
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            c[negParts(e).cls]++;
+        }
+        G.NEG_ADD_CLASS_SHARES[lvl].forEach((want, i) => {
+            const got = c[i] / N;
+            assert(Math.abs(got - want) < 0.02,
+                `${lvl}★, класс ${i}: ${(got * 100).toFixed(1)}% вместо ${(want * 100)}%`);
+        });
+    }
+});
+
+// Переход через ноль — главная ошибка темы: считают 8 − 3 = 5 и оставляют знак
+// первого числа. До правки доля таких примеров была делом случая.
+test('переход через ноль растёт со звездой и на пятой больше половины', () => {
+    const N = 80000;
+    const cross = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (negParts(e).cls === 2) c++;
+        }
+        return c / N;
+    };
+    const v = [1, 2, 3, 4, 5].map(cross);
+    for (let i = 1; i < 5; i++) assert(v[i] > v[i - 1] - 0.005, `доля упала со звездой: ${v[i - 1]} -> ${v[i]}`);
+    assert(v[4] > 0.5, `на 5★ переход через ноль ${(v[4] * 100).toFixed(1)}%`);
+    assert(v[0] < 0.25, `на 1★ переход через ноль ${(v[0] * 100).toFixed(1)}%`);
+});
+
+// Раньше скобки включались обрывом: ровно 0% на четырёх звёздах и 79,9% на пятой,
+// потому что до пятой генератор сам переворачивал знак и показывал «7 + 3».
+test('скобки нарастают со звездой, а не включаются разом', () => {
+    const N = 80000;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        let par = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (e.text.indexOf('(') >= 0) par++;
+        }
+        const got = par / N, want = G.NEG_PAREN_SHARE[lvl];
+        assert(Math.abs(got - want) < 0.015,
+            `${lvl}★: скобок ${(got * 100).toFixed(1)}% вместо ${(want * 100)}%`);
+    }
+});
+
+// Проверки выше сверяют генератор с ЕГО ЖЕ таблицами — они ловят расхождение кода
+// с настройкой, но не саму настройку: поменяй таблицу, и проверка поедет следом.
+// Поэтому здесь отдельно закреплена ФОРМА, ради которой всё делалось. Мутации
+// «скобки снова обрывом», «минимум снова единица» и «потолки как у положительных»
+// проходили мимо, пока этих трёх проверок не было.
+test('форма: скобки появляются до пятой звезды и на пятой не подавляют счёт', () => {
+    const N = 60000;
+    const share = (lvl) => {
+        let par = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (e.text.indexOf('(') >= 0) par++;
+        }
+        return par / N;
+    };
+    const v = [1, 2, 3, 4, 5].map(share);
+    assert(v[3] > 0.05, `на 4★ скобок ${(v[3] * 100).toFixed(1)}% — запись сваливается на голову разом`);
+    assert(v[3] < v[4] - 0.1, `4★ и 5★ по скобкам почти совпали: ${v[3]} и ${v[4]}`);
+    assert(v[4] > 0.35 && v[4] < 0.65,
+        `на 5★ скобок ${(v[4] * 100).toFixed(1)}% — либо мало, либо звезда перестаёт быть про счёт`);
+});
+
+test('форма: мелких операндов нет нигде, а минимум растёт со звездой', () => {
+    const N = 40000;
+    const smallest = (lvl) => {
+        let m = Infinity;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            const { x, y } = negParts(e);
+            m = Math.min(m, Math.abs(x), Math.abs(y));
+        }
+        return m;
+    };
+    const v = [1, 2, 3, 4, 5].map(smallest);
+    assert(v[0] >= 3, `на 1★ встретился операнд ${v[0]} — «−10 + 1» считать не надо`);
+    for (let i = 1; i < 5; i++) {
+        assert(v[i] >= v[i - 1], `минимум упал со звездой: ${v[i - 1]} -> ${v[i]}`);
+    }
+    assert(v[4] >= 10, `на 5★ минимальный операнд ${v[4]}`);
+});
+
+test('форма: потолки отрицательных ниже положительных', () => {
+    const N = 40000;
+    const biggest = (lvl) => {
+        let m = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            const { x, y } = negParts(e);
+            m = Math.max(m, Math.abs(x), Math.abs(y));
+        }
+        return m;
+    };
+    [3, 4, 5].forEach(lvl => {
+        const got = biggest(lvl), pos = G.ADD_SUB_RANGE[lvl];
+        assert(got < pos, `${lvl}★: потолок отрицательных ${got}, у положительных ${pos} — упор должен быть на знак, а не на разрядность`);
+    });
+    assert(biggest(1) <= 10, 'первая звезда переросла десяток');
+});
+
+test('скобки стоят только вокруг отрицательного второго числа', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (e.text.indexOf('(') >= 0) {
+                assert(e.b < 0, `скобки вокруг неотрицательного: ${e.text}`);
+                assert(e.text.indexOf('(' + e.b + ')') >= 0, `скобки не на месте: ${e.text}`);
+            }
+        }
+    }
+});
+
+test('ответ сходится с записью примера', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const a = G.genAddNegative(lvl);
+            assert(a.answer === a.a + a.b, `сложение: ${a.text} даёт ${a.answer}`);
+            const b = G.genSubNegative(lvl);
+            assert(b.answer === b.a - b.b, `вычитание: ${b.text} даёт ${b.answer}`);
+        }
+    }
+});
+
+// До правки на первой звезде 48,5% примеров содержали операнд не больше двойки —
+// «−10 + 1» считать не надо. Потолки при этом СВОИ, ниже положительных.
+test('модули не ниже минимума и не выше потолка звезды', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        const R = G.NEG_ADD_RANGE[lvl], MIN = G.NEG_ADD_MIN[lvl];
+        for (let i = 0; i < 20000; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            const { x, y } = negParts(e);
+            assert(Math.abs(x) >= MIN && Math.abs(y) >= MIN, `${lvl}★: слишком мелкий операнд в ${e.text}`);
+            assert(Math.abs(x) <= R && Math.abs(y) <= R, `${lvl}★: операнд выше потолка в ${e.text}`);
+            assert(Math.abs(e.answer) <= R, `${lvl}★: ответ выше потолка: ${e.text} = ${e.answer}`);
+        }
+    }
+});
+
+// Знак первого числа фиксируется намеренно. Без этого четверть первой звезды
+// оказывалась вообще не про отрицательные числа: примеры вроде «9 − 4 = 5».
+test('примеры без единого отрицательного числа — редкость', () => {
+    const N = 80000;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        let none = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (e.text.indexOf('-') < 0 && e.answer >= 0) none++;
+        }
+        assert(none / N < 0.04, `${lvl}★: без единого минуса ${(100 * none / N).toFixed(1)}%`);
+    }
+});
+
+// Пары модулей для «сложения модулей» перечисляются, а не разыгрываются
+// последовательно: розыгрыш «второе из остатка» сужает выбор вслед за первым, и на
+// краю остаётся единственный вариант — «−7 − 3» забирал 9,5% первой звезды.
+test('на первой звезде ни один пример не забирает больше двадцатой части', () => {
+    const N = 200000, seen = {};
+    for (let i = 0; i < N; i++) {
+        const e = Math.random() < 0.5 ? G.genAddNegative(1) : G.genSubNegative(1);
+        seen[e.text] = (seen[e.text] || 0) + 1;
+    }
+    const top = Math.max(...Object.values(seen)) / N;
+    assert(top < 0.05, `самый частый пример 1★ берёт ${(top * 100).toFixed(1)}%`);
+    assert(Object.keys(seen).length >= 100, `на 1★ всего ${Object.keys(seen).length} разных примеров`);
 });
 
 // ---------- итог ----------
