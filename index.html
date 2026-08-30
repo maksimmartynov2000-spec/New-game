@@ -2915,7 +2915,15 @@
         // ошибка разработчика, и ловить её должны проверки (см. «генератор знает
         // каждую группу, названную в долях»), а не ученик посреди занятия: исключение
         // здесь означало бы, что пример не отрисуется вовсе и экран замрёт.
-        function mulPairForGroup(group) {
+        // Ноль в отрицательном разделе не учит ничему: у нуля нет знака, и «0 × (−7)» —
+        // это пример на положительное умножение, случайно сюда попавший. Он же
+        // единственный случай, где у ответа не бывает знакового близнеца, а на близнецах
+        // держится весь набор вариантов ответа (см. buildDistractors).
+        const NEG_TRIV_MUL = MUL_GROUPS.triv.filter(pr => pr[0] !== 0 && pr[1] !== 0);
+        const NEG_TRIV_DIV = DIV_GROUPS.triv.filter(pr => pr[0] !== 0);
+
+        function mulPairForGroup(group, noZero) {
+            if (group === 'triv' && noZero) return pickMulFact(NEG_TRIV_MUL);
             if (group === 'two') {
                 return pickMulFact(Math.random() < MUL_TWO_EXT_SHARE
                     ? MUL_GROUPS.twoExt : MUL_GROUPS.two);
@@ -3192,7 +3200,7 @@
         function genMulNegative(level) {
             // Умножение на ноль отдельным случаем больше не нужно: ноль входит в группу
             // «без счёта» наравне с единицей и десяткой и получает её долю.
-            const pair = mulPairForGroup(pickFromShares(NEG_MUL_SHARES[level] || NEG_MUL_SHARES[5]));
+            const pair = mulPairForGroup(pickFromShares(NEG_MUL_SHARES[level] || NEG_MUL_SHARES[5]), true);
             const swap = Math.random() < 0.5;
             const magA = swap ? pair[1] : pair[0];
             const magB = swap ? pair[0] : pair[1];
@@ -3220,6 +3228,8 @@
                     ? DIV_GROUPS.twoExt : DIV_GROUPS.two);
             } else if (group === 'tworound') {
                 pair = pickMulFact(DIV_TWO_ROUND);
+            } else if (group === 'triv') {
+                pair = pickMulFact(NEG_TRIV_DIV);
             } else {
                 // Незнакомая группа не роняет генератор — по той же причине, что и в
                 // умножении: опечатку в таблице долей ловят проверки, а не ученик.
@@ -3370,10 +3380,10 @@
             // ===== ПРИОРИТЕТ 1: самые частые реальные ошибки =====
             let priority = [];
 
-            // Знаковая ошибка — верный модуль, неверный знак (для отрицательных чисел)
-            if (isNegative && correctAnswer !== 0) {
-                pushStructural(priority, -correctAnswer, correctAnswer, isNegative);
-            }
+            // Знаковой ловушки («верный модуль, неверный знак») здесь больше нет: в
+            // отрицательном режиме она приходит из самой пары модулей ниже, а в режиме
+            // «без пар» подмешивать её нельзя — она и создавала бы ту единственную пару,
+            // по которой ответ читался без счёта.
 
             // Разрядные ловушки сложения и вычитания положительных: промах на десяток
             // и, в большинстве примеров, парная к нему единичная. Приоритет высокий —
@@ -3457,22 +3467,95 @@
             // отбрасывает не считая, и слот пропадает зря (см. plausibleWhole).
             const plausible = (v) => plausibleWhole(opKey, a, b, v, isNegative);
 
+            // ===== ОТРИЦАТЕЛЬНЫЕ: НАБОР МОДУЛЕЙ НЕ ДОЛЖЕН УКАЗЫВАТЬ НА ОТВЕТ =====
+            //
+            // Знаковая ловушка стояла первым приоритетом, а остальные варианты имели
+            // разные модули. Получалось «−540, 540, −630, −84»: пара одинаковых цифр
+            // ровно одна, и верный ответ ВСЕГДА в ней. Значит, считать не нужно —
+            // найди пару, примени правило знаков, готово.
+            //
+            // Замер: близнец присутствовал в 96,8–100% примеров, и ответ определялся
+            // парой в 93–100%. В отрицательном сложении и вычитании — ровно 100%, то
+            // есть весь раздел проходился мимо арифметики. Это объясняло и стопроцентную
+            // точность при трёх секундах на пример.
+            //
+            // Чиним не убиранием ловушки — она нужна, — а тем, что пар становится ДВЕ:
+            // «−540, 540, −630, 630». Теперь близнец не подсказывает ничего: чтобы
+            // выбрать, нужно знать и модуль (это арифметика), и знак (это правило).
+            // Каждое знание отсекает половину, вместе они дают ответ — ровно те два
+            // умения, которые тема и проверяет.
+            //
+            // Исключение — примеры с вариантом «Нет решения»: там числовых слотов всего
+            // три, на две пары их не хватает. В этом случае модули делаются РАЗНЫМИ, без
+            // единой пары. Это не подсказка: «Нет решения» ученик и так видит на экране.
+            if (isNegative && correctAnswer !== 0 && count === 3 && !includeNoSolutionDecoy) {
+                const mag = Math.abs(correctAnswer);
+                const mags = [];
+                priority.concat(structural).forEach(v => {
+                    const m = Math.abs(v);
+                    if (m === 0 || m === mag || mags.indexOf(m) >= 0) return;
+                    if (plausible(m) && plausible(-m)) mags.push(m);
+                });
+                // Структурных ловушек может не оказаться вовсе: у отрицательного
+                // сложения разрядные приманки отключены, и весь список — это один
+                // «a − b», который иногда совпадает с ответом по модулю. Тогда второй
+                // модуль строим сами, рядом с ответом. Замер до этого: на первой звезде
+                // общий путь подхватывал 10% примеров и возвращал в них старую утечку.
+                // Пара обязана заставлять СЧИТАТЬ, а не только выбирать знак. Если
+                // второй модуль далеко от ответа («−41 − (−53) = 12» против 94), он
+                // отбрасывается без счёта, и вопрос вырождается в одно правило знаков.
+                // Замер: у вычитания так выходило в 78–90% примеров, потому что весь
+                // его список ловушек в этом режиме — это «a + b».
+                //
+                // Поэтому в большинстве случаев берём модуль рядом с ответом, а
+                // содержательным дальним ловушкам («умножил вместо деления») оставляем
+                // меньшую долю — без них исчез бы целый вид ошибки.
+                const NEAR_PAIR_SHARE = 0.7;
+                const near = mags.filter(m => Math.abs(m - mag) <= Math.max(2, mag * 0.5));
+                let pool = mags;
+                if (near.length > 0 && Math.random() < NEAR_PAIR_SHARE) pool = near;
+                else if (near.length === 0 && Math.random() < NEAR_PAIR_SHARE) pool = [];
+                let second = pool.length > 0 ? pool[randInt(0, pool.length - 1)] : 0;
+                if (!second) {
+                    const spread = Math.max(2, Math.round(mag * 0.2));
+                    for (let i = 0; i < 40 && !second; i++) {
+                        let d = randInt(-spread, spread);
+                        if (d === 0) d = 1;
+                        const cand = mag + d;
+                        if (cand > 0 && cand !== mag) second = cand;
+                    }
+                }
+                if (second) return shuffleArray([-correctAnswer, second, -second]);
+                // Совсем невозможный случай — падаем в общий путь: пустых кнопок быть не должно.
+            }
+
+            // Когда на экране «Нет решения», числовых слотов остаётся три — на две пары
+            // их не хватает. Тогда модули должны стать РАЗНЫМИ: одна пара снова была бы
+            // подсказкой. Здесь это и обеспечивается — в том числе для знаковой ловушки,
+            // которая иначе прошла бы первым приоритетом и вернула ровно ту пару.
+            const noPairMode = isNegative && includeNoSolutionDecoy;
+            const usedMags = new Set([Math.abs(correctAnswer)]);
+            const magFree = (v) => !noPairMode || typeof v !== 'number' || !usedMags.has(Math.abs(v));
+            const take = (v) => {
+                result.push(v); used.add(v);
+                if (typeof v === 'number') usedMags.add(Math.abs(v));
+            };
+
             // Сначала — обязательный приоритет 1 (знак, нулевые кейсы умножения)
             for (const v of priority) {
                 if (result.length >= count) break;
-                if (!used.has(v) && plausible(v)) { result.push(v); used.add(v); }
+                if (!used.has(v) && plausible(v) && magFree(v)) take(v);
             }
 
             // "Нет решения" — отдельная сущность, тоже приоритет 1
             if (includeNoSolutionDecoy && result.length < count && !used.has('NO_SOLUTION')) {
-                result.push('NO_SOLUTION');
-                used.add('NO_SOLUTION');
+                take('NO_SOLUTION');
             }
 
             // Затем — структурные дистракторы, заполняем всё, что осталось (до 3 слотов)
             for (const v of structural) {
                 if (result.length >= count) break;
-                if (!used.has(v) && plausible(v)) { result.push(v); used.add(v); }
+                if (!used.has(v) && plausible(v) && magFree(v)) take(v);
             }
 
             // Остаток — случайный разброс. Масштаб считаем и от ответа, и от величины
@@ -3489,7 +3572,8 @@
                 if (fake === a || fake === b) continue;
                 if (used.has(fake)) continue;
                 if (!plausible(fake)) continue;
-                result.push(fake); used.add(fake);
+                if (!magFree(fake)) continue;
+                take(fake);
             }
 
             // Последний рубеж. Правдоподобных чисел рядом может физически не хватить:
@@ -3519,7 +3603,10 @@
                 if (fake === a || fake === b) continue; // выровнено с основным циклом выше
                 if (used.has(fake)) continue;
                 if (!relax && !plausible(fake)) continue;
-                result.push(fake); used.add(fake);
+                // Модуль-дубль отбрасываем, пока фильтр не снят: после снятия важнее
+                // не оставить пустую кнопку, чем сохранить набор без пар.
+                if (!relax && !magFree(fake)) continue;
+                take(fake);
             }
 
             // Сюда попадаем только если предел выше сработал, то есть от ответа
@@ -3528,7 +3615,7 @@
             // испорчен, но игра продолжается и ученик видит экран, а не зависание.
             let filler = 1;
             while (result.length < count) {
-                if (!used.has(filler)) { result.push(filler); used.add(filler); }
+                if (!used.has(filler)) take(filler);
                 filler++;
             }
 

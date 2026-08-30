@@ -1835,6 +1835,107 @@ test('на первой звезде ни один пример не забир�
     assert(Object.keys(seen).length >= 100, `на 1★ всего ${Object.keys(seen).length} разных примеров`);
 });
 
+group('Варианты ответа в отрицательных: набор модулей не выдаёт ответ');
+
+// Главный инвариант всего набора. Знаковая ловушка стояла первым приоритетом, а
+// остальные варианты имели разные модули — получалось «−540, 540, −630, −84»:
+// пара одинаковых цифр РОВНО ОДНА, и верный ответ всегда в ней. Считать не нужно:
+// найди пару, примени правило знаков, готово.
+//
+// Замер до правки: ответ определялся парой в 93–100% примеров, а в отрицательном
+// сложении и вычитании — ровно в 100%, то есть весь раздел проходился мимо счёта.
+function magnitudePairs(options) {
+    const byMag = {};
+    options.forEach(v => {
+        if (typeof v !== 'number') return;
+        const m = Math.abs(v);
+        byMag[m] = (byMag[m] || 0) + 1;
+    });
+    return Object.keys(byMag).filter(m => byMag[m] > 1).length;
+}
+
+test('пара одинаковых модулей никогда не бывает ровно одна', () => {
+    const cases = [['mul', G.genMulNegative], ['div', G.genDivNegative],
+                   ['add', G.genAddNegative], ['sub', G.genSubNegative]];
+    cases.forEach(([op, gen]) => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 8000; i++) {
+                const e = gen(lvl);
+                if (e.noSolution) continue;
+                const opts = [e.answer, ...G.buildDistractors(op, e.a, e.b, e.answer, true, 3, lvl)];
+                assert(magnitudePairs(opts) !== 1,
+                    `${op} ${lvl}★: ${e.text} = ${e.answer}, варианты ${opts.join(', ')} — ответ виден по паре`);
+            }
+        }
+    });
+});
+
+// Ловушка нужна: без неё знак вообще не проверяется. Чиним не её, а то, что пара
+// была одна.
+test('знаковая ловушка остаётся на экране', () => {
+    const cases = [['mul', G.genMulNegative], ['div', G.genDivNegative],
+                   ['add', G.genAddNegative], ['sub', G.genSubNegative]];
+    cases.forEach(([op, gen]) => {
+        let seen = 0, total = 0;
+        for (let i = 0; i < 4000; i++) {
+            const e = gen(3);
+            if (e.noSolution) continue;
+            total++;
+            const d = G.buildDistractors(op, e.a, e.b, e.answer, true, 3, 3);
+            if (d.indexOf(-e.answer) >= 0) seen++;
+        }
+        assert(seen / total > 0.9, `${op}: неверный знак подмешан лишь в ${(100 * seen / total).toFixed(0)}% примеров`);
+    });
+});
+
+// У нуля нет знака, поэтому «0 × (−7)» ничему в этом разделе не учит — и он
+// единственный случай, где знакового близнеца не бывает вовсе.
+test('ноль не бывает ответом в отрицательных умножении и делении', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            assert(G.genMulNegative(lvl).answer !== 0, `${lvl}★: нулевой ответ в умножении`);
+            const d = G.genDivNegative(lvl);
+            assert(d.noSolution || d.answer !== 0, `${lvl}★: нулевой ответ в делении`);
+        }
+    }
+});
+
+test('вариантов ровно три, все разные и ни один не равен верному', () => {
+    const cases = [['mul', G.genMulNegative], ['div', G.genDivNegative],
+                   ['add', G.genAddNegative], ['sub', G.genSubNegative]];
+    cases.forEach(([op, gen]) => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 6000; i++) {
+                const e = gen(lvl);
+                if (e.noSolution) continue;
+                const d = G.buildDistractors(op, e.a, e.b, e.answer, true, 3, lvl);
+                assert(d.length === 3, `${op} ${lvl}★: вариантов ${d.length} у ${e.text}`);
+                assert(new Set(d).size === 3, `${op} ${lvl}★: повтор среди вариантов у ${e.text}`);
+                assert(d.indexOf(e.answer) < 0, `${op} ${lvl}★: верный ответ продублирован у ${e.text}`);
+            }
+        }
+    });
+});
+
+// Когда на экране «Нет решения», числовых слотов остаётся три — на две пары их не
+// хватает. Тогда модули делаются РАЗНЫМИ: одна пара снова была бы подсказкой.
+test('с вариантом «Нет решения» пар не бывает вовсе', () => {
+    let withDecoy = 0;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const e = G.genDivNegative(lvl);
+            if (e.noSolution) continue;
+            const d = G.buildDistractors('div', e.a, e.b, e.answer, true, 3, lvl);
+            if (d.indexOf('NO_SOLUTION') < 0) continue;
+            withDecoy++;
+            const opts = [e.answer, ...d];
+            assert(magnitudePairs(opts) === 0,
+                `${lvl}★: с «Нет решения» появилась пара — ${opts.join(', ')}`);
+        }
+    }
+    assert(withDecoy > 100, `вариант «Нет решения» встретился лишь ${withDecoy} раз — проверка ничего не проверила`);
+});
+
 // ---------- итог ----------
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
