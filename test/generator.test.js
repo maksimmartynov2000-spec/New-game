@@ -2046,10 +2046,16 @@ group('Варианты ответа в положительных: один р�
 // 91 решалось так: семью три — двадцать один, единица одна, ответ найден. Десятки
 // можно было не считать вовсе.
 test('верную последнюю цифру имеет не только ответ', () => {
-    const cases = [['add', G.genAddPositive], ['sub', G.genSubPositive],
-                   ['mul', G.genMulPositive], ['div', G.genDivPositive]];
-    const N = 12000;
-    cases.forEach(([op, gen]) => {
+    // ОБА раздела. Отрицательные я сначала исключила, решив, что две пары модулей
+    // закрывают вопрос. Они закрывают подсказку по ЗНАКУ: ±m дают цифры d и 10−d,
+    // и верную последнюю цифру по-прежнему имел ровно один вариант — замер показал
+    // 72–94%. Одна проверка на оба раздела не дала бы этому спрятаться.
+    const cases = [['add', G.genAddPositive, false], ['sub', G.genSubPositive, false],
+                   ['mul', G.genMulPositive, false], ['div', G.genDivPositive, false],
+                   ['add', G.genAddNegative, true], ['sub', G.genSubNegative, true],
+                   ['mul', G.genMulNegative, true], ['div', G.genDivNegative, true]];
+    const N = 8000;
+    cases.forEach(([op, gen, neg]) => {
         for (let lvl = 1; lvl <= 5; lvl++) {
             let alone = 0, seen = 0;
             for (let i = 0; i < N; i++) {
@@ -2059,7 +2065,7 @@ test('верную последнюю цифру имеет не только о
                 // это и есть посчитать пример: десяток берётся тем же действием.
                 // Поэтому граница по двум значащим разрядам, а не по одному.
                 if (e.noSolution || Math.abs(e.answer) < 20) continue;
-                const opts = [e.answer, ...G.buildDistractors(op, e.a, e.b, e.answer, false, 3, lvl)];
+                const opts = [e.answer, ...G.buildDistractors(op, e.a, e.b, e.answer, neg, 3, lvl)];
                 if (opts.some(v => typeof v !== 'number')) continue;
                 seen++;
                 if (opts.filter(v => v % 10 === e.answer % 10).length === 1) alone++;
@@ -2067,7 +2073,7 @@ test('верную последнюю цифру имеет не только о
             if (seen < 200) continue;   // многозначных ответов на этой звезде почти нет
             const share = alone / seen;
             assert(share < 0.15,
-                `${op} ${lvl}★: ответ единственный со своей последней цифрой в ${(100 * share).toFixed(1)}% примеров`);
+                `${neg ? 'отр. ' : ''}${op} ${lvl}★: ответ единственный со своей последней цифрой в ${(100 * share).toFixed(1)}% примеров`);
         }
     });
 });

@@ -3628,6 +3628,27 @@
                 if (near.length > 0 && Math.random() < NEAR_PAIR_SHARE) pool = near;
                 else if (near.length === 0 && Math.random() < NEAR_PAIR_SHARE) pool = [];
                 let second = pool.length > 0 ? pool[randInt(0, pool.length - 1)] : 0;
+
+                // Две пары закрывают подсказку ПО ЗНАКУ, но не по последней цифре.
+                // Модули ±m дают цифры d и 10−d, поэтому верную последнюю цифру имел
+                // ровно один вариант: замер давал 72–94% примеров, и «посчитай единицы»
+                // работало здесь ровно так же, как работало в положительных.
+                //
+                // Лечится выбором второго модуля, сравнимого с первым по модулю десять:
+                // тогда все четыре варианта дают цифры d, 10−d, d, 10−d, и одной
+                // единицы мало. Смещение кратно десяти — это та же ошибка «не учёл
+                // десяток», что и в положительных.
+                if (mag >= 20) {
+                    const tens = [];
+                    [10, 20, 10 * Math.min(Math.abs(a), Math.abs(b) || 10)].forEach(st => {
+                        if (!st || st % 10 !== 0) return;
+                        [mag + st, mag - st].forEach(v => {
+                            if (v > 0 && v !== mag && tens.indexOf(v) < 0) tens.push(v);
+                        });
+                    });
+                    if (tens.length) second = tens[randInt(0, tens.length - 1)];
+                }
+
                 if (!second) {
                     const spread = Math.max(2, Math.round(mag * 0.2));
                     for (let i = 0; i < 40 && !second; i++) {
