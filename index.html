@@ -1946,6 +1946,10 @@
             "дополнение до круглого": "making ten",
             "полный переход": "carrying",
             "через сотню": "past a hundred",
+            "складываем модули": "adding the sizes",
+            "не переходим ноль": "not crossing zero",
+            "переходим ноль": "crossing zero",
+            "двойной минус в записи": "minus of a minus",
             "без заёма": "no borrowing",
             "без займа": "no borrowing",
             "вычитание из круглого": "from a round number",
@@ -1967,7 +1971,8 @@
             "деление на круглое": "dividing by a round number",
             "двузначный ответ без сноса": "two-digit answer, no carrying",
             "двузначный ответ со сносом": "two-digit answer with carrying",
-            "режим\\tзвезда\\tтип\\tответов\\tточность\\tсекунд": "mode\\tstar\\ttype\\tanswers\\taccuracy\\tseconds",
+            "режим\tзвезда\tтип\tответов\tточность\tсекунд": "mode\tstar\ttype\tanswers\taccuracy\tseconds",
+            "раздел\tрежим\tзвезда\tтип\tответов\tточность\tсекунд": "section\tmode\tstar\ttype\tanswers\taccuracy\tseconds",
             "Скопировать таблицей": "Copy as a table",
             "Таблица скопирована.": "Table copied.",
             "Пока нечего копировать.": "Nothing to copy yet.",
@@ -6906,7 +6911,7 @@
                         if (isRight) slot[3]++;
                     };
                     bump(struct.cls);
-                    if (struct.hundred) bump('h');
+                    if (struct.extra) bump(struct.extra);
                     persistLocal();
                 },
                 getByClass() { return state.byClass || {}; },
@@ -8281,20 +8286,51 @@
             return mulClassOf(q, b);
         }
 
+        // Разбор одного примера: основной класс плюс, если есть, ВТОРАЯ ось. Вторая ось
+        // считается отдельной строкой и в общую сумму ответов не входит: у положительного
+        // сложения это «через сотню», у отрицательного — «двойной минус в записи».
+        // И то, и другое сочетается с любым основным классом, а не заменяет его.
         function structuralClassOf(meta, problem) {
             if (!meta || !problem) return null;
-            if (meta.category !== 'integer' || meta.isNegative) return null;
+            if (meta.category !== 'integer') return null;
             const a = problem.a, b = problem.b;
             if (typeof a !== 'number' || typeof b !== 'number') return null;
+
+            if (meta.isNegative) {
+                // Умножение и деление отрицательных — те же группы таблицы, что и у
+                // положительных: знак к разбору примера отношения не имеет, он либо
+                // верен, либо нет, и это уже ловит отдельный код ошибки «ошибся в знаке».
+                if (meta.opKey === 'mul') return { cls: mulClassOf(Math.abs(a), Math.abs(b)) };
+                if (meta.opKey === 'div') {
+                    const dcls = divClassOf(Math.abs(a), Math.abs(b));
+                    return dcls ? { cls: dcls } : null;
+                }
+                if (meta.opKey !== 'add' && meta.opKey !== 'sub') return null;
+
+                // Приводим к виду «x + y»: a — всегда первое число, поэтому второе
+                // достаём из ответа. Так разбор не зависит от того, перевернул ли
+                // генератор знак при отображении.
+                const ans = problem.answer;
+                if (typeof ans !== 'number') return null;
+                const x = a, y = ans - a;
+                if (x === 0 || y === 0) return null;
+                let cls;
+                if (Math.sign(x) === Math.sign(y)) cls = 'same';          // модули складываются
+                else if (Math.abs(x) > Math.abs(y)) cls = 'near';         // ноль не переходим
+                else cls = 'cross';                                       // ноль переходим
+                const paren = typeof problem.text === 'string' && problem.text.indexOf('(') >= 0;
+                return { cls, extra: paren ? 'par' : null };
+            }
+
             if (meta.opKey === 'div') {
                 if (a < 0 || b < 0) return null;
                 const cls = divClassOf(a, b);
-                return cls ? { cls, hundred: false } : null;
+                return cls ? { cls } : null;
             }
             if (meta.opKey === 'mul') {
                 if (a < 0 || b < 0) return null;
                 // «Через сотню» — про разряды сложения; к умножению не относится.
-                return { cls: mulClassOf(a, b), hundred: false };
+                return { cls: mulClassOf(a, b) };
             }
             if (meta.opKey !== 'add' && meta.opKey !== 'sub') return null;
             const x = meta.opKey === 'add' ? a : b;
@@ -8302,7 +8338,7 @@
             if (x < 0 || y < 0) return null;
             const carry = (x % 10 + y % 10) >= 10 ? 1 : 0;
             const hundred = (Math.floor(x / 10) % 10 + Math.floor(y / 10) % 10 + carry) >= 10;
-            return { cls: String(unitsClass(x, y)), hundred };
+            return { cls: String(unitsClass(x, y)), extra: hundred ? 'h' : null };
         }
 
         function buildTopicKey(meta) {
@@ -9031,6 +9067,30 @@
             div: ['zero', 'triv', 'two', 'five', 'small', 'nine', 'core',
                   'round', 'tworound', 'twoPlain', 'twoCarry']
         };
+        // Отрицательные сложение и вычитание — свой предмет, свои классы. У умножения
+        // и деления таблицы общие с положительными: там знак не меняет разбор примера.
+        const CLASS_TITLES_NEG_ADDSUB = {
+            same:  t('складываем модули'),
+            near:  t('не переходим ноль'),
+            cross: t('переходим ноль'),
+            par:   t('двойной минус в записи')
+        };
+        const CLASS_ORDER_NEG_ADDSUB = ['same', 'near', 'cross', 'par'];
+        // Строки второй оси: считаются вдобавок к основному классу, поэтому в общую
+        // сумму ответов по клетке не входят — иначе примеры считались бы дважды.
+        const CLASS_SECOND_AXIS = ['h', 'par'];
+
+        function isNegAddSub(sign, op) {
+            return sign === '-' && (op === 'add' || op === 'sub');
+        }
+        function classOrderFor(sign, op) {
+            return isNegAddSub(sign, op) ? CLASS_ORDER_NEG_ADDSUB : CLASS_ORDER[op];
+        }
+        function classTitleFor(sign, op, cls) {
+            if (isNegAddSub(sign, op)) return CLASS_TITLES_NEG_ADDSUB[cls] || cls;
+            return (CLASS_TITLES[op] || {})[cls] || cls;
+        }
+
         const CLASS_OP_ORDER = ['add', 'sub', 'mul', 'div'];
         const CLASS_MIN_SAMPLE = 20;   // ниже этого считать рано
 
@@ -9039,11 +9099,13 @@
             const out = [];
             Object.keys(byClass || {}).forEach(key => {
                 const p = parseTopicKey(key);
-                if (!p || p.category !== 'integer' || p.sign !== '+') return;
-                if (!CLASS_ORDER[p.op]) return;
+                if (!p || p.category !== 'integer') return;
+                if (p.sign !== '+' && p.sign !== '-') return;
+                const order = classOrderFor(p.sign, p.op);
+                if (!order) return;
                 const cell = byClass[key] || {};
                 const rows = [];
-                CLASS_ORDER[p.op].forEach(cls => {
+                order.forEach(cls => {
                     const slot = cell[cls];
                     if (!Array.isArray(slot)) return;
                     const right = slot[0] || 0, wrong = slot[1] || 0;
@@ -9051,18 +9113,24 @@
                     if (!attempts) return;
                     rows.push({
                         key: cls,
-                        title: CLASS_TITLES[p.op][cls] || cls,
+                        title: classTitleFor(p.sign, p.op, cls),
+                        second: CLASS_SECOND_AXIS.indexOf(cls) >= 0,
                         right, wrong, attempts,
                         acc: Math.round(100 * right / attempts),
                         sec: (slot[3] || 0) > 0 ? (slot[2] / slot[3] / 1000) : null
                     });
                 });
-                if (rows.length) out.push({ topicKey: key, opKey: p.op, level: p.level || 1, rows });
+                if (rows.length) out.push({
+                    topicKey: key, opKey: p.op, sign: p.sign,
+                    category: p.category, level: p.level || 1, rows
+                });
             });
-            // Сложение, вычитание, умножение; внутри — по возрастанию звезды.
-            out.sort((x, y) => (x.opKey === y.opKey)
-                ? (x.level - y.level)
-                : (CLASS_OP_ORDER.indexOf(x.opKey) - CLASS_OP_ORDER.indexOf(y.opKey)));
+            // Сначала положительные, потом отрицательные; внутри — по действию и звезде.
+            out.sort((x, y) => (x.sign !== y.sign)
+                ? (x.sign === '+' ? -1 : 1)
+                : (x.opKey === y.opKey)
+                    ? (x.level - y.level)
+                    : (CLASS_OP_ORDER.indexOf(x.opKey) - CLASS_OP_ORDER.indexOf(y.opKey)));
             return out;
         }
 
@@ -9078,11 +9146,13 @@
             cells.forEach(cell => {
                 const head = table.insertRow();
                 head.className = 'cls-head';
-                const total = cell.rows.reduce((n, r) => n + (r.key === 'h' ? 0 : r.attempts), 0);
+                const total = cell.rows.reduce((n, r) => n + (r.second ? 0 : r.attempts), 0);
                 const c1 = head.insertCell(); c1.colSpan = 2;
                 // Подпись берём из общей таблицы, а не тернарником: с появлением
-                // умножения «не add» перестало означать «вычитание».
-                c1.innerText = `${(OP_LABELS[cell.opKey] || cell.opKey).replace(/^\S+\s/, '')} ${cell.level}★`;
+                // умножения «не add» перестало означать «вычитание». Раздел в подписи
+                // обязателен с приходом отрицательных: «Вычитание 3★» бывает и там, и там.
+                c1.innerText = `${categoryLabel(cell.category, cell.sign)} · `
+                    + `${(OP_LABELS[cell.opKey] || cell.opKey).replace(/^\S+\s/, '')} ${cell.level}★`;
                 const c2 = head.insertCell(); c2.colSpan = 2;
                 c2.innerText = tf('%1 ответов', total);
 
@@ -9110,10 +9180,11 @@
         // Текст для отправки — колонки через табуляцию, чтобы вставлялось таблицей.
         function classAsText(st) {
             const cells = classRows((st && st.byClass) || {});
-            const lines = [t('режим\tзвезда\tтип\tответов\tточность\tсекунд')];
+            const lines = [t('раздел\tрежим\tзвезда\tтип\tответов\tточность\tсекунд')];
             cells.forEach(cell => {
                 cell.rows.forEach(r => {
                     lines.push([
+                        categoryLabel(cell.category, cell.sign).toLowerCase(),
                         (OP_LABELS[cell.opKey] || cell.opKey).replace(/^\S+\s/, '').toLowerCase(),
                         cell.level, r.title, r.attempts, r.acc + '%',
                         r.sec === null ? '—' : r.sec.toFixed(2)
