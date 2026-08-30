@@ -2037,6 +2037,94 @@ test('в разборе у троек свой класс, а не разлож�
     assert(tri > 1000, `троек в выборке ${tri} — проверка почти ничего не проверила`);
 });
 
+group('Варианты ответа в положительных: один разряд не даёт ответа');
+
+// У сложения и вычитания ловушка «та же последняя цифра» есть давно и работает.
+// У умножения и деления её не было, и замер показал: среди примеров с ответом от
+// десяти верную последнюю цифру имел ровно один вариант в 74–88% случаев
+// (умножение) и 76–80% (деление). То есть «7 × 13 = 91» при вариантах 20, 78, 84,
+// 91 решалось так: семью три — двадцать один, единица одна, ответ найден. Десятки
+// можно было не считать вовсе.
+test('верную последнюю цифру имеет не только ответ', () => {
+    const cases = [['add', G.genAddPositive], ['sub', G.genSubPositive],
+                   ['mul', G.genMulPositive], ['div', G.genDivPositive]];
+    const N = 12000;
+    cases.forEach(([op, gen]) => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            let alone = 0, seen = 0;
+            for (let i = 0; i < N; i++) {
+                const e = gen(lvl);
+                // Сокращать есть что только там, где у ответа есть десятки, которые
+                // надо считать отдельно. У ответа 10 из «3 + 7» посчитать единицы —
+                // это и есть посчитать пример: десяток берётся тем же действием.
+                // Поэтому граница по двум значащим разрядам, а не по одному.
+                if (e.noSolution || Math.abs(e.answer) < 20) continue;
+                const opts = [e.answer, ...G.buildDistractors(op, e.a, e.b, e.answer, false, 3, lvl)];
+                if (opts.some(v => typeof v !== 'number')) continue;
+                seen++;
+                if (opts.filter(v => v % 10 === e.answer % 10).length === 1) alone++;
+            }
+            if (seen < 200) continue;   // многозначных ответов на этой звезде почти нет
+            const share = alone / seen;
+            assert(share < 0.15,
+                `${op} ${lvl}★: ответ единственный со своей последней цифрой в ${(100 * share).toFixed(1)}% примеров`);
+        }
+    });
+});
+
+// Частичное произведение — ошибка троек, а тройки живут только в отрицательных.
+// В положительных «a» — это просто множитель, и кнопка «4» под примером «4 × 26»
+// тратит слот впустую: замер показывал множитель среди вариантов в 38–42% примеров.
+test('множитель не предлагается как ответ в положительном умножении', () => {
+    const N = 20000;
+    [3, 5].forEach(lvl => {
+        let hit = 0;
+        for (let i = 0; i < N; i++) {
+            const e = G.genMulPositive(lvl);
+            const d = G.buildDistractors('mul', e.a, e.b, e.answer, false, 3, lvl);
+            if (d.indexOf(e.a) >= 0 || d.indexOf(e.b) >= 0) hit++;
+        }
+        assert(hit / N < 0.12,
+            `${lvl}★: множитель среди вариантов в ${(100 * hit / N).toFixed(1)}% примеров`);
+    });
+});
+
+// Смещение должно быть кратно десяти — иначе последняя цифра поедет и ловушка
+// перестанет быть ловушкой.
+test('приманка умножения и деления отличается ровно на десятки', () => {
+    [['mul', G.genMulPositive], ['div', G.genDivPositive]].forEach(([op, gen]) => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 6000; i++) {
+                const e = gen(lvl);
+                if (e.noSolution || Math.abs(e.answer) < 10) continue;
+                const d = G.buildDistractors(op, e.a, e.b, e.answer, false, 3, lvl);
+                const twins = d.filter(v => typeof v === 'number' && v % 10 === e.answer % 10);
+                twins.forEach(v => assert((v - e.answer) % 10 === 0,
+                    `${op} ${lvl}★: ${e.text} = ${e.answer}, приманка ${v} не кратна десятке`));
+            }
+        }
+    });
+});
+
+// В отрицательных набор строится иначе — двумя парами модулей, — и десятичная
+// приманка туда лезть не должна: она сломала бы пары.
+test('в отрицательных десятичная приманка не появляется', () => {
+    [['mul', G.genMulNegative], ['div', G.genDivNegative],
+     ['add', G.genAddNegative], ['sub', G.genSubNegative]].forEach(([op, gen]) => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 4000; i++) {
+                const e = gen(lvl);
+                if (e.noSolution) continue;
+                const opts = [e.answer, ...G.buildDistractors(op, e.a, e.b, e.answer, true, 3, lvl)];
+                const mags = {};
+                opts.forEach(v => { if (typeof v === 'number') { const m = Math.abs(v); mags[m] = (mags[m] || 0) + 1; } });
+                assert(Object.values(mags).filter(c => c > 1).length !== 1,
+                    `${op} ${lvl}★: ${e.text} — снова единственная пара модулей`);
+            }
+        }
+    });
+});
+
 // ---------- итог ----------
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
