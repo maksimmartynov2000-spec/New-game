@@ -191,6 +191,11 @@
         .ladder-row.optional .ladder-name,
         .ladder-row.optional .ladder-icon,
         .ladder-row.optional .ladder-goal { opacity: 0.62; }
+        /* Показатель просел ниже взятой ступени. Значок при этом остаётся: заработанное
+           не отнимаем. Но подпись говорит правду, иначе корона рядом с 80% выглядит
+           поломкой, а не историей. */
+        .ladder-row.slipped .ladder-now { color: #fbbf24; }
+        .ladder-row.slipped .ladder-goal { color: #fbbf24; opacity: 0.85; }
 
         /* --- Достижения по разделам: раздел → действие → пять звёзд --- */
         .ach-section { margin-bottom: 16px; }
@@ -1342,8 +1347,10 @@
         <div class="config-container">
             <div class="config-hint" style="margin-bottom:10px;">
                 Следующая звезда открывается золотом по точности и количеству.
-                Скорость ничего не открывает — это ориентир, и только алмаз с легендой
-                берутся за все три лесенки сразу.
+                Скорость ничего не открывает — это ориентир. Значок самой звезды —
+                алмаз или легенда — даётся, только когда до него дошли все три лесенки
+                сразу; у каждой лесенки при этом своя ступень. Значок ступени взят
+                навсегда, а число рядом — это последняя сотня ответов.
             </div>
             <div id="ladderList"></div>
         </div>
@@ -1941,7 +1948,7 @@
             "Уверенно": "Confident",
             "В работе": "In progress",
             "ждёт": "waiting",
-            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир, и только алмаз с легендой\n                берутся за все три лесенки сразу.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything — it's just a guide, and only diamond and legend need all three at once.",
+            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир. Значок самой звезды —\n                алмаз или легенда — даётся, только когда до него дошли все три лесенки\n                сразу; у каждой лесенки при этом своя ступень. Значок ступени взят\n                навсегда, а число рядом — это последняя сотня ответов.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything \u2014 it's just a guide. The star's own badge \u2014 diamond or legend \u2014 is given only when all three ladders reach it; each ladder still has its own step. A step's badge is yours for good, while the number beside it is your last hundred answers.",
             "без перехода": "no carrying",
             "дополнение до круглого": "making ten",
             "полный переход": "carrying",
@@ -2082,13 +2089,15 @@
             "точность %1%": "%1% accuracy",
             "без переноса": "no carrying",
             "⚡ Скорость": "⚡ Speed",
+            "сейчас %1": "now %1",
+            "Взято: %1": "Earned: %1",
+            "ниже взятой ступени": "below your earned step",
             "%1 ещё %2": "%1 %2 to go",
             "%1: закрыто полностью.": "%1: fully locked.",
             "📈 Продвижение по лесенкам тем: %1 %2": "📈 Ladder progress across topics: %1 %2",
             "Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни\n                        уже не хранятся, а итоги остаются навсегда.": "Every 180 days your sessions fold into a card — the daily details are dropped, but the totals stay forever.",
             "Клетка — действие на своей сложности. Цвет по точности:\n                    зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено,\n                    значок — ранг темы.": "Each cell is one operation at one difficulty. Color shows accuracy: green from 85%, yellow from 65%, red below. Under the percentage is how many you've solved, and the icon is the topic's rank.",
             "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Пустая клетка: до неё ещё не дошли.": "Rows are operations, columns are difficulty levels. Green means solid (85% correct or better), yellow means there's work to do, red means the topic just started. An empty cell means you haven't gotten there yet.",
-            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир, и только алмаз с легендой\n                берутся за все три лесенки сразу.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything — it's just a guide, and only diamond and legend need all three ladders at once.",
             "🧩 Текущий пазл": "🧩 Current puzzle",
             "🧩 Пазл собирается:": "🧩 Puzzle in progress:",
             "🧩 Пазл собран! Покажу в конце испытания.": "🧩 Puzzle complete! I'll show it at the end of the challenge.",
@@ -10193,8 +10202,17 @@
                 }
                 if (next > 5) goalText = t('максимум');
 
+                // Ступень и показатель — РАЗНЫЕ вещи, и на одной строке их надо
+                // различать. Значок берётся из заработанного и остаётся навсегда;
+                // число — это последняя сотня ответов, оно живое и может просесть.
+                // Пока они совпадают, разницы не видно, но у того, кто раз взял
+                // легенду и потом сдал, была бы корона рядом с 80% без объяснения.
+                // Поэтому у числа есть подпись «сейчас», а у просевшего показателя —
+                // отметка: заработанное не отнимаем, но и не делаем вид, что всё как было.
+                const slipped = earned > 0 && ladderTierByMetrics(l.id, m, p.level, p.category) < earned;
                 const row = document.createElement('div');
-                row.className = 'ladder-row' + (optional ? ' optional' : '');
+                row.className = 'ladder-row' + (optional ? ' optional' : '')
+                    + (slipped ? ' slipped' : '');
                 row.innerHTML = `
                     <span class="ladder-icon"></span>
                     <span class="ladder-name"></span>
@@ -10203,9 +10221,15 @@
                     <span class="ladder-goal"></span>`;
                 row.querySelector('.ladder-icon').innerText = l.icon;
                 row.querySelector('.ladder-name').innerText = l.name;
-                row.querySelector('.ladder-tier').innerText = earned > 0 ? TIER_ICONS[earned] : '·';
-                row.querySelector('.ladder-now').innerText = nowText;
-                row.querySelector('.ladder-goal').innerText = goalText;
+                const tierEl = row.querySelector('.ladder-tier');
+                tierEl.innerText = earned > 0 ? TIER_ICONS[earned] : '·';
+                if (earned > 0) tierEl.title = tf('Взято: %1', TIER_NAMES[earned]);
+                row.querySelector('.ladder-now').innerText = nowText === '—'
+                    ? '—' : tf('сейчас %1', nowText);
+                // Ступень не называем ещё раз: её значок стоит тут же, а склонять
+                // «Алмаз» в «при алмазе» пришлось бы отдельной таблицей падежей.
+                row.querySelector('.ladder-goal').innerText = slipped
+                    ? t('ниже взятой ступени') : goalText;
                 rowsWrap.appendChild(row);
             });
 
