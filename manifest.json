@@ -1,6 +1,6 @@
 {
-  "name": "Ключ",
-  "short_name": "Ключ",
+  "name": "Mathkey",
+  "short_name": "Mathkey",
   "description": "Математические испытания, коллекция пазлов и прогресс ученика",
   "start_url": "./index.html",
   "display": "standalone",
