@@ -1,13 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
     <linearGradient id="goldFill" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffd76a"/>
-      <stop offset="1" stop-color="#e0a52a"/>
+      <stop offset="0" stop-color="#ffd75e"/>
+      <stop offset="1" stop-color="#eeab1c"/>
     </linearGradient>
   </defs>
-  <rect width="100" height="100" fill="#0d0e14"/>
-  <circle cx="50" cy="50" r="34" fill="url(#goldFill)"/>
-  <circle cx="50" cy="50" r="35" fill="none" stroke="#34d8e8" stroke-width="1.4" opacity="0.4"/>
-  <rect x="43" y="25" width="14" height="50" rx="6" fill="#0d0e14"/>
-  <rect x="25" y="43" width="50" height="14" rx="6" fill="#0d0e14"/>
+  <!-- Плитка залита целиком: прежняя иконка была на две трети плоским чёрным и
+       на тёмном экране проваливалась. -->
+  <rect width="100" height="100" fill="url(#goldFill)"/>
+  <!-- Замочная скважина одной фигурой, без единой тонкой детали: на 60 px, в котором
+       иконка и живёт, тонкое пропадает. Прежнее бирюзовое кольцо толщиной 1,4 px при
+       прозрачности 0,4 не было видно вовсе. -->
+  <circle cx="50" cy="38" r="19" fill="#0d0e14"/>
+  <path d="M41 50 L34 80 L66 80 L59 50 Z" fill="#0d0e14"/>
 </svg>
