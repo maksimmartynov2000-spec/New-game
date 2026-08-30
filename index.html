@@ -3368,6 +3368,39 @@
             return null;
         }
 
+        // Ловушка «та же последняя цифра» для умножения и деления.
+        //
+        // У сложения и вычитания она есть давно (tenDecoyFor) и работает: замер даёт
+        // 0,3–4,9% примеров, где верную последнюю цифру имеет ровно один вариант.
+        // У умножения таких примеров было 74–88%, у деления 76–80% — то есть посчитать
+        // единицы произведения и выбрать единственный подходящий вариант хватало почти
+        // всегда, а десятки можно было не считать вовсе. «7 × 13 = 91» при вариантах
+        // 20, 78, 84, 91: семью три — двадцать один, единица одна, ответ найден.
+        //
+        // Годится любое смещение, кратное десяти: оно не трогает последнюю цифру.
+        // Самое честное — «не учёл десяток второго множителя»: 7 × 3 = 21 против
+        // 7 × 13 = 91. Разница ровно 10·a, и это настоящая ошибка, а не выдумка.
+        // Для табличных фактов такой сдвиг слишком велик, поэтому там берётся обычная
+        // десятка: 42 против 32 и 52.
+        function sameUnitsDecoy(opKey, a, b, correctAnswer, isNegative) {
+            if (isNegative) return null;                 // у отрицательных свой набор — две пары модулей
+            if (opKey !== 'mul' && opKey !== 'div') return null;
+            if (!Number.isFinite(correctAnswer) || Math.abs(correctAnswer) < 10) return null;
+            const steps = [10];
+            const lo = Math.min(Math.abs(a), Math.abs(b));
+            if (opKey === 'mul' && lo > 1 && lo <= 9) steps.push(10 * lo);
+            const cand = [];
+            steps.forEach(st => {
+                [correctAnswer + st, correctAnswer - st].forEach(v => {
+                    if (v <= 0 || v === correctAnswer || v === a || v === b) return;
+                    if (!plausibleWhole(opKey, a, b, v, isNegative)) return;
+                    if (cand.indexOf(v) < 0) cand.push(v);
+                });
+            });
+            if (!cand.length) return null;
+            return cand[randInt(0, cand.length - 1)];
+        }
+
         // Число с теми же десятками, что у tensSource, и другой цифрой единиц.
         function unitsDecoyValue(tensSource, correctAnswer, shift) {
             const unit = ((correctAnswer % 10) + shift + 10) % 10;
@@ -3458,6 +3491,11 @@
             addSubDecoyPlan(opKey, a, b, correctAnswer, isNegative)
                 .forEach(v => pushStructural(priority, v, correctAnswer, isNegative));
 
+            // То же самое для умножения и деления: без второго числа с той же последней
+            // цифрой ответ берётся счётом одного разряда из двух.
+            const unitsTwin = sameUnitsDecoy(opKey, a, b, correctAnswer, isNegative);
+            if (unitsTwin !== null) pushStructural(priority, unitsTwin, correctAnswer, isNegative);
+
             // Умножение: один из множителей — 0 → берут второй множитель "как есть"
             // (путают с умножением на 1)
             if (opKey === 'mul') {
@@ -3510,9 +3548,13 @@
                 pushStructural(structural, b - a, correctAnswer, isNegative);
                 pushStructural(structural, a + b, correctAnswer, isNegative);
             } else if (opKey === 'mul') {
-                // Частичное произведение. У трёх множителей это ровно ошибка
-                // «перемножил только два»; у обычного примера — «взял множитель за ответ».
-                pushStructural(structural, a, correctAnswer, isNegative);
+                // Частичное произведение — ошибка «перемножил только два». Она бывает
+                // ТОЛЬКО у троек, а тройки живут только в отрицательных: там наружу
+                // отдаётся разложение, и a — это произведение первых двух.
+                // В положительных a — просто множитель, и как вариант он никуда не
+                // годится: «4 × 26 = 104» с кнопкой «4» тратит слот впустую. Замер
+                // показывал множитель среди вариантов в 38–42% примеров.
+                if (isNegative) pushStructural(structural, a, correctAnswer, isNegative);
                 pushStructural(structural, a * (b + 1), correctAnswer, isNegative);
                 pushStructural(structural, a * (b - 1), correctAnswer, isNegative);
                 pushStructural(structural, (a + 1) * b, correctAnswer, isNegative);
