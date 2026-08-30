@@ -1963,6 +1963,7 @@
             "ядро 6·7·8": "core: 6, 7, 8",
             "круглые": "round numbers",
             "двузначное × круглое": "two-digit × round",
+            "три множителя": "three factors",
             "двузначное без переноса": "two-digit, no carrying",
             "двузначное с переносом": "two-digit with carrying",
             "деление на ноль": "dividing by zero",
@@ -2885,13 +2886,48 @@
         // приём «убрать ноль и посчитать» лёгкий, то есть принципу не противоречит, но
         // без него пятая звезда оказывалась ТОЧНОЙ копией четвёртой — замер показывал
         // 1153 разных примера против 1155.
+        // Пятая звезда: три множителя. Правило знаков здесь ОБОБЩАЕТСЯ — считаем минусы,
+        // чётное число даёт плюс, нечётное минус. Это настоящий новый навык, а не более
+        // крупные числа: произведение держим не выше двухсот, чтобы арифметика осталась
+        // мелкой и голова была занята знаками.
+        //
+        // Множители от 2 до 10, произведение до 200 — таких троек ровно 97, это
+        // сопоставимо с 36 фактами таблицы и на треть звезды хватает с запасом.
+        const MUL_TRIPLES = (() => {
+            const out = [];
+            for (let x = 2; x <= 10; x++) {
+                for (let y = x; y <= 10; y++) {
+                    for (let z = y; z <= 10; z++) {
+                        if (x * y * z <= 200) out.push([x, y, z]);
+                    }
+                }
+            }
+            return out;
+        })();
+
+        // Знаки трёх множителей. «Все плюсы» — такая же редкость, как и в паре: пример
+        // без единого минуса в разделе отрицательных чисел выглядит случайно попавшим.
+        function tripleSigns() {
+            for (let guard = 0; guard < 40; guard++) {
+                const s = [0, 0, 0].map(() => (Math.random() < 0.5 ? 1 : -1));
+                if (s.some(v => v < 0) || Math.random() < 0.05) return s;
+            }
+            return [-1, 1, 1];
+        }
+
+        // Запись: у первого множителя знак стоит как есть, у следующих отрицательные
+        // берутся в скобки — «−8 × 3 × (−8)».
+        function formatFactors(vals) {
+            return vals.map((v, i) => (i > 0 && v < 0) ? `(${v})` : String(v)).join(' × ');
+        }
+
         const NEG_MUL_SHARES = {
             1: MUL_SHARES[1],
             2: MUL_SHARES[2],
             3: MUL_SHARES[3],
             4: MUL_SHARES[4],
-            5: [['triv', 0.01], ['two', 0.03], ['five', 0.03], ['small', 0.05], ['nine', 0.05],
-                ['core', 0.13], ['round', 0.35], ['tworound', 0.35]]
+            5: [['triv', 0.01], ['two', 0.02], ['five', 0.02], ['small', 0.03], ['nine', 0.03],
+                ['core', 0.09], ['round', 0.20], ['tworound', 0.25], ['triple', 0.35]]
         };
         const NEG_DIV_SHARES = {
             1: DIV_SHARES[1],
@@ -3205,7 +3241,24 @@
         function genMulNegative(level) {
             // Умножение на ноль отдельным случаем больше не нужно: ноль входит в группу
             // «без счёта» наравне с единицей и десяткой и получает её долю.
-            const pair = mulPairForGroup(pickFromShares(NEG_MUL_SHARES[level] || NEG_MUL_SHARES[5]), true);
+            const group = pickFromShares(NEG_MUL_SHARES[level] || NEG_MUL_SHARES[5]);
+
+            if (group === 'triple') {
+                const t = shuffleArray(pickMulFact(MUL_TRIPLES).slice());
+                const sg = tripleSigns();
+                const vals = t.map((v, i) => v * sg[i]);
+                const answer = vals[0] * vals[1] * vals[2];
+                // Наружу отдаём разложение на ДВА числа, произведение которых равно
+                // ответу: вся машинерия вариантов ответа считает, что a × b = ответ, и
+                // ломать это ради записи из трёх чисел незачем. Частичное произведение
+                // при этом само по себе хорошая ловушка — «перемножил только два».
+                return {
+                    text: formatFactors(vals), answer,
+                    a: vals[0] * vals[1], b: vals[2], triple: true
+                };
+            }
+
+            const pair = mulPairForGroup(group, true);
             const swap = Math.random() < 0.5;
             const magA = swap ? pair[1] : pair[0];
             const magB = swap ? pair[0] : pair[1];
@@ -3448,6 +3501,9 @@
                 pushStructural(structural, b - a, correctAnswer, isNegative);
                 pushStructural(structural, a + b, correctAnswer, isNegative);
             } else if (opKey === 'mul') {
+                // Частичное произведение. У трёх множителей это ровно ошибка
+                // «перемножил только два»; у обычного примера — «взял множитель за ответ».
+                pushStructural(structural, a, correctAnswer, isNegative);
                 pushStructural(structural, a * (b + 1), correctAnswer, isNegative);
                 pushStructural(structural, a * (b - 1), correctAnswer, isNegative);
                 pushStructural(structural, (a + 1) * b, correctAnswer, isNegative);
@@ -8300,7 +8356,12 @@
                 // Умножение и деление отрицательных — те же группы таблицы, что и у
                 // положительных: знак к разбору примера отношения не имеет, он либо
                 // верен, либо нет, и это уже ловит отдельный код ошибки «ошибся в знаке».
-                if (meta.opKey === 'mul') return { cls: mulClassOf(Math.abs(a), Math.abs(b)) };
+                // Три множителя — свой класс: разбирать «12 × 7» по таблице бессмысленно,
+                // это разложение для вариантов ответа, а не то, что видит ученик.
+                if (meta.opKey === 'mul') {
+                    if (problem.triple) return { cls: 'triple' };
+                    return { cls: mulClassOf(Math.abs(a), Math.abs(b)) };
+                }
                 if (meta.opKey === 'div') {
                     const dcls = divClassOf(Math.abs(a), Math.abs(b));
                     return dcls ? { cls: dcls } : null;
@@ -9063,7 +9124,7 @@
             add: ['0', '1', '2', 'h'],
             sub: ['0', '1', '2', 'h'],
             mul: ['triv', 'two', 'five', 'small', 'nine', 'core',
-                  'round', 'tworound', 'twoPlain', 'twoCarry'],
+                  'round', 'tworound', 'twoPlain', 'twoCarry', 'triple'],
             div: ['zero', 'triv', 'two', 'five', 'small', 'nine', 'core',
                   'round', 'tworound', 'twoPlain', 'twoCarry']
         };

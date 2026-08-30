@@ -78,22 +78,25 @@ function loadGenerators() {
                          + '\n;globalThis.NEG_PAREN_SHARE = NEG_PAREN_SHARE;'
                          + '\n;globalThis.NEG_ADD_RANGE = NEG_ADD_RANGE;'
                          + '\n;globalThis.NEG_ADD_MIN = NEG_ADD_MIN;'
-                         + '\n;globalThis.ADD_SUB_RANGE = ADD_SUB_RANGE;',
+                         + '\n;globalThis.ADD_SUB_RANGE = ADD_SUB_RANGE;'
+                         + '\n;globalThis.MUL_TRIPLES = MUL_TRIPLES;',
                     sandbox, { filename: 'index.html<script>' });
 
     // Разбор примера на классы объявлен НИЖЕ метки обрыва — он нужен экранам, а не
     // генератору. Проверкам он всё равно нужен: инвариант «двузначного на однозначное
     // в отрицательных нет» удобнее всего формулировать через тот же классификатор,
     // которым пользуется разбор. Поэтому достаём его отдельно, по телу функции.
-    const fnStart = script.indexOf('function mulClassOf(');
-    if (fnStart < 0) throw new Error('не найдена функция mulClassOf');
-    let depth = 0, fnEnd = script.indexOf('{', fnStart);
-    for (let i = fnEnd; i < script.length; i++) {
-        if (script[i] === '{') depth++;
-        else if (script[i] === '}' && --depth === 0) { fnEnd = i + 1; break; }
-    }
-    vm.runInContext(script.slice(fnStart, fnEnd) + '\n;globalThis.mulClassOf = mulClassOf;',
-                    sandbox, { filename: 'index.html<mulClassOf>' });
+    ['mulClassOf', 'divClassOf', 'structuralClassOf'].forEach(name => {
+        const fnStart = script.indexOf('function ' + name + '(');
+        if (fnStart < 0) throw new Error('не найдена функция ' + name);
+        let depth = 0, fnEnd = script.indexOf('{', fnStart);
+        for (let i = fnEnd; i < script.length; i++) {
+            if (script[i] === '{') depth++;
+            else if (script[i] === '}' && --depth === 0) { fnEnd = i + 1; break; }
+        }
+        vm.runInContext(script.slice(fnStart, fnEnd) + '\n;globalThis.' + name + ' = ' + name + ';',
+                        sandbox, { filename: 'index.html<' + name + '>' });
+    });
     return sandbox;
 }
 
@@ -1478,12 +1481,21 @@ test('таблица умножения есть на всех старших з
 
 test('«без счёта» в отрицательном умножении нигде не больше десятой части', () => {
     const N = 40000;
+    // У троек наружу отдаётся разложение «a × b», а ученик видит три множителя.
+    // Считать надо то, что на экране, иначе «2 × 5 × 7» попадёт в «без счёта»
+    // из-за промежуточной десятки, которой в записи нет.
     const triv = (lvl) => {
         let c = 0;
         for (let i = 0; i < N; i++) {
             const e = G.genMulNegative(lvl);
-            const A = Math.abs(e.a), B = Math.abs(e.b);
-            if (A < 2 || B < 2 || A === 10 || B === 10) c++;
+            const vals = e.triple
+                ? e.text.replace(/[()]/g, '').split(' × ').map(Number).map(Math.abs)
+                : [Math.abs(e.a), Math.abs(e.b)];
+            // Считать нечего, когда не осталось ни одного настоящего умножения:
+            // нетривиальных множителей меньше двух. Для пары это «×1» или «×10», для
+            // тройки — две таких из трёх, чего при потолке в 200 не бывает вовсе:
+            // «10 × 9 × (−2)» десятку упрощает, но 9 × 2 и знаки всё равно за учеником.
+            if (vals.filter(v => v > 1 && v !== 10).length < 2) c++;
         }
         return c / N;
     };
@@ -1502,6 +1514,9 @@ test('двузначного на однозначное в отрицатель
     for (let lvl = 1; lvl <= 5; lvl++) {
         for (let i = 0; i < 20000; i++) {
             const e = G.genMulNegative(lvl);
+            // Тройки исключены осознанно: «2 × 8 × (−8)» отдаёт наружу разложение
+            // 16 × (−8), но на экране двузначного множителя нет — там три однозначных.
+            if (e.triple) continue;
             const cls = G.mulClassOf(Math.abs(e.a), Math.abs(e.b));
             assert(cls !== 'twoPlain' && cls !== 'twoCarry',
                 `${e.text} — двузначное на однозначное (${cls})`);
@@ -1516,9 +1531,10 @@ test('пятой звезде даёт содержание двузначное
     let tw = 0;
     for (let i = 0; i < N; i++) {
         const e = G.genMulNegative(5);
-        if (G.mulClassOf(Math.abs(e.a), Math.abs(e.b)) === 'tworound') tw++;
+        if (!e.triple && G.mulClassOf(Math.abs(e.a), Math.abs(e.b)) === 'tworound') tw++;
     }
-    assert(Math.abs(tw / N - 0.35) < 0.02, `двузначного на круглое ${(100 * tw / N).toFixed(1)}% вместо 35%`);
+    // Четверть звезды: треть забрали три множителя, ради которых звезда и делалась.
+    assert(Math.abs(tw / N - 0.25) < 0.02, `двузначного на круглое ${(100 * tw / N).toFixed(1)}% вместо 25%`);
     let four = 0;
     for (let i = 0; i < N; i++) {
         const e = G.genMulNegative(4);
@@ -1535,9 +1551,11 @@ test('генератор знает каждую группу, названну�
     // группа молча свалится в запасную, наполнив звезду не тем. Один общий список
     // такую подмену пропустил бы.
     const base = Object.keys(G.MUL_GROUPS).concat(['tworound']);
+    // «triple» умеет только отрицательное умножение — в положительных троек нет.
+    const negMul = base.concat(['triple']);
     const divBase = Object.keys(G.DIV_GROUPS).concat(['tworound', 'zero']);
     [['умножение', G.MUL_SHARES, base.concat(['twoPlain', 'twoCarry'])],
-     ['умножение (отр.)', G.NEG_MUL_SHARES, base],
+     ['умножение (отр.)', G.NEG_MUL_SHARES, negMul],
      ['деление', G.DIV_SHARES, divBase.concat(['twoPlain', 'twoCarry'])],
      ['деление (отр.)', G.NEG_DIV_SHARES, divBase]
     ].forEach(([name, shares, known]) => {
@@ -1934,6 +1952,89 @@ test('с вариантом «Нет решения» пар не бывает �
         }
     }
     assert(withDecoy > 100, `вариант «Нет решения» встретился лишь ${withDecoy} раз — проверка ничего не проверила`);
+});
+
+group('Три множителя: правило знаков обобщается');
+
+// Пятая звезда отрицательного умножения без этого была смесью четвёртой и
+// «двузначного на круглое» — новых умений не появлялось. Три множителя дают
+// настоящее новое: считаем минусы, чётное — плюс, нечётное — минус. Арифметика при
+// этом остаётся мелкой: произведение не выше двухсот.
+function tripleFactors(e) {
+    return e.text.replace(/[()]/g, '').split(' × ').map(Number);
+}
+
+test('тройки есть только на пятой звезде и занимают заявленную долю', () => {
+    const N = 60000;
+    for (let lvl = 1; lvl <= 4; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            assert(!G.genMulNegative(lvl).triple, `тройка на ${lvl}★`);
+        }
+    }
+    let tri = 0;
+    for (let i = 0; i < N; i++) if (G.genMulNegative(5).triple) tri++;
+    assert(Math.abs(tri / N - 0.35) < 0.02, `троек ${(100 * tri / N).toFixed(1)}% вместо 35%`);
+});
+
+test('ответ равен произведению всех трёх, а разложение — ответу', () => {
+    for (let i = 0; i < 60000; i++) {
+        const e = G.genMulNegative(5);
+        if (!e.triple) continue;
+        const f = tripleFactors(e);
+        assert(f.length === 3, `множителей ${f.length} в «${e.text}»`);
+        assert(f[0] * f[1] * f[2] === e.answer, `${e.text} даёт ${e.answer}`);
+        // Наружу отдаётся разложение на два числа: вся машинерия вариантов ответа
+        // считает, что a × b = ответ.
+        assert(e.a * e.b === e.answer, `разложение разошлось: ${e.a} × ${e.b} ≠ ${e.answer}`);
+    }
+});
+
+test('арифметика остаётся мелкой: множители до десяти, произведение до двухсот', () => {
+    G.MUL_TRIPLES.forEach(t => {
+        assert(t[0] >= 2 && t[2] <= 10, `множитель вне 2..10: ${t.join(',')}`);
+        assert(t[0] * t[1] * t[2] <= 200, `произведение выше 200: ${t.join(',')}`);
+    });
+    assert(G.MUL_TRIPLES.length > 60, `троек всего ${G.MUL_TRIPLES.length} — на треть звезды мало`);
+    for (let i = 0; i < 40000; i++) {
+        const e = G.genMulNegative(5);
+        if (!e.triple) continue;
+        assert(Math.abs(e.answer) <= 200, `${e.text} = ${e.answer}`);
+        tripleFactors(e).forEach(v => assert(Math.abs(v) >= 2 && Math.abs(v) <= 10,
+            `множитель ${v} вне 2..10 в «${e.text}»`));
+    }
+});
+
+// Главное, ради чего тройки и нужны: знак ответа определяется ЧЁТНОСТЬЮ числа минусов.
+test('знак ответа сходится с чётностью числа минусов', () => {
+    let allPositive = 0, total = 0;
+    const combos = new Set();
+    for (let i = 0; i < 60000; i++) {
+        const e = G.genMulNegative(5);
+        if (!e.triple) continue;
+        total++;
+        const f = tripleFactors(e);
+        const minuses = f.filter(v => v < 0).length;
+        const wantPositive = minuses % 2 === 0;
+        assert((e.answer > 0) === wantPositive,
+            `${e.text} = ${e.answer}: минусов ${minuses}, знак не сходится`);
+        if (minuses === 0) allPositive++;
+        combos.add(f.map(v => (v < 0 ? '-' : '+')).join(''));
+    }
+    assert(combos.size === 8, `встретилось ${combos.size} комбинаций знаков из 8`);
+    assert(allPositive / total < 0.10, `«все плюсы» ${(100 * allPositive / total).toFixed(1)}% — это не пример на отрицательные`);
+});
+
+test('в разборе у троек свой класс, а не разложение по таблице', () => {
+    const meta = { category: 'integer', isNegative: true, opKey: 'mul', level: 5 };
+    let tri = 0;
+    for (let i = 0; i < 20000; i++) {
+        const e = G.genMulNegative(5);
+        const st = G.structuralClassOf(meta, e);
+        assert(st && st.cls, `нет класса у «${e.text}»`);
+        if (e.triple) { tri++; assert(st.cls === 'triple', `тройка «${e.text}» разобрана как ${st.cls}`); }
+        else assert(st.cls !== 'triple', `не тройка «${e.text}» разобрана как triple`);
+    }
+    assert(tri > 1000, `троек в выборке ${tri} — проверка почти ничего не проверила`);
 });
 
 // ---------- итог ----------
