@@ -570,9 +570,17 @@ test('битый разбор по типам не ломает чтение', (
 test('разбор по типам не утекает между профилями', () => {
     const { Progress } = fresh();
     Progress.switchTo('AAA', 'pw');
-    Progress.recordClass('integer+:add:5', { cls: '2', hundred: true }, true, 3000);
+    // Вторая ось называется ключом, а не булевым флагом: у положительного сложения
+    // это «через сотню», у отрицательного — «двойной минус в записи».
+    Progress.recordClass('integer+:add:5', { cls: '2', extra: 'h' }, true, 3000);
     eq(Progress.getByClass()['integer+:add:5']['2'][0], 1, 'записалось в свой профиль');
-    eq(Progress.getByClass()['integer+:add:5']['h'][0], 1, 'подмножество тоже записалось');
+    eq(Progress.getByClass()['integer+:add:5']['h'][0], 1, 'вторая ось тоже записалась');
+    Progress.recordClass('integer-:add:5', { cls: 'cross', extra: 'par' }, false, 4000);
+    eq(Progress.getByClass()['integer-:add:5']['cross'][1], 1, 'отрицательный класс записался');
+    eq(Progress.getByClass()['integer-:add:5']['par'][1], 1, 'скобки записались отдельной строкой');
+    Progress.recordClass('integer-:add:5', { cls: 'same' }, true, 2000);
+    eq(Progress.getByClass()['integer-:add:5']['same'][0], 1, 'класс без второй оси');
+    eq(Progress.getByClass()['integer-:add:5']['par'][1], 1, 'вторая ось не выросла сама по себе');
     Progress.switchTo('BBB', 'pw');
     eq(Object.keys(Progress.getByClass()).length, 0, 'у другого профиля пусто');
 });

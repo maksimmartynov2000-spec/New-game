@@ -191,6 +191,11 @@
         .ladder-row.optional .ladder-name,
         .ladder-row.optional .ladder-icon,
         .ladder-row.optional .ladder-goal { opacity: 0.62; }
+        /* Показатель просел ниже взятой ступени. Значок при этом остаётся: заработанное
+           не отнимаем. Но подпись говорит правду, иначе корона рядом с 80% выглядит
+           поломкой, а не историей. */
+        .ladder-row.slipped .ladder-now { color: #fbbf24; }
+        .ladder-row.slipped .ladder-goal { color: #fbbf24; opacity: 0.85; }
 
         /* --- Достижения по разделам: раздел → действие → пять звёзд --- */
         .ach-section { margin-bottom: 16px; }
@@ -1342,8 +1347,10 @@
         <div class="config-container">
             <div class="config-hint" style="margin-bottom:10px;">
                 Следующая звезда открывается золотом по точности и количеству.
-                Скорость ничего не открывает — это ориентир, и только алмаз с легендой
-                берутся за все три лесенки сразу.
+                Скорость ничего не открывает — это ориентир. Значок самой звезды —
+                алмаз или легенда — даётся, только когда до него дошли все три лесенки
+                сразу; у каждой лесенки при этом своя ступень. Значок ступени взят
+                навсегда, а число рядом — это последняя сотня ответов.
             </div>
             <div id="ladderList"></div>
         </div>
@@ -1941,11 +1948,15 @@
             "Уверенно": "Confident",
             "В работе": "In progress",
             "ждёт": "waiting",
-            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир, и только алмаз с легендой\n                берутся за все три лесенки сразу.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything — it's just a guide, and only diamond and legend need all three at once.",
+            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир. Значок самой звезды —\n                алмаз или легенда — даётся, только когда до него дошли все три лесенки\n                сразу; у каждой лесенки при этом своя ступень. Значок ступени взят\n                навсегда, а число рядом — это последняя сотня ответов.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything \u2014 it's just a guide. The star's own badge \u2014 diamond or legend \u2014 is given only when all three ladders reach it; each ladder still has its own step. A step's badge is yours for good, while the number beside it is your last hundred answers.",
             "без перехода": "no carrying",
             "дополнение до круглого": "making ten",
             "полный переход": "carrying",
             "через сотню": "past a hundred",
+            "складываем модули": "adding the sizes",
+            "не переходим ноль": "not crossing zero",
+            "переходим ноль": "crossing zero",
+            "двойной минус в записи": "minus of a minus",
             "без заёма": "no borrowing",
             "без займа": "no borrowing",
             "вычитание из круглого": "from a round number",
@@ -1959,6 +1970,7 @@
             "ядро 6·7·8": "core: 6, 7, 8",
             "круглые": "round numbers",
             "двузначное × круглое": "two-digit × round",
+            "три множителя": "three factors",
             "двузначное без переноса": "two-digit, no carrying",
             "двузначное с переносом": "two-digit with carrying",
             "деление на ноль": "dividing by zero",
@@ -1967,7 +1979,8 @@
             "деление на круглое": "dividing by a round number",
             "двузначный ответ без сноса": "two-digit answer, no carrying",
             "двузначный ответ со сносом": "two-digit answer with carrying",
-            "режим\\tзвезда\\tтип\\tответов\\tточность\\tсекунд": "mode\\tstar\\ttype\\tanswers\\taccuracy\\tseconds",
+            "режим\tзвезда\tтип\tответов\tточность\tсекунд": "mode\tstar\ttype\tanswers\taccuracy\tseconds",
+            "раздел\tрежим\tзвезда\tтип\tответов\tточность\tсекунд": "section\tmode\tstar\ttype\tanswers\taccuracy\tseconds",
             "Скопировать таблицей": "Copy as a table",
             "Таблица скопирована.": "Table copied.",
             "Пока нечего копировать.": "Nothing to copy yet.",
@@ -2076,13 +2089,15 @@
             "точность %1%": "%1% accuracy",
             "без переноса": "no carrying",
             "⚡ Скорость": "⚡ Speed",
+            "сейчас %1": "now %1",
+            "Взято: %1": "Earned: %1",
+            "ниже взятой ступени": "below your earned step",
             "%1 ещё %2": "%1 %2 to go",
             "%1: закрыто полностью.": "%1: fully locked.",
             "📈 Продвижение по лесенкам тем: %1 %2": "📈 Ladder progress across topics: %1 %2",
             "Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни\n                        уже не хранятся, а итоги остаются навсегда.": "Every 180 days your sessions fold into a card — the daily details are dropped, but the totals stay forever.",
             "Клетка — действие на своей сложности. Цвет по точности:\n                    зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено,\n                    значок — ранг темы.": "Each cell is one operation at one difficulty. Color shows accuracy: green from 85%, yellow from 65%, red below. Under the percentage is how many you've solved, and the icon is the topic's rank.",
             "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Пустая клетка: до неё ещё не дошли.": "Rows are operations, columns are difficulty levels. Green means solid (85% correct or better), yellow means there's work to do, red means the topic just started. An empty cell means you haven't gotten there yet.",
-            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир, и только алмаз с легендой\n                берутся за все три лесенки сразу.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything — it's just a guide, and only diamond and legend need all three ladders at once.",
             "🧩 Текущий пазл": "🧩 Current puzzle",
             "🧩 Пазл собирается:": "🧩 Puzzle in progress:",
             "🧩 Пазл собран! Покажу в конце испытания.": "🧩 Puzzle complete! I'll show it at the end of the challenge.",
@@ -2533,16 +2548,10 @@
         // Раньше использовался равномерный "мешок" (все 4 комбинации по 25%). Теперь — взвешенный
         // выбор: "оба положительных" (++) — редкость, не больше 5% (в режиме "отрицательные числа"
         // такие примеры выглядят как случайно попавшие туда простые положительные примеры).
-        // Для сложения/вычитания на 5★ дополнительно смещаем в сторону "двойных знаков"
-        // (второй операнд отрицательный — тот случай, где виден перевёрнутый оператор).
+        // Сложение и вычитание сюда больше не ходят: у них знак — содержание, и он
+        // выбирается вместе с классом примера, а не отдельно от него (см. genAddSubNegative).
         function pickIntegerSignCombo(opKey, level) {
             const r = Math.random();
-            if ((opKey === 'add' || opKey === 'sub') && level === 5) {
-                if (r < 0.05) return '++';
-                if (r < 0.20) return '-+';
-                if (r < 0.60) return '+-';
-                return '--';
-            }
             if (r < 0.05) return '++';
             if (r < 0.3667) return '+-';
             if (r < 0.6834) return '-+';
@@ -2733,6 +2742,131 @@
                 ['tworound', 0.12], ['twoPlain', 0.14], ['twoCarry', 0.40]]
         };
 
+        // ===================== ОТРИЦАТЕЛЬНЫЕ СЛОЖЕНИЕ И ВЫЧИТАНИЕ =====================
+        //
+        // Здесь, в отличие от умножения, знак — И ЕСТЬ содержание. «−7 + 3» и «7 + 3» —
+        // разные задачи, а не одна с наклейкой, поэтому взять положительный генератор и
+        // приписать знаки нельзя: нужна своя схема.
+        //
+        // Любой пример — это шаг по числовой прямой. Стоишь в точке, идёшь влево или
+        // вправо, и случиться может ровно две вещи, разной трудности:
+        //
+        //   0. УХОДИШЬ ДАЛЬШЕ ОТ НУЛЯ — модули складываются, знак сохраняется.
+        //      «−7 − 3 = −10». Сложить модули, знак оставить. Ошибиться трудно.
+        //
+        //   1. ИДЁШЬ ОБРАТНО, НО НУЛЯ НЕ ДОХОДИШЬ — модули вычитаются, знак не меняется.
+        //      «−8 + 3 = −5».
+        //
+        //   2. ИДЁШЬ ОБРАТНО И НОЛЬ ПЕРЕХОДИШЬ — ответ меняет сторону.
+        //      «−3 + 8 = 5», «3 − 8 = −5». ВОТ ГЛАВНАЯ ОШИБКА ТЕМЫ: считают 8 − 3 = 5
+        //      и оставляют знак первого числа, получая «−3 + 8 = −5».
+        //
+        // До этой правки доли классов не управлялись вовсе — величины брались равномерно,
+        // и сколько попадётся примеров с переходом через ноль было делом случая.
+        const NEG_ADD_CLASS_SHARES = {
+            1: [0.50, 0.30, 0.20],
+            2: [0.40, 0.30, 0.30],
+            3: [0.30, 0.30, 0.40],
+            4: [0.25, 0.30, 0.45],
+            5: [0.20, 0.25, 0.55]
+        };
+
+        // Потолки СВОИ, ниже положительных (10-20-50-100-200). Упор здесь на знак, а не
+        // на разрядность: если арифметика идёт на пределе, знак приписывается не думая.
+        const NEG_ADD_RANGE = { 1: 10, 2: 20, 3: 30, 4: 50, 5: 100 };
+        // Нижняя граница модуля. Без неё половина первой звезды состояла из «−10 + 1»:
+        // замер до правки давал 48,5% примеров с операндом не больше двойки.
+        const NEG_ADD_MIN = { 1: 3, 2: 4, 3: 6, 4: 8, 5: 12 };
+
+        // Двойной минус в записи — «7 − (−3)» — это ОТДЕЛЬНАЯ ось: ловушка на чтение, а
+        // не на счёт, и сочетаться она может с любым из трёх классов. Раньше скобки
+        // включались обрывом: ровно 0% на четырёх звёздах и 79,9% на пятой, потому что
+        // до пятой звезды генератор сам переворачивал знак и показывал «7 + 3». То есть
+        // запись, ради которой раздел существует, не встречалась четыре звезды подряд.
+        const NEG_PAREN_SHARE = { 1: 0, 2: 0, 3: 0, 4: 0.15, 5: 0.55 };
+
+        // Пример без единого отрицательного числа («7 + 3») — редкость, как и «оба
+        // плюса» в умножении. Замер модели показал, что без этого ограничения четверть
+        // первой звезды оказывалась вообще не про отрицательные числа: знак первого
+        // числа выбирался свободно, и половина веток давала обычную арифметику.
+        const NEG_ADD_PLAIN_SHARE = 0.05;
+
+        // Пары модулей для класса «сложение модулей»: оба не меньше минимума, сумма не
+        // больше потолка. Перечисляем и берём равномерно. Последовательный розыгрыш
+        // («сначала первый модуль, потом второй из остатка») сужает выбор вслед за
+        // первым числом, и на краю остаётся единственный вариант: в модели «−7 − 3»
+        // забирал 9,5% первой звезды — каждый одиннадцатый пример.
+        const NEG_SUM_PAIRS = (() => {
+            const out = {};
+            for (let lvl = 1; lvl <= 5; lvl++) {
+                const R = NEG_ADD_RANGE[lvl], MIN = NEG_ADD_MIN[lvl], list = [];
+                for (let m1 = MIN; m1 <= R - MIN; m1++) {
+                    for (let m2 = MIN; m2 <= R - m1; m2++) list.push([m1, m2]);
+                }
+                out[lvl] = list;
+            }
+            return out;
+        })();
+
+        function pickNegAddClass(level) {
+            const sh = NEG_ADD_CLASS_SHARES[level] || NEG_ADD_CLASS_SHARES[5];
+            let r = Math.random();
+            for (let i = 0; i < sh.length; i++) { r -= sh[i]; if (r < 0) return i; }
+            return sh.length - 1;
+        }
+
+        // Модули по классу. Возвращает [модуль первого, модуль второго].
+        function negAddMagnitudes(level, cls) {
+            if (cls === 0) {
+                const list = NEG_SUM_PAIRS[level];
+                return list[randInt(0, list.length - 1)];
+            }
+            const R = NEG_ADD_RANGE[level], MIN = NEG_ADD_MIN[level];
+            // Равные модули дали бы ответ 0 и не относятся ни к «дошёл», ни к «перешёл».
+            let m1, m2;
+            do { m1 = randInt(MIN, R); m2 = randInt(MIN, R); } while (m1 === m2);
+            const hi = Math.max(m1, m2), lo = Math.min(m1, m2);
+            return cls === 1 ? [hi, lo] : [lo, hi];   // 1 — не дошёл, 2 — перешёл
+        }
+
+        // Общее тело сложения и вычитания. Клетки у них разные, поэтому оператор ЗАДАН
+        // снаружи, а не выбирается: в клетке «Сложение» выражение всегда «n1 + n2».
+        //
+        // Скобки при этом решаются ПЕРВЫМИ, и под решение подбирается знак второго
+        // числа. Видимые скобки означают отрицательное n2 — а в клетке сложения это
+        // y < 0, в клетке вычитания наоборот y > 0 (потому что там n2 = −y). Так доля
+        // скобок становится свободной величиной, а не побочным следствием знаков.
+        //
+        // Когда скобок нет, минус обязан быть виден иначе — поэтому отрицательным
+        // делается первое число. Исключение — те самые 5% простых примеров.
+        function genAddSubNegative(level, isSub) {
+            const cls = pickNegAddClass(level);
+            const mags = negAddMagnitudes(level, cls);
+            const wantParen = Math.random() < (NEG_PAREN_SHARE[level] || 0);
+            const plain = !wantParen && Math.random() < NEG_ADD_PLAIN_SHARE;
+
+            // Знак ВТОРОГО слагаемого в приведённом виде «x + y».
+            let ys;
+            if (wantParen) ys = isSub ? 1 : -1;        // скобки требуют отрицательного n2
+            else if (plain) ys = isSub ? -1 : 1;       // ни одного минуса в записи
+            else ys = (cls === 0) ? -1 : 1;            // минус уводим в первое число
+
+            // Знак первого определяется классом: у «сложения модулей» он совпадает со
+            // вторым, у остальных двух — противоположен.
+            const xs = (cls === 0) ? ys : -ys;
+
+            const x = mags[0] * xs, y = mags[1] * ys;
+            const n1 = x, n2 = isSub ? -y : y;
+            const showParen = wantParen && n2 < 0;
+            return {
+                text: formatAddSubText(n1, isSub ? '-' : '+', n2, showParen),
+                answer: x + y, a: n1, b: n2
+            };
+        }
+
+        function genAddNegative(level) { return genAddSubNegative(level, false); }
+        function genSubNegative(level) { return genAddSubNegative(level, true); }
+
         // ===================== ОТРИЦАТЕЛЬНЫЕ УМНОЖЕНИЕ И ДЕЛЕНИЕ =====================
         //
         // Здесь знак — НЕ содержание. Правило «одинаковые дают плюс, разные минус»
@@ -2761,13 +2895,48 @@
         // приём «убрать ноль и посчитать» лёгкий, то есть принципу не противоречит, но
         // без него пятая звезда оказывалась ТОЧНОЙ копией четвёртой — замер показывал
         // 1153 разных примера против 1155.
+        // Пятая звезда: три множителя. Правило знаков здесь ОБОБЩАЕТСЯ — считаем минусы,
+        // чётное число даёт плюс, нечётное минус. Это настоящий новый навык, а не более
+        // крупные числа: произведение держим не выше двухсот, чтобы арифметика осталась
+        // мелкой и голова была занята знаками.
+        //
+        // Множители от 2 до 10, произведение до 200 — таких троек ровно 97, это
+        // сопоставимо с 36 фактами таблицы и на треть звезды хватает с запасом.
+        const MUL_TRIPLES = (() => {
+            const out = [];
+            for (let x = 2; x <= 10; x++) {
+                for (let y = x; y <= 10; y++) {
+                    for (let z = y; z <= 10; z++) {
+                        if (x * y * z <= 200) out.push([x, y, z]);
+                    }
+                }
+            }
+            return out;
+        })();
+
+        // Знаки трёх множителей. «Все плюсы» — такая же редкость, как и в паре: пример
+        // без единого минуса в разделе отрицательных чисел выглядит случайно попавшим.
+        function tripleSigns() {
+            for (let guard = 0; guard < 40; guard++) {
+                const s = [0, 0, 0].map(() => (Math.random() < 0.5 ? 1 : -1));
+                if (s.some(v => v < 0) || Math.random() < 0.05) return s;
+            }
+            return [-1, 1, 1];
+        }
+
+        // Запись: у первого множителя знак стоит как есть, у следующих отрицательные
+        // берутся в скобки — «−8 × 3 × (−8)».
+        function formatFactors(vals) {
+            return vals.map((v, i) => (i > 0 && v < 0) ? `(${v})` : String(v)).join(' × ');
+        }
+
         const NEG_MUL_SHARES = {
             1: MUL_SHARES[1],
             2: MUL_SHARES[2],
             3: MUL_SHARES[3],
             4: MUL_SHARES[4],
-            5: [['triv', 0.01], ['two', 0.03], ['five', 0.03], ['small', 0.05], ['nine', 0.05],
-                ['core', 0.13], ['round', 0.35], ['tworound', 0.35]]
+            5: [['triv', 0.01], ['two', 0.02], ['five', 0.02], ['small', 0.03], ['nine', 0.03],
+                ['core', 0.09], ['round', 0.20], ['tworound', 0.25], ['triple', 0.35]]
         };
         const NEG_DIV_SHARES = {
             1: DIV_SHARES[1],
@@ -2796,7 +2965,15 @@
         // ошибка разработчика, и ловить её должны проверки (см. «генератор знает
         // каждую группу, названную в долях»), а не ученик посреди занятия: исключение
         // здесь означало бы, что пример не отрисуется вовсе и экран замрёт.
-        function mulPairForGroup(group) {
+        // Ноль в отрицательном разделе не учит ничему: у нуля нет знака, и «0 × (−7)» —
+        // это пример на положительное умножение, случайно сюда попавший. Он же
+        // единственный случай, где у ответа не бывает знакового близнеца, а на близнецах
+        // держится весь набор вариантов ответа (см. buildDistractors).
+        const NEG_TRIV_MUL = MUL_GROUPS.triv.filter(pr => pr[0] !== 0 && pr[1] !== 0);
+        const NEG_TRIV_DIV = DIV_GROUPS.triv.filter(pr => pr[0] !== 0);
+
+        function mulPairForGroup(group, noZero) {
+            if (group === 'triv' && noZero) return pickMulFact(NEG_TRIV_MUL);
             if (group === 'two') {
                 return pickMulFact(Math.random() < MUL_TWO_EXT_SHARE
                     ? MUL_GROUPS.twoExt : MUL_GROUPS.two);
@@ -3070,57 +3247,27 @@
         }
 
         // --- ОТРИЦАТЕЛЬНЫЕ ЧИСЛА ---
-        function genAddNegative(level) {
-            const range = ADD_SUB_RANGE[level];
-            const allowZero = Math.random() < 0.05; // нулевой операнд — редкость, не больше ~5%
-            const [s1, s2] = comboToSigns(pickIntegerSignCombo('add', level));
-            let mag1, mag2;
-            if (allowZero) {
-                mag1 = randInt(0, range);
-                mag2 = (s1 === s2) ? randInt(0, range - mag1) : randInt(0, range);
-            } else {
-                // Гарантированно ненулевые магнитуды: при одинаковых знаках оставляем магнитуде-1
-                // хотя бы 1 единицу диапазона про запас для магнитуды-2 (иначе на границе range
-                // остаток вычисляется как 0, и мы бы всё равно получили нулевой операнд)
-                if (s1 === s2) {
-                    mag1 = randInt(1, range - 1);
-                    mag2 = randInt(1, range - mag1);
-                } else {
-                    mag1 = randInt(1, range);
-                    mag2 = randInt(1, range);
-                }
-            }
-            const n1 = s1 * mag1;
-            const n2 = s2 * mag2;
-            return { text: formatAddSubText(n1, '+', n2, level === 5), answer: n1 + n2, a: n1, b: n2 };
-        }
-
-        function genSubNegative(level) {
-            const range = ADD_SUB_RANGE[level];
-            const allowZero = Math.random() < 0.05;
-            const [s1, s2] = comboToSigns(pickIntegerSignCombo('sub', level));
-            let mag1, mag2;
-            if (allowZero) {
-                mag1 = randInt(0, range);
-                mag2 = (s1 !== s2) ? randInt(0, range - mag1) : randInt(0, range);
-            } else {
-                if (s1 !== s2) {
-                    mag1 = randInt(1, range - 1);
-                    mag2 = randInt(1, range - mag1);
-                } else {
-                    mag1 = randInt(1, range);
-                    mag2 = randInt(1, range);
-                }
-            }
-            const n1 = s1 * mag1;
-            const n2 = s2 * mag2;
-            return { text: formatAddSubText(n1, '-', n2, level === 5), answer: n1 - n2, a: n1, b: n2 };
-        }
-
         function genMulNegative(level) {
             // Умножение на ноль отдельным случаем больше не нужно: ноль входит в группу
             // «без счёта» наравне с единицей и десяткой и получает её долю.
-            const pair = mulPairForGroup(pickFromShares(NEG_MUL_SHARES[level] || NEG_MUL_SHARES[5]));
+            const group = pickFromShares(NEG_MUL_SHARES[level] || NEG_MUL_SHARES[5]);
+
+            if (group === 'triple') {
+                const t = shuffleArray(pickMulFact(MUL_TRIPLES).slice());
+                const sg = tripleSigns();
+                const vals = t.map((v, i) => v * sg[i]);
+                const answer = vals[0] * vals[1] * vals[2];
+                // Наружу отдаём разложение на ДВА числа, произведение которых равно
+                // ответу: вся машинерия вариантов ответа считает, что a × b = ответ, и
+                // ломать это ради записи из трёх чисел незачем. Частичное произведение
+                // при этом само по себе хорошая ловушка — «перемножил только два».
+                return {
+                    text: formatFactors(vals), answer,
+                    a: vals[0] * vals[1], b: vals[2], triple: true
+                };
+            }
+
+            const pair = mulPairForGroup(group, true);
             const swap = Math.random() < 0.5;
             const magA = swap ? pair[1] : pair[0];
             const magB = swap ? pair[0] : pair[1];
@@ -3148,6 +3295,8 @@
                     ? DIV_GROUPS.twoExt : DIV_GROUPS.two);
             } else if (group === 'tworound') {
                 pair = pickMulFact(DIV_TWO_ROUND);
+            } else if (group === 'triv') {
+                pair = pickMulFact(NEG_TRIV_DIV);
             } else {
                 // Незнакомая группа не роняет генератор — по той же причине, что и в
                 // умножении: опечатку в таблице долей ловят проверки, а не ученик.
@@ -3298,10 +3447,10 @@
             // ===== ПРИОРИТЕТ 1: самые частые реальные ошибки =====
             let priority = [];
 
-            // Знаковая ошибка — верный модуль, неверный знак (для отрицательных чисел)
-            if (isNegative && correctAnswer !== 0) {
-                pushStructural(priority, -correctAnswer, correctAnswer, isNegative);
-            }
+            // Знаковой ловушки («верный модуль, неверный знак») здесь больше нет: в
+            // отрицательном режиме она приходит из самой пары модулей ниже, а в режиме
+            // «без пар» подмешивать её нельзя — она и создавала бы ту единственную пару,
+            // по которой ответ читался без счёта.
 
             // Разрядные ловушки сложения и вычитания положительных: промах на десяток
             // и, в большинстве примеров, парная к нему единичная. Приоритет высокий —
@@ -3361,6 +3510,9 @@
                 pushStructural(structural, b - a, correctAnswer, isNegative);
                 pushStructural(structural, a + b, correctAnswer, isNegative);
             } else if (opKey === 'mul') {
+                // Частичное произведение. У трёх множителей это ровно ошибка
+                // «перемножил только два»; у обычного примера — «взял множитель за ответ».
+                pushStructural(structural, a, correctAnswer, isNegative);
                 pushStructural(structural, a * (b + 1), correctAnswer, isNegative);
                 pushStructural(structural, a * (b - 1), correctAnswer, isNegative);
                 pushStructural(structural, (a + 1) * b, correctAnswer, isNegative);
@@ -3385,22 +3537,95 @@
             // отбрасывает не считая, и слот пропадает зря (см. plausibleWhole).
             const plausible = (v) => plausibleWhole(opKey, a, b, v, isNegative);
 
+            // ===== ОТРИЦАТЕЛЬНЫЕ: НАБОР МОДУЛЕЙ НЕ ДОЛЖЕН УКАЗЫВАТЬ НА ОТВЕТ =====
+            //
+            // Знаковая ловушка стояла первым приоритетом, а остальные варианты имели
+            // разные модули. Получалось «−540, 540, −630, −84»: пара одинаковых цифр
+            // ровно одна, и верный ответ ВСЕГДА в ней. Значит, считать не нужно —
+            // найди пару, примени правило знаков, готово.
+            //
+            // Замер: близнец присутствовал в 96,8–100% примеров, и ответ определялся
+            // парой в 93–100%. В отрицательном сложении и вычитании — ровно 100%, то
+            // есть весь раздел проходился мимо арифметики. Это объясняло и стопроцентную
+            // точность при трёх секундах на пример.
+            //
+            // Чиним не убиранием ловушки — она нужна, — а тем, что пар становится ДВЕ:
+            // «−540, 540, −630, 630». Теперь близнец не подсказывает ничего: чтобы
+            // выбрать, нужно знать и модуль (это арифметика), и знак (это правило).
+            // Каждое знание отсекает половину, вместе они дают ответ — ровно те два
+            // умения, которые тема и проверяет.
+            //
+            // Исключение — примеры с вариантом «Нет решения»: там числовых слотов всего
+            // три, на две пары их не хватает. В этом случае модули делаются РАЗНЫМИ, без
+            // единой пары. Это не подсказка: «Нет решения» ученик и так видит на экране.
+            if (isNegative && correctAnswer !== 0 && count === 3 && !includeNoSolutionDecoy) {
+                const mag = Math.abs(correctAnswer);
+                const mags = [];
+                priority.concat(structural).forEach(v => {
+                    const m = Math.abs(v);
+                    if (m === 0 || m === mag || mags.indexOf(m) >= 0) return;
+                    if (plausible(m) && plausible(-m)) mags.push(m);
+                });
+                // Структурных ловушек может не оказаться вовсе: у отрицательного
+                // сложения разрядные приманки отключены, и весь список — это один
+                // «a − b», который иногда совпадает с ответом по модулю. Тогда второй
+                // модуль строим сами, рядом с ответом. Замер до этого: на первой звезде
+                // общий путь подхватывал 10% примеров и возвращал в них старую утечку.
+                // Пара обязана заставлять СЧИТАТЬ, а не только выбирать знак. Если
+                // второй модуль далеко от ответа («−41 − (−53) = 12» против 94), он
+                // отбрасывается без счёта, и вопрос вырождается в одно правило знаков.
+                // Замер: у вычитания так выходило в 78–90% примеров, потому что весь
+                // его список ловушек в этом режиме — это «a + b».
+                //
+                // Поэтому в большинстве случаев берём модуль рядом с ответом, а
+                // содержательным дальним ловушкам («умножил вместо деления») оставляем
+                // меньшую долю — без них исчез бы целый вид ошибки.
+                const NEAR_PAIR_SHARE = 0.7;
+                const near = mags.filter(m => Math.abs(m - mag) <= Math.max(2, mag * 0.5));
+                let pool = mags;
+                if (near.length > 0 && Math.random() < NEAR_PAIR_SHARE) pool = near;
+                else if (near.length === 0 && Math.random() < NEAR_PAIR_SHARE) pool = [];
+                let second = pool.length > 0 ? pool[randInt(0, pool.length - 1)] : 0;
+                if (!second) {
+                    const spread = Math.max(2, Math.round(mag * 0.2));
+                    for (let i = 0; i < 40 && !second; i++) {
+                        let d = randInt(-spread, spread);
+                        if (d === 0) d = 1;
+                        const cand = mag + d;
+                        if (cand > 0 && cand !== mag) second = cand;
+                    }
+                }
+                if (second) return shuffleArray([-correctAnswer, second, -second]);
+                // Совсем невозможный случай — падаем в общий путь: пустых кнопок быть не должно.
+            }
+
+            // Когда на экране «Нет решения», числовых слотов остаётся три — на две пары
+            // их не хватает. Тогда модули должны стать РАЗНЫМИ: одна пара снова была бы
+            // подсказкой. Здесь это и обеспечивается — в том числе для знаковой ловушки,
+            // которая иначе прошла бы первым приоритетом и вернула ровно ту пару.
+            const noPairMode = isNegative && includeNoSolutionDecoy;
+            const usedMags = new Set([Math.abs(correctAnswer)]);
+            const magFree = (v) => !noPairMode || typeof v !== 'number' || !usedMags.has(Math.abs(v));
+            const take = (v) => {
+                result.push(v); used.add(v);
+                if (typeof v === 'number') usedMags.add(Math.abs(v));
+            };
+
             // Сначала — обязательный приоритет 1 (знак, нулевые кейсы умножения)
             for (const v of priority) {
                 if (result.length >= count) break;
-                if (!used.has(v) && plausible(v)) { result.push(v); used.add(v); }
+                if (!used.has(v) && plausible(v) && magFree(v)) take(v);
             }
 
             // "Нет решения" — отдельная сущность, тоже приоритет 1
             if (includeNoSolutionDecoy && result.length < count && !used.has('NO_SOLUTION')) {
-                result.push('NO_SOLUTION');
-                used.add('NO_SOLUTION');
+                take('NO_SOLUTION');
             }
 
             // Затем — структурные дистракторы, заполняем всё, что осталось (до 3 слотов)
             for (const v of structural) {
                 if (result.length >= count) break;
-                if (!used.has(v) && plausible(v)) { result.push(v); used.add(v); }
+                if (!used.has(v) && plausible(v) && magFree(v)) take(v);
             }
 
             // Остаток — случайный разброс. Масштаб считаем и от ответа, и от величины
@@ -3417,7 +3642,8 @@
                 if (fake === a || fake === b) continue;
                 if (used.has(fake)) continue;
                 if (!plausible(fake)) continue;
-                result.push(fake); used.add(fake);
+                if (!magFree(fake)) continue;
+                take(fake);
             }
 
             // Последний рубеж. Правдоподобных чисел рядом может физически не хватить:
@@ -3447,7 +3673,10 @@
                 if (fake === a || fake === b) continue; // выровнено с основным циклом выше
                 if (used.has(fake)) continue;
                 if (!relax && !plausible(fake)) continue;
-                result.push(fake); used.add(fake);
+                // Модуль-дубль отбрасываем, пока фильтр не снят: после снятия важнее
+                // не оставить пустую кнопку, чем сохранить набор без пар.
+                if (!relax && !magFree(fake)) continue;
+                take(fake);
             }
 
             // Сюда попадаем только если предел выше сработал, то есть от ответа
@@ -3456,7 +3685,7 @@
             // испорчен, но игра продолжается и ученик видит экран, а не зависание.
             let filler = 1;
             while (result.length < count) {
-                if (!used.has(filler)) { result.push(filler); used.add(filler); }
+                if (!used.has(filler)) take(filler);
                 filler++;
             }
 
@@ -6747,7 +6976,7 @@
                         if (isRight) slot[3]++;
                     };
                     bump(struct.cls);
-                    if (struct.hundred) bump('h');
+                    if (struct.extra) bump(struct.extra);
                     persistLocal();
                 },
                 getByClass() { return state.byClass || {}; },
@@ -8122,20 +8351,56 @@
             return mulClassOf(q, b);
         }
 
+        // Разбор одного примера: основной класс плюс, если есть, ВТОРАЯ ось. Вторая ось
+        // считается отдельной строкой и в общую сумму ответов не входит: у положительного
+        // сложения это «через сотню», у отрицательного — «двойной минус в записи».
+        // И то, и другое сочетается с любым основным классом, а не заменяет его.
         function structuralClassOf(meta, problem) {
             if (!meta || !problem) return null;
-            if (meta.category !== 'integer' || meta.isNegative) return null;
+            if (meta.category !== 'integer') return null;
             const a = problem.a, b = problem.b;
             if (typeof a !== 'number' || typeof b !== 'number') return null;
+
+            if (meta.isNegative) {
+                // Умножение и деление отрицательных — те же группы таблицы, что и у
+                // положительных: знак к разбору примера отношения не имеет, он либо
+                // верен, либо нет, и это уже ловит отдельный код ошибки «ошибся в знаке».
+                // Три множителя — свой класс: разбирать «12 × 7» по таблице бессмысленно,
+                // это разложение для вариантов ответа, а не то, что видит ученик.
+                if (meta.opKey === 'mul') {
+                    if (problem.triple) return { cls: 'triple' };
+                    return { cls: mulClassOf(Math.abs(a), Math.abs(b)) };
+                }
+                if (meta.opKey === 'div') {
+                    const dcls = divClassOf(Math.abs(a), Math.abs(b));
+                    return dcls ? { cls: dcls } : null;
+                }
+                if (meta.opKey !== 'add' && meta.opKey !== 'sub') return null;
+
+                // Приводим к виду «x + y»: a — всегда первое число, поэтому второе
+                // достаём из ответа. Так разбор не зависит от того, перевернул ли
+                // генератор знак при отображении.
+                const ans = problem.answer;
+                if (typeof ans !== 'number') return null;
+                const x = a, y = ans - a;
+                if (x === 0 || y === 0) return null;
+                let cls;
+                if (Math.sign(x) === Math.sign(y)) cls = 'same';          // модули складываются
+                else if (Math.abs(x) > Math.abs(y)) cls = 'near';         // ноль не переходим
+                else cls = 'cross';                                       // ноль переходим
+                const paren = typeof problem.text === 'string' && problem.text.indexOf('(') >= 0;
+                return { cls, extra: paren ? 'par' : null };
+            }
+
             if (meta.opKey === 'div') {
                 if (a < 0 || b < 0) return null;
                 const cls = divClassOf(a, b);
-                return cls ? { cls, hundred: false } : null;
+                return cls ? { cls } : null;
             }
             if (meta.opKey === 'mul') {
                 if (a < 0 || b < 0) return null;
                 // «Через сотню» — про разряды сложения; к умножению не относится.
-                return { cls: mulClassOf(a, b), hundred: false };
+                return { cls: mulClassOf(a, b) };
             }
             if (meta.opKey !== 'add' && meta.opKey !== 'sub') return null;
             const x = meta.opKey === 'add' ? a : b;
@@ -8143,7 +8408,7 @@
             if (x < 0 || y < 0) return null;
             const carry = (x % 10 + y % 10) >= 10 ? 1 : 0;
             const hundred = (Math.floor(x / 10) % 10 + Math.floor(y / 10) % 10 + carry) >= 10;
-            return { cls: String(unitsClass(x, y)), hundred };
+            return { cls: String(unitsClass(x, y)), extra: hundred ? 'h' : null };
         }
 
         function buildTopicKey(meta) {
@@ -8868,10 +9133,34 @@
             add: ['0', '1', '2', 'h'],
             sub: ['0', '1', '2', 'h'],
             mul: ['triv', 'two', 'five', 'small', 'nine', 'core',
-                  'round', 'tworound', 'twoPlain', 'twoCarry'],
+                  'round', 'tworound', 'twoPlain', 'twoCarry', 'triple'],
             div: ['zero', 'triv', 'two', 'five', 'small', 'nine', 'core',
                   'round', 'tworound', 'twoPlain', 'twoCarry']
         };
+        // Отрицательные сложение и вычитание — свой предмет, свои классы. У умножения
+        // и деления таблицы общие с положительными: там знак не меняет разбор примера.
+        const CLASS_TITLES_NEG_ADDSUB = {
+            same:  t('складываем модули'),
+            near:  t('не переходим ноль'),
+            cross: t('переходим ноль'),
+            par:   t('двойной минус в записи')
+        };
+        const CLASS_ORDER_NEG_ADDSUB = ['same', 'near', 'cross', 'par'];
+        // Строки второй оси: считаются вдобавок к основному классу, поэтому в общую
+        // сумму ответов по клетке не входят — иначе примеры считались бы дважды.
+        const CLASS_SECOND_AXIS = ['h', 'par'];
+
+        function isNegAddSub(sign, op) {
+            return sign === '-' && (op === 'add' || op === 'sub');
+        }
+        function classOrderFor(sign, op) {
+            return isNegAddSub(sign, op) ? CLASS_ORDER_NEG_ADDSUB : CLASS_ORDER[op];
+        }
+        function classTitleFor(sign, op, cls) {
+            if (isNegAddSub(sign, op)) return CLASS_TITLES_NEG_ADDSUB[cls] || cls;
+            return (CLASS_TITLES[op] || {})[cls] || cls;
+        }
+
         const CLASS_OP_ORDER = ['add', 'sub', 'mul', 'div'];
         const CLASS_MIN_SAMPLE = 20;   // ниже этого считать рано
 
@@ -8880,11 +9169,13 @@
             const out = [];
             Object.keys(byClass || {}).forEach(key => {
                 const p = parseTopicKey(key);
-                if (!p || p.category !== 'integer' || p.sign !== '+') return;
-                if (!CLASS_ORDER[p.op]) return;
+                if (!p || p.category !== 'integer') return;
+                if (p.sign !== '+' && p.sign !== '-') return;
+                const order = classOrderFor(p.sign, p.op);
+                if (!order) return;
                 const cell = byClass[key] || {};
                 const rows = [];
-                CLASS_ORDER[p.op].forEach(cls => {
+                order.forEach(cls => {
                     const slot = cell[cls];
                     if (!Array.isArray(slot)) return;
                     const right = slot[0] || 0, wrong = slot[1] || 0;
@@ -8892,18 +9183,24 @@
                     if (!attempts) return;
                     rows.push({
                         key: cls,
-                        title: CLASS_TITLES[p.op][cls] || cls,
+                        title: classTitleFor(p.sign, p.op, cls),
+                        second: CLASS_SECOND_AXIS.indexOf(cls) >= 0,
                         right, wrong, attempts,
                         acc: Math.round(100 * right / attempts),
                         sec: (slot[3] || 0) > 0 ? (slot[2] / slot[3] / 1000) : null
                     });
                 });
-                if (rows.length) out.push({ topicKey: key, opKey: p.op, level: p.level || 1, rows });
+                if (rows.length) out.push({
+                    topicKey: key, opKey: p.op, sign: p.sign,
+                    category: p.category, level: p.level || 1, rows
+                });
             });
-            // Сложение, вычитание, умножение; внутри — по возрастанию звезды.
-            out.sort((x, y) => (x.opKey === y.opKey)
-                ? (x.level - y.level)
-                : (CLASS_OP_ORDER.indexOf(x.opKey) - CLASS_OP_ORDER.indexOf(y.opKey)));
+            // Сначала положительные, потом отрицательные; внутри — по действию и звезде.
+            out.sort((x, y) => (x.sign !== y.sign)
+                ? (x.sign === '+' ? -1 : 1)
+                : (x.opKey === y.opKey)
+                    ? (x.level - y.level)
+                    : (CLASS_OP_ORDER.indexOf(x.opKey) - CLASS_OP_ORDER.indexOf(y.opKey)));
             return out;
         }
 
@@ -8919,11 +9216,13 @@
             cells.forEach(cell => {
                 const head = table.insertRow();
                 head.className = 'cls-head';
-                const total = cell.rows.reduce((n, r) => n + (r.key === 'h' ? 0 : r.attempts), 0);
+                const total = cell.rows.reduce((n, r) => n + (r.second ? 0 : r.attempts), 0);
                 const c1 = head.insertCell(); c1.colSpan = 2;
                 // Подпись берём из общей таблицы, а не тернарником: с появлением
-                // умножения «не add» перестало означать «вычитание».
-                c1.innerText = `${(OP_LABELS[cell.opKey] || cell.opKey).replace(/^\S+\s/, '')} ${cell.level}★`;
+                // умножения «не add» перестало означать «вычитание». Раздел в подписи
+                // обязателен с приходом отрицательных: «Вычитание 3★» бывает и там, и там.
+                c1.innerText = `${categoryLabel(cell.category, cell.sign)} · `
+                    + `${(OP_LABELS[cell.opKey] || cell.opKey).replace(/^\S+\s/, '')} ${cell.level}★`;
                 const c2 = head.insertCell(); c2.colSpan = 2;
                 c2.innerText = tf('%1 ответов', total);
 
@@ -8951,10 +9250,11 @@
         // Текст для отправки — колонки через табуляцию, чтобы вставлялось таблицей.
         function classAsText(st) {
             const cells = classRows((st && st.byClass) || {});
-            const lines = [t('режим\tзвезда\tтип\tответов\tточность\tсекунд')];
+            const lines = [t('раздел\tрежим\tзвезда\tтип\tответов\tточность\tсекунд')];
             cells.forEach(cell => {
                 cell.rows.forEach(r => {
                     lines.push([
+                        categoryLabel(cell.category, cell.sign).toLowerCase(),
                         (OP_LABELS[cell.opKey] || cell.opKey).replace(/^\S+\s/, '').toLowerCase(),
                         cell.level, r.title, r.attempts, r.acc + '%',
                         r.sec === null ? '—' : r.sec.toFixed(2)
@@ -9902,8 +10202,17 @@
                 }
                 if (next > 5) goalText = t('максимум');
 
+                // Ступень и показатель — РАЗНЫЕ вещи, и на одной строке их надо
+                // различать. Значок берётся из заработанного и остаётся навсегда;
+                // число — это последняя сотня ответов, оно живое и может просесть.
+                // Пока они совпадают, разницы не видно, но у того, кто раз взял
+                // легенду и потом сдал, была бы корона рядом с 80% без объяснения.
+                // Поэтому у числа есть подпись «сейчас», а у просевшего показателя —
+                // отметка: заработанное не отнимаем, но и не делаем вид, что всё как было.
+                const slipped = earned > 0 && ladderTierByMetrics(l.id, m, p.level, p.category) < earned;
                 const row = document.createElement('div');
-                row.className = 'ladder-row' + (optional ? ' optional' : '');
+                row.className = 'ladder-row' + (optional ? ' optional' : '')
+                    + (slipped ? ' slipped' : '');
                 row.innerHTML = `
                     <span class="ladder-icon"></span>
                     <span class="ladder-name"></span>
@@ -9912,9 +10221,15 @@
                     <span class="ladder-goal"></span>`;
                 row.querySelector('.ladder-icon').innerText = l.icon;
                 row.querySelector('.ladder-name').innerText = l.name;
-                row.querySelector('.ladder-tier').innerText = earned > 0 ? TIER_ICONS[earned] : '·';
-                row.querySelector('.ladder-now').innerText = nowText;
-                row.querySelector('.ladder-goal').innerText = goalText;
+                const tierEl = row.querySelector('.ladder-tier');
+                tierEl.innerText = earned > 0 ? TIER_ICONS[earned] : '·';
+                if (earned > 0) tierEl.title = tf('Взято: %1', TIER_NAMES[earned]);
+                row.querySelector('.ladder-now').innerText = nowText === '—'
+                    ? '—' : tf('сейчас %1', nowText);
+                // Ступень не называем ещё раз: её значок стоит тут же, а склонять
+                // «Алмаз» в «при алмазе» пришлось бы отдельной таблицей падежей.
+                row.querySelector('.ladder-goal').innerText = slipped
+                    ? t('ниже взятой ступени') : goalText;
                 rowsWrap.appendChild(row);
             });
 

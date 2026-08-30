@@ -73,22 +73,30 @@ function loadGenerators() {
                          + '\n;globalThis.DIV_TWO_ROUND = DIV_TWO_ROUND;'
                          + '\n;globalThis.DIV_ZERO_SHARES = DIV_ZERO_SHARES;'
                          + '\n;globalThis.NEG_MUL_SHARES = NEG_MUL_SHARES;'
-                         + '\n;globalThis.NEG_DIV_SHARES = NEG_DIV_SHARES;',
+                         + '\n;globalThis.NEG_DIV_SHARES = NEG_DIV_SHARES;'
+                         + '\n;globalThis.NEG_ADD_CLASS_SHARES = NEG_ADD_CLASS_SHARES;'
+                         + '\n;globalThis.NEG_PAREN_SHARE = NEG_PAREN_SHARE;'
+                         + '\n;globalThis.NEG_ADD_RANGE = NEG_ADD_RANGE;'
+                         + '\n;globalThis.NEG_ADD_MIN = NEG_ADD_MIN;'
+                         + '\n;globalThis.ADD_SUB_RANGE = ADD_SUB_RANGE;'
+                         + '\n;globalThis.MUL_TRIPLES = MUL_TRIPLES;',
                     sandbox, { filename: 'index.html<script>' });
 
     // Разбор примера на классы объявлен НИЖЕ метки обрыва — он нужен экранам, а не
     // генератору. Проверкам он всё равно нужен: инвариант «двузначного на однозначное
     // в отрицательных нет» удобнее всего формулировать через тот же классификатор,
     // которым пользуется разбор. Поэтому достаём его отдельно, по телу функции.
-    const fnStart = script.indexOf('function mulClassOf(');
-    if (fnStart < 0) throw new Error('не найдена функция mulClassOf');
-    let depth = 0, fnEnd = script.indexOf('{', fnStart);
-    for (let i = fnEnd; i < script.length; i++) {
-        if (script[i] === '{') depth++;
-        else if (script[i] === '}' && --depth === 0) { fnEnd = i + 1; break; }
-    }
-    vm.runInContext(script.slice(fnStart, fnEnd) + '\n;globalThis.mulClassOf = mulClassOf;',
-                    sandbox, { filename: 'index.html<mulClassOf>' });
+    ['mulClassOf', 'divClassOf', 'structuralClassOf'].forEach(name => {
+        const fnStart = script.indexOf('function ' + name + '(');
+        if (fnStart < 0) throw new Error('не найдена функция ' + name);
+        let depth = 0, fnEnd = script.indexOf('{', fnStart);
+        for (let i = fnEnd; i < script.length; i++) {
+            if (script[i] === '{') depth++;
+            else if (script[i] === '}' && --depth === 0) { fnEnd = i + 1; break; }
+        }
+        vm.runInContext(script.slice(fnStart, fnEnd) + '\n;globalThis.' + name + ' = ' + name + ';',
+                        sandbox, { filename: 'index.html<' + name + '>' });
+    });
     return sandbox;
 }
 
@@ -1473,12 +1481,21 @@ test('таблица умножения есть на всех старших з
 
 test('«без счёта» в отрицательном умножении нигде не больше десятой части', () => {
     const N = 40000;
+    // У троек наружу отдаётся разложение «a × b», а ученик видит три множителя.
+    // Считать надо то, что на экране, иначе «2 × 5 × 7» попадёт в «без счёта»
+    // из-за промежуточной десятки, которой в записи нет.
     const triv = (lvl) => {
         let c = 0;
         for (let i = 0; i < N; i++) {
             const e = G.genMulNegative(lvl);
-            const A = Math.abs(e.a), B = Math.abs(e.b);
-            if (A < 2 || B < 2 || A === 10 || B === 10) c++;
+            const vals = e.triple
+                ? e.text.replace(/[()]/g, '').split(' × ').map(Number).map(Math.abs)
+                : [Math.abs(e.a), Math.abs(e.b)];
+            // Считать нечего, когда не осталось ни одного настоящего умножения:
+            // нетривиальных множителей меньше двух. Для пары это «×1» или «×10», для
+            // тройки — две таких из трёх, чего при потолке в 200 не бывает вовсе:
+            // «10 × 9 × (−2)» десятку упрощает, но 9 × 2 и знаки всё равно за учеником.
+            if (vals.filter(v => v > 1 && v !== 10).length < 2) c++;
         }
         return c / N;
     };
@@ -1497,6 +1514,9 @@ test('двузначного на однозначное в отрицатель
     for (let lvl = 1; lvl <= 5; lvl++) {
         for (let i = 0; i < 20000; i++) {
             const e = G.genMulNegative(lvl);
+            // Тройки исключены осознанно: «2 × 8 × (−8)» отдаёт наружу разложение
+            // 16 × (−8), но на экране двузначного множителя нет — там три однозначных.
+            if (e.triple) continue;
             const cls = G.mulClassOf(Math.abs(e.a), Math.abs(e.b));
             assert(cls !== 'twoPlain' && cls !== 'twoCarry',
                 `${e.text} — двузначное на однозначное (${cls})`);
@@ -1511,9 +1531,10 @@ test('пятой звезде даёт содержание двузначное
     let tw = 0;
     for (let i = 0; i < N; i++) {
         const e = G.genMulNegative(5);
-        if (G.mulClassOf(Math.abs(e.a), Math.abs(e.b)) === 'tworound') tw++;
+        if (!e.triple && G.mulClassOf(Math.abs(e.a), Math.abs(e.b)) === 'tworound') tw++;
     }
-    assert(Math.abs(tw / N - 0.35) < 0.02, `двузначного на круглое ${(100 * tw / N).toFixed(1)}% вместо 35%`);
+    // Четверть звезды: треть забрали три множителя, ради которых звезда и делалась.
+    assert(Math.abs(tw / N - 0.25) < 0.02, `двузначного на круглое ${(100 * tw / N).toFixed(1)}% вместо 25%`);
     let four = 0;
     for (let i = 0; i < N; i++) {
         const e = G.genMulNegative(4);
@@ -1530,9 +1551,11 @@ test('генератор знает каждую группу, названну�
     // группа молча свалится в запасную, наполнив звезду не тем. Один общий список
     // такую подмену пропустил бы.
     const base = Object.keys(G.MUL_GROUPS).concat(['tworound']);
+    // «triple» умеет только отрицательное умножение — в положительных троек нет.
+    const negMul = base.concat(['triple']);
     const divBase = Object.keys(G.DIV_GROUPS).concat(['tworound', 'zero']);
     [['умножение', G.MUL_SHARES, base.concat(['twoPlain', 'twoCarry'])],
-     ['умножение (отр.)', G.NEG_MUL_SHARES, base],
+     ['умножение (отр.)', G.NEG_MUL_SHARES, negMul],
      ['деление', G.DIV_SHARES, divBase.concat(['twoPlain', 'twoCarry'])],
      ['деление (отр.)', G.NEG_DIV_SHARES, divBase]
     ].forEach(([name, shares, known]) => {
@@ -1639,6 +1662,379 @@ test('встречаются все четыре комбинации знако
         const total = Object.values(seen).reduce((a, b) => a + b, 0);
         assert(seen['++'] / total < 0.10, `${fn}: «оба плюса» ${(100 * seen['++'] / total).toFixed(1)}%`);
     });
+});
+
+group('Отрицательные сложение и вычитание: знак как содержание');
+
+// Класс считаем ТОЧНО, а не по видимому знаку: генератор переворачивает оператор
+// при отображении («7 − (−3)» может показаться как «7 + 3»), поэтому второе число
+// восстанавливаем из ответа. a — всегда первое число, answer = x + y.
+function negParts(e) {
+    const x = e.a, y = e.answer - e.a;
+    let cls;
+    if (Math.sign(x) === Math.sign(y)) cls = 0;                  // модули складываются
+    else if (Math.abs(x) > Math.abs(y)) cls = 1;                 // ноль не переходим
+    else cls = 2;                                                // ноль переходим
+    return { x, y, cls };
+}
+
+test('классы идут ровно по заданным долям', () => {
+    const N = 120000;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        const c = [0, 0, 0];
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            c[negParts(e).cls]++;
+        }
+        G.NEG_ADD_CLASS_SHARES[lvl].forEach((want, i) => {
+            const got = c[i] / N;
+            assert(Math.abs(got - want) < 0.02,
+                `${lvl}★, класс ${i}: ${(got * 100).toFixed(1)}% вместо ${(want * 100)}%`);
+        });
+    }
+});
+
+// Переход через ноль — главная ошибка темы: считают 8 − 3 = 5 и оставляют знак
+// первого числа. До правки доля таких примеров была делом случая.
+test('переход через ноль растёт со звездой и на пятой больше половины', () => {
+    const N = 80000;
+    const cross = (lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (negParts(e).cls === 2) c++;
+        }
+        return c / N;
+    };
+    const v = [1, 2, 3, 4, 5].map(cross);
+    for (let i = 1; i < 5; i++) assert(v[i] > v[i - 1] - 0.005, `доля упала со звездой: ${v[i - 1]} -> ${v[i]}`);
+    assert(v[4] > 0.5, `на 5★ переход через ноль ${(v[4] * 100).toFixed(1)}%`);
+    assert(v[0] < 0.25, `на 1★ переход через ноль ${(v[0] * 100).toFixed(1)}%`);
+});
+
+// Раньше скобки включались обрывом: ровно 0% на четырёх звёздах и 79,9% на пятой,
+// потому что до пятой генератор сам переворачивал знак и показывал «7 + 3».
+test('скобки нарастают со звездой, а не включаются разом', () => {
+    const N = 80000;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        let par = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (e.text.indexOf('(') >= 0) par++;
+        }
+        const got = par / N, want = G.NEG_PAREN_SHARE[lvl];
+        assert(Math.abs(got - want) < 0.015,
+            `${lvl}★: скобок ${(got * 100).toFixed(1)}% вместо ${(want * 100)}%`);
+    }
+});
+
+// Проверки выше сверяют генератор с ЕГО ЖЕ таблицами — они ловят расхождение кода
+// с настройкой, но не саму настройку: поменяй таблицу, и проверка поедет следом.
+// Поэтому здесь отдельно закреплена ФОРМА, ради которой всё делалось. Мутации
+// «скобки снова обрывом», «минимум снова единица» и «потолки как у положительных»
+// проходили мимо, пока этих трёх проверок не было.
+test('форма: скобки появляются до пятой звезды и на пятой не подавляют счёт', () => {
+    const N = 60000;
+    const share = (lvl) => {
+        let par = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (e.text.indexOf('(') >= 0) par++;
+        }
+        return par / N;
+    };
+    const v = [1, 2, 3, 4, 5].map(share);
+    assert(v[3] > 0.05, `на 4★ скобок ${(v[3] * 100).toFixed(1)}% — запись сваливается на голову разом`);
+    assert(v[3] < v[4] - 0.1, `4★ и 5★ по скобкам почти совпали: ${v[3]} и ${v[4]}`);
+    assert(v[4] > 0.35 && v[4] < 0.65,
+        `на 5★ скобок ${(v[4] * 100).toFixed(1)}% — либо мало, либо звезда перестаёт быть про счёт`);
+});
+
+test('форма: мелких операндов нет нигде, а минимум растёт со звездой', () => {
+    const N = 40000;
+    const smallest = (lvl) => {
+        let m = Infinity;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            const { x, y } = negParts(e);
+            m = Math.min(m, Math.abs(x), Math.abs(y));
+        }
+        return m;
+    };
+    const v = [1, 2, 3, 4, 5].map(smallest);
+    assert(v[0] >= 3, `на 1★ встретился операнд ${v[0]} — «−10 + 1» считать не надо`);
+    for (let i = 1; i < 5; i++) {
+        assert(v[i] >= v[i - 1], `минимум упал со звездой: ${v[i - 1]} -> ${v[i]}`);
+    }
+    assert(v[4] >= 10, `на 5★ минимальный операнд ${v[4]}`);
+});
+
+test('форма: потолки отрицательных ниже положительных', () => {
+    const N = 40000;
+    const biggest = (lvl) => {
+        let m = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            const { x, y } = negParts(e);
+            m = Math.max(m, Math.abs(x), Math.abs(y));
+        }
+        return m;
+    };
+    [3, 4, 5].forEach(lvl => {
+        const got = biggest(lvl), pos = G.ADD_SUB_RANGE[lvl];
+        assert(got < pos, `${lvl}★: потолок отрицательных ${got}, у положительных ${pos} — упор должен быть на знак, а не на разрядность`);
+    });
+    assert(biggest(1) <= 10, 'первая звезда переросла десяток');
+});
+
+test('скобки стоят только вокруг отрицательного второго числа', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (e.text.indexOf('(') >= 0) {
+                assert(e.b < 0, `скобки вокруг неотрицательного: ${e.text}`);
+                assert(e.text.indexOf('(' + e.b + ')') >= 0, `скобки не на месте: ${e.text}`);
+            }
+        }
+    }
+});
+
+test('ответ сходится с записью примера', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const a = G.genAddNegative(lvl);
+            assert(a.answer === a.a + a.b, `сложение: ${a.text} даёт ${a.answer}`);
+            const b = G.genSubNegative(lvl);
+            assert(b.answer === b.a - b.b, `вычитание: ${b.text} даёт ${b.answer}`);
+        }
+    }
+});
+
+// До правки на первой звезде 48,5% примеров содержали операнд не больше двойки —
+// «−10 + 1» считать не надо. Потолки при этом СВОИ, ниже положительных.
+test('модули не ниже минимума и не выше потолка звезды', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        const R = G.NEG_ADD_RANGE[lvl], MIN = G.NEG_ADD_MIN[lvl];
+        for (let i = 0; i < 20000; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            const { x, y } = negParts(e);
+            assert(Math.abs(x) >= MIN && Math.abs(y) >= MIN, `${lvl}★: слишком мелкий операнд в ${e.text}`);
+            assert(Math.abs(x) <= R && Math.abs(y) <= R, `${lvl}★: операнд выше потолка в ${e.text}`);
+            assert(Math.abs(e.answer) <= R, `${lvl}★: ответ выше потолка: ${e.text} = ${e.answer}`);
+        }
+    }
+});
+
+// Знак первого числа фиксируется намеренно. Без этого четверть первой звезды
+// оказывалась вообще не про отрицательные числа: примеры вроде «9 − 4 = 5».
+test('примеры без единого отрицательного числа — редкость', () => {
+    const N = 80000;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        let none = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (e.text.indexOf('-') < 0 && e.answer >= 0) none++;
+        }
+        assert(none / N < 0.04, `${lvl}★: без единого минуса ${(100 * none / N).toFixed(1)}%`);
+    }
+});
+
+// Пары модулей для «сложения модулей» перечисляются, а не разыгрываются
+// последовательно: розыгрыш «второе из остатка» сужает выбор вслед за первым, и на
+// краю остаётся единственный вариант — «−7 − 3» забирал 9,5% первой звезды.
+test('на первой звезде ни один пример не забирает больше двадцатой части', () => {
+    const N = 200000, seen = {};
+    for (let i = 0; i < N; i++) {
+        const e = Math.random() < 0.5 ? G.genAddNegative(1) : G.genSubNegative(1);
+        seen[e.text] = (seen[e.text] || 0) + 1;
+    }
+    const top = Math.max(...Object.values(seen)) / N;
+    assert(top < 0.05, `самый частый пример 1★ берёт ${(top * 100).toFixed(1)}%`);
+    assert(Object.keys(seen).length >= 100, `на 1★ всего ${Object.keys(seen).length} разных примеров`);
+});
+
+group('Варианты ответа в отрицательных: набор модулей не выдаёт ответ');
+
+// Главный инвариант всего набора. Знаковая ловушка стояла первым приоритетом, а
+// остальные варианты имели разные модули — получалось «−540, 540, −630, −84»:
+// пара одинаковых цифр РОВНО ОДНА, и верный ответ всегда в ней. Считать не нужно:
+// найди пару, примени правило знаков, готово.
+//
+// Замер до правки: ответ определялся парой в 93–100% примеров, а в отрицательном
+// сложении и вычитании — ровно в 100%, то есть весь раздел проходился мимо счёта.
+function magnitudePairs(options) {
+    const byMag = {};
+    options.forEach(v => {
+        if (typeof v !== 'number') return;
+        const m = Math.abs(v);
+        byMag[m] = (byMag[m] || 0) + 1;
+    });
+    return Object.keys(byMag).filter(m => byMag[m] > 1).length;
+}
+
+test('пара одинаковых модулей никогда не бывает ровно одна', () => {
+    const cases = [['mul', G.genMulNegative], ['div', G.genDivNegative],
+                   ['add', G.genAddNegative], ['sub', G.genSubNegative]];
+    cases.forEach(([op, gen]) => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 8000; i++) {
+                const e = gen(lvl);
+                if (e.noSolution) continue;
+                const opts = [e.answer, ...G.buildDistractors(op, e.a, e.b, e.answer, true, 3, lvl)];
+                assert(magnitudePairs(opts) !== 1,
+                    `${op} ${lvl}★: ${e.text} = ${e.answer}, варианты ${opts.join(', ')} — ответ виден по паре`);
+            }
+        }
+    });
+});
+
+// Ловушка нужна: без неё знак вообще не проверяется. Чиним не её, а то, что пара
+// была одна.
+test('знаковая ловушка остаётся на экране', () => {
+    const cases = [['mul', G.genMulNegative], ['div', G.genDivNegative],
+                   ['add', G.genAddNegative], ['sub', G.genSubNegative]];
+    cases.forEach(([op, gen]) => {
+        let seen = 0, total = 0;
+        for (let i = 0; i < 4000; i++) {
+            const e = gen(3);
+            if (e.noSolution) continue;
+            total++;
+            const d = G.buildDistractors(op, e.a, e.b, e.answer, true, 3, 3);
+            if (d.indexOf(-e.answer) >= 0) seen++;
+        }
+        assert(seen / total > 0.9, `${op}: неверный знак подмешан лишь в ${(100 * seen / total).toFixed(0)}% примеров`);
+    });
+});
+
+// У нуля нет знака, поэтому «0 × (−7)» ничему в этом разделе не учит — и он
+// единственный случай, где знакового близнеца не бывает вовсе.
+test('ноль не бывает ответом в отрицательных умножении и делении', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            assert(G.genMulNegative(lvl).answer !== 0, `${lvl}★: нулевой ответ в умножении`);
+            const d = G.genDivNegative(lvl);
+            assert(d.noSolution || d.answer !== 0, `${lvl}★: нулевой ответ в делении`);
+        }
+    }
+});
+
+test('вариантов ровно три, все разные и ни один не равен верному', () => {
+    const cases = [['mul', G.genMulNegative], ['div', G.genDivNegative],
+                   ['add', G.genAddNegative], ['sub', G.genSubNegative]];
+    cases.forEach(([op, gen]) => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 6000; i++) {
+                const e = gen(lvl);
+                if (e.noSolution) continue;
+                const d = G.buildDistractors(op, e.a, e.b, e.answer, true, 3, lvl);
+                assert(d.length === 3, `${op} ${lvl}★: вариантов ${d.length} у ${e.text}`);
+                assert(new Set(d).size === 3, `${op} ${lvl}★: повтор среди вариантов у ${e.text}`);
+                assert(d.indexOf(e.answer) < 0, `${op} ${lvl}★: верный ответ продублирован у ${e.text}`);
+            }
+        }
+    });
+});
+
+// Когда на экране «Нет решения», числовых слотов остаётся три — на две пары их не
+// хватает. Тогда модули делаются РАЗНЫМИ: одна пара снова была бы подсказкой.
+test('с вариантом «Нет решения» пар не бывает вовсе', () => {
+    let withDecoy = 0;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            const e = G.genDivNegative(lvl);
+            if (e.noSolution) continue;
+            const d = G.buildDistractors('div', e.a, e.b, e.answer, true, 3, lvl);
+            if (d.indexOf('NO_SOLUTION') < 0) continue;
+            withDecoy++;
+            const opts = [e.answer, ...d];
+            assert(magnitudePairs(opts) === 0,
+                `${lvl}★: с «Нет решения» появилась пара — ${opts.join(', ')}`);
+        }
+    }
+    assert(withDecoy > 100, `вариант «Нет решения» встретился лишь ${withDecoy} раз — проверка ничего не проверила`);
+});
+
+group('Три множителя: правило знаков обобщается');
+
+// Пятая звезда отрицательного умножения без этого была смесью четвёртой и
+// «двузначного на круглое» — новых умений не появлялось. Три множителя дают
+// настоящее новое: считаем минусы, чётное — плюс, нечётное — минус. Арифметика при
+// этом остаётся мелкой: произведение не выше двухсот.
+function tripleFactors(e) {
+    return e.text.replace(/[()]/g, '').split(' × ').map(Number);
+}
+
+test('тройки есть только на пятой звезде и занимают заявленную долю', () => {
+    const N = 60000;
+    for (let lvl = 1; lvl <= 4; lvl++) {
+        for (let i = 0; i < 20000; i++) {
+            assert(!G.genMulNegative(lvl).triple, `тройка на ${lvl}★`);
+        }
+    }
+    let tri = 0;
+    for (let i = 0; i < N; i++) if (G.genMulNegative(5).triple) tri++;
+    assert(Math.abs(tri / N - 0.35) < 0.02, `троек ${(100 * tri / N).toFixed(1)}% вместо 35%`);
+});
+
+test('ответ равен произведению всех трёх, а разложение — ответу', () => {
+    for (let i = 0; i < 60000; i++) {
+        const e = G.genMulNegative(5);
+        if (!e.triple) continue;
+        const f = tripleFactors(e);
+        assert(f.length === 3, `множителей ${f.length} в «${e.text}»`);
+        assert(f[0] * f[1] * f[2] === e.answer, `${e.text} даёт ${e.answer}`);
+        // Наружу отдаётся разложение на два числа: вся машинерия вариантов ответа
+        // считает, что a × b = ответ.
+        assert(e.a * e.b === e.answer, `разложение разошлось: ${e.a} × ${e.b} ≠ ${e.answer}`);
+    }
+});
+
+test('арифметика остаётся мелкой: множители до десяти, произведение до двухсот', () => {
+    G.MUL_TRIPLES.forEach(t => {
+        assert(t[0] >= 2 && t[2] <= 10, `множитель вне 2..10: ${t.join(',')}`);
+        assert(t[0] * t[1] * t[2] <= 200, `произведение выше 200: ${t.join(',')}`);
+    });
+    assert(G.MUL_TRIPLES.length > 60, `троек всего ${G.MUL_TRIPLES.length} — на треть звезды мало`);
+    for (let i = 0; i < 40000; i++) {
+        const e = G.genMulNegative(5);
+        if (!e.triple) continue;
+        assert(Math.abs(e.answer) <= 200, `${e.text} = ${e.answer}`);
+        tripleFactors(e).forEach(v => assert(Math.abs(v) >= 2 && Math.abs(v) <= 10,
+            `множитель ${v} вне 2..10 в «${e.text}»`));
+    }
+});
+
+// Главное, ради чего тройки и нужны: знак ответа определяется ЧЁТНОСТЬЮ числа минусов.
+test('знак ответа сходится с чётностью числа минусов', () => {
+    let allPositive = 0, total = 0;
+    const combos = new Set();
+    for (let i = 0; i < 60000; i++) {
+        const e = G.genMulNegative(5);
+        if (!e.triple) continue;
+        total++;
+        const f = tripleFactors(e);
+        const minuses = f.filter(v => v < 0).length;
+        const wantPositive = minuses % 2 === 0;
+        assert((e.answer > 0) === wantPositive,
+            `${e.text} = ${e.answer}: минусов ${minuses}, знак не сходится`);
+        if (minuses === 0) allPositive++;
+        combos.add(f.map(v => (v < 0 ? '-' : '+')).join(''));
+    }
+    assert(combos.size === 8, `встретилось ${combos.size} комбинаций знаков из 8`);
+    assert(allPositive / total < 0.10, `«все плюсы» ${(100 * allPositive / total).toFixed(1)}% — это не пример на отрицательные`);
+});
+
+test('в разборе у троек свой класс, а не разложение по таблице', () => {
+    const meta = { category: 'integer', isNegative: true, opKey: 'mul', level: 5 };
+    let tri = 0;
+    for (let i = 0; i < 20000; i++) {
+        const e = G.genMulNegative(5);
+        const st = G.structuralClassOf(meta, e);
+        assert(st && st.cls, `нет класса у «${e.text}»`);
+        if (e.triple) { tri++; assert(st.cls === 'triple', `тройка «${e.text}» разобрана как ${st.cls}`); }
+        else assert(st.cls !== 'triple', `не тройка «${e.text}» разобрана как triple`);
+    }
+    assert(tri > 1000, `троек в выборке ${tri} — проверка почти ничего не проверила`);
 });
 
 // ---------- итог ----------
