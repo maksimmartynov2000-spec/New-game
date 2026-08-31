@@ -457,6 +457,65 @@ test('день в журнале записывается по местной д
         `день записан как ${Object.keys(Progress.get().daily)} вместо местного ${local}`);
 });
 
+group('Старые профили не теряются');
+
+test('профиль из версии до всех недавних полей читается целиком', () => {
+    // У репетитора есть живые ученики, и обновление не имеет права стереть им прогресс.
+    // Здесь профиль ровно той формы, что была раньше: журнал с тремя ячейками на тему,
+    // без разбивки ошибок по клеткам, без видов ошибок, без эпох и без папок.
+    const env = loadProgress();
+    env.store['mathCitadelState_v3'] = JSON.stringify({
+        activeCode: 'Vasya',
+        profiles: { Vasya: {
+            schema: 2, playerCode: 'Vasya',
+            totals: { correct: 1234, wrong: 210, puzzlesCompleted: 7 },
+            byTopic: { 'integer+:add:1': { correct: 400, wrong: 30 } },
+            unlocks: { 'integer+:add:1:a3': '2026-05-01', 'integer+:add:1:c3': '2026-05-02' },
+            daily: { '2026-05-01': { c: 40, w: 5, s: 300, ms: 200000, mc: 40,
+                                     t: { 'integer+:add:1': [40, 5, 0] } } }
+        } }
+    });
+    env.Progress.init();
+    const st = env.Progress.get();
+    eq(st.totals.correct, 1234, 'пожизненный счёт верных');
+    eq(st.totals.puzzlesCompleted, 7, 'собранные пазлы');
+    eq(st.byTopic['integer+:add:1'].correct, 400, 'счёт по теме');
+    eq(st.unlocks['integer+:add:1:a3'], '2026-05-01', 'дата достижения');
+    const day = st.daily['2026-05-01'];
+    eq(day.c, 40, 'верных за день');
+    eq(day.t['integer+:add:1'][0], 40, 'верных по теме за день');
+    // Новые поля добавляются пустыми, а не ломают запись.
+    assert(day.te && typeof day.te === 'object', 'разбивка ошибок по клеткам добавлена пустой');
+    assert(st.errorKinds && typeof st.errorKinds === 'object', 'виды ошибок добавлены пустыми');
+});
+
+test('слияние старого профиля с новым ничего не обнуляет', () => {
+    // Ученик заходит со старого устройства, где приложение ещё не обновилось.
+    const { Progress } = fresh();
+    const старый = { schema: 2, playerCode: 'X', updatedAt: 100,
+        totals: { correct: 900, wrong: 100, puzzlesCompleted: 3 },
+        byTopic: { 'integer+:add:1': { correct: 500, wrong: 40 } },
+        unlocks: { 'integer+:add:1:a3': '2026-05-01' },
+        daily: { '2026-05-01': { c: 40, w: 5, t: { 'integer+:add:1': [40, 5, 0] } } } };
+    const новый = { schema: 2, playerCode: 'X', updatedAt: 200,
+        totals: { correct: 950, wrong: 110, puzzlesCompleted: 4 },
+        byTopic: { 'integer+:add:1': { correct: 520, wrong: 45 } },
+        unlocks: { 'integer+:add:1:a3': '2026-05-01', 'integer+:add:1:c3': '2026-06-01' },
+        daily: { '2026-05-01': { c: 40, w: 5, te: { 'integer+:add:1': { 'ошибся на единицу': 3 } },
+                                 t: { 'integer+:add:1': [40, 5, 0, 0, 0] } },
+                 '2026-06-01': { c: 20, w: 2, t: {}, te: {} } } };
+    const m = Progress._merge(старый, новый);
+    eq(m.totals.correct, 950, 'пожизненный счёт берёт больший');
+    eq(m.totals.puzzlesCompleted, 4, 'пазлы не откатились');
+    eq(m.byTopic['integer+:add:1'].correct, 520, 'счёт по теме не откатился');
+    eq(m.unlocks['integer+:add:1:c3'], '2026-06-01', 'новое достижение уцелело');
+    eq(m.unlocks['integer+:add:1:a3'], '2026-05-01', 'старое достижение уцелело');
+    eq(m.daily['2026-05-01'].c, 40, 'старый день на месте');
+    eq(m.daily['2026-06-01'].c, 20, 'новый день на месте');
+    eq(m.daily['2026-05-01'].te['integer+:add:1']['ошибся на единицу'], 3,
+       'разбивка ошибок из новой версии уцелела при слиянии со старой');
+});
+
 group('Виды ошибок');
 
 test('вид ошибки пишется и в пожизненный счёт по теме, и в журнал дня', () => {
