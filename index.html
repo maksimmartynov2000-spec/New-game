@@ -1258,7 +1258,7 @@
                     <button class="btn-period" data-period="180">180 дней</button>
                     <button class="btn-period" data-period="all">Всё время</button>
                 </div>
-                <div class="period-custom">
+                <div class="period-custom" id="statsPeriodCustom">
                     <span class="period-custom-label">Свой период:</span>
                     <input type="number" id="statsPeriodInput" min="1" max="180" step="1" inputmode="numeric" placeholder="дней">
                     <button class="btn-period" id="statsPeriodApply">Показать</button>
@@ -1267,6 +1267,9 @@
             </div>
 
             <div class="config-section">
+                <!-- Две правые карточки меняют содержимое в зависимости от того, кто смотрит:
+                     ученику вместо точности и скорости показываются «подряд» и «пазлов».
+                     Раскладка при этом остаётся та же — три карточки, а не одна с дырами. -->
                 <div class="stat-hero">
                     <div class="stat-hero-card">
                         <div class="stat-hero-val" id="statsSolvedVal">0</div>
@@ -1274,19 +1277,19 @@
                     </div>
                     <div class="stat-hero-card">
                         <div class="stat-hero-val" id="statsAccuracyVal">—</div>
-                        <div class="stat-hero-label">Точность<span class="stat-hero-delta" id="statsAccuracyDelta"></span></div>
+                        <div class="stat-hero-label"><span id="statsAccuracyName">Точность</span><span class="stat-hero-delta" id="statsAccuracyDelta"></span></div>
                     </div>
                     <div class="stat-hero-card">
                         <div class="stat-hero-val" id="statsSpeedVal">—</div>
-                        <div class="stat-hero-label">Скорость<span class="stat-hero-delta" id="statsSpeedDelta"></span></div>
+                        <div class="stat-hero-label"><span id="statsSpeedName">Скорость</span><span class="stat-hero-delta" id="statsSpeedDelta"></span></div>
                     </div>
                 </div>
                 <div class="stat-side">
                     <span>📅 дней: <b id="statsDaysVal">0</b></span>
                     <span>⏱️ время: <b id="statsTimeVal">0м</b></span>
-                    <span>🔥 подряд: <b id="statsStreakVal">0</b></span>
-                    <span>❌ ошибок: <b id="statsWrongVal">0</b></span>
-                    <span>🧩 пазлов: <b id="statsPuzzlesVal">0</b></span>
+                    <span id="statsStreakCell">🔥 подряд: <b id="statsStreakVal">0</b></span>
+                    <span id="statsWrongCell">❌ ошибок: <b id="statsWrongVal">0</b></span>
+                    <span id="statsPuzzlesCell">🧩 пазлов: <b id="statsPuzzlesVal">0</b></span>
                 </div>
                 <div class="config-hint" id="statsAlmostHint"></div>
             </div>
@@ -1322,14 +1325,10 @@
             <div class="config-section" id="statsMapSection">
                 <div class="config-section-title" id="statsMapTitle">Карта разделов</div>
                 <div id="statsMap"></div>
-                <div class="map-hint">
-                    Клетка — действие на своей сложности. Цвет по точности:
-                    зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено,
-                    значок — ранг темы.
-                </div>
+                <div class="map-hint" id="statsMapHint"></div>
             </div>
 
-            <div class="config-section">
+            <div class="config-section" id="statsTopicSection">
                 <div class="config-section-title" id="statsTopicTitle">По темам за период</div>
                 <div id="statsTopicList"></div>
             </div>
@@ -2148,6 +2147,11 @@
             "За один день сравнивать не с чем — здесь средние за этот день.": "One day has nothing to compare against — these are the averages for that day.",
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Not enough data to compare the two halves — these are the averages for the whole range.",
             "Где именно ошибается": "Where exactly the mistakes are",
+            "Дней подряд": "Days in a row",
+            "Клетка — действие на своей сложности. Цвет по точности: зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено, значок — ранг темы.": "A cell is one operation at one difficulty. Colour follows accuracy: green from 85%, amber from 65%, red below. Under the percentage is how many were solved; the badge is the topic's rank.",
+            "Клетка — действие на своей сложности. Число — сколько примеров решено, значок — награда за тему. Зелёная клетка значит «идёт уверенно», жёлтая и красная — тут ещё работаем.": "A cell is one operation at one difficulty. The number is how many problems were solved; the badge is the award for that topic. A green cell means it is going well, amber and red mean there is still work to do.",
+            "%1 — решено %2": "%1 — %2 solved",
+            "Пазлов": "Puzzles",
             "Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.\n                    Отвечает на вопрос, которого не задать общему списку, — ошибается\n                    вразнобой или дыра в одном конкретном месте.": "The same mistakes, broken down by cell: section, operation, star. It answers what the list above cannot \u2014 whether the mistakes are scattered or there is a hole in one specific place.",
             "Две оговорки, без которых эти доли врут. Вид ошибки определяется по тому,\n                    какой из показанных вариантов нажали: если нужного неверного ответа на\n                    экране не было, ошибка и не запишется. Поэтому доли сравнимы внутри одного\n                    раздела, но не между разделами. И отдельно: большая доля «другой ошибки» —\n                    это обычно не дыра в знании, а спешка и случайные нажатия.": "Two caveats, without which these shares lie. A mistake is classified by which of the shown options was tapped: if the matching wrong answer was never on screen, the mistake is never recorded. So the shares are comparable within one section, but not between sections. Separately: a large share of \u00abother mistake\u00bb usually means haste and random taps, not a gap in knowledge.",
             "ошибки": "mistakes",
@@ -9151,9 +9155,41 @@
         });
 
         // foreignState/foreignLabel — для просмотра статистики ученика без входа под его кодом.
+        // Экран статистики существует в двух видах.
+        //
+        // Взрослый — репетитора, когда он смотрит прогресс ученика. Там всё: точность,
+        // скорость, кривые, проценты по темам, разбор ошибок.
+        //
+        // Детский — самого ученика на своём устройстве. Правило отбора одно: остаётся то,
+        // что ребёнок может изменить действием («решил столько-то», «занимался столько
+        // дней подряд»), и то, что он собрал (карта, эпохи). Уходит то, что его оценивает:
+        // проценты точности, секунды, счётчик ошибок, кривые, разбор по темам и по видам
+        // ошибок. Дело не в том, что ребёнку эти числа непонятны, — они ему НЕДЕЙСТВЕННЫ:
+        // прицельно изменить «87%» нельзя, а тревожиться о них можно прекрасно. Точность и
+        // скорость при этом никуда не исчезают: они живут на экране достижений, где
+        // превращены в ступени — то есть в цель, а не в приговор.
+        const CHILD_PERIODS = ['today', 7, 30, 'all'];
+
+        // Блоки, которые видит только репетитор. Списком, а не россыпью условий по
+        // функции: иначе «что именно скрыто от ребёнка» приходится собирать чтением кода,
+        // а проверить это правило нельзя вовсе. Здесь его видно целиком и можно проверить
+        // тестом — в том числе что все эти идентификаторы в вёрстке ещё существуют.
+        // Переименовали блок, забыли строку — и ребёнок молча начал видеть разбор ошибок.
+        const STATS_TUTOR_ONLY = [
+            'statsTrendSection',         // кривые точности и скорости
+            'statsTopicSection',         // проценты по каждой теме
+            'statsMistakesSection',      // виды ошибок за период
+            'statsCellMistakesSection',  // ошибки по клеткам
+            'statsClassSection'          // разбор по типам примеров
+        ];
+        function statsSectionAllowed(id, forTutor) {
+            return forTutor || STATS_TUTOR_ONLY.indexOf(id) < 0;
+        }
+
         function renderStatsScreen(foreignState, foreignLabel) {
             statsViewState = foreignState || null;
             statsViewLabel = foreignLabel || '';
+            const forTutor = !!foreignState;
 
             const st = foreignState || Progress.get();
             const daily = st.daily || {};
@@ -9162,9 +9198,15 @@
                 : t('Прогресс ученика');
 
             document.querySelectorAll('#statsPeriodRow .btn-period').forEach(b => {
-                const p = b.getAttribute('data-period');
-                b.classList.toggle('selected', /^\d+$/.test(p) ? Number(p) === statsPeriod : p === statsPeriod);
+                const raw = b.getAttribute('data-period');
+                const p = /^\d+$/.test(raw) ? Number(raw) : raw;
+                b.classList.toggle('selected', p === statsPeriod);
+                // Семь кнопок и поле «свой период в днях» — это инструмент разбора, а не
+                // то, чем пользуется ребёнок. Ему хватает четырёх, и среди них есть
+                // значение по умолчанию, так что выбранный период не может «пропасть».
+                b.style.display = (forTutor || CHILD_PERIODS.indexOf(p) >= 0) ? '' : 'none';
             });
+            document.getElementById('statsPeriodCustom').style.display = forTutor ? '' : 'none';
 
             const today = Progress.dayKey();
             const isAll = statsPeriod === 'all';
@@ -9218,6 +9260,25 @@
             const avgSec = cur.mc > 0 ? (cur.ms / cur.mc / 1000) : null;
             document.getElementById('statsSpeedVal').innerText = avgSec === null ? '—' : avgSec.toFixed(1) + t(' с');
 
+            // Детский вид: те же три карточки, но справа — не оценка, а два счётчика
+            // сделанного. Прятать две из трёх было нельзя: осталась бы одна карточка
+            // и две дыры на её месте.
+            const streak = longestStreak(daily, fromKey, toKey);
+            if (!forTutor) {
+                document.getElementById('statsAccuracyName').innerText = t('Дней подряд');
+                document.getElementById('statsAccuracyVal').innerText = streak;
+                document.getElementById('statsSpeedName').innerText = t('Пазлов');
+                document.getElementById('statsSpeedVal').innerText = puzzles;
+            } else {
+                document.getElementById('statsAccuracyName').innerText = t('Точность');
+                document.getElementById('statsSpeedName').innerText = t('Скорость');
+            }
+            // Нижняя строка: у ребёнка остаются только дни и время — «подряд» и «пазлов»
+            // переехали в карточки, а счётчик ошибок это оценка.
+            ['statsStreakCell', 'statsWrongCell', 'statsPuzzlesCell'].forEach(id => {
+                document.getElementById(id).style.display = forTutor ? '' : 'none';
+            });
+
             // --- Динамика: сравнение с предыдущим таким же по длине периодом ---
             // Только для 7/30 дней (у "всего времени" нет предыдущего периода) и только
             // когда данных хватает в обоих — иначе стрелка красивая, но врущая.
@@ -9228,7 +9289,7 @@
             accDeltaEl.innerText = '';
             speedDeltaEl.innerText = '';
 
-            if (!isAll) {
+            if (!isAll && forTutor) {
                 const prevTo = shiftDayKey(fromKey, -1);
                 const prevFrom = shiftDayKey(prevTo, -(spanDays - 1));
                 const prev = aggregateDaily(daily, prevFrom, prevTo);
@@ -9256,13 +9317,17 @@
 
             // --- "Почти": верный счёт, но забыли сократить — отдельный диагноз ---
             const almost = isAll ? aggregateDaily(daily, null, toKey).a : cur.a;
-            document.getElementById('statsAlmostHint').innerText = almost > 0
+            document.getElementById('statsAlmostHint').innerText = (forTutor && almost > 0)
                 ? tf('«Почти» (посчитал верно, но забыл сократить): %1', almost)
                 : '';
 
             // --- По темам ---
-            document.getElementById('statsTopicTitle').innerText = t('По темам ') + periodLabel;
-            renderTopicBreakdown(topicSource, 'statsTopicList');
+            const showTopics = statsSectionAllowed('statsTopicSection', forTutor);
+            document.getElementById('statsTopicSection').style.display = showTopics ? '' : 'none';
+            if (showTopics) {
+                document.getElementById('statsTopicTitle').innerText = t('По темам ') + periodLabel;
+                renderTopicBreakdown(topicSource, 'statsTopicList');
+            }
 
             // --- С какого дня вообще есть дневник ---
             const first = earliestDayKey(daily);
@@ -9275,23 +9340,28 @@
             // там нечего, поэтому оба блока прячем.
             const stripFrom = isAll ? (earliestDayKey(daily) || toKey) : fromKey;
             const hasDays = Object.keys(daily).length > 0 && !isOneDay;
-            if (hasDays) {
-                renderDayStrip(daily, stripFrom, toKey);
-                renderTrends(daily, stripFrom, toKey);
-            }
+            // Полоса дней остаётся обоим: это не оценка, а «сколько я занимался», и
+            // ребёнку она как раз действенна — пропуски видно, и их можно не делать.
+            if (hasDays) renderDayStrip(daily, stripFrom, toKey);
             document.getElementById('statsStripSection').style.display = hasDays ? 'block' : 'none';
 
-            // --- Кривые: становится ли лучше ---
-            document.getElementById('statsTrendSection').style.display = hasDays ? 'block' : 'none';
+            // --- Кривые: становится ли лучше. Только репетитору ---
+            const showTrends = hasDays && statsSectionAllowed('statsTrendSection', forTutor);
+            if (showTrends) renderTrends(daily, stripFrom, toKey);
+            document.getElementById('statsTrendSection').style.display = showTrends ? 'block' : 'none';
 
             // --- Карта разделов: где силён, где остановился ---
             document.getElementById('statsMapTitle').innerText = t('Карта разделов ') + periodLabel;
-            const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap', {});
+            const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap', { noPct: !forTutor });
+            document.getElementById('statsMapHint').innerText = forTutor
+                ? t('Клетка — действие на своей сложности. Цвет по точности: зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено, значок — ранг темы.')
+                : t('Клетка — действие на своей сложности. Число — сколько примеров решено, значок — награда за тему. Зелёная клетка значит «идёт уверенно», жёлтая и красная — тут ещё работаем.');
             document.getElementById('statsMapSection').style.display = mapDrawn ? 'block' : 'none';
 
             // --- Над чем работать: ошибки за период, разобранные по причине ---
             const kinds = isAll ? aggregateDaily(daily, null, toKey).e : cur.e;
-            const drawn = renderMistakeKinds(kinds, 'statsMistakeList', 6);
+            const drawn = statsSectionAllowed('statsMistakesSection', forTutor)
+                ? renderMistakeKinds(kinds, 'statsMistakeList', 6) : 0;
             document.getElementById('statsMistakesSection').style.display = drawn ? 'block' : 'none';
 
             // --- Где именно ошибается: то же самое по клеткам. Только репетитору ---
@@ -9299,11 +9369,15 @@
             // пожизненный счёт по клеткам идёт. Разбивка по датам живёт только в журнале,
             // поэтому у любого конечного периода источник — он.
             const cellKinds = isAll ? (st.errorKinds || {}) : cur.te;
-            const cellDrawn = foreignState ? renderCellMistakes(cellKinds, 'statsCellMistakeList') : 0;
+            const cellDrawn = statsSectionAllowed('statsCellMistakesSection', forTutor)
+                ? renderCellMistakes(cellKinds, 'statsCellMistakeList') : 0;
             document.getElementById('statsCellMistakesSection').style.display =
                 cellDrawn ? 'block' : 'none';
 
-            renderClassBreakdown(st);
+            // Разбор по типам примеров — рабочий инструмент разбора занятия, не для ребёнка.
+            // Карточки эпох остаются: это память о пройденном пути, а не оценка.
+            if (statsSectionAllowed('statsClassSection', forTutor)) renderClassBreakdown(st);
+            else document.getElementById('statsClassSection').style.display = 'none';
             renderEpochCards(st);
         }
 
@@ -9545,6 +9619,10 @@
             if (!wrap) return 0;
             wrap.innerHTML = '';
             const compact = !!(opts && opts.compact);
+            // Детский вид: в клетке вместо процента точности — сколько решено. Цвет
+            // остаётся: он тут работает как рельеф («сюда дошёл, сюда ещё нет»), а не
+            // как отметка. А процент — именно отметка, и её ребёнку показывать незачем.
+            const noPct = !!(opts && opts.noPct);
             let drawn = 0;
 
             MAP_SECTIONS.forEach(sec => {
@@ -9596,14 +9674,16 @@
 
                         const val = document.createElement('div');
                         val.className = 'map-pct';
-                        val.innerText = pct === null ? '·' : pct + '%';
+                        val.innerText = pct === null ? '·' : (noPct ? String(c.attempts) : pct + '%');
                         cell.appendChild(val);
 
                         if (pct !== null && !compact) {
-                            const nEl = document.createElement('div');
-                            nEl.className = 'map-n';
-                            nEl.innerText = c.attempts;
-                            cell.appendChild(nEl);
+                            if (!noPct) {
+                                const nEl = document.createElement('div');
+                                nEl.className = 'map-n';
+                                nEl.innerText = c.attempts;
+                                cell.appendChild(nEl);
+                            }
 
                             const badge = unlocks ? topicBadge(unlocks, c.key) : '';
                             if (badge) {
@@ -9615,7 +9695,8 @@
                         }
                         cell.title = pct === null
                             ? tf('%1 — ещё не решал', topicLabelWithLevel(c.key))
-                            : tf('%1 — %2% из %3', topicLabelWithLevel(c.key), pct, c.attempts);
+                            : (noPct ? tf('%1 — решено %2', topicLabelWithLevel(c.key), c.attempts)
+                                     : tf('%1 — %2% из %3', topicLabelWithLevel(c.key), pct, c.attempts));
                         grid.appendChild(cell);
                     }
                 });

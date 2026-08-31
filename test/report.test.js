@@ -470,6 +470,61 @@ test('названия тем — слова, а не подписи из инт
     eq(R.parentTopicWords('fraction+:simplify:1'), 'сокращение дробей, 1★', 'сокращение');
 });
 
+group('Два вида экрана статистики');
+
+// Здесь проверяется не отрисовка, а само правило: что скрыто от ребёнка и уцелели ли
+// после переименований те идентификаторы, на которые правило ссылается. Именно это
+// ломается молча — блок переименовали, строку в списке не поправили, и ребёнок начал
+// видеть разбор ошибок, а заметить это можно только глазами на живом устройстве.
+const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+
+function jsList(name) {
+    // Без регулярных выражений: границы списка ищем по тексту, комментарии вырезаем.
+    const head = 'const ' + name + ' = [';
+    const from = HTML.indexOf(head);
+    if (from < 0) throw new Error('не найден список ' + name);
+    const to = HTML.indexOf('];', from);
+    return HTML.slice(from + head.length, to)
+        .split('\n').map(l => l.replace(/\/\/.*$/, '')).join(' ')
+        .split(',').map(x => x.trim()).filter(Boolean)
+        .map(x => (x[0] === "'" ? x.slice(1, -1) : Number(x)));
+}
+
+test('все блоки «только репетитору» существуют в вёрстке', () => {
+    const ids = jsList('STATS_TUTOR_ONLY');
+    assert(ids.length >= 4, `в списке всего ${ids.length} блоков — похоже, он потерялся`);
+    ids.forEach(id => {
+        assert(HTML.indexOf('id="' + id + '"') >= 0,
+            `блок ${id} закрыт от ребёнка, но такого id в вёрстке нет`);
+    });
+});
+
+test('оценочные блоки закрыты от ребёнка, а собранное — открыто', () => {
+    const ids = jsList('STATS_TUTOR_ONLY');
+    // Разбор ошибок и проценты по темам — оценка, их ребёнок видеть не должен.
+    ['statsMistakesSection', 'statsCellMistakesSection', 'statsTopicSection', 'statsTrendSection']
+        .forEach(id => assert(ids.indexOf(id) >= 0, `${id} должен быть закрыт от ребёнка`));
+    // Карта, полоса занятий и эпохи — это собранное, а не оценка: они остаются обоим.
+    ['statsMapSection', 'statsStripSection', 'statsEpochsSection']
+        .forEach(id => assert(ids.indexOf(id) < 0, `${id} закрывать от ребёнка не надо`));
+});
+
+test('период по умолчанию есть в детском наборе', () => {
+    // Иначе у ребёнка не окажется ни одной выбранной кнопки: значение выбрано, а кнопки,
+    // которая его показывает, на экране нет.
+    const child = jsList('CHILD_PERIODS');
+    const def = Number((HTML.match(/let statsPeriod = (\d+);/) || [])[1]);
+    assert(child.length >= 2, 'детских периодов должно остаться хотя бы два');
+    assert(child.indexOf(def) >= 0, `период по умолчанию ${def} не входит в детский набор`);
+});
+
+test('каждый детский период есть среди кнопок на экране', () => {
+    jsList('CHILD_PERIODS').forEach(p => {
+        assert(HTML.indexOf('data-period="' + p + '"') >= 0,
+            `у детского периода ${p} нет кнопки в вёрстке`);
+    });
+});
+
 group('Подписи в списке учеников');
 
 test('pluralDays не падает и склоняет верно', () => {
