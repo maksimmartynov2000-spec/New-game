@@ -332,6 +332,17 @@
             font-size: 0.9rem; line-height: 1.5; color: #1e293b; white-space: pre-wrap;
         }
         .report-empty { font-size: 0.82rem; color: #94a3b8; }
+        .cell-mistake { margin-bottom: 12px; }
+        .cell-mistake:last-child { margin-bottom: 0; }
+        .cell-mistake-head {
+            font-size: 0.8rem; font-weight: 700; color: #e2e8f0; margin-bottom: 4px;
+        }
+        .cell-mistake-row {
+            display: flex; gap: 8px; font-size: 0.78rem; color: #94a3b8;
+            padding: 2px 0 2px 10px;
+        }
+        .cell-mistake-name { flex: 1; }
+        .cell-mistake-n { white-space: nowrap; color: #cbd5e1; font-weight: 600; }
         .btn-config-continue {
             width: 100%; max-width: 450px; background: linear-gradient(45deg, #0284c7, #06b6d4);
             border: none; color: white; padding: 15px; font-size: 1.05rem;
@@ -1331,6 +1342,25 @@
                 <div id="statsMistakeList"></div>
             </div>
 
+            <!-- Только для репетитора: на экране ученика этого блока нет. Ребёнку он
+                 ничего не даёт, а раздел и так перегружен. -->
+            <div class="config-section" id="statsCellMistakesSection" style="display:none;">
+                <div class="config-section-title">Где именно ошибается</div>
+                <div class="config-hint" style="margin-bottom:8px;">
+                    Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.
+                    Отвечает на вопрос, которого не задать общему списку, — ошибается
+                    вразнобой или дыра в одном конкретном месте.
+                </div>
+                <div id="statsCellMistakeList"></div>
+                <div class="config-hint" style="margin-top:10px;">
+                    Две оговорки, без которых эти доли врут. Вид ошибки определяется по тому,
+                    какой из показанных вариантов нажали: если нужного неверного ответа на
+                    экране не было, ошибка и не запишется. Поэтому доли сравнимы внутри одного
+                    раздела, но не между разделами. И отдельно: большая доля «другой ошибки» —
+                    это обычно не дыра в знании, а спешка и случайные нажатия.
+                </div>
+            </div>
+
             <div class="config-section" id="statsClassSection" style="display:none;">
                 <div class="config-section-title fold-head" onclick="toggleClassBreakdown()">
                     <span>Разбор по типам примеров</span>
@@ -2117,6 +2147,11 @@
             "За этот период занятий не было.": "No sessions in this range.",
             "За один день сравнивать не с чем — здесь средние за этот день.": "One day has nothing to compare against — these are the averages for that day.",
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Not enough data to compare the two halves — these are the averages for the whole range.",
+            "Где именно ошибается": "Where exactly the mistakes are",
+            "Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.\n                    Отвечает на вопрос, которого не задать общему списку, — ошибается\n                    вразнобой или дыра в одном конкретном месте.": "The same mistakes, broken down by cell: section, operation, star. It answers what the list above cannot \u2014 whether the mistakes are scattered or there is a hole in one specific place.",
+            "Две оговорки, без которых эти доли врут. Вид ошибки определяется по тому,\n                    какой из показанных вариантов нажали: если нужного неверного ответа на\n                    экране не было, ошибка и не запишется. Поэтому доли сравнимы внутри одного\n                    раздела, но не между разделами. И отдельно: большая доля «другой ошибки» —\n                    это обычно не дыра в знании, а спешка и случайные нажатия.": "Two caveats, without which these shares lie. A mistake is classified by which of the shown options was tapped: if the matching wrong answer was never on screen, the mistake is never recorded. So the shares are comparable within one section, but not between sections. Separately: a large share of \u00abother mistake\u00bb usually means haste and random taps, not a gap in knowledge.",
+            "ошибки": "mistakes",
+            "ошибок": "mistakes",
             "Точность на общих темах": "Accuracy on shared topics",
             "Скорость на общих темах": "Speed on shared topics",
             "%1★ против %2★": "%1★ against %2★",
@@ -6347,10 +6382,18 @@
             //   mc — сколько ответов попало в ms (чтобы считать среднее)
             //   t  — по темам: { 'integer+:add:1': [верно, ошибок, почти, время(мс), ответов ко времени] }
             function emptyDay() {
-                // e — виды ошибок за день, плоской картой { 'сложил знаменатели': 3, ... }.
-                // Намеренно НЕ по темам: восемь ключей на день против восьмисот, а для
-                // вопроса «над чем работать в этом месяце» разбивки по темам и не нужно.
-                return { c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {}, e: {} };
+                // e  — виды ошибок за день одной плоской картой { 'сложил знаменатели': 3 }.
+                //      Отвечает на вопрос «над чем работать вообще».
+                // te — то же самое, но по клеткам: { 'integer-:mul:3': { 'ошибся в знаке': 4 } }.
+                //      Раньше разбивки по темам здесь намеренно не было — считалось, что это
+                //      восемь ключей на день против восьмисот. Оценка оказалась завышенной:
+                //      восемьсот — это теоретический максимум (сорок клеток на все виды ошибок),
+                //      а за один день ученик трогает две-три клетки и делает в них два-три
+                //      разных промаха. Зато без разбивки нельзя ответить на вопрос, ради
+                //      которого учитель сюда и приходит: «ошибается вразнобой или у него одна
+                //      дыра — и в каком именно месте». Глубину ограничивает сам журнал:
+                //      te живёт ровно столько, сколько живут дни, и старше не бывает.
+                return { c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {}, e: {}, te: {} };
             }
 
             // Дата ПО МЕСТНОМУ ВРЕМЕНИ, а не по UTC. toISOString() здесь был бы багом:
@@ -6578,6 +6621,17 @@
                     const ek = new Set([...Object.keys(x.e || {}), ...Object.keys(y.e || {})]);
                     ek.forEach(k => { bucket.e[k] = Math.max((x.e || {})[k] || 0, (y.e || {})[k] || 0); });
 
+                    // Ошибки по клеткам — по тому же правилу «максимум», что и всё в дне.
+                    const teKeys = new Set([...Object.keys(x.te || {}), ...Object.keys(y.te || {})]);
+                    teKeys.forEach(topic => {
+                        const p = (x.te || {})[topic] || {}, q = (y.te || {})[topic] || {};
+                        const cell = {};
+                        new Set([...Object.keys(p), ...Object.keys(q)]).forEach(kind => {
+                            cell[kind] = Math.max(p[kind] || 0, q[kind] || 0);
+                        });
+                        bucket.te[topic] = cell;
+                    });
+
                     const tk = new Set([...Object.keys(x.t || {}), ...Object.keys(y.t || {})]);
                     tk.forEach(key => {
                         const p = (x.t && x.t[key]) || [];
@@ -6704,6 +6758,13 @@
                     const bucket = Object.assign(emptyDay(), raw);
                     bucket.t = (raw.t && typeof raw.t === 'object' && !Array.isArray(raw.t)) ? raw.t : {};
                     bucket.e = (raw.e && typeof raw.e === 'object' && !Array.isArray(raw.e)) ? raw.e : {};
+                    bucket.te = (raw.te && typeof raw.te === 'object' && !Array.isArray(raw.te)) ? raw.te : {};
+                    // Внутри te — карта клетка → карта вида ошибки. Записи чужой формы
+                    // выбрасываем целиком: чинить их не из чего.
+                    Object.keys(bucket.te).forEach(topic => {
+                        const cell = bucket.te[topic];
+                        if (!cell || typeof cell !== 'object' || Array.isArray(cell)) delete bucket.te[topic];
+                    });
                     s.daily[k] = bucket;
                 });
                 pruneDaily(s.daily);
@@ -7058,8 +7119,15 @@
                     const day = touchDay();
                     if (!day.e || typeof day.e !== 'object') day.e = {};
                     day.e[kind] = (day.e[kind] || 0) + 1;
+                    if (topicKey) {
+                        if (!day.te || typeof day.te !== 'object') day.te = {};
+                        const cell = day.te[topicKey] || (day.te[topicKey] = {});
+                        cell[kind] = (cell[kind] || 0) + 1;
+                    }
                     persistLocal();
                 },
+                // Виды ошибок за всё время, по клеткам, без дат. Журнал глубже двухсот дней
+                // не идёт, а этот счёт идёт: он и отвечает на «за всё время».
                 getErrorKinds() { return state.errorKinds || {}; },
 
                 // Разбор по типам примеров. Три класса не пересекаются и в сумме дают
@@ -8677,7 +8745,7 @@
         // Суммирует дни журнала за период [fromKey, toKey] включительно.
         // fromKey = null означает "с самого начала".
         function aggregateDaily(daily, fromKey, toKey) {
-            const out = { days: 0, c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {}, e: {} };
+            const out = { days: 0, c: 0, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 0, t: {}, e: {}, te: {} };
             Object.keys(daily || {}).forEach(k => {
                 if ((fromKey && k < fromKey) || (toKey && k > toKey)) return;
                 const d = daily[k];
@@ -8693,6 +8761,11 @@
                     for (let i = 0; i < 5; i++) slot[i] += v[i] || 0;
                 });
                 Object.keys(d.e || {}).forEach(kind => { out.e[kind] = (out.e[kind] || 0) + (d.e[kind] || 0); });
+                Object.keys(d.te || {}).forEach(topic => {
+                    const src = d.te[topic] || {};
+                    const dst = out.te[topic] || (out.te[topic] = {});
+                    Object.keys(src).forEach(kind => { dst[kind] = (dst[kind] || 0) + (src[kind] || 0); });
+                });
             });
             return out;
         }
@@ -9221,8 +9294,76 @@
             const drawn = renderMistakeKinds(kinds, 'statsMistakeList', 6);
             document.getElementById('statsMistakesSection').style.display = drawn ? 'block' : 'none';
 
+            // --- Где именно ошибается: то же самое по клеткам. Только репетитору ---
+            // За «всё время» источник другой: журнал глубже двухсот дней не идёт, а
+            // пожизненный счёт по клеткам идёт. Разбивка по датам живёт только в журнале,
+            // поэтому у любого конечного периода источник — он.
+            const cellKinds = isAll ? (st.errorKinds || {}) : cur.te;
+            const cellDrawn = foreignState ? renderCellMistakes(cellKinds, 'statsCellMistakeList') : 0;
+            document.getElementById('statsCellMistakesSection').style.display =
+                cellDrawn ? 'block' : 'none';
+
             renderClassBreakdown(st);
             renderEpochCards(st);
+        }
+
+        // Ошибки по клеткам. Клетка — это раздел, действие и звезда сразу: разница между
+        // «ученик невнимателен» и «у ученика дыра в отрицательном умножении на 3★» —
+        // это и есть разница между общим списком выше и этим.
+        //
+        // Порог выборки обязателен: на трёх ошибках любая доля — это шум, а выглядит она
+        // ровно так же убедительно, как настоящая.
+        const CELL_MISTAKE_MIN = 10;   // ошибок в клетке, ниже — не показываем
+        const CELL_MISTAKE_TOP = 3;    // сколько причин называем в клетке
+        const CELL_MISTAKE_CELLS = 6;  // сколько клеток показываем
+
+        function renderCellMistakes(byCell, containerId) {
+            const wrap = document.getElementById(containerId);
+            if (!wrap) return 0;
+            wrap.innerHTML = '';
+
+            const cells = Object.keys(byCell || {}).map(topicKey => {
+                const kinds = byCell[topicKey] || {};
+                const rows = Object.keys(kinds)
+                    .map(kind => ({ kind, n: kinds[kind] || 0 }))
+                    .filter(r => r.n > 0)
+                    .sort((x, y) => y.n - x.n);
+                const total = rows.reduce((sum, r) => sum + r.n, 0);
+                return { topicKey, rows, total };
+            }).filter(c => c.total >= CELL_MISTAKE_MIN)
+              .sort((a, b) => b.total - a.total)
+              .slice(0, CELL_MISTAKE_CELLS);
+
+            if (!cells.length) return 0;
+
+            cells.forEach(c => {
+                const box = document.createElement('div');
+                box.className = 'cell-mistake';
+                const head = document.createElement('div');
+                head.className = 'cell-mistake-head';
+                head.innerText = `${topicLabelWithLevel(c.topicKey)} · ${c.total} ${pluralMistakes(c.total)}`;
+                box.appendChild(head);
+
+                c.rows.slice(0, CELL_MISTAKE_TOP).forEach(r => {
+                    const row = document.createElement('div');
+                    row.className = 'cell-mistake-row';
+                    row.innerHTML = '<span class="cell-mistake-name"></span><span class="cell-mistake-n"></span>';
+                    row.querySelector('.cell-mistake-name').innerText = mistakeLabel(r.kind);
+                    row.querySelector('.cell-mistake-n').innerText =
+                        `${r.n} · ${Math.round(r.n / c.total * 100)}%`;
+                    box.appendChild(row);
+                });
+                wrap.appendChild(box);
+            });
+            return cells.length;
+        }
+
+        function pluralMistakes(n) {
+            const d100 = n % 100, d10 = n % 10;
+            if (d100 >= 11 && d100 <= 14) return t('ошибок');
+            if (d10 === 1) return t('ошибка');
+            if (d10 >= 2 && d10 <= 4) return t('ошибки');
+            return t('ошибок');
         }
 
         // Список причин ошибок: строка на причину, полоска показывает долю.

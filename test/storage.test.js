@@ -476,6 +476,75 @@ test('вид ошибки пишется и в пожизненный счёт �
     eq(day.e['не сократил'], 1, 'за день');
 });
 
+test('вид ошибки пишется в журнал дня ещё и с разбивкой по клетке', () => {
+    // Без этой разбивки журнал отвечал только на «над чем работать вообще». Разница
+    // между «ученик невнимателен» и «дыра в отрицательном умножении на 3★» жила
+    // в пожизненном счёте, у которого нет дат, — то есть не отвечала на «закрылась ли».
+    const { Progress } = fresh();
+    Progress.switchTo('Vasya', 'pw1');
+    Progress.recordAnswer('integer-:mul:3', 'wrong', 8000);
+    Progress.recordMistakeKind('integer-:mul:3', 'ошибся в знаке');
+    Progress.recordAnswer('integer-:mul:3', 'wrong', 8000);
+    Progress.recordMistakeKind('integer-:mul:3', 'ошибся в знаке');
+    Progress.recordAnswer('integer+:add:1', 'wrong', 5000);
+    Progress.recordMistakeKind('integer+:add:1', 'ошибка в десятках');
+
+    const day = Object.values(Progress.get().daily)[0];
+    eq(day.te['integer-:mul:3']['ошибся в знаке'], 2, 'своя клетка');
+    eq(day.te['integer+:add:1']['ошибка в десятках'], 1, 'другая клетка');
+    eq(day.te['integer-:mul:3']['ошибка в десятках'], undefined, 'чужая ошибка в клетку не течёт');
+    // Плоская карта дня продолжает работать как раньше: она отвечает на другой вопрос.
+    eq(day.e['ошибся в знаке'], 2, 'плоская карта дня');
+});
+
+test('ошибка без темы в разбивку по клеткам не попадает', () => {
+    const { Progress } = fresh();
+    Progress.switchTo('Vasya', 'pw1');
+    Progress.recordMistakeKind(null, 'другая ошибка');
+    const day = Object.values(Progress.get().daily)[0];
+    eq(Object.keys(day.te).length, 0, 'клеток');
+    eq(day.e['другая ошибка'], 1, 'в плоскую карту всё же попала');
+});
+
+test('ошибки по клеткам переживают слияние двух устройств', () => {
+    const { Progress } = fresh();
+    const m = Progress._merge(
+        { schema: 2, playerCode: 'X', updatedAt: 100, daily: { '2026-08-01': {
+            c: 10, w: 5, te: { 'integer-:mul:3': { 'ошибся в знаке': 4, 'таблица умножения': 1 } } } } },
+        { schema: 2, playerCode: 'X', updatedAt: 200, daily: { '2026-08-01': {
+            c: 10, w: 5, te: { 'integer-:mul:3': { 'ошибся в знаке': 2 },
+                               'integer+:add:1': { 'ошибка в десятках': 3 } } } } });
+    const day = m.daily['2026-08-01'];
+    eq(day.te['integer-:mul:3']['ошибся в знаке'], 4, 'более свежая запись не откатывает');
+    eq(day.te['integer-:mul:3']['таблица умножения'], 1, 'вид, известный только одной стороне');
+    eq(day.te['integer+:add:1']['ошибка в десятках'], 3, 'клетка с другой стороны');
+});
+
+test('мусор в разбивке по клеткам не роняет чтение', () => {
+    const env = loadProgress();
+    env.store['mathCitadelState_v3'] = JSON.stringify({
+        activeCode: 'Vasya',
+        profiles: { Vasya: { schema: 2, playerCode: 'Vasya', daily: { '2026-08-01': {
+            c: 1, w: 1, te: {
+                'integer+:add:1': { 'ошибка в десятках': 2 },
+                'битая клетка': 'вообще не объект'
+            } } } } }
+    });
+    env.Progress.init();
+    const day = env.Progress.get().daily['2026-08-01'];
+    eq(day.te['integer+:add:1']['ошибка в десятках'], 2, 'живая клетка уцелела');
+    assert(!('битая клетка' in day.te), 'битая запись осталась');
+});
+
+test('слияние ошибок по клеткам идемпотентно', () => {
+    const { Progress } = fresh();
+    const s = { schema: 2, playerCode: 'X', updatedAt: 100, daily: { '2026-08-01': {
+        c: 10, w: 4, te: { 'integer-:mul:3': { 'ошибся в знаке': 4 } } } } };
+    let m = Progress._merge(s, s);
+    for (let i = 0; i < 5; i++) m = Progress._merge(m, s);
+    eq(m.daily['2026-08-01'].te['integer-:mul:3']['ошибся в знаке'], 4, 'после шести слияний');
+});
+
 test('пустой вид ошибки ничего не записывает', () => {
     const { Progress } = fresh();
     Progress.switchTo('Vasya', 'pw1');
