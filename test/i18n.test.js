@@ -141,6 +141,32 @@ test('табуляции в копируемых таблицах на мест�
     });
 });
 
+group('Название приложения');
+
+test('название одинаково во всех местах, где оно записано', () => {
+    // Оно лежит в четырёх разных файлах и форматах: заголовок вкладки, подпись ярлыка
+    // на iOS и два поля манифеста. Разъезжаются они молча — человек видит на домашнем
+    // экране одно название, во вкладке другое, и понять, какое настоящее, неоткуда.
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const manifest = JSON.parse(fs.readFileSync(path.join(ROOT, 'manifest.json'), 'utf8'));
+    const title = (html.match(/<title>([^<]*)<\/title>/) || [])[1];
+    const apple = (html.match(/name="apple-mobile-web-app-title" content="([^"]*)"/) || [])[1];
+    assert(title, 'в разметке нет <title>');
+    eq(apple, title, 'подпись ярлыка на iOS');
+    eq(manifest.name, title, 'name в манифесте');
+    eq(manifest.short_name, title, 'short_name в манифесте');
+});
+
+test('название не переводится ни на один язык', () => {
+    // Решено отдельно: имя приложения одно на все языки. Ключ в словаре означал бы,
+    // что на каком-то языке оно тихо станет другим.
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const title = (html.match(/<title>([^<]*)<\/title>/) || [])[1];
+    [['fr', D.fr], ['de', D.de], ['en', D.en]].forEach(([lang, dict]) => {
+        assert(!(title in dict), `название «${title}» попало в словарь ${lang}`);
+    });
+});
+
 group('Список языков');
 
 test('каждый язык кроме русского ПОДКЛЮЧЁН к словарю', () => {
