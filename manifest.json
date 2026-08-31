@@ -1,6 +1,6 @@
 {
-  "name": "MATH X",
-  "short_name": "MATH X",
+  "name": "Math X",
+  "short_name": "Math X",
   "description": "Математические испытания, коллекция пазлов и прогресс ученика",
   "start_url": "./index.html",
   "display": "standalone",
