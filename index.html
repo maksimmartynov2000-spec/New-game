@@ -1452,13 +1452,6 @@
         <h1 class="start-title">🏅 Достижения</h1>
         <p class="start-subtitle" id="achievementsSubtitle">Ранги по темам</p>
         <div class="config-container">
-            <div class="config-hint" style="margin-bottom:10px;">
-                Следующая звезда открывается золотом по точности и количеству.
-                Скорость ничего не открывает — это ориентир. Значок самой звезды —
-                алмаз или легенда — даётся, только когда до него дошли все три лесенки
-                сразу; у каждой лесенки при этом своя ступень. Значок ступени взят
-                навсегда, а число рядом — это последняя сотня ответов.
-            </div>
             <div id="ladderList"></div>
         </div>
     </div>
@@ -2062,7 +2055,6 @@
             "Уверенно": "Confident",
             "В работе": "In progress",
             "ждёт": "waiting",
-            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир. Значок самой звезды —\n                алмаз или легенда — даётся, только когда до него дошли все три лесенки\n                сразу; у каждой лесенки при этом своя ступень. Значок ступени взят\n                навсегда, а число рядом — это последняя сотня ответов.": "The next star unlocks with gold in accuracy and count. Speed doesn't unlock anything \u2014 it's just a guide. The star's own badge \u2014 diamond or legend \u2014 is given only when all three ladders reach it; each ladder still has its own step. A step's badge is yours for good, while the number beside it is your last hundred answers.",
             "без перехода": "no carrying",
             "дополнение до круглого": "making ten",
             "полный переход": "carrying",
@@ -2542,7 +2534,6 @@
             "Уверенно": "Solide",
             "В работе": "En cours",
             "ждёт": "en attente",
-            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир. Значок самой звезды —\n                алмаз или легенда — даётся, только когда до него дошли все три лесенки\n                сразу; у каждой лесенки при этом своя ступень. Значок ступени взят\n                навсегда, а число рядом — это последняя сотня ответов.": "L'étoile suivante s'ouvre avec l'or en précision et en quantité. La vitesse n'ouvre rien — c'est un repère. Le badge de l'étoile elle-même — diamant ou légende — n'est donné que lorsque les trois échelles l'atteignent toutes les trois ; chaque échelle garde son propre palier. Le badge d'un palier est acquis pour de bon, tandis que le nombre à côté correspond aux cent dernières réponses.",
             "без перехода": "sans retenue",
             "дополнение до круглого": "complément à la dizaine",
             "полный переход": "avec retenue",
@@ -3016,7 +3007,6 @@
             "Уверенно": "Sicher",
             "В работе": "In Arbeit",
             "ждёт": "wartet",
-            "Следующая звезда открывается золотом по точности и количеству.\n                Скорость ничего не открывает — это ориентир. Значок самой звезды —\n                алмаз или легенда — даётся, только когда до него дошли все три лесенки\n                сразу; у каждой лесенки при этом своя ступень. Значок ступени взят\n                навсегда, а число рядом — это последняя сотня ответов.": "Der nächste Stern öffnet sich mit Gold in Genauigkeit und Menge. Tempo schaltet nichts frei — es ist nur ein Richtwert. Das Abzeichen des Sterns selbst — Diamant oder Legende — gibt es erst, wenn alle drei Leitern es erreichen; jede Leiter hat dabei ihre eigene Stufe. Das Abzeichen einer Stufe bleibt für immer, die Zahl daneben zeigt die letzten hundert Antworten.",
             "без перехода": "ohne Übertrag",
             "дополнение до круглого": "Ergänzung zum Zehner",
             "полный переход": "mit Übertrag",
@@ -12674,10 +12664,25 @@
             return !!(el && armed && armed.contains(el));
         }
 
+        // Гасить ли клик по этой кнопке. Правило вынесено отдельной функцией не ради
+        // красоты: живьём оно проверяется только пальцем на устройстве, а так его
+        // можно проверить тестом.
+        //
+        // Окно во времени, а не «до следующего тика»: синтетический клик после отпускания
+        // приходит не всегда сразу — на тач-экранах он может задержаться. Прежний сброс
+        // через setTimeout(0) успевал стереть запрет РАНЬШЕ, чем приходил клик, и запрет
+        // молча переставал работать.
+        const CLICK_BLOCK_MS = 800;
+        function answerClickBlocked(blockedBtn, blockUntil, btn, now) {
+            if (!blockedBtn || blockedBtn !== btn) return false;
+            return now < blockUntil;
+        }
+
         (() => {
             const grid = document.getElementById('answersGrid');
             let armed = null;
             let left = false;   // палец хоть раз пересёк край кнопки
+            let blockedBtn = null, blockUntil = 0;
 
             grid.addEventListener('pointerdown', (e) => {
                 const btn = e.target.closest('.btn-answer');
@@ -12707,19 +12712,26 @@
             // Тот же запрет, но уже для события ответа: клик по кнопке, с которой уходили,
             // не считается. Гасим на перехвате, до обработчиков самих кнопок.
             grid.addEventListener('click', (e) => {
-                if (!left) return;
                 const btn = e.target.closest('.btn-answer');
-                if (!btn || btn !== armed) return;
+                if (!btn || !answerClickBlocked(blockedBtn, blockUntil, btn, Date.now())) return;
+                blockedBtn = null;
                 e.stopPropagation();
                 e.preventDefault();
             }, true);
 
             const done = (e) => {
                 if (e && e.pointerId !== pressedPointer && pressedPointer !== null) return;
+                // Главная проверка — здесь, а не по ходу движения: важно, где палец
+                // ОТПУСТИЛИ. Она не зависит от того, доехали ли pointermove: на части
+                // устройств их может не быть вовсе или они могут отставать, а точка
+                // отпускания известна всегда. Прежняя защита держалась только на движении
+                // и потому давала осечку — палец уводили, а ответ засчитывался.
+                if (e && armed && typeof e.clientX === 'number'
+                    && !pointerOverArmed(e.clientX, e.clientY, armed)) left = true;
+                if (armed && left) { blockedBtn = armed; blockUntil = Date.now() + CLICK_BLOCK_MS; }
                 clearPressed();
-                // armed и left держим до конца текущего клика: click приходит после
-                // pointerup, и перехватчику выше надо знать, уходил ли палец.
-                setTimeout(() => { armed = null; left = false; }, 0);
+                armed = null;
+                left = false;
             };
             document.addEventListener('pointerup', done);
             document.addEventListener('pointercancel', done);

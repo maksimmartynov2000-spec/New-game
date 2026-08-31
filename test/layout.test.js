@@ -1,4 +1,4 @@
-// Тесты раскладки игрового экрана.
+// Тесты игрового экрана: раскладка и обработка нажатий.
 //
 // Зачем: экран, на котором ученик решает примеры, ломается молча и только на чужом
 // устройстве. Прокрутка в рабочей зоне не роняет ничего и не видна на телефоне
@@ -15,6 +15,21 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const STYLE = HTML.slice(HTML.indexOf('<style>'), HTML.indexOf('</style>'));
+const SCRIPT = HTML.match(/<script>([\s\S]*)<\/script>/)[1];
+
+// Правило «считать ли клик» вырезаем и исполняем: живьём оно проверяется только
+// пальцем на устройстве, и обе прошлые осечки нашлись жалобой, а не тестом.
+function loadClickRule() {
+    const vm = require('vm');
+    const from = SCRIPT.indexOf('const CLICK_BLOCK_MS');
+    const to = SCRIPT.indexOf('\n\n', SCRIPT.indexOf('function answerClickBlocked'));
+    if (from < 0 || to < 0) throw new Error('не найдено правило answerClickBlocked');
+    const box = {};
+    vm.createContext(box);
+    vm.runInContext(SCRIPT.slice(from, to)
+        + ';globalThis.R = { answerClickBlocked, CLICK_BLOCK_MS };', box);
+    return box.R;
+}
 
 let passed = 0, failed = 0;
 const failures = [];
@@ -41,6 +56,40 @@ function mediaBlocks() {
     }
     return out;
 }
+
+group('Нажатие на кнопку ответа');
+
+const R = loadClickRule();
+const BTN = { id: 'кнопка' }, OTHER = { id: 'другая' };
+
+test('обычный тап проходит: запрета нет', () => {
+    assert(!R.answerClickBlocked(null, 0, BTN, 1000), 'клик без запрета должен проходить');
+});
+
+test('клик по кнопке, с которой увели палец, гасится', () => {
+    // Ровно то, на что жаловались: палец подержали, увели и отпустили — а ответ
+    // засчитывался.
+    assert(R.answerClickBlocked(BTN, 1500, BTN, 1000), 'запрет должен действовать');
+});
+
+test('запрет не задевает соседнюю кнопку', () => {
+    assert(!R.answerClickBlocked(BTN, 1500, OTHER, 1000),
+        'увели палец с одной кнопки — нажатие по другой считаться должно');
+});
+
+test('запрет держится дольше, чем один тик', () => {
+    // Прежняя защита снимала запрет через setTimeout(0). Синтетический клик после
+    // отпускания приходит не всегда сразу — на тач-экранах он может задержаться,
+    // и запрет успевал стереться РАНЬШЕ, чем приходил клик.
+    assert(R.CLICK_BLOCK_MS >= 300,
+        `окно запрета ${R.CLICK_BLOCK_MS} мс — слишком коротко для отложенного клика на тач-экране`);
+    assert(R.CLICK_BLOCK_MS <= 2000,
+        `окно запрета ${R.CLICK_BLOCK_MS} мс — слишком длинно: заденет следующий честный тап`);
+});
+
+test('запрет протухает и не блокирует следующий тап', () => {
+    assert(!R.answerClickBlocked(BTN, 1500, BTN, 1600), 'после окна запрета клик должен проходить');
+});
 
 group('Порядок правил');
 
