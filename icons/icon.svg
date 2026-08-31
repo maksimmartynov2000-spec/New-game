@@ -1,16 +1,36 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
   <defs>
-    <linearGradient id="goldFill" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffd75e"/>
-      <stop offset="1" stop-color="#eeab1c"/>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#141c3d"/><stop offset="1" stop-color="#070a1c"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffd75e"/><stop offset="1" stop-color="#eeab1c"/>
     </linearGradient>
   </defs>
-  <!-- Плитка залита целиком: прежняя иконка была на две трети плоским чёрным и
-       на тёмном экране проваливалась. -->
-  <rect width="100" height="100" fill="url(#goldFill)"/>
-  <!-- Замочная скважина одной фигурой, без единой тонкой детали: на 60 px, в котором
-       иконка и живёт, тонкое пропадает. Прежнее бирюзовое кольцо толщиной 1,4 px при
-       прозрачности 0,4 не было видно вовсе. -->
-  <circle cx="50" cy="38" r="19" fill="#0d0e14"/>
-  <path d="M41 50 L34 80 L66 80 L59 50 Z" fill="#0d0e14"/>
+  <rect width="100" height="100" fill="url(#sky)"/>
+  <g opacity="0.55"><rect x="13.25" y="51.08" width="3.20" height="0.99" fill="#7dd3fc"/><rect x="14.35" y="49.98" width="0.99" height="3.20" fill="#7dd3fc"/></g>
+  <g opacity="0.85"><rect x="4.55" y="70.10" width="4.20" height="1.30" fill="#ffffff"/><circle cx="6.65" cy="69.03" r="0.81" fill="#ffffff"/><circle cx="6.65" cy="72.48" r="0.81" fill="#ffffff"/></g>
+  <g opacity="0.7"><rect x="85.81" y="10.76" width="5.20" height="1.61" fill="#7dd3fc"/><rect x="87.60" y="8.96" width="1.61" height="5.20" fill="#7dd3fc"/></g>
+  <g opacity="0.4"><rect x="20.30" y="13.09" width="4.20" height="1.30" fill="#ffffff"/><rect x="21.75" y="11.64" width="1.30" height="4.20" fill="#ffffff"/></g>
+  <g opacity="0.4"><rect x="12.86" y="17.72" width="4.20" height="1.30" fill="#7dd3fc"/><rect x="14.31" y="16.27" width="1.30" height="4.20" fill="#7dd3fc"/></g>
+  <g opacity="0.7"><circle cx="84.1" cy="78.3" r="0.7" fill="#ffffff"/></g>
+  <g opacity="0.4"><circle cx="12.8" cy="18.5" r="1.3" fill="#7dd3fc"/></g>
+  <g opacity="0.4"><rect x="12.93" y="23.68" width="5.20" height="1.61" fill="#ffffff"/></g>
+  <g opacity="0.55"><circle cx="25.0" cy="10.5" r="1.0" fill="#ffffff"/></g>
+  <g opacity="0.85"><circle cx="15.8" cy="57.5" r="1.6" fill="#7dd3fc"/></g>
+  <g opacity="0.55"><rect x="7.25" y="30.75" width="5.20" height="1.61" fill="#7dd3fc"/></g>
+  <g opacity="0.55"><circle cx="9.1" cy="43.5" r="1.6" fill="#ffffff"/></g>
+  <g opacity="0.7"><rect x="20.22" y="13.60" width="5.20" height="1.61" fill="#ffffff"/></g>
+  <g opacity="0.7"><circle cx="90.4" cy="17.0" r="0.7" fill="#ffffff"/></g>
+  <g opacity="0.85"><circle cx="11.5" cy="71.5" r="0.7" fill="#ffffff"/></g>
+  <g opacity="0.85"><circle cx="52.7" cy="11.9" r="1.6" fill="#ffffff"/></g>
+  <g opacity="0.4"><rect x="64.52" y="9.76" width="4.20" height="1.30" fill="#ffffff"/><rect x="65.97" y="8.31" width="1.30" height="4.20" fill="#ffffff"/></g>
+  <g opacity="0.7"><rect x="90.42" y="22.52" width="5.20" height="1.61" fill="#ffffff"/><rect x="92.21" y="20.73" width="1.61" height="5.20" fill="#ffffff"/></g>
+  <g opacity="0.85"><circle cx="84.8" cy="52.2" r="1.6" fill="#7dd3fc"/></g>
+  <g opacity="0.4"><circle cx="89.6" cy="16.2" r="1.3" fill="#ffffff"/></g>
+  <path d="M32 55 l-12 18 12 -5 z" fill="#eeab1c"/>
+  <path d="M68 55 l12 18 -12 -5 z" fill="#eeab1c"/>
+  <path d="M50 14 c14 12 18 26 18 39 l0 16 -36 0 0 -16 c0 -13 4 -27 18 -39 z" fill="url(#gold)"/>
+  <rect x="43.00" y="35.40" width="14.00" height="5.20" fill="#0b1026"/><rect x="47.40" y="31.00" width="5.20" height="14.00" fill="#0b1026"/>
+  <path d="M42 69 l8 22 8 -22 z" fill="#7dd3fc"/>
 </svg>
