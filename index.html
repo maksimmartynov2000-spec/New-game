@@ -2084,6 +2084,13 @@
             "За этот период занятий не было.": "No sessions in this range.",
             "За один день сравнивать не с чем — здесь средние за этот день.": "One day has nothing to compare against — these are the averages for that day.",
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Not enough data to compare the two halves — these are the averages for the whole range.",
+            "Точность на общих темах": "Accuracy on shared topics",
+            "Скорость на общих темах": "Speed on shared topics",
+            "%1★ против %2★": "%1★ against %2★",
+            "Во второй половине примеры стали сложнее: в среднем %1. Поэтому сравниваем по темам, которые встречались в обеих половинах.": "In the second half the problems got harder: %1 on average. So the comparison uses only the topics that appear in both halves.",
+            "Во второй половине примеры стали проще: в среднем %1. Поэтому сравниваем по темам, которые встречались в обеих половинах.": "In the second half the problems got easier: %1 on average. So the comparison uses only the topics that appear in both halves.",
+            "Во второй половине примеры стали сложнее: в среднем %1. Половины напрямую не сравниваются — это переход на новое, а не спад.": "In the second half the problems got harder: %1 on average. The two halves are not directly comparable — this is a move to something new, not a decline.",
+            "Во второй половине примеры стали проще: в среднем %1. Половины напрямую не сравниваются.": "In the second half the problems got easier: %1 on average. The two halves are not directly comparable.",
             "точность": "accuracy",
             "скорость": "speed",
             "точность %1%": "%1% accuracy",
@@ -8645,13 +8652,73 @@
                 if (isActiveDay(d)) out.days++;
                 ['c', 'w', 'a', 's', 'p', 'ms', 'mc'].forEach(f => { out[f] += d[f] || 0; });
                 Object.keys(d.t || {}).forEach(tk => {
-                    const slot = out.t[tk] || (out.t[tk] = [0, 0, 0]);
+                    // Пять ячеек, а не три: [верно, неверно, почти, время всех, число верных].
+                    // Время и число верных нужны, чтобы считать скорость ПО ОДНОЙ теме, —
+                    // без этого сравнить половины периода на одинаковых примерах нечем.
+                    const slot = out.t[tk] || (out.t[tk] = [0, 0, 0, 0, 0]);
                     const v = d.t[tk] || [];
-                    slot[0] += v[0] || 0; slot[1] += v[1] || 0; slot[2] += v[2] || 0;
+                    for (let i = 0; i < 5; i++) slot[i] += v[i] || 0;
                 });
                 Object.keys(d.e || {}).forEach(kind => { out.e[kind] = (out.e[kind] || 0) + (d.e[kind] || 0); });
             });
             return out;
+        }
+
+        // Средняя звёздность примеров за отрезок, взвешенная по числу попыток.
+        // Нужна ровно для одного: понять, не сменилась ли сложность между половинами
+        // периода. Возвращает null, если примеров с известной звёздностью не было.
+        function avgLevelOf(agg) {
+            let attempts = 0, sum = 0;
+            Object.keys((agg && agg.t) || {}).forEach(key => {
+                const lvl = parseTopicKey(key).level;
+                const v = agg.t[key] || [];
+                const n = (v[0] || 0) + (v[1] || 0);
+                if (!lvl || !n) return;
+                attempts += n; sum += lvl * n;
+            });
+            return attempts ? sum / attempts : null;
+        }
+
+        // Насколько должна сдвинуться средняя звёздность, чтобы половины перестали
+        // быть сравнимыми напрямую. Треть звезды: меньше — это обычные колебания
+        // набора внутри одной сложности, а не переход.
+        const LEVEL_SHIFT_MIN = 0.3;
+
+        // Решает, на чём честно сравнивать половины периода.
+        //
+        // Зачем вообще: точность и скорость ПАДАЮТ, когда ученик переходит на звезду
+        // выше. Отчёт, который в этот момент рисует красную стрелку вниз, говорит
+        // родителю неправду — ребёнок вырос, а написано, что стало хуже. Ровно так
+        // и случилось на проверке: у ученика, взявшего четвёртую звезду, спад показали
+        // как ухудшение. Работает в обе стороны: рост точности на примерах, ставших
+        // проще, — тоже не рост, и хвалить за него так же нечестно.
+        //
+        //   'plain'        — сложность та же, сравниваем половины как есть;
+        //   'common'       — сложность сменилась, но темы, встречавшиеся в ОБЕИХ
+        //                    половинах, дают достаточную выборку — считаем по ним;
+        //   'incomparable' — сложность сменилась, общего слишком мало: показываем
+        //                    обе половины без стрелки и говорим об этом прямо.
+        function compareHalves(firstHalf, secondHalf, minHalf) {
+            const whole = (agg) => ({ c: agg.c || 0, w: agg.w || 0, ms: agg.ms || 0, mc: agg.mc || 0 });
+            const levelFrom = avgLevelOf(firstHalf), levelTo = avgLevelOf(secondHalf);
+            const plain = { mode: 'plain', a: whole(firstHalf), b: whole(secondHalf), levelFrom, levelTo };
+            if (levelFrom === null || levelTo === null) return plain;
+            if (Math.abs(levelTo - levelFrom) < LEVEL_SHIFT_MIN) return plain;
+
+            const keys = Object.keys(firstHalf.t || {}).filter(k => (secondHalf.t || {})[k]);
+            const take = (agg) => {
+                const acc = { c: 0, w: 0, ms: 0, mc: 0 };
+                keys.forEach(k => {
+                    const v = agg.t[k] || [];
+                    acc.c += v[0] || 0; acc.w += v[1] || 0; acc.ms += v[3] || 0; acc.mc += v[4] || 0;
+                });
+                return acc;
+            };
+            const a = take(firstHalf), b = take(secondHalf);
+            if (a.c + a.w >= minHalf && b.c + b.w >= minHalf) {
+                return { mode: 'common', a, b, levelFrom, levelTo };
+            }
+            return { mode: 'incomparable', a: whole(firstHalf), b: whole(secondHalf), levelFrom, levelTo };
         }
 
         // Самая длинная череда дней подряд внутри периода.
@@ -9903,39 +9970,62 @@
                 rows.appendChild(el);
             };
 
-            const accA = accuracyPct(firstHalf.c, firstHalf.w, MIN_HALF);
-            const accB = accuracyPct(secondHalf.c, secondHalf.w, MIN_HALF);
+            // Сравниваем половины не вслепую: если ученик за период перешёл на другую
+            // звезду, прямое сравнение половин называет рост спадом. См. compareHalves.
+            const cmp = compareHalves(firstHalf, secondHalf, MIN_HALF);
+            const onCommon = cmp.mode === 'common';
+            const comparable = cmp.mode !== 'incomparable';
+
+            const accA = accuracyPct(cmp.a.c, cmp.a.w, MIN_HALF);
+            const accB = accuracyPct(cmp.b.c, cmp.b.w, MIN_HALF);
             const accTotal = accuracyPct(cur.c, cur.w, 1);
             if (accA !== null && accB !== null) {
                 const d = accB - accA;
                 const cls = d >= 0 ? 'up' : 'down';
                 const sign = d > 0 ? '+' : '';
-                addMetric(t('Точность'), `${accA}% → ${accB}%`,
-                    d !== 0 ? ` <span class="arrow ${cls}">${sign}${d}</span>` : '');
+                addMetric(onCommon ? t('Точность на общих темах') : t('Точность'),
+                    `${accA}% → ${accB}%`,
+                    (comparable && d !== 0) ? ` <span class="arrow ${cls}">${sign}${d}</span>` : '');
             } else if (accTotal !== null) {
                 addMetric(t('Точность'), `${accTotal}%`, '');
             }
 
-            const spA = firstHalf.mc >= MIN_HALF ? firstHalf.ms / firstHalf.mc / 1000 : null;
-            const spB = secondHalf.mc >= MIN_HALF ? secondHalf.ms / secondHalf.mc / 1000 : null;
+            const spA = cmp.a.mc >= MIN_HALF ? cmp.a.ms / cmp.a.mc / 1000 : null;
+            const spB = cmp.b.mc >= MIN_HALF ? cmp.b.ms / cmp.b.mc / 1000 : null;
             if (spA !== null && spB !== null) {
                 const d = spB - spA;
                 const cls = d <= 0 ? 'up' : 'down';
-                addMetric(t('Скорость ответа'), tf('%1 с → %2 с', spA.toFixed(1), spB.toFixed(1)),
-                    Math.abs(d) >= 0.1 ? tf(' <span class="arrow %1">%2%3 с</span>', cls, d < 0 ? '−' : '+', Math.abs(d).toFixed(1)) : '');
+                addMetric(onCommon ? t('Скорость на общих темах') : t('Скорость ответа'),
+                    tf('%1 с → %2 с', spA.toFixed(1), spB.toFixed(1)),
+                    (comparable && Math.abs(d) >= 0.1) ? tf(' <span class="arrow %1">%2%3 с</span>', cls, d < 0 ? '−' : '+', Math.abs(d).toFixed(1)) : '');
             } else if (cur.mc > 0) {
                 addMetric(t('Скорость ответа'), tf('%1 с', (cur.ms / cur.mc / 1000).toFixed(1)), '');
             }
 
             // Подпись зависит от того, что реально удалось показать: обещать "средние за
             // период" там, где не выведено ни одной строки, — значит сбить читателя с толку.
-            if (!rows.children.length) {
-                note.innerText = isOneDay ? t('В этот день занятий не было.') : t('За этот период занятий не было.');
-            } else if (isOneDay) {
-                note.innerText = t('За один день сравнивать не с чем — здесь средние за этот день.');
-            } else if (accA === null || accB === null) {
-                note.innerText = t('Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.');
+            const notes = [];
+            if (cmp.mode !== 'plain' && rows.children.length) {
+                const harder = cmp.levelTo > cmp.levelFrom;
+                const lvls = tf('%1★ против %2★', cmp.levelTo.toFixed(1), cmp.levelFrom.toFixed(1));
+                if (onCommon) {
+                    notes.push(harder
+                        ? tf('Во второй половине примеры стали сложнее: в среднем %1. Поэтому сравниваем по темам, которые встречались в обеих половинах.', lvls)
+                        : tf('Во второй половине примеры стали проще: в среднем %1. Поэтому сравниваем по темам, которые встречались в обеих половинах.', lvls));
+                } else {
+                    notes.push(harder
+                        ? tf('Во второй половине примеры стали сложнее: в среднем %1. Половины напрямую не сравниваются — это переход на новое, а не спад.', lvls)
+                        : tf('Во второй половине примеры стали проще: в среднем %1. Половины напрямую не сравниваются.', lvls));
+                }
             }
+            if (!rows.children.length) {
+                notes.push(isOneDay ? t('В этот день занятий не было.') : t('За этот период занятий не было.'));
+            } else if (isOneDay) {
+                notes.push(t('За один день сравнивать не с чем — здесь средние за этот день.'));
+            } else if ((accA === null || accB === null) && !notes.length) {
+                notes.push(t('Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.'));
+            }
+            note.innerText = notes.join(' ');
 
             // --- Недельный график: сколько решено и с какой точностью ---
             // Недельные столбики за один день — это один столбик с подписью «1 нед».
@@ -10520,19 +10610,27 @@
             return Math.max(0, Math.floor((Date.now() - then.getTime()) / 86400000));
         }
 
+        // Здесь дважды стояло `const t = n % 100`, затиравшее функцию перевода: t('день')
+        // звало ЧИСЛО как функцию, обе функции падали на любом аргументе, а вместе с ними
+        // падал весь список учеников — стоило одному ученику замолчать или появиться хоть
+        // одной папке. Поэтому локальные имена здесь d10/d100, как в pluralSteps.
+        //
+        // Через t() эти слова НЕ проходят намеренно: предложения вокруг них («молчит %1 %2»,
+        // «не выходил%3 на связь») в словаре не лежат — экран репетитора остаётся русским.
+        // Переводить в нём одно только существительное значило бы выдавать «молчит 24 days».
         function pluralDays(n) {
-            const t = n % 100, o = n % 10;
-            if (t >= 11 && t <= 14) return t('дней');
-            if (o === 1) return t('день');
-            if (o >= 2 && o <= 4) return t('дня');
-            return t('дней');
+            const d100 = n % 100, d10 = n % 10;
+            if (d100 >= 11 && d100 <= 14) return 'дней';
+            if (d10 === 1) return 'день';
+            if (d10 >= 2 && d10 <= 4) return 'дня';
+            return 'дней';
         }
         function pluralStudents(n) {
-            const t = n % 100, o = n % 10;
-            if (t >= 11 && t <= 14) return t('учеников');
-            if (o === 1) return t('ученик');
-            if (o >= 2 && o <= 4) return t('ученика');
-            return t('учеников');
+            const d100 = n % 100, d10 = n % 10;
+            if (d100 >= 11 && d100 <= 14) return 'учеников';
+            if (d10 === 1) return 'ученик';
+            if (d10 >= 2 && d10 <= 4) return 'ученика';
+            return 'учеников';
         }
 
         function lastSeenText(iso) {
