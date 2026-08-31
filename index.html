@@ -305,6 +305,32 @@
         .report-ach { font-size: 0.85rem; color: #334155; padding: 4px 0; }
         .report-note { font-size: 0.72rem; color: #94a3b8; margin-top: 8px; }
         .report-comment { font-size: 0.88rem; color: #334155; white-space: pre-wrap; }
+        /* Карточка «Родителям»: намеренно светлая и с рамкой — по ней видно, что именно
+           обрезать на скриншоте. Ширина та же, что у листа отчёта, чтобы на телефоне
+           карточка и лист не разъезжались. */
+        .parent-card {
+            width: 100%; max-width: 450px; box-sizing: border-box;
+            background: #ffffff; color: #1e293b; border: 2px solid #0284c7;
+            border-radius: 14px; padding: 16px; margin-bottom: 12px;
+        }
+        .parent-card-head {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+        }
+        .parent-card-title {
+            flex: 1; font-size: 0.72rem; font-weight: 800; text-transform: uppercase;
+            letter-spacing: 0.06em; color: #0284c7;
+        }
+        .parent-copy-btn {
+            border: none; border-radius: 8px; padding: 6px 12px; cursor: pointer;
+            background: #0284c7; color: #fff; font-size: 0.78rem; font-weight: 700;
+            font-family: inherit;
+        }
+        .parent-copy-btn:active { transform: translateY(1px); }
+        .parent-copy-btn.done { background: #059669; }
+        .parent-copy-btn.ghost { background: #e0f2fe; color: #0369a1; padding: 6px 10px; }
+        .parent-card-text {
+            font-size: 0.9rem; line-height: 1.5; color: #1e293b; white-space: pre-wrap;
+        }
         .report-empty { font-size: 0.82rem; color: #94a3b8; }
         .btn-config-continue {
             width: 100%; max-width: 450px; background: linear-gradient(45deg, #0284c7, #06b6d4);
@@ -1371,12 +1397,26 @@
                 <button class="btn-period selected" data-period="30">30 дней</button>
                 <button class="btn-period" data-period="90">90 дней</button>
                 <button class="btn-period" data-period="180">180 дней</button>
+                <button class="btn-period" data-period="all">Всё время</button>
             </div>
             <div class="period-custom">
                 <span class="period-custom-label">Свой период:</span>
                 <input type="number" id="reportPeriodInput" min="1" max="180" step="1" inputmode="numeric" placeholder="дней">
                 <button class="btn-period" id="reportPeriodApply">Показать</button>
             </div>
+        </div>
+
+        <!-- Готовое сообщение родителям. Стоит ПЕРВЫМ и обведено рамкой намеренно:
+             его отправляют двумя способами — копией в мессенджер и скриншотом, — и в
+             обоих случаях должно быть очевидно, где сообщение кончается. Ниже по листу
+             идут рабочие цифры репетитора, которые родителю показывать незачем. -->
+        <div class="parent-card" id="repParentCard">
+            <div class="parent-card-head">
+                <span class="parent-card-title">Родителям</span>
+                <button class="parent-copy-btn ghost" onclick="editReportNote()" aria-label="Комментарий" title="Комментарий: имя, обращение, всё личное">✏️</button>
+                <button class="parent-copy-btn" id="repCopyBtn" onclick="copyParentSummary()">Скопировать</button>
+            </div>
+            <div class="parent-card-text" id="repParentText"></div>
         </div>
 
         <!-- Сам лист отчёта -->
@@ -1428,15 +1468,8 @@
                 <div id="repAch"></div>
             </div>
 
-            <div class="report-block" id="repNoteBlock">
-                <div class="report-block-title">Комментарий репетитора</div>
-                <div class="report-comment" id="repNoteText"></div>
-            </div>
         </div>
 
-        <div class="config-container" style="margin-top:12px;">
-            <button class="menu-btn" onclick="editReportNote()">✏️ <span>Написать комментарий</span></button>
-        </div>
     </div>
 
     <!-- Экран профиля: текущий аккаунт, профили на устройстве, ученики, сброс прогресса -->
@@ -8684,6 +8717,9 @@
         // набора внутри одной сложности, а не переход.
         const LEVEL_SHIFT_MIN = 0.3;
 
+        // Ниже этого сравнение половин периода — просто шум замера.
+        const MIN_HALF = 15;
+
         // Решает, на чём честно сравнивать половины периода.
         //
         // Зачем вообще: точность и скорость ПАДАЮТ, когда ученик переходит на звезду
@@ -8719,6 +8755,235 @@
                 return { mode: 'common', a, b, levelFrom, levelTo };
             }
             return { mode: 'incomparable', a: whole(firstHalf), b: whole(secondHalf), levelFrom, levelTo };
+        }
+
+        // ===================== АБЗАЦ ДЛЯ РОДИТЕЛЕЙ =====================
+        //  Готовый текст, который репетитор копирует в мессенджер или снимает скриншотом.
+        //  Три правила, из которых он весь и состоит.
+        //
+        //  1. Безлично. Имени в тексте нет: репетитор пишет его сам в комментарии, и
+        //     комментарий идёт ПЕРВЫМ. Отсюда же ни «он», ни «она», ни «занимался(-ась)» —
+        //     угадывать пол по имени нельзя, а спрашивать не у кого.
+        //  2. Столько строк, сколько есть правды. Абзац одной и той же формы читается
+        //     как рассылка с третьей отправки. Поэтому у ученика, который почти не
+        //     занимался, здесь две строки, а не пять с водой.
+        //  3. Никакого внутреннего словаря. «Лесенки», «ступени», «классы примеров»,
+        //     «полный переход» родителю не говорят ничего. Награды называются именами
+        //     (золото по точности), темы — словами (сложение положительных чисел).
+        // ================================================================
+
+        const PARENT_ACC_MIN_DELTA = 3;      // процентных пункта: меньше — шум замера
+        const PARENT_SPEED_MIN_REL = 0.10;   // доля от прежней скорости
+        const PARENT_SILENCE_MIN = 7;        // дней тишины в конце периода, чтобы сказать о ней
+        const PARENT_MAX_ITEMS = 2;          // сколько тем перечисляем поимённо, дальше «и ещё N»
+
+        // Названия тем словами, а не подписями из интерфейса: «Положительные · Сложение»
+        // с точкой посередине — это вёрстка, а не русский язык.
+        const PARENT_OP_WORDS = {
+            add: 'сложение', sub: 'вычитание', mul: 'умножение', div: 'деление',
+            simplify: 'сокращение дробей', toMixed: 'перевод дробей',
+            toImproper: 'перевод дробей', fracOfNumber: 'дробь от числа'
+        };
+        const PARENT_CAT_WORDS = {
+            'integer+': 'положительных чисел', 'integer-': 'отрицательных чисел',
+            'decimal+': 'десятичных дробей', 'fraction+': 'дробей'
+        };
+        // Ступени и лесенки — строчными и в том падеже, в каком они стоят в предложении.
+        // Свои строки, а не TIER_NAMES/LADDERS: те заглавные и переводятся, а тут русская
+        // проза, которую собирают из кусков.
+        const PARENT_TIER_WORDS = ['', 'бронза', 'серебро', 'золото', 'алмаз', 'легенда'];
+        const PARENT_LADDER_WORDS = { s: 'по скорости', a: 'по точности', c: 'по количеству' };
+        // Порядок перечисления фиксирован, а не «как легло в объект»: иначе одна и та же
+        // награда у двух учеников описывалась бы разными по порядку словами.
+        const PARENT_LADDER_ORDER = ['a', 's', 'c'];
+
+        // «A», «A и B», «A, B и C» — перечисление по-русски, а не через запятую до конца.
+        function joinRu(items) {
+            if (items.length <= 1) return items[0] || '';
+            return items.slice(0, -1).join(', ') + ' и ' + items[items.length - 1];
+        }
+
+        function parentPlural(n, one, few, many) {
+            const d100 = n % 100, d10 = n % 10;
+            if (d100 >= 11 && d100 <= 14) return many;
+            if (d10 === 1) return one;
+            if (d10 >= 2 && d10 <= 4) return few;
+            return many;
+        }
+
+        // «сложение положительных чисел, 1★». У дробей действие уже называет предмет
+        // («сокращение дробей»), и приписывать к нему ещё раз «дробей» незачем.
+        function parentTopicWords(key) {
+            const p = parseTopicKey(key);
+            const op = PARENT_OP_WORDS[p.op] || p.op;
+            const cat = PARENT_CAT_WORDS[`${p.category}${p.sign || '+'}`] || '';
+            const full = (cat && op.indexOf(cat) < 0) ? `${op} ${cat}` : op;
+            return p.level ? `${full}, ${p.level}★` : full;
+        }
+
+        // День последнего занятия внутри периода — чтобы заметить, что человек пропал.
+        function lastActiveDay(daily, fromKey, toKey) {
+            let last = null;
+            Object.keys(daily || {}).forEach(k => {
+                if ((fromKey && k < fromKey) || (toKey && k > toKey)) return;
+                if (isActiveDay(daily[k]) && (last === null || k > last)) last = k;
+            });
+            return last;
+        }
+        function daysBetweenKeys(fromKey, toKey) {
+            const a = new Date(fromKey + 'T00:00:00Z'), b = new Date(toKey + 'T00:00:00Z');
+            return Math.round((b - a) / 86400000);
+        }
+
+        // Полный текст сообщения. Комментарий репетитора идёт ПЕРВЫМ, а не под цифрами:
+        // имя и обращение пишет он, и начинать сообщение родителю с «За месяц — 22
+        // занятия» нельзя.
+        function parentSummaryText(st, fromKey, toKey, periodWord, isOneDay, note) {
+            const body = parentSummaryLines(st, fromKey, toKey, periodWord, isOneDay).join('\n');
+            const head = (note || '').trim();
+            return head ? `${head}\n\n${body}` : body;
+        }
+
+        // Собирает абзац. Возвращает массив строк: пустой массив невозможен — про любой
+        // период есть что сказать, даже если это «занятий не было».
+        function parentSummaryLines(st, fromKey, toKey, periodWord, isOneDay) {
+            const daily = (st && st.daily) || {};
+            const cur = aggregateDaily(daily, fromKey, toKey);
+            const lines = [];
+            const solved = cur.c + cur.w;
+
+            // --- 1. Ритм ---
+            if (!cur.days || !solved) return [`${periodWord} занятий не было.`];
+
+            const acc = accuracyPct(cur.c, cur.w, 1);
+            const ex = `${solved} ${parentPlural(solved, 'пример', 'примера', 'примеров')}`;
+            if (isOneDay) {
+                lines.push(`${periodWord} решено ${ex}, ${acc}% верных.`);
+            } else {
+                const les = `${cur.days} ${parentPlural(cur.days, 'занятие', 'занятия', 'занятий')}`;
+                lines.push(`${periodWord} — ${les}, решено ${ex}, ${acc}% верных.`);
+            }
+
+            // Молчание в конце периода — единственный факт, который родитель точно
+            // должен увидеть, даже если всё остальное выглядит прилично.
+            if (!isOneDay) {
+                const last = lastActiveDay(daily, fromKey, toKey);
+                const gap = last ? daysBetweenKeys(last, toKey) : 0;
+                if (gap >= PARENT_SILENCE_MIN) {
+                    const weeks = Math.floor(gap / 7);
+                    lines.push(weeks >= 2
+                        ? `Последние ${weeks} ${parentPlural(weeks, 'неделю', 'недели', 'недель')} занятий не было.`
+                        : 'Последнюю неделю занятий не было.');
+                }
+            }
+
+            // --- 2. Что взято ---
+            const unlocks = (st && st.unlocks) || {};
+            const inPeriod = (d) => d && d !== '?' && d >= fromKey && d <= toKey;
+
+            const gates = gatePromotions(unlocks).filter(g => inPeriod(g.date));
+            if (gates.length) {
+                const names = gates.slice(0, PARENT_MAX_ITEMS).map(g => parentTopicWords(g.topicKey));
+                const rest = gates.length - names.length;
+                lines.push((gates.length === 1 ? 'Открыта новая звезда: ' : 'Открыты новые звёзды: ')
+                    + names.join('; ') + (rest ? `; и ещё ${rest}` : '') + '.');
+            }
+
+            // Ступени — только с серебра. Бронза по количеству это двадцать пять примеров:
+            // назвать её наградой значит хвалить за то, что приложение открыли.
+            const byTopicTiers = {};
+            Object.keys(unlocks).forEach(id => {
+                const m = LADDER_ID_RE.exec(id);
+                if (!m || !inPeriod(unlocks[id])) return;
+                const tier = Number(m[3]);
+                if (tier < 2) return;
+                const slot = byTopicTiers[m[1]] || (byTopicTiers[m[1]] = {});
+                // На одной лесенке за период могло взяться несколько ступеней — важна высшая.
+                if (!slot[m[2]] || slot[m[2]] < tier) slot[m[2]] = tier;
+            });
+            const tierTopics = Object.keys(byTopicTiers);
+            if (tierTopics.length) {
+                const part = (key) => {
+                    const slot = byTopicTiers[key];
+                    // Одну и ту же ступень на разных лесенках сводим в одну запись:
+                    // «алмаз по точности и алмаз по скорости» — это косноязычие, а не отчёт.
+                    const byTier = {};
+                    PARENT_LADDER_ORDER.forEach(l => {
+                        if (!slot[l]) return;
+                        (byTier[slot[l]] || (byTier[slot[l]] = [])).push(PARENT_LADDER_WORDS[l]);
+                    });
+                    const words = Object.keys(byTier)
+                        .sort((x, y) => Number(y) - Number(x))
+                        .map(tier => `${PARENT_TIER_WORDS[tier]} ${joinRu(byTier[tier])}`);
+                    return `${parentTopicWords(key)} — ${joinRu(words)}`;
+                };
+                const named = tierTopics.slice(0, PARENT_MAX_ITEMS).map(part);
+                const rest = tierTopics.length - named.length;
+                lines.push('Новые награды: ' + named.join('; ')
+                    + (rest ? `; и ещё в ${rest === 1 ? 'одной теме' : rest + ' темах'}` : '') + '.');
+            }
+
+            // --- 3. Переход на новое ---
+            // Только у тех, кто занимался и ДО этого периода: у новичка ново вообще всё,
+            // и сообщать об этом — значит не сообщать ничего.
+            const hadBefore = Object.keys(daily).some(k => k < fromKey && isActiveDay(daily[k]));
+            if (hadBefore) {
+                const before = new Set();
+                Object.keys(daily).forEach(k => {
+                    if (k >= fromKey) return;
+                    Object.keys((daily[k] || {}).t || {}).forEach(tk => before.add(tk));
+                });
+                const fresh = Object.keys(cur.t).filter(tk => !before.has(tk)
+                    && ((cur.t[tk][0] || 0) + (cur.t[tk][1] || 0)) >= 5);
+                if (fresh.length) {
+                    const named = fresh.slice(0, PARENT_MAX_ITEMS).map(parentTopicWords);
+                    const rest = fresh.length - named.length;
+                    lines.push('Начали новое: ' + named.join('; ')
+                        + (rest ? `; и ещё ${rest}` : '') + '.');
+                }
+            }
+
+            // --- 4. Значимое движение ---
+            if (!isOneDay) {
+                const midKey = shiftDayKey(fromKey, Math.floor(daysBetweenKeys(fromKey, toKey) / 2));
+                const firstHalf = aggregateDaily(daily, fromKey, midKey);
+                const secondHalf = aggregateDaily(daily, shiftDayKey(midKey, 1), toKey);
+                const cmp = compareHalves(firstHalf, secondHalf, MIN_HALF);
+
+                // О смене сложности говорим всегда, когда она была: это и есть главная
+                // новость периода. А вот сравнивать точность с началом можно только тогда,
+                // когда есть общие темы, — иначе мы сравниваем разные вещи.
+                if (cmp.mode === 'incomparable') {
+                    lines.push(cmp.levelTo > cmp.levelFrom
+                        ? 'Во второй половине перешли на более сложные примеры — сравнивать с началом периода пока рано.'
+                        : 'Во второй половине примеры были проще, чем в начале периода.');
+                } else {
+                    if (cmp.mode === 'common') {
+                        lines.push(cmp.levelTo > cmp.levelFrom
+                            ? 'Во второй половине добавились более сложные примеры.'
+                            : 'Во второй половине примеры стали проще.');
+                    }
+                    const same = cmp.mode === 'common' ? ' на прежних темах' : '';
+                    const accA = accuracyPct(cmp.a.c, cmp.a.w, MIN_HALF);
+                    const accB = accuracyPct(cmp.b.c, cmp.b.w, MIN_HALF);
+                    if (accA !== null && accB !== null && Math.abs(accB - accA) >= PARENT_ACC_MIN_DELTA) {
+                        lines.push(accB > accA
+                            ? `Точность${same} выросла: с ${accA}% до ${accB}%.`
+                            : `Точность${same} снизилась: с ${accA}% до ${accB}%.`);
+                    }
+                    const spA = cmp.a.mc >= MIN_HALF ? cmp.a.ms / cmp.a.mc / 1000 : null;
+                    const spB = cmp.b.mc >= MIN_HALF ? cmp.b.ms / cmp.b.mc / 1000 : null;
+                    if (spA !== null && spB !== null && spA > 0
+                        && Math.abs(spB - spA) / spA >= PARENT_SPEED_MIN_REL) {
+                        const num = (v) => v.toFixed(1).replace('.', ',');
+                        lines.push(spB < spA
+                            ? `Отвечает быстрее: с ${num(spA)} до ${num(spB)} секунды.`
+                            : `Отвечает медленнее: с ${num(spA)} до ${num(spB)} секунды.`);
+                    }
+                }
+            }
+
+            return lines;
         }
 
         // Самая длинная череда дней подряд внутри периода.
@@ -9393,6 +9658,48 @@
             return lines.join('\n');
         }
 
+        // Слово о периоде, с которого начинается абзац. «За месяц» вместо «за 30 дней»:
+        // родитель мыслит месяцами, а не окнами в днях.
+        function parentPeriodWord(period) {
+            if (period === 'today' || period === 1) return 'Сегодня';
+            if (period === 'yesterday') return 'Вчера';
+            if (period === 'all') return 'За всё время';
+            const n = Number(period);
+            if (n === 7) return 'За неделю';
+            if (n === 30) return 'За месяц';
+            if (n === 90) return 'За три месяца';
+            if (n === 180) return 'За полгода';
+            return `За ${n} ${parentPlural(n, 'день', 'дня', 'дней')}`;
+        }
+
+        let parentSummaryCache = '';
+
+        function renderParentCard(st, fromKey, toKey, isOneDay) {
+            const note = reportStudent ? Progress.getStudentNote(reportStudent.code) : '';
+            parentSummaryCache = parentSummaryText(
+                st, fromKey, toKey, parentPeriodWord(reportPeriod), isOneDay, note);
+            document.getElementById('repParentText').innerText = parentSummaryCache;
+            const btn = document.getElementById('repCopyBtn');
+            btn.classList.remove('done');
+            btn.innerText = 'Скопировать';
+        }
+
+        async function copyParentSummary() {
+            const text = parentSummaryCache;
+            if (!text) return;
+            const btn = document.getElementById('repCopyBtn');
+            try {
+                await navigator.clipboard.writeText(text);
+                btn.classList.add('done');
+                btn.innerText = 'Скопировано';
+                showToast(t('Сообщение скопировано.'), 'ok');
+            } catch (e) {
+                // Буфер обмена бывает недоступен (открыли файлом, старый браузер) —
+                // тогда просто показываем текст, чтобы его можно было выделить руками.
+                await showNotice({ title: 'Родителям', text, okText: t('Закрыть') });
+            }
+        }
+
         async function copyClassTable() {
             // Тот же источник, что и у самого экрана: свой прогресс или прогресс ученика,
             // если репетитор смотрит чужую статистику.
@@ -9901,9 +10208,9 @@
             const cur = Progress.getStudentNote(reportStudent.code);
             const values = await askForm({
                 title: t('Комментарий для родителей'),
-                text: t('Что отметить, над чем работаем. Попадёт в отчёт под цифрами.'),
+                text: t('Идёт первой строкой сообщения — здесь имя, обращение и всё личное. Цифры ниже подставятся сами.'),
                 fields: [{ key: 'note', label: '', value: cur, multiline: true,
-                           placeholder: t('Например: уверенно считает в уме до 20, беру дроби помедленнее.') }],
+                           placeholder: t('Например: Здравствуйте! Маша уверенно считает в уме до 20, дроби беру помедленнее.') }],
                 okText: t('Сохранить')
             });
             if (values === null) return;
@@ -9922,9 +10229,14 @@
             // есть и конец, а не только начало.
             const isYesterday = reportPeriod === 'yesterday';
             const isOneDay = isYesterday || reportPeriod === 'today' || reportPeriod === 1;
-            const spanDays = isOneDay ? 1 : reportPeriod;
+            const isAll = reportPeriod === 'all';
+            const spanDays = isAll ? null : (isOneDay ? 1 : reportPeriod);
             const toKey = isYesterday ? shiftDayKey(today, -1) : today;
-            const fromKey = shiftDayKey(toKey, -(spanDays - 1));
+            // У «всего времени» начало периода — первый день журнала, а не null: дальше
+            // им пользуются и половины, и достижения, и абзац родителям, и всем им нужна
+            // настоящая дата, а не «с начала времён».
+            const fromKey = isAll ? (earliestDayKey(daily) || toKey)
+                                  : shiftDayKey(toKey, -(spanDays - 1));
 
             document.querySelectorAll('#reportPeriodRow .btn-period').forEach(b => {
                 const dp = b.getAttribute('data-period');
@@ -9937,8 +10249,10 @@
                 ? formatDayKeyHuman(toKey)
                 : `${formatDayKeyHuman(fromKey)} — ${formatDayKeyHuman(toKey)}`;
 
+            renderParentCard(st, fromKey, toKey, isOneDay);
+
             // --- Занятия ---
-            document.getElementById('repDays').innerText = `${cur.days} / ${spanDays}`;
+            document.getElementById('repDays').innerText = isAll ? `${cur.days}` : `${cur.days} / ${spanDays}`;
             document.getElementById('repTime').innerText = formatDuration(cur.s);
             document.getElementById('repStreak').innerText = longestStreak(daily, fromKey, toKey);
             document.getElementById('repSolved').innerText = cur.c + cur.w;
@@ -9960,7 +10274,6 @@
             rows.innerHTML = '';
             note.innerText = '';
 
-            const MIN_HALF = 15; // ниже этого сравнение половин — просто шум
             const addMetric = (name, value, arrowHtml) => {
                 const el = document.createElement('div');
                 el.className = 'report-metric';
@@ -10132,11 +10445,6 @@
             const drawnKinds = renderMistakeKinds(cur.e, 'repMistakes', 4);
             document.getElementById('repMistakesBlock').style.display = drawnKinds ? 'block' : 'none';
 
-            // --- Комментарий репетитора ---
-            const noteText = Progress.getStudentNote(reportStudent.code);
-            const nEl = document.getElementById('repNoteText');
-            nEl.innerText = noteText || t('Комментарий не добавлен.');
-            nEl.className = noteText ? 'report-comment' : 'report-empty';
         }
 
         // Недельные столбики: высота — сколько решено, подпись — точность за неделю.
