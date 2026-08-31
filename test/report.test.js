@@ -31,24 +31,42 @@ function loadReport() {
         return script.slice(from, to);
     };
 
-    // Срез 1: агрегация журнала и сравнение половин (вместе с isActiveDay, на который
-    // агрегация опирается при подсчёте дней занятий).
-    const agg = slice('function isActiveDay(d)',
-                      '// Самая длинная череда дней подряд', 'агрегация');
-    // Срез 2: множественные числа из списка учеников.
+    // Один большой срез: от работы с датами до конца абзаца для родителей. В него
+    // целиком попадают shiftDayKey, isActiveDay, aggregateDaily, avgLevelOf,
+    // compareHalves и parentSummaryLines — они и составляют считающую часть отчёта.
+    const core = slice('function shiftDayKey(key, deltaDays)',
+                       '// Самая длинная череда дней подряд', 'ядро отчёта');
+    // Остальное лежит по файлу врозь и подтягивается по кусочку.
     const plur = slice('function pluralDays(n)', 'function lastSeenText(iso)', 'склонения');
-    // parseTopicKey живёт выше и нужен avgLevelOf.
     const parse = slice('function parseTopicKey(key)', '// Ключ для ОТОБРАЖЕНИЯ', 'parseTopicKey');
+    const acc = slice('function accuracyPct(correct, wrong, minAttempts)',
+                      '// ===================== ЭКРАН СТАТИСТИКИ', 'accuracyPct');
+    const ladders = slice('function ladderDatesByTopic(unlocks)',
+                          '// Когда тема взяла мастерство', 'достижения');
+    const re = slice('const LADDER_ID_RE = ', '\n', 'LADDER_ID_RE');
 
+    // shiftDayKey форматирует дату через Progress.dayKey — единственная его связь
+    // с хранилищем. Подменяем ровно её, той же реализацией, что и в приложении.
+    const dayKey = (d) => {
+        const dt = d || new Date();
+        return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}`
+             + `-${String(dt.getDate()).padStart(2, '0')}`;
+    };
     const sandbox = { console, Math, Number, Object, Array, String, JSON, Set, Map, Date, isNaN,
-                      t: (x) => x, tf: (x) => x };
+                      t: (x) => x, tf: (x) => x, LEVEL_GATE_TIER: 3,
+                      Progress: { dayKey } };
     sandbox.globalThis = sandbox;
     vm.createContext(sandbox);
-    vm.runInContext([parse, agg, plur].join('\n')
+    vm.runInContext([re, parse, acc, ladders, core, plur].join('\n')
         + '\n;globalThis.aggregateDaily = aggregateDaily;'
         + '\n;globalThis.avgLevelOf = avgLevelOf;'
         + '\n;globalThis.compareHalves = compareHalves;'
+        + '\n;globalThis.parentSummaryLines = parentSummaryLines;'
+        + '\n;globalThis.parentSummaryText = parentSummaryText;'
+        + '\n;globalThis.parentTopicWords = parentTopicWords;'
         + '\n;globalThis.LEVEL_SHIFT_MIN = LEVEL_SHIFT_MIN;'
+        + '\n;globalThis.PARENT_ACC_MIN_DELTA = PARENT_ACC_MIN_DELTA;'
+        + '\n;globalThis.PARENT_SILENCE_MIN = PARENT_SILENCE_MIN;'
         + '\n;globalThis.pluralDays = pluralDays;'
         + '\n;globalThis.pluralStudents = pluralStudents;',
         sandbox, { filename: 'index.html<report>' });
@@ -204,6 +222,227 @@ test('пустая первая половина не делает сложно�
 test('однодневный период: половин нет, режим прямой', () => {
     const empty = R.aggregateDaily({}, '9999-01-01', '9999-01-01');
     eq(R.compareHalves(empty, empty, 15).mode, 'plain', 'режим');
+});
+
+group('Абзац для родителей');
+
+// Журнал на N дней назад от опорной даты. Даты фиксированные: абзац читает календарь,
+// и «сегодня» в тестах должно быть тем же самым при любом прогоне.
+const TO = '2026-08-31';
+function keyBack(n) {
+    const dt = new Date(TO + 'T00:00:00Z');
+    dt.setUTCDate(dt.getUTCDate() - n);
+    return dt.toISOString().slice(0, 10);
+}
+// days: { сколькоДнейНазад: {темаКлюч: [верно, неверно, сек]} }
+function state(days, unlocks) {
+    const daily = {};
+    Object.keys(days).forEach(back => { daily[keyBack(Number(back))] = day(days[back]); });
+    return { daily, unlocks: unlocks || {} };
+}
+const FROM = keyBack(29);
+const summary = (st, from, to, word, oneDay) =>
+    R.parentSummaryLines(st, from || FROM, to || TO, word || 'За месяц', !!oneDay);
+function hasLine(lines, part, what) {
+    if (!lines.some(l => l.indexOf(part) >= 0))
+        throw new Error(`${what}: нет строки с «${part}». Получили:\n      ${lines.join('\n      ')}`);
+}
+function noLine(lines, part, what) {
+    if (lines.some(l => l.indexOf(part) >= 0))
+        throw new Error(`${what}: лишняя строка с «${part}». Получили:\n      ${lines.join('\n      ')}`);
+}
+
+test('пустой период — ровно одна строка и никакой воды', () => {
+    const lines = summary(state({}));
+    eq(lines.length, 1, 'строк');
+    eq(lines[0], 'За месяц занятий не было.', 'текст');
+});
+
+test('обычный период начинается с ритма', () => {
+    const lines = summary(state({ 5: { 'integer+:add:1': [45, 5, 5] } }));
+    eq(lines[0], 'За месяц — 1 занятие, решено 50 примеров, 90% верных.', 'первая строка');
+});
+
+test('склонения в первой строке живые, а не «1 занятий»', () => {
+    const one = summary(state({ 5: { 'integer+:add:1': [1, 0, 5] } }));
+    eq(one[0], 'За месяц — 1 занятие, решено 1 пример, 100% верных.', 'единица');
+    const two = summary(state({ 5: { 'integer+:add:1': [2, 0, 5] }, 6: { 'integer+:add:1': [2, 0, 5] } }));
+    hasLine(two, '2 занятия, решено 4 примера', 'двойка');
+    const five = summary(state({ 5: { 'integer+:add:1': [5, 0, 5] } }));
+    hasLine(five, 'решено 5 примеров', 'пятёрка');
+});
+
+test('ученик, который занимался и пропал, — это видно', () => {
+    // Именно ради этой строки всё и затевалось: без неё отчёт за месяц у пропавшего
+    // ученика выглядел прилично, потому что средние считались по тем дням, что были.
+    const lines = summary(state({ 25: { 'integer+:add:1': [45, 5, 5] }, 24: { 'integer+:add:1': [45, 5, 5] } }));
+    hasLine(lines, 'Последние 3 недели занятий не было', 'тишина');
+});
+
+test('свежий пропуск в неделю тоже назван, но словом «неделю»', () => {
+    const lines = summary(state({ 9: { 'integer+:add:1': [45, 5, 5] } }));
+    hasLine(lines, 'Последнюю неделю занятий не было', 'тишина');
+});
+
+test('занимался вчера — про тишину ни слова', () => {
+    const lines = summary(state({ 1: { 'integer+:add:1': [45, 5, 5] } }));
+    noLine(lines, 'занятий не было', 'тишина');
+});
+
+test('награды называются именами, а не «ступенями»', () => {
+    const lines = summary(state(
+        { 5: { 'integer+:add:1': [45, 5, 5] } },
+        { 'integer+:add:1:a3': keyBack(4), 'integer+:add:1:c2': keyBack(4) }
+    ));
+    hasLine(lines, 'Новые награды: сложение положительных чисел, 1★ — золото по точности и серебро по количеству', 'награды');
+    noLine(lines, 'ступен', 'внутренний словарь');
+    noLine(lines, 'лесен', 'внутренний словарь');
+});
+
+test('одинаковая ступень на двух лесенках не повторяет своё имя дважды', () => {
+    const lines = summary(state(
+        { 5: { 'integer+:add:1': [45, 5, 5] } },
+        { 'integer+:add:1:a4': keyBack(4), 'integer+:add:1:s4': keyBack(4) }
+    ));
+    hasLine(lines, 'алмаз по точности и по скорости', 'сведение ступени');
+    noLine(lines, 'алмаз по точности и алмаз', 'повтор');
+});
+
+test('бронза наградой не считается', () => {
+    // Бронза по количеству — двадцать пять примеров. Назвать её наградой значит
+    // хвалить за то, что приложение открыли.
+    const lines = summary(state(
+        { 5: { 'integer+:add:1': [45, 5, 5] } },
+        { 'integer+:add:1:c1': keyBack(4), 'integer+:add:1:a1': keyBack(4) }
+    ));
+    noLine(lines, 'Новые награды', 'бронза');
+    noLine(lines, 'бронза', 'бронза');
+});
+
+test('награды вне периода в отчёт не попадают', () => {
+    const lines = summary(state(
+        { 5: { 'integer+:add:1': [45, 5, 5] } },
+        { 'integer+:add:1:a3': keyBack(200) }
+    ));
+    noLine(lines, 'Новые награды', 'старая награда');
+});
+
+test('открытая звезда названа отдельной строкой', () => {
+    const lines = summary(state(
+        { 5: { 'integer+:add:1': [45, 5, 5] } },
+        { 'integer+:add:1:a3': keyBack(4), 'integer+:add:1:c3': keyBack(4) }
+    ));
+    hasLine(lines, 'Открыта новая звезда: сложение положительных чисел, 1★', 'ворота');
+});
+
+test('у новичка «начали новое» не пишется — у него ново всё', () => {
+    const lines = summary(state({ 5: { 'integer+:mul:3': [45, 5, 5] } }));
+    noLine(lines, 'Начали новое', 'новичок');
+});
+
+test('у того, кто занимался раньше, новая тема названа', () => {
+    const st = state({
+        40: { 'integer+:add:1': [45, 5, 5] },     // было до периода
+        5: { 'integer+:add:1': [20, 2, 5], 'integer+:mul:3': [30, 5, 7] }
+    });
+    const lines = summary(st);
+    hasLine(lines, 'Начали новое: умножение положительных чисел, 3★', 'новая тема');
+});
+
+test('случайные пять примеров новой темой не считаются', () => {
+    const st = state({
+        40: { 'integer+:add:1': [45, 5, 5] },
+        5: { 'integer+:add:1': [45, 5, 5], 'integer+:mul:3': [2, 0, 7] }
+    });
+    noLine(summary(st), 'Начали новое', 'случайные попытки');
+});
+
+test('движение показывается только когда оно значимое', () => {
+    // Точность 88% → 90%: два пункта. Это колебание замера, а не новость.
+    const st = state({ 25: { 'integer+:add:1': [88, 12, 5] }, 5: { 'integer+:add:1': [90, 10, 5] } });
+    noLine(summary(st), 'Точность', 'мелкое движение');
+    // А четыре пункта — уже новость.
+    const st2 = state({ 25: { 'integer+:add:1': [86, 14, 5] }, 5: { 'integer+:add:1': [90, 10, 5] } });
+    hasLine(summary(st2), 'Точность выросла: с 86% до 90%.', 'значимое движение');
+});
+
+test('порог значимости — величина, а не «любое изменение»', () => {
+    assert(R.PARENT_ACC_MIN_DELTA > 0, 'порог должен быть больше нуля');
+    assert(R.PARENT_ACC_MIN_DELTA < 10, 'порог в десять пунктов молчал бы почти всегда');
+});
+
+test('переход на сложное не выдаётся за спад', () => {
+    const st = state({
+        25: { 'integer+:add:1': [90, 10, 5] },
+        5: { 'integer+:add:4': [50, 50, 9] }
+    });
+    const lines = summary(st);
+    hasLine(lines, 'перешли на более сложные примеры', 'переход');
+    noLine(lines, 'Точность снизилась', 'ложный спад');
+});
+
+test('откат на простое не выдаётся за рост', () => {
+    const st = state({
+        25: { 'integer+:add:5': [50, 50, 9] },
+        5: { 'integer+:add:1': [95, 5, 4] }
+    });
+    const lines = summary(st);
+    hasLine(lines, 'примеры были проще', 'откат');
+    noLine(lines, 'Точность выросла', 'ложный рост');
+});
+
+test('за один день про динамику молчим', () => {
+    const st = state({ 0: { 'integer+:add:1': [45, 5, 5] } });
+    const lines = summary(st, TO, TO, 'Сегодня', true);
+    eq(lines[0], 'Сегодня решено 50 примеров, 90% верных.', 'первая строка');
+    noLine(lines, 'Точность', 'динамика за день');
+    noLine(lines, 'занятий не было', 'тишина за день');
+});
+
+test('в абзаце нет ни рода, ни внутреннего словаря', () => {
+    // Пол по имени не угадывается, имени в тексте нет вовсе — значит, не должно быть
+    // и слов, которые его требуют. Проверяем сразу на всех ветках сборки.
+    const cases = [
+        state({}),
+        state({ 5: { 'integer+:add:1': [45, 5, 5] } }, { 'integer+:add:1:a3': keyBack(4) }),
+        state({ 25: { 'integer+:add:1': [90, 10, 5] }, 5: { 'integer+:add:4': [50, 50, 9] } }),
+        state({ 40: { 'integer+:add:1': [45, 5, 5] }, 5: { 'integer+:mul:3': [45, 5, 7] } }),
+        state({ 25: { 'integer+:add:1': [45, 5, 5] } })
+    ];
+    const banned = ['лся', 'лась', 'ступен', 'лесен', 'класс', '(-а', 'ошиб'];
+    cases.forEach((st, i) => {
+        const text = summary(st).join(' ');
+        banned.forEach(w => {
+            if (text.indexOf(w) >= 0) throw new Error(`случай ${i}: в тексте есть «${w}» — ${text}`);
+        });
+    });
+});
+
+test('комментарий репетитора стоит первым, а не под цифрами', () => {
+    // Имя и обращение пишет репетитор — значит, сообщение родителю обязано начинаться
+    // с его строки. Иначе оно открывается словами «За месяц — 1 занятие».
+    const st = state({ 5: { 'integer+:add:1': [45, 5, 5] } });
+    const text = R.parentSummaryText(st, FROM, TO, 'За месяц', false, 'Здравствуйте! Маша молодец.');
+    const lines = text.split('\n');
+    eq(lines[0], 'Здравствуйте! Маша молодец.', 'первая строка');
+    eq(lines[1], '', 'пустая строка между комментарием и цифрами');
+    assert(lines[2].indexOf('За месяц') === 0, 'дальше идут цифры');
+});
+
+test('без комментария сообщение начинается сразу с цифр и без пустых строк', () => {
+    const st = state({ 5: { 'integer+:add:1': [45, 5, 5] } });
+    const text = R.parentSummaryText(st, FROM, TO, 'За месяц', false, '   ');
+    assert(text.indexOf('За месяц') === 0, 'начало');
+    assert(text.indexOf('\n\n') < 0, 'лишних пустых строк нет');
+});
+
+test('названия тем — слова, а не подписи из интерфейса', () => {
+    eq(R.parentTopicWords('integer+:add:1'), 'сложение положительных чисел, 1★', 'положительные');
+    eq(R.parentTopicWords('integer-:mul:5'), 'умножение отрицательных чисел, 5★', 'отрицательные');
+    eq(R.parentTopicWords('decimal+:div:2'), 'деление десятичных дробей, 2★', 'десятичные');
+    eq(R.parentTopicWords('fraction+:add:3'), 'сложение дробей, 3★', 'дроби');
+    // У дробных действий предмет уже назван в самом действии — второй раз не приписываем.
+    eq(R.parentTopicWords('fraction+:simplify:1'), 'сокращение дробей, 1★', 'сокращение');
 });
 
 group('Подписи в списке учеников');
