@@ -36,6 +36,9 @@ function loadReport() {
     // compareHalves и parentSummaryLines — они и составляют считающую часть отчёта.
     const core = slice('function shiftDayKey(key, deltaDays)',
                        '// Самая длинная череда дней подряд', 'ядро отчёта');
+    // Дни занятий: счёт по дням, итоги и порог перехода на недели.
+    const days = slice('// Сколько примеров решено в каждый день периода',
+                       '// Календарь по неделям', 'дни занятий');
     // Остальное лежит по файлу врозь и подтягивается по кусочку.
     const plur = slice('function pluralDays(n)', 'function lastSeenText(iso)', 'склонения');
     const parse = slice('function parseTopicKey(key)', '// Ключ для ОТОБРАЖЕНИЯ', 'parseTopicKey');
@@ -57,12 +60,15 @@ function loadReport() {
                       Progress: { dayKey } };
     sandbox.globalThis = sandbox;
     vm.createContext(sandbox);
-    vm.runInContext([re, parse, acc, ladders, core, plur].join('\n')
+    vm.runInContext([re, parse, acc, ladders, core, days, plur].join('\n')
         + '\n;globalThis.aggregateDaily = aggregateDaily;'
         + '\n;globalThis.avgLevelOf = avgLevelOf;'
         + '\n;globalThis.compareHalves = compareHalves;'
         + '\n;globalThis.parentSummaryLines = parentSummaryLines;'
         + '\n;globalThis.parentSummaryText = parentSummaryText;'
+        + '\n;globalThis.dayCounts = dayCounts;'
+        + '\n;globalThis.daysSummary = daysSummary;'
+        + '\n;globalThis.dayShade = dayShade;'
         + '\n;globalThis.parentTopicWords = parentTopicWords;'
         + '\n;globalThis.LEVEL_SHIFT_MIN = LEVEL_SHIFT_MIN;'
         + '\n;globalThis.PARENT_ACC_MIN_DELTA = PARENT_ACC_MIN_DELTA;'
@@ -470,6 +476,68 @@ test('названия тем — слова, а не подписи из инт
     eq(R.parentTopicWords('fraction+:simplify:1'), 'сокращение дробей, 1★', 'сокращение');
 });
 
+group('Дни занятий');
+
+// Журнал: { сколькоДнейНазадОтTO: числоПримеров }
+function daysJournal(map) {
+    const daily = {};
+    Object.keys(map).forEach(back => {
+        const n = map[back];
+        daily[keyBack(Number(back))] = Object.assign(day({ 'integer+:add:1': [n, 0, 5] }), {});
+    });
+    return daily;
+}
+
+test('счёт по дням покрывает весь период, включая пустые дни', () => {
+    const daily = daysJournal({ 5: 10, 2: 20 });
+    const counts = R.dayCounts(daily, keyBack(6), TO);
+    eq(counts.length, 7, 'дней в периоде');
+    eq(counts.filter(d => d.n > 0).length, 2, 'активных дней');
+    eq(counts[counts.length - 1].key, TO, 'последний день — конец периода');
+});
+
+test('итоги считают активные дни, перерыв и среднее за занятие', () => {
+    // Занимался 6 и 2 дня назад по 10 и 20 примеров: между ними три пустых дня.
+    const daily = daysJournal({ 6: 10, 2: 20 });
+    const sum = R.daysSummary(R.dayCounts(daily, keyBack(6), TO));
+    eq(sum.activeDays, 2, 'активных дней');
+    eq(sum.spanDays, 7, 'дней в периоде');
+    eq(sum.gap, 3, 'самый долгий перерыв');
+    eq(sum.perDay, 15, 'в среднем за занятие');
+});
+
+test('перерыв считается от первого занятия, а не от начала периода', () => {
+    // Ученик начал в середине периода. Пустые дни ДО начала — не пропуск: записывать
+    // их в перерыв значит обвинять человека в том, что он ещё не начинал.
+    const daily = daysJournal({ 2: 20, 1: 20 });
+    const sum = R.daysSummary(R.dayCounts(daily, keyBack(20), TO));
+    eq(sum.activeDays, 2, 'активных дней');
+    eq(sum.gap, 1, 'перерыв — только сегодняшний пустой день, а не восемнадцать до начала');
+});
+
+test('период без занятий итогов не даёт', () => {
+    eq(R.daysSummary(R.dayCounts({}, keyBack(6), TO)), null, 'итоги');
+});
+
+test('насыщенность клетки считается от медианы, а не от максимума', () => {
+    // Один рекордный день иначе перекрашивает все остальные в бледное.
+    eq(R.dayShade(0, 40), 'zero', 'пустой день');
+    eq(R.dayShade(40, 40), 'd3', 'ровно медиана');
+    eq(R.dayShade(80, 40), 'd4', 'вдвое выше медианы');
+    eq(R.dayShade(10, 40), 'd1', 'сильно ниже медианы');
+    eq(R.dayShade(5, 0), 'd3', 'без медианы — средний оттенок, а не пустота');
+});
+
+test('порог перехода на недели — около полутора месяцев', () => {
+    const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const limit = Number((src.match(/const DAY_CALENDAR_MAX_DAYS = (\d+);/) || [])[1]);
+    assert(limit, 'порог DAY_CALENDAR_MAX_DAYS не найден');
+    // Календарь по дням дальше не читается, но и переключаться на недели раньше месяца
+    // нельзя: там календарь как раз и полезен.
+    assert(limit >= 31, `порог ${limit} — месяц должен показываться днями`);
+    assert(limit <= 70, `порог ${limit} — на таком периоде календарь по дням станет простынёй`);
+});
+
 group('Два вида экрана статистики');
 
 // Здесь проверяется не отрисовка, а само правило: что скрыто от ребёнка и уцелели ли
@@ -504,8 +572,13 @@ test('оценочные блоки закрыты от ребёнка, а со�
     // Разбор ошибок и проценты по темам — оценка, их ребёнок видеть не должен.
     ['statsMistakesSection', 'statsCellMistakesSection', 'statsTopicSection', 'statsTrendSection']
         .forEach(id => assert(ids.indexOf(id) >= 0, `${id} должен быть закрыт от ребёнка`));
-    // Карта, полоса занятий и эпохи — это собранное, а не оценка: они остаются обоим.
-    ['statsMapSection', 'statsStripSection', 'statsEpochsSection']
+    // Дни занятий закрыты по другой причине, не «это оценка»: ребёнку тот же самый
+    // ритм показан лучше — счётчиком «дней подряд» в карточках наверху. Тот говорит
+    // «продолжай серию», календарь пропусков — «вот где ты не занимался»; работает
+    // первое. А календарь с итогами стал инструментом разбора, то есть учительским.
+    assert(ids.indexOf('statsStripSection') >= 0, 'дни занятий должны быть закрыты от ребёнка');
+    // Карта и эпохи — это собранное: они остаются обоим.
+    ['statsMapSection', 'statsEpochsSection']
         .forEach(id => assert(ids.indexOf(id) < 0, `${id} закрывать от ребёнка не надо`));
 });
 

@@ -816,23 +816,36 @@
         .stat-side b { color: #e2e8f0; font-weight: bold; }
 
         /* --- Полоса дней --- */
-        .day-strip {
-            display: grid; grid-template-columns: repeat(auto-fill, minmax(11px, 1fr));
-            gap: 3px; margin-top: 4px;
+        /* Календарь занятий: столбцы Пн–Вс, строки — недели. Ровно тот же приём, что
+           у карты разделов ниже: цвет фоном, число в клетке. Прежняя лента квадратиков
+           показывала занятия сплошняком, без структуры недели, — и узор «занимается
+           только по вторникам и четвергам» в ней разглядеть было нельзя. А число жило
+           в подсказке при наведении, то есть на телефоне не существовало вовсе. */
+        .day-cal { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 6px; }
+        .day-head {
+            font-size: 0.6rem; color: #64748b; text-align: center; padding-bottom: 2px;
         }
         .day-cell {
-            aspect-ratio: 1; border-radius: 3px; background: rgba(255,255,255,0.05);
-            border: 1px solid transparent;
+            aspect-ratio: 1; border-radius: 5px; background: rgba(255,255,255,0.04);
+            border: 1px solid transparent; display: flex; align-items: center;
+            justify-content: center; font-size: 0.62rem; font-weight: 700; color: #cbd5e1;
         }
-        .day-cell.d1 { background: rgba(16,185,129,0.30); }
-        .day-cell.d2 { background: rgba(16,185,129,0.50); }
-        .day-cell.d3 { background: rgba(16,185,129,0.72); }
-        .day-cell.d4 { background: rgba(16,185,129,0.95); }
+        .day-cell.out { background: transparent; }        /* день вне выбранного периода */
+        .day-cell.zero { color: #475569; }                /* был в периоде, но не занимался */
+        .day-cell.d1 { background: rgba(16,185,129,0.22); }
+        .day-cell.d2 { background: rgba(16,185,129,0.38); }
+        .day-cell.d3 { background: rgba(16,185,129,0.58); }
+        .day-cell.d4 { background: rgba(16,185,129,0.80); color: #041014; }
         .day-cell.today { border-color: var(--gold); }
-        .strip-legend {
-            display: flex; align-items: center; gap: 6px; justify-content: flex-end;
-            font-size: 0.66rem; color: #64748b; margin-top: 7px;
-        }
+        .day-summary { font-size: 0.72rem; color: #94a3b8; margin-top: 9px; line-height: 1.5; }
+        /* Недельные столбики — запасной вид для длинных периодов, где календарь по дням
+           превращается в простыню. Та же идиома, что в отчёте родителям. */
+        .week-bars { display: flex; align-items: flex-end; gap: 5px; height: 84px; margin-top: 8px; }
+        .week-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; }
+        .week-bar-space { flex: 1; width: 100%; display: flex; align-items: flex-end; }
+        .week-bar { width: 100%; background: rgba(16,185,129,0.65); border-radius: 4px 4px 0 0; min-height: 2px; }
+        .week-bar-val { font-size: 0.6rem; color: #94a3b8; margin-bottom: 3px; }
+        .week-bar-label { font-size: 0.58rem; color: #64748b; margin-top: 4px; white-space: nowrap; }
         .strip-legend .day-cell { width: 10px; aspect-ratio: 1; }
 
         /* --- Карта раздела --- */
@@ -1346,18 +1359,13 @@
                 <div class="config-hint" id="statsAlmostHint"></div>
             </div>
 
+            <!-- Дни занятий. Только для репетитора: ученику ритм показан лучше — счётчиком
+                 «дней подряд» в карточках наверху. Тот говорит «продолжай серию», сетка
+                 пропусков — «вот где ты не занимался»; ребёнку работает первое. -->
             <div class="config-section" id="statsStripSection">
-                <div class="config-section-title">Занятия по дням</div>
-                <div class="day-strip" id="statsDayStrip"></div>
-                <div class="strip-legend">
-                    <span>меньше</span>
-                    <span class="day-cell"></span>
-                    <span class="day-cell d1"></span>
-                    <span class="day-cell d2"></span>
-                    <span class="day-cell d3"></span>
-                    <span class="day-cell d4"></span>
-                    <span>больше</span>
-                </div>
+                <div class="config-section-title" id="statsDaysTitle">Занятия по дням</div>
+                <div id="statsDayCal"></div>
+                <div class="day-summary" id="statsDaySummary"></div>
             </div>
 
             <div class="config-section" id="statsTrendSection">
@@ -1958,6 +1966,18 @@
             "🔒 Заблокировано": "🔒 Locked",
             "Занятия": "Sessions",
             "Занятия по дням": "Sessions by day",
+            "Занятия по неделям": "Sessions by week",
+            "Пн": "Mo",
+            "Вт": "Tu",
+            "Ср": "We",
+            "Чт": "Th",
+            "Пт": "Fr",
+            "Сб": "Sa",
+            "Вс": "Su",
+            "без пропусков": "no gaps",
+            "%1 — не занимался": "%1 — no practice",
+            "%1 из %2 · самый долгий перерыв %3 · в среднем %4 за занятие": "%1 of %2 · longest gap %3 · %4 per session on average",
+            "Число — сколько решено. Зелёная клетка — идёт уверенно.": "The number is how many were solved. A green cell means it is going well.",
             "Как меняется": "How it's changing",
             "Скорость ответа": "Answer time",
             "Точность": "Accuracy",
@@ -2149,8 +2169,6 @@
             "не та дробь": "wrong fraction",
             "перевёл не обе дроби": "converted one only",
             "ошибка": "mistake",
-            "больше": "more",
-            "меньше": "less",
             "мимо на десяток": "off by ten",
             "нашёл остаток": "found the leftover",
             "нашёл только одну долю": "only one part",
@@ -2437,6 +2455,18 @@
             "🔒 Заблокировано": "🔒 Verrouillé",
             "Занятия": "Séances",
             "Занятия по дням": "Séances par jour",
+            "Занятия по неделям": "Séances par semaine",
+            "Пн": "Lu",
+            "Вт": "Ma",
+            "Ср": "Me",
+            "Чт": "Je",
+            "Пт": "Ve",
+            "Сб": "Sa",
+            "Вс": "Di",
+            "без пропусков": "sans interruption",
+            "%1 — не занимался": "%1 — pas de séance",
+            "%1 из %2 · самый долгий перерыв %3 · в среднем %4 за занятие": "%1 sur %2 · plus longue interruption %3 · %4 par séance en moyenne",
+            "Число — сколько решено. Зелёная клетка — идёт уверенно.": "Le nombre indique combien ont été résolus. Une case verte veut dire « ça roule ».",
             "Как меняется": "Comment ça évolue",
             "Скорость ответа": "Temps de réponse",
             "Точность": "Précision",
@@ -2628,8 +2658,6 @@
             "не та дробь": "mauvaise fraction",
             "перевёл не обе дроби": "une seule convertie",
             "ошибка": "erreur",
-            "больше": "plus",
-            "меньше": "moins",
             "мимо на десяток": "à une dizaine près",
             "нашёл остаток": "a trouvé le reste",
             "нашёл только одну долю": "une seule part",
@@ -2910,6 +2938,18 @@
             "🔒 Заблокировано": "🔒 Gesperrt",
             "Занятия": "Übungen",
             "Занятия по дням": "Übungen nach Tagen",
+            "Занятия по неделям": "Übungen nach Wochen",
+            "Пн": "Mo",
+            "Вт": "Di",
+            "Ср": "Mi",
+            "Чт": "Do",
+            "Пт": "Fr",
+            "Сб": "Sa",
+            "Вс": "So",
+            "без пропусков": "ohne Pausen",
+            "%1 — не занимался": "%1 — keine Übung",
+            "%1 из %2 · самый долгий перерыв %3 · в среднем %4 за занятие": "%1 von %2 · längste Pause %3 · durchschnittlich %4 pro Übung",
+            "Число — сколько решено. Зелёная клетка — идёт уверенно.": "Die Zahl zeigt, wie viele gelöst wurden. Ein grünes Feld heißt: läuft sicher.",
             "Как меняется": "Wie es sich verändert",
             "Скорость ответа": "Antwortzeit",
             "Точность": "Genauigkeit",
@@ -3101,8 +3141,6 @@
             "не та дробь": "falscher Bruch",
             "перевёл не обе дроби": "nur einen umgewandelt",
             "ошибка": "Fehler",
-            "больше": "mehr",
-            "меньше": "weniger",
             "мимо на десяток": "um einen Zehner",
             "нашёл остаток": "Rest gefunden",
             "нашёл только одну долю": "nur ein Teil",
@@ -10167,6 +10205,7 @@
         // тестом — в том числе что все эти идентификаторы в вёрстке ещё существуют.
         // Переименовали блок, забыли строку — и ребёнок молча начал видеть разбор ошибок.
         const STATS_TUTOR_ONLY = [
+            'statsStripSection',         // дни занятий: календарь и итоги
             'statsTrendSection',         // кривые точности и скорости
             'statsTopicSection',         // проценты по каждой теме
             'statsMistakesSection',      // виды ошибок за период
@@ -10256,10 +10295,17 @@
             // и две дыры на её месте.
             const streak = longestStreak(daily, fromKey, toKey);
             if (!forTutor) {
+                // Счётчик пазлов отсюда убран: он почти всегда 0 или 1 и на видном месте
+                // выглядит поломкой, а сами пазлы куда лучше показаны в коллекции —
+                // там они картинками. На освободившееся место встала точность.
+                //
+                // Точность у ребёнка — ЧИСЛОМ, без стрелки. Приговор выносит стрелка
+                // («−5 к прошлому периоду»), а не сама доля попаданий: её ребёнок
+                // прицельно исправить не может, а тревожиться о ней — вполне.
                 document.getElementById('statsAccuracyName').innerText = t('Дней подряд');
                 document.getElementById('statsAccuracyVal').innerText = streak;
-                document.getElementById('statsSpeedName').innerText = t('Пазлов');
-                document.getElementById('statsSpeedVal').innerText = puzzles;
+                document.getElementById('statsSpeedName').innerText = t('Точность');
+                document.getElementById('statsSpeedVal').innerText = accuracy === null ? '—' : accuracy + '%';
             } else {
                 document.getElementById('statsAccuracyName').innerText = t('Точность');
                 document.getElementById('statsSpeedName').innerText = t('Скорость');
@@ -10331,10 +10377,12 @@
             // там нечего, поэтому оба блока прячем.
             const stripFrom = isAll ? (earliestDayKey(daily) || toKey) : fromKey;
             const hasDays = Object.keys(daily).length > 0 && !isOneDay;
-            // Полоса дней остаётся обоим: это не оценка, а «сколько я занимался», и
-            // ребёнку она как раз действенна — пропуски видно, и их можно не делать.
-            if (hasDays) renderDayStrip(daily, stripFrom, toKey);
-            document.getElementById('statsStripSection').style.display = hasDays ? 'block' : 'none';
+            // Дни занятий — только репетитору. Ребёнку ритм показан лучше и в другой
+            // форме: счётчиком «дней подряд» в карточках наверху. Тот говорит «продолжай
+            // серию», сетка пропусков — «вот где ты не занимался»; работает первое.
+            const showDays = hasDays && statsSectionAllowed('statsStripSection', forTutor);
+            if (showDays) renderDaysBlock(daily, stripFrom, toKey);
+            document.getElementById('statsStripSection').style.display = showDays ? 'block' : 'none';
 
             // --- Кривые: становится ли лучше. Только репетитору ---
             const showTrends = hasDays && statsSectionAllowed('statsTrendSection', forTutor);
@@ -10346,7 +10394,7 @@
             const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap', { noPct: !forTutor });
             document.getElementById('statsMapHint').innerText = forTutor
                 ? t('Клетка — действие на своей сложности. Цвет по точности: зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено, значок — ранг темы.')
-                : t('Клетка — действие на своей сложности. Число — сколько примеров решено, значок — награда за тему. Зелёная клетка значит «идёт уверенно», жёлтая и красная — тут ещё работаем.');
+                : t('Число — сколько решено. Зелёная клетка — идёт уверенно.');
             document.getElementById('statsMapSection').style.display = mapDrawn ? 'block' : 'none';
 
             // --- Над чем работать: ошибки за период, разобранные по причине ---
@@ -10476,38 +10524,174 @@
         // Пять уровней яркости, пороги от медианы активного дня, а не абсолютные:
         // у одного ученика насыщенный день это 30 примеров, у другого 150, и мерить
         // их одной линейкой значит одному всегда рисовать бледное, другому всегда яркое.
-        function renderDayStrip(daily, fromKey, toKey) {
-            const wrap = document.getElementById('statsDayStrip');
-            if (!wrap) return;
+        // Сколько примеров решено в каждый день периода. Общая заготовка для календаря,
+        // итогов и недельных столбиков — чтобы три вида считали по одному и тому же.
+        function dayCounts(daily, fromKey, toKey) {
+            const out = [];
+            let k = fromKey || earliestDayKey(daily) || toKey, guard = 0;
+            while (k <= toKey && guard++ < 400) {
+                const d = daily[k];
+                out.push({ key: k, n: d ? (d.c || 0) + (d.w || 0) : 0 });
+                k = shiftDayKey(k, 1);
+            }
+            return out;
+        }
+
+        // Насыщенность клетки — относительно медианы активных дней, а не максимума:
+        // один рекордный день иначе перекрашивает все остальные в бледное.
+        function dayShade(n, median) {
+            if (n <= 0) return 'zero';
+            if (median <= 0) return 'd3';
+            const r = n / median;
+            return r >= 1.5 ? 'd4' : r >= 1.0 ? 'd3' : r >= 0.5 ? 'd2' : 'd1';
+        }
+
+        // Три факта, по которым репетитор принимает решения. В ленте квадратиков они
+        // были — но считать их приходилось глазами.
+        function daysSummary(counts) {
+            const active = counts.filter(d => d.n > 0);
+            if (!active.length) return null;
+            const total = active.reduce((s, d) => s + d.n, 0);
+            // Перерыв считаем от ПЕРВОГО занятия, а не от начала периода: пустые дни до
+            // того, как ученик начал, — это не пропуск, и записывать их в перерыв нечестно.
+            const from = counts.indexOf(active[0]);
+            let gap = 0, run = 0;
+            for (let i = from; i < counts.length; i++) {
+                if (counts[i].n > 0) run = 0;
+                else { run++; if (run > gap) gap = run; }
+            }
+            return { activeDays: active.length, spanDays: counts.length, gap,
+                     perDay: Math.round(total / active.length) };
+        }
+
+        function pluralDaysWord(n) {
+            const d100 = n % 100, d10 = n % 10;
+            if (d100 >= 11 && d100 <= 14) return t('дней');
+            if (d10 === 1) return t('день');
+            if (d10 >= 2 && d10 <= 4) return t('дня');
+            return t('дней');
+        }
+
+        // Календарь по неделям: столбцы Пн–Вс, строки — недели. Пропуски читаются как
+        // дырки в правильной решётке, а не как разрыв ленты, и сразу видно, в какие дни
+        // недели ученик садится за примеры.
+        const WEEKDAY_SHORT = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+        // Понедельник считаем первым днём недели: getDay() отдаёт воскресенье нулём.
+        const mondayIndex = (dateObj) => (dateObj.getDay() + 6) % 7;
+
+        function renderDayCalendar(daily, fromKey, toKey, containerId) {
+            const wrap = document.getElementById(containerId);
+            if (!wrap) return 0;
             wrap.innerHTML = '';
+            const counts = dayCounts(daily, fromKey, toKey);
+            if (!counts.length) return 0;
 
-            const keys = [];
-            let k = fromKey || earliestDayKey(daily) || toKey;
-            let guard = 0;
-            while (k <= toKey && guard++ < 400) { keys.push(k); k = shiftDayKey(k, 1); }
-
-            const counts = keys.map(key => {
-                const d = daily[key];
-                return d ? (d.c || 0) + (d.w || 0) : 0;
-            });
-            const active = counts.filter(c => c > 0).sort((a, b) => a - b);
+            const byKey = {};
+            counts.forEach(d => { byKey[d.key] = d.n; });
+            const active = counts.filter(d => d.n > 0).map(d => d.n).sort((a, b) => a - b);
             const median = active.length ? active[Math.floor(active.length / 2)] : 0;
 
-            keys.forEach((key, i) => {
-                const cnt = counts[i];
-                const cell = document.createElement('div');
-                let cls = 'day-cell';
-                if (cnt > 0 && median > 0) {
-                    const r = cnt / median;
-                    cls += r >= 1.5 ? ' d4' : r >= 1.0 ? ' d3' : r >= 0.5 ? ' d2' : ' d1';
-                } else if (cnt > 0) {
-                    cls += ' d3';
-                }
-                if (key === toKey) cls += ' today';
-                cell.className = cls;
-                cell.title = tf('%1 — %2', formatDayKeyHuman(key), cnt ? cnt + ' примеров' : 'не занимался');
-                wrap.appendChild(cell);
+            const grid = document.createElement('div');
+            grid.className = 'day-cal';
+            WEEKDAY_SHORT.forEach(w => {
+                const h = document.createElement('div');
+                h.className = 'day-head';
+                h.innerText = t(w);
+                grid.appendChild(h);
             });
+
+            // Начинаем с понедельника той недели, в которую попал первый день периода,
+            // иначе столбцы разъедутся и «по вторникам» будет не увидеть.
+            const first = counts[0].key;
+            const [fy, fm, fd] = first.split('-').map(Number);
+            const cursor = new Date(fy, fm - 1, fd);
+            cursor.setDate(cursor.getDate() - mondayIndex(cursor));
+
+            const last = counts[counts.length - 1].key;
+            let guard = 0;
+            while (guard++ < 400) {
+                const key = Progress.dayKey(cursor);
+                const inRange = key >= first && key <= last;
+                const n = inRange ? (byKey[key] || 0) : 0;
+                const cell = document.createElement('div');
+                cell.className = 'day-cell ' + (inRange ? dayShade(n, median) : 'out')
+                    + (key === toKey ? ' today' : '');
+                cell.innerText = inRange ? (n > 0 ? String(n) : '·') : '';
+                if (inRange) {
+                    cell.title = n > 0
+                        ? tf('%1 — решено %2', formatDayKeyHuman(key), n)
+                        : tf('%1 — не занимался', formatDayKeyHuman(key));
+                }
+                grid.appendChild(cell);
+                if (key >= last && mondayIndex(cursor) === 6) break;
+                cursor.setDate(cursor.getDate() + 1);
+            }
+            wrap.appendChild(grid);
+            return counts.length;
+        }
+
+        // Запасной вид для длинных периодов: по дням там вышла бы простыня.
+        function renderWeekBars(daily, fromKey, toKey, containerId) {
+            const wrap = document.getElementById(containerId);
+            if (!wrap) return 0;
+            wrap.innerHTML = '';
+            const counts = dayCounts(daily, fromKey, toKey);
+            if (!counts.length) return 0;
+
+            const weeks = [];
+            for (let i = 0; i < counts.length; i += 7) {
+                const chunk = counts.slice(i, i + 7);
+                weeks.push({ n: chunk.reduce((s, d) => s + d.n, 0), from: chunk[0].key });
+            }
+            if (!weeks.some(w => w.n > 0)) return 0;
+            const max = Math.max(...weeks.map(w => w.n));
+
+            const row = document.createElement('div');
+            row.className = 'week-bars';
+            weeks.forEach((w, i) => {
+                const box = document.createElement('div');
+                box.className = 'week-bar-wrap';
+                box.innerHTML = '<span class="week-bar-val"></span>'
+                    + '<span class="week-bar-space"><span class="week-bar"></span></span>'
+                    + '<span class="week-bar-label"></span>';
+                box.querySelector('.week-bar-val').innerText = w.n || '';
+                box.querySelector('.week-bar').style.height = Math.round(w.n / max * 100) + '%';
+                // Подписываем каждую вторую: на девяноста днях тринадцать подписей в ряд
+                // не помещаются и слипаются.
+                box.querySelector('.week-bar-label').innerText =
+                    (weeks.length <= 8 || i % 2 === 0) ? tf('%1 нед', i + 1) : '';
+                box.title = tf('%1 — решено %2', formatDayKeyHuman(w.from), w.n);
+                row.appendChild(box);
+            });
+            wrap.appendChild(row);
+            return weeks.length;
+        }
+
+        // Дольше полутора месяцев календарь по дням не читается — переходим на недели.
+        const DAY_CALENDAR_MAX_DAYS = 45;
+
+        function renderDaysBlock(daily, fromKey, toKey) {
+            const counts = dayCounts(daily, fromKey, toKey);
+            const byDays = counts.length <= DAY_CALENDAR_MAX_DAYS;
+            const drawn = byDays
+                ? renderDayCalendar(daily, fromKey, toKey, 'statsDayCal')
+                : renderWeekBars(daily, fromKey, toKey, 'statsDayCal');
+            document.getElementById('statsDaysTitle').innerText =
+                byDays ? t('Занятия по дням') : t('Занятия по неделям');
+
+            const sum = daysSummary(counts);
+            const el = document.getElementById('statsDaySummary');
+            // Существительного после «21 из 30» здесь нет намеренно. В русском оно требует
+            // склонения по числу, в немецком в этом обороте — дательного падежа («von 30
+            // Tagen», а не «Tage»), и подставлять одно и то же слово во все языки значит
+            // где-то написать с ошибкой. Заголовок блока и так говорит «по дням».
+            el.innerText = sum
+                ? tf('%1 из %2 · самый долгий перерыв %3 · в среднем %4 за занятие',
+                     sum.activeDays, sum.spanDays,
+                     sum.gap ? `${sum.gap} ${pluralDaysWord(sum.gap)}` : t('без пропусков'),
+                     `${sum.perDay} ${t('примеров')}`)
+                : '';
+            return drawn;
         }
 
         // --- Кривые точности и скорости ---
