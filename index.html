@@ -89,7 +89,16 @@
         .modal-screen > * { flex-shrink: 0; }
         /* Боковые отступы держат заголовок подальше от кнопки ☰/◀️ в углу —
            без них при крупном шрифте перенесённый текст заезжает под кнопку. */
-        .start-title { color: var(--gold); font-size: 1.8rem; text-align: center; margin-bottom: 5px; text-shadow: 0 0 10px rgba(255,215,0,0.2); padding: 0 54px; }
+        /* Заголовок экрана держим в одну строку. Отступы по 54 px берегут место под
+           кнопки в углах, но на узком телефоне съедали треть ширины, и в две строки
+           разъезжались почти все заголовки во всех четырёх языках — не только «Выбор
+           миссии». Поэтому и размер, и отступы теперь тянутся за шириной окна. */
+        .start-title {
+            color: var(--gold); font-size: clamp(1.12rem, 5.2vw, 1.8rem);
+            text-align: center; margin-bottom: 5px;
+            text-shadow: 0 0 10px rgba(255,215,0,0.2);
+            padding: 0 clamp(40px, 13vw, 54px);
+        }
         .start-subtitle { color: #94a3b8; font-size: 0.85rem; margin-bottom: 20px; text-align: center; }
 
         .config-container {
@@ -1266,7 +1275,7 @@
         <!-- Язык выбирается до входа: экран логина — первое, что видит человек,
              и другого места спросить у нас просто нет. -->
         <button class="lang-pill" onclick="openLangPicker()">EN</button>
-        <h1 class="start-title" style="font-size:1.6rem;">Вход</h1>
+        <h1 class="start-title" style="font-size:clamp(1.15rem, 5vw, 1.6rem);">Вход</h1>
 
         <div style="width:100%; max-width:420px; text-align:center;">
             <input id="codeInputField" type="text" placeholder="Логин" autocapitalize="off" autocorrect="off" spellcheck="false"
@@ -1350,7 +1359,7 @@
     <!-- Панель закрытого раздела: объясняет, почему закрыто, и что с этим делать. -->
     <div class="modal-screen" id="lockedScreen" style="z-index:245; display:none;">
         <button class="start-menu-btn" onclick="closeLockedPanel()" aria-label="Назад">◀️</button>
-        <h1 class="start-title" style="font-size:1.5rem;">🔒 <span id="lockedTitle">Раздел закрыт</span></h1>
+        <h1 class="start-title" style="font-size:clamp(0.95rem, 4.2vw, 1.5rem);">🔒 <span id="lockedTitle">Раздел закрыт</span></h1>
         <div class="config-container" style="max-width:420px;">
             <div class="config-section">
                 <p style="color:#cbd5e1; font-size:0.9rem; line-height:1.5; margin:0;" id="lockedText"></p>
