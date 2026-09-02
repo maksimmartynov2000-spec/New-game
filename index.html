@@ -206,11 +206,18 @@
             width: 100%; display: flex; align-items: center; gap: 8px;
             background: none; border: none; cursor: pointer;
             font-family: inherit; text-align: left; color: var(--cyan);
-            padding: 4px 0 5px; margin-bottom: 8px;
+            padding: 9px 0 8px; margin-bottom: 8px; min-height: 36px;
             border-bottom: 1px solid rgba(255,255,255,0.10);
         }
         .ach-section.closed .ach-section-head { margin-bottom: 0; }
-        .ach-section-chevron { font-size: 0.62rem; color: #64748b; width: 10px; }
+        /* Галочка одна и та же в обоих состояниях, свёрнутая — повёрнута. Подмена символа
+           дёргает строку, поворот спокойнее. Место под неё фиксированное по той же причине. */
+        .ach-section-chevron {
+            font-size: 0.82rem; color: #94a3b8; width: 14px; flex: 0 0 14px;
+            display: inline-block; text-align: center;
+            transition: transform 0.15s ease;
+        }
+        .ach-section.closed .ach-section-chevron { transform: rotate(-90deg); }
         .ach-section-name { font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; }
         .ach-section-sum {
             margin-left: auto; font-size: 0.66rem; color: #94a3b8;
@@ -906,10 +913,14 @@
            как одна вещь, повторённая трижды, — без образца понять, какая позиция за
            что, нельзя в принципе. */
         .map-legend {
-            display: flex; align-items: center; gap: 12px; margin-top: 10px;
+            display: flex; flex-direction: column; gap: 7px; margin-top: 10px;
             padding: 8px 10px; border-radius: 10px;
             border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
         }
+        .map-legend-row { display: flex; align-items: center; gap: 12px; }
+        /* Окна подсчёта у значков и у самой клетки разные, и это стоит сказать вслух:
+           процент в клетке — за выбранный период, а лесенки живут своими окнами. */
+        .map-legend-note { font-size: 0.64rem; color: #64748b; line-height: 1.35; }
         .map-legend .map-cell { width: 54px; flex: 0 0 auto; }
         .map-legend-items { display: flex; flex-direction: column; gap: 3px; }
         .map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: #94a3b8; }
@@ -1681,10 +1692,10 @@
                     <div class="frac-special-block" id="fracSpecialBlock" style="display:none;">
                         <div class="frac-special-label">✨ Особые режимы дробей — только положительные числа</div>
                         <div class="op-select-grid">
-                            <button class="btn-op frac-only-op" data-op="simplify">➗ Сокращение</button>
+                            <button class="btn-op frac-only-op" data-op="simplify">✂️ Сокращение</button>
                             <button class="btn-op frac-only-op" data-op="toMixed">🔼 В смешанное число</button>
                             <button class="btn-op frac-only-op" data-op="toImproper">🔽 В неправильную дробь</button>
-                            <button class="btn-op frac-only-op" data-op="fracOfNumber">🎯 Дробь от числа</button>
+                            <button class="btn-op frac-only-op" data-op="fracOfNumber">🍰 Дробь от числа</button>
                         </div>
                     </div>
                 </div>
@@ -1862,6 +1873,7 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "Значки: скорость и точность — по последним %1 примерам, количество — за всё время.": "The icons: speed and accuracy come from the last %1 problems, count is all-time.",
             "звёзд %1 из %2": "%1 of %2 stars",
             "раздел закрыт": "section locked",
             "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "A cell is one operation at one difficulty. Colour follows accuracy: green from %1%, amber from %2%, red below. While fewer than %3 problems are solved, the cell shows their number and no colour.",
@@ -1941,10 +1953,10 @@
             "➖ Вычитание": "➖ Subtraction",
             "✖️ Умножение": "✖️ Multiplication",
             "➗ Деление": "➗ Division",
-            "➗ Сокращение": "➗ Simplifying",
+            "✂️ Сокращение": "✂️ Simplifying",
             "🔼 В смешанное число": "🔼 To a mixed number",
             "🔽 В неправильную дробь": "🔽 To an improper fraction",
-            "🎯 Дробь от числа": "🎯 Fraction of a number",
+            "🍰 Дробь от числа": "🍰 Fraction of a number",
             "✨ Особые режимы дробей — только положительные числа": "✨ Special fraction modes — positive numbers only",
             "Сменить настройки примеров": "Change problem settings",
             "Сменить настройки примеров?": "Change problem settings?",
@@ -2351,6 +2363,7 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "Значки: скорость и точность — по последним %1 примерам, количество — за всё время.": "Les icônes : la vitesse et la précision portent sur les %1 derniers calculs, la quantité sur tout l'historique.",
             "звёзд %1 из %2": "%1 étoiles sur %2",
             "раздел закрыт": "section fermée",
             "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "Une case, c'est une opération à une difficulté donnée. La couleur suit la précision : vert à partir de %1 %, orange à partir de %2 %, rouge en dessous. Tant que moins de %3 calculs sont résolus, la case affiche leur nombre et reste sans couleur.",
@@ -2430,10 +2443,10 @@
             "➖ Вычитание": "➖ Soustraction",
             "✖️ Умножение": "✖️ Multiplication",
             "➗ Деление": "➗ Division",
-            "➗ Сокращение": "➗ Simplification",
+            "✂️ Сокращение": "✂️ Simplification",
             "🔼 В смешанное число": "🔼 En nombre fractionnaire",
             "🔽 В неправильную дробь": "🔽 En fraction impropre",
-            "🎯 Дробь от числа": "🎯 Fraction d'un nombre",
+            "🍰 Дробь от числа": "🍰 Fraction d'un nombre",
             "✨ Особые режимы дробей — только положительные числа": "✨ Modes spéciaux des fractions — nombres positifs uniquement",
             "Сменить настройки примеров": "Changer les réglages des calculs",
             "Сменить настройки примеров?": "Changer les réglages des calculs ?",
@@ -2834,6 +2847,7 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "Значки: скорость и точность — по последним %1 примерам, количество — за всё время.": "Die Symbole: Tempo und Genauigkeit zählen die letzten %1 Aufgaben, die Menge zählt alles.",
             "звёзд %1 из %2": "%1 von %2 Sternen",
             "раздел закрыт": "Bereich gesperrt",
             "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "Ein Feld ist eine Rechenart auf einer Schwierigkeit. Die Farbe folgt der Genauigkeit: Grün ab %1 %, Gelb ab %2 %, darunter Rot. Solange weniger als %3 Aufgaben gelöst sind, steht im Feld ihre Anzahl und es bleibt farblos.",
@@ -2913,10 +2927,10 @@
             "➖ Вычитание": "➖ Subtraktion",
             "✖️ Умножение": "✖️ Multiplikation",
             "➗ Деление": "➗ Division",
-            "➗ Сокращение": "➗ Kürzen",
+            "✂️ Сокращение": "✂️ Kürzen",
             "🔼 В смешанное число": "🔼 In gemischte Zahl",
             "🔽 В неправильную дробь": "🔽 In unechten Bruch",
-            "🎯 Дробь от числа": "🎯 Bruchteil einer Zahl",
+            "🍰 Дробь от числа": "🍰 Bruchteil einer Zahl",
             "✨ Особые режимы дробей — только положительные числа": "✨ Besondere Bruch-Modi — nur positive Zahlen",
             "Сменить настройки примеров": "Aufgaben-Einstellungen ändern",
             "Сменить настройки примеров?": "Aufgaben-Einstellungen ändern?",
@@ -3460,8 +3474,8 @@
         // ===================== НАСТРОЙКА ГЕНЕРАЦИИ ПРИМЕРОВ =====================
         const OP_LABELS = {
             add: t('➕ Сложение'), sub: t('➖ Вычитание'), mul: t('✖️ Умножение'), div: t('➗ Деление'),
-            simplify: t('➗ Сокращение'), toMixed: t('🔼 В смешанное число'), toImproper: t('🔽 В неправильную дробь'),
-            fracOfNumber: t('🎯 Дробь от числа')
+            simplify: t('✂️ Сокращение'), toMixed: t('🔼 В смешанное число'), toImproper: t('🔽 В неправильную дробь'),
+            fracOfNumber: t('🍰 Дробь от числа')
         };
         const OP_ORDER = ['add', 'sub', 'mul', 'div', 'simplify', 'toMixed', 'toImproper', 'fracOfNumber'];
 
@@ -10977,6 +10991,9 @@
             if (!wrap) return;
             wrap.innerHTML = '';
 
+            const row = document.createElement('div');
+            row.className = 'map-legend-row';
+
             const cell = document.createElement('div');
             cell.className = 'map-cell hi';
             const pct = document.createElement('div');
@@ -10996,24 +11013,34 @@
                 marks.appendChild(el);
             });
             cell.appendChild(marks);
-            wrap.appendChild(cell);
+            row.appendChild(cell);
 
             const items = document.createElement('div');
             items.className = 'map-legend-items';
             MAP_MARK_LADDERS.forEach((id, i) => {
                 const l = LADDERS.filter(x => x.id === id)[0];
-                const row = document.createElement('div');
-                row.className = 'map-legend-item';
+                const line = document.createElement('div');
+                line.className = 'map-legend-item';
                 const mark = document.createElement('span');
                 mark.className = 'map-legend-mark';
                 mark.innerText = TIER_ICONS[MAP_LEGEND_TIERS[i]];
-                row.appendChild(mark);
+                line.appendChild(mark);
                 const name = document.createElement('span');
                 name.innerText = `${l.icon} ${l.name}`;
-                row.appendChild(name);
-                items.appendChild(row);
+                line.appendChild(name);
+                items.appendChild(line);
             });
-            wrap.appendChild(items);
+            row.appendChild(items);
+            wrap.appendChild(row);
+
+            // Окна у трёх лесенок разные, и с процентом в клетке они не совпадают:
+            // тот считается за выбранный период. Не сказать — значит дать прочитать
+            // «100% за последние сто» там, где написано «100% за сегодня».
+            const note = document.createElement('div');
+            note.className = 'map-legend-note';
+            note.innerText = tf('Значки: скорость и точность — по последним %1 примерам, количество — за всё время.',
+                LADDER_WINDOW);
+            wrap.appendChild(note);
         }
 
         // ---- Разбор по типам примеров ----
@@ -12187,7 +12214,7 @@
                 head.className = 'ach-section-head';
                 const chevron = document.createElement('span');
                 chevron.className = 'ach-section-chevron';
-                chevron.innerText = isOpen ? '▾' : '▸';
+                chevron.innerText = '▾';
                 head.appendChild(chevron);
                 const name = document.createElement('span');
                 name.className = 'ach-section-name';
