@@ -1260,7 +1260,7 @@
     </svg>
 
     <!-- Экран входа по коду и паролю: показывается только пока на устройстве нет сохранённого
-         входа. Сидит поверх экрана настройки (z-index выше) и блокирует его до входа.
+         входа. Сидит поверх экрана выбора миссии (z-index выше) и блокирует его до входа.
          Свободной регистрации нет — код и пароль выдаёт репетитор. -->
     <div class="modal-screen" id="codeScreen" style="z-index:210; display:none;">
         <!-- Язык выбирается до входа: экран логина — первое, что видит человек,
@@ -1316,7 +1316,7 @@
         <div class="menu-section-label">Разделы</div>
         <button class="menu-btn" onclick="menuGoCollection()">🏆 <span>Коллекция парадоксов</span></button>
         <button class="menu-btn" onclick="menuGoPuzzle()">🧩 <span>Текущий пазл</span></button>
-        <button class="menu-btn" onclick="menuGoSettings()">⚙️ <span>Сменить настройки примеров</span></button>
+        <button class="menu-btn" onclick="menuGoSettings()">🧭 <span>Сменить миссию</span></button>
         <button class="menu-btn sound-toggle" onclick="toggleSound()">🔊 <span>Звук включён</span></button>
         <button class="menu-btn lang-toggle" onclick="openLangPicker()">🌐 <span>Язык: Русский</span></button>
 
@@ -1339,7 +1339,7 @@
         </div>
         <div class="menu-section-label">Разделы</div>
         <button class="menu-btn" onclick="startMenuGoCollection()">🧩 <span>Коллекция пазлов</span></button>
-        <button class="menu-btn" onclick="startMenuGoSettings()">⚙️ <span>Настройка миссии</span></button>
+        <button class="menu-btn" onclick="startMenuGoSettings()">🧭 <span>Выбор миссии</span></button>
         <button class="menu-btn" onclick="startMenuGoStats()">📊 <span>Статистика</span></button>
         <button class="menu-btn" onclick="startMenuGoAchievements()">🏅 <span>Достижения</span></button>
         <button class="menu-btn" onclick="startMenuGoProfile()">👤 <span>Профиль</span></button>
@@ -1656,10 +1656,10 @@
         </div>
     </div>
 
-    <!-- Экран настройки генерации примеров -->
+    <!-- Экран выбора миссии: раздел, действие, звезда -->
     <div class="modal-screen" id="configScreen">
         <button class="start-menu-btn" id="btnOpenStartMenu" aria-label="Меню">☰</button>
-        <h1 class="start-title">🔮 Настройка миссии</h1>
+        <h1 class="start-title">🧭 Выбор миссии</h1>
 
         <!-- ШАГ 1: только выбор категории -->
         <div id="categoryStepScreen" style="width:100%; display:flex; flex-direction:column; align-items:center;">
@@ -1675,7 +1675,7 @@
             </div>
         </div>
 
-        <!-- ШАГ 2: остальная настройка, открывается после выбора категории -->
+        <!-- ШАГ 2: остальной выбор, открывается после выбора категории -->
         <div id="restStepScreen" style="display:none; width:100%; flex-direction:column; align-items:center;">
             <button id="btnBackToCategory" style="align-self:flex-start; background:none; border:none; color:#94a3b8; font-size:0.95rem; margin-bottom:8px; margin-left:4px; cursor:pointer; line-height:1;">◀️ назад</button>
             <div class="config-container">
@@ -1935,8 +1935,8 @@
             "Удалить профиль насовсем?": "Delete this profile for good?",
             "Не удалось удалить профиль.": "Couldn't delete the profile.",
             "Неверный пароль — профиль не тронут.": "Wrong password — nothing was deleted.",
-            "🔮 Настройка миссии": "🔮 Set up a mission",
-            "Настройка миссии": "Mission setup",
+            "🧭 Выбор миссии": "🧭 Choose a mission",
+            "Выбор миссии": "Choose a mission",
             "1️⃣ Что тренируем": "1️⃣ What to practice",
             "2️⃣ Сложность": "2️⃣ Difficulty",
             "Можно выбрать один или несколько режимов": "Pick one mode",
@@ -1958,11 +1958,11 @@
             "🔽 В неправильную дробь": "🔽 To an improper fraction",
             "🍰 Дробь от числа": "🍰 Fraction of a number",
             "✨ Особые режимы дробей — только положительные числа": "✨ Special fraction modes — positive numbers only",
-            "Сменить настройки примеров": "Change problem settings",
-            "Сменить настройки примеров?": "Change problem settings?",
+            "Сменить миссию": "Switch mission",
+            "Сменить миссию?": "Switch mission?",
             "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.": "Your puzzle and all saved progress stay put. Only this mission's counters reset.",
-            "Открыть настройки": "Open settings",
-            "Загляни в настройку миссии.": "Take a look at the mission setup.",
+            "Выбрать другую": "Pick another one",
+            "Открой выбор миссии.": "Open the mission picker.",
             "Этот режим больше не открыт — выбери другой.": "That mode isn't open anymore — pick another one.",
             "Загрузка...": "Loading…",
             "Верно!": "Correct!",
@@ -2425,8 +2425,8 @@
             "Удалить профиль насовсем?": "Supprimer ce profil définitivement ?",
             "Не удалось удалить профиль.": "Impossible de supprimer le profil.",
             "Неверный пароль — профиль не тронут.": "Mot de passe incorrect — rien n'a été supprimé.",
-            "🔮 Настройка миссии": "🔮 Préparer une mission",
-            "Настройка миссии": "Préparation de la mission",
+            "🧭 Выбор миссии": "🧭 Choisir une mission",
+            "Выбор миссии": "Choisir une mission",
             "1️⃣ Что тренируем": "1️⃣ Ce qu'on travaille",
             "2️⃣ Сложность": "2️⃣ Difficulté",
             "Можно выбрать один или несколько режимов": "Tu peux choisir un mode ou plusieurs",
@@ -2448,11 +2448,11 @@
             "🔽 В неправильную дробь": "🔽 En fraction impropre",
             "🍰 Дробь от числа": "🍰 Fraction d'un nombre",
             "✨ Особые режимы дробей — только положительные числа": "✨ Modes spéciaux des fractions — nombres positifs uniquement",
-            "Сменить настройки примеров": "Changer les réglages des calculs",
-            "Сменить настройки примеров?": "Changer les réglages des calculs ?",
+            "Сменить миссию": "Changer de mission",
+            "Сменить миссию?": "Changer de mission ?",
             "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.": "Le puzzle et toute la progression enregistrée restent en place. Seuls les compteurs de la mission en cours repartent à zéro.",
-            "Открыть настройки": "Ouvrir les réglages",
-            "Загляни в настройку миссии.": "Jette un œil à la préparation de la mission.",
+            "Выбрать другую": "En choisir une autre",
+            "Открой выбор миссии.": "Ouvre le choix des missions.",
             "Этот режим больше не открыт — выбери другой.": "Ce mode n'est plus ouvert — choisis-en un autre.",
             "Загрузка...": "Chargement…",
             "Верно!": "Correct !",
@@ -2909,8 +2909,8 @@
             "Удалить профиль насовсем?": "Dieses Profil endgültig löschen?",
             "Не удалось удалить профиль.": "Das Profil konnte nicht gelöscht werden.",
             "Неверный пароль — профиль не тронут.": "Falsches Passwort — es wurde nichts gelöscht.",
-            "🔮 Настройка миссии": "🔮 Mission einrichten",
-            "Настройка миссии": "Mission einrichten",
+            "🧭 Выбор миссии": "🧭 Mission wählen",
+            "Выбор миссии": "Mission wählen",
             "1️⃣ Что тренируем": "1️⃣ Was geübt wird",
             "2️⃣ Сложность": "2️⃣ Schwierigkeit",
             "Можно выбрать один или несколько режимов": "Du kannst einen oder mehrere Modi wählen",
@@ -2932,11 +2932,11 @@
             "🔽 В неправильную дробь": "🔽 In unechten Bruch",
             "🍰 Дробь от числа": "🍰 Bruchteil einer Zahl",
             "✨ Особые режимы дробей — только положительные числа": "✨ Besondere Bruch-Modi — nur positive Zahlen",
-            "Сменить настройки примеров": "Aufgaben-Einstellungen ändern",
-            "Сменить настройки примеров?": "Aufgaben-Einstellungen ändern?",
+            "Сменить миссию": "Mission wechseln",
+            "Сменить миссию?": "Mission wechseln?",
             "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.": "Puzzle und der gesamte gespeicherte Fortschritt bleiben erhalten. Nur die Zähler dieser Mission starten neu.",
-            "Открыть настройки": "Einstellungen öffnen",
-            "Загляни в настройку миссии.": "Schau dir die Missions-Einrichtung an.",
+            "Выбрать другую": "Andere wählen",
+            "Открой выбор миссии.": "Öffne die Missionsauswahl.",
             "Этот режим больше не открыт — выбери другой.": "Dieser Modus ist nicht mehr offen — wähl einen anderen.",
             "Загрузка...": "Lädt…",
             "Верно!": "Richtig!",
@@ -3521,7 +3521,7 @@
                 refreshOpLocks();
                 updateConfigValidity();
 
-                // Переходим на второй экран — остальная настройка (открывается только после выбора категории)
+                // Переходим на второй экран — остальной выбор (открывается только после выбора категории)
                 document.getElementById('categoryStepScreen').style.display = 'none';
                 document.getElementById('restStepScreen').style.display = 'flex';
             });
@@ -3676,7 +3676,7 @@
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
             if (!exampleConfig.category || !exampleConfig.numberType || !allHaveDifficulty) return;
 
-            // Последняя проверка перед стартом. Доступ мог измениться, пока экран настройки
+            // Последняя проверка перед стартом. Доступ мог измениться, пока экран выбора
             // был открыт: репетитор отозвал код, синхронизация принесла новый список.
             // Пропускать сюда закрытое нельзя — иначе замок обходится простым «не закрывай экран».
             const secKey = sectionKeyOf(exampleConfig.category, exampleConfig.numberType);
@@ -8631,7 +8631,7 @@
             }
         }
 
-        // Обновляет замки на кнопках разделов. Зовётся при каждом открытии настройки:
+        // Обновляет замки на кнопках разделов. Зовётся при каждом открытии выбора миссии:
         // доступ мог измениться, пока ученик играл.
         function refreshSectionLocks() {
             document.querySelectorAll('.btn-category').forEach(btn => {
@@ -8705,7 +8705,7 @@
                 await showNotice({
                     title: t('Открыто!'),
                     text: tf('Раздел «%1» теперь доступен.\n', SECTION_TITLES[data.section] || data.section)
-                        + tf('Загляни в настройку миссии.')
+                        + tf('Открой выбор миссии.')
                 });
                 resetConfigScreen();
             } catch (e) {
@@ -9808,7 +9808,7 @@
             document.getElementById('startMenuOverlay').classList.remove('open');
         }
         function startMenuGoCollection() { closeStartMenu(); openCollectionModal(); }
-        // Пункт ведёт на текущий экран настройки миссии — он уже под меню, просто закрываем.
+        // Пункт ведёт на текущий экран выбора миссии — он уже под меню, просто закрываем.
         function startMenuGoSettings() { closeStartMenu(); }
 
         function startMenuGoStats() {
@@ -12943,7 +12943,7 @@
             answerLocked = false;
         }
 
-        // Возврат экрана настройки к первому шагу с чистого листа. Нужен после завершённого
+        // Возврат экрана выбора миссии к первому шагу с чистого листа. Нужен после завершённого
         // миссии: следующее ученик собирает заново, а не доедает подсвеченный прошлый выбор
         // (там же остаются и .selected на кнопках, и заполненный exampleConfig).
         function resetConfigScreen() {
@@ -12960,14 +12960,14 @@
             document.getElementById('categoryStepScreen').style.display = 'flex';
         }
 
-        // Смена настроек без перезагрузки: пазл и весь накопленный прогресс остаются на месте,
+        // Смена миссии без перезагрузки: пазл и весь накопленный прогресс остаются на месте,
         // сбрасываются только счётчики текущей сессии. Прошлый выбор режимов НЕ сбрасывается —
-        // сюда приходят, чтобы подправить настройку на ходу, а не начать с нуля.
+        // сюда приходят, чтобы поменять миссию на ходу, а не начать с нуля.
         async function menuGoSettings() {
             const ok = await askConfirm({
-                title: t('Сменить настройки примеров?'),
+                title: t('Сменить миссию?'),
                 text: t('Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.'),
-                okText: t('Открыть настройки')
+                okText: t('Выбрать другую')
             });
             if (!ok) return;
             closeMainMenu();
