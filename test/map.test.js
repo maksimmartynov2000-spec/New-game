@@ -68,6 +68,7 @@ function loadMap() {
         line('const TIER_ICONS = '),
         line('const COUNT_TIERS = '),
         line('const MAP_PCT_MIN = '),
+        line('const LADDER_WINDOW = '),
         slice('function ladderTierEarned(unlocks, topicKey, ladderId)',
               '// Даты ступеней, разложенные по темам', 'ladderTierEarned'),
         slice('const MAP_MARK_LADDERS = ', '\n\n', 'значки лесенок'),
@@ -289,9 +290,16 @@ function legend() {
     box.document = dom.doc;
     const wrap = dom.add('legendBox');
     R.renderMapLegend('legendBox');
-    const cell = wrap.children.filter(ch => String(ch.className).indexOf('map-cell') === 0)[0];
-    const items = wrap.children.filter(ch => ch.className === 'map-legend-items')[0];
-    return { wrap, cell, items };
+    // Ищем вглубь: образец лежит строкой (клетка + подписи) плюс примечание под ней.
+    const all = [];
+    (function walk(node) { node.children.forEach(ch => { all.push(ch); walk(ch); }); })(wrap);
+    const byClass = (cls) => all.filter(ch => ch.className === cls)[0];
+    return {
+        wrap, all,
+        cell: all.filter(ch => String(ch.className).indexOf('map-cell') === 0)[0],
+        items: byClass('map-legend-items'),
+        note: byClass('map-legend-note')
+    };
 }
 
 test('в образце есть клетка-пример и три подписи', () => {
@@ -334,6 +342,15 @@ test('у каждой подписи стоит ровно тот значок, 
         const mark = row.children.filter(x => x.className === 'map-legend-mark')[0];
         eq(mark.innerText, marks[i], `значок подписи №${i + 1} разошёлся с примером`);
     });
+});
+
+test('образец говорит, по какому окну считается каждая лесенка', () => {
+    // Окна разные: значки — по последней сотне и за всё время, а процент в клетке —
+    // за выбранный период. Без этой строки «100%» в клетке читается как «сто из ста».
+    const L = legend();
+    assert(L.note && L.note.innerText.length > 0, 'примечания под образцом нет');
+    assert(/100/.test(L.note.innerText), `в примечании нет размера окна: ${L.note.innerText}`);
+    assert(/всё время/.test(L.note.innerText), `в примечании нет «за всё время»: ${L.note.innerText}`);
 });
 
 // ===================== Кому что видно =====================

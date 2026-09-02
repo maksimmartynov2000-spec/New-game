@@ -272,6 +272,82 @@ test('закрытый раздел не открывается по умолч�
     assert(!/Десятичные/.test(s.nameText(open[0])), 'открылся раздел со сплошными замками');
 });
 
+group('Значки действий');
+
+// Значки берём из живого объекта: список короткий, а перепутать в нём легко —
+// ➗ уже стоял и у деления, и у сокращения, 🎯 — и у дроби от числа, и у лесенки
+// точности. На экране это выглядит как «две разные вещи названы одинаково».
+function opIcons() {
+    const box = {};
+    vm.createContext(box);
+    const from = SCRIPT.indexOf('const OP_LABELS = {');
+    const to = SCRIPT.indexOf('};', from) + 2;
+    vm.runInContext('const t = (x) => x;\n' + SCRIPT.slice(from, to) + ';globalThis.L = OP_LABELS;', box);
+    const out = {};
+    Object.keys(box.L).forEach(op => { out[op] = box.L[op].split(' ')[0]; });
+    return out;
+}
+
+test('у каждого действия свой значок, ни один не повторяется', () => {
+    const icons = opIcons();
+    const seen = {};
+    Object.keys(icons).forEach(op => {
+        const i = icons[op];
+        assert(!seen[i], `значок ${i} стоит и у «${seen[i]}», и у «${op}»`);
+        seen[i] = op;
+    });
+});
+
+test('значки действий не пересекаются со значками лесенок', () => {
+    // ⚡ 🎯 🔢 заняты скоростью, точностью и количеством — в карточке достижений
+    // действие и лесенка стоят в двух строках друг от друга.
+    const from = SCRIPT.indexOf('const LADDERS = [');
+    const box = {};
+    vm.createContext(box);
+    vm.runInContext('const t = (x) => x;\n' + SCRIPT.slice(from, SCRIPT.indexOf('];', from) + 2)
+        + ';globalThis.L = LADDERS;', box);
+    const ladder = box.L.map(l => l.icon);
+    const icons = opIcons();
+    Object.keys(icons).forEach(op => {
+        assert(ladder.indexOf(icons[op]) < 0,
+            `значок ${icons[op]} у «${op}» занят лесенкой`);
+    });
+});
+
+group('Галочка сворачивания');
+
+const STYLE = HTML.slice(HTML.indexOf('<style>'), HTML.indexOf('</style>'));
+function rule(selector) {
+    const at = STYLE.indexOf(selector + ' {');
+    if (at < 0) throw new Error('не найдено правило ' + selector);
+    return STYLE.slice(at, STYLE.indexOf('}', at));
+}
+
+test('галочку видно: она не мельче остальной строки', () => {
+    // Было 0.62rem и цвет тусклее самого заголовка — управляющий элемент оказался
+    // самым незаметным на строке. Видимая ширина составляла 5 пикселей.
+    const fs = /font-size:\s*([\d.]+)rem/.exec(rule('.ach-section-chevron'));
+    assert(fs, 'у галочки не задан размер');
+    assert(parseFloat(fs[1]) >= 0.78, `галочка ${fs[1]}rem — снова слишком мелкая`);
+});
+
+test('под галочку отведено постоянное место', () => {
+    // Иначе заголовки дёргаются при каждом сворачивании.
+    assert(/width:\s*14px/.test(rule('.ach-section-chevron')), 'ширина галочки не зафиксирована');
+});
+
+test('заголовок достаточно высокий, чтобы попасть пальцем', () => {
+    const mh = /min-height:\s*(\d+)px/.exec(rule('.ach-section-head'));
+    assert(mh && Number(mh[1]) >= 36, `высота заголовка ${mh ? mh[1] : '—'} px — мало для пальца`);
+});
+
+test('свёрнутое состояние показано поворотом, а не подменой символа', () => {
+    assert(/rotate/.test(rule('.ach-section.closed .ach-section-chevron')),
+        'у свёрнутого раздела галочка не поворачивается');
+    const marks = SCRIPT.slice(SCRIPT.indexOf("chevron.innerText"), SCRIPT.indexOf('\n', SCRIPT.indexOf('chevron.innerText')));
+    assert(!/\?/.test(marks), `символ галочки подменяется: ${marks.trim()}`);
+});
+
 group('Итоги в подзаголовке');
 
 test('итоги не зависят от того, что свёрнуто', () => {
