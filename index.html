@@ -869,8 +869,12 @@
         .map-cell.hi   { background: rgba(16,185,129,0.20); border-color: rgba(16,185,129,0.50); }
         .map-pct { font-size: 0.76rem; font-weight: bold; color: #e2e8f0; line-height: 1; }
         .map-cell.empty .map-pct { color: #475569; font-weight: normal; }
+        /* Клетка, где примеров ещё мало: число стоит, приговора нет — ни цвета фона,
+           ни жирного шрифта. */
+        .map-cell.dim .map-pct { color: #94a3b8; font-weight: normal; }
         .map-n { font-size: 0.56rem; color: #94a3b8; margin-top: 2px; }
-        .map-tier { font-size: 0.56rem; line-height: 1; margin-top: 2px; }
+        .map-marks { display: flex; gap: 2px; font-size: 0.56rem; line-height: 1; margin-top: 2px; }
+        .map-mark.none { color: #475569; }
         .map-hint { font-size: 0.68rem; color: #64748b; margin-top: 8px; }
 
         /* Отчёт родителям — светлый лист (его печатают и пересылают), поэтому те же
@@ -885,6 +889,7 @@
         .report-sheet .map-cell.mid { background: #fef3c7; border-color: #fcd34d; }
         .report-sheet .map-cell.hi  { background: #d1fae5; border-color: #6ee7b7; }
         .report-sheet .map-n { color: #64748b; }
+        .report-sheet .map-cell.dim .map-pct { color: #64748b; font-weight: normal; }
         /* Полоски причин ошибок в отчёте — тоже на светлом. */
         .report-sheet .kind-name { color: #0f172a; }
         .report-sheet .kind-count { color: #64748b; }
@@ -1536,7 +1541,9 @@
                 <div class="report-note">
                     Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно
                     (85% верных и выше), жёлтый — есть над чем поработать, красный — тема
-                    только началась. Пустая клетка: до неё ещё не дошли.
+                    только началась. Если решено меньше 25 примеров, в клетке стоит их число,
+                    а цвета нет: судить о точности по такой горстке рано. Пустая клетка:
+                    до неё ещё не дошли.
                 </div>
             </div>
 
@@ -1813,6 +1820,8 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет. Значки внизу — ступени: точность, скорость, количество.": "A cell is one operation at one difficulty. Colour follows accuracy: green from %1%, amber from %2%, red below. While fewer than %3 problems are solved, the cell shows their number and no colour. The icons at the bottom are the tiers: accuracy, speed, count.",
+            "%1 — решено %2, точность появится с %3": "%1 — %2 solved, accuracy appears from %3",
             "Вход": "Sign in",
             "Логин": "Username",
             "Пароль": "Password",
@@ -1977,7 +1986,6 @@
             "без пропусков": "no gaps",
             "%1 — не занимался": "%1 — no practice",
             "%1 из %2 · самый долгий перерыв %3 · в среднем %4 за занятие": "%1 of %2 · longest gap %3 · %4 per session on average",
-            "Число — сколько решено. Зелёная клетка — идёт уверенно.": "The number is how many were solved. A green cell means it is going well.",
             "Как меняется": "How it's changing",
             "Скорость ответа": "Answer time",
             "Точность": "Accuracy",
@@ -2210,8 +2218,6 @@
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Not enough data to compare the two halves — these are the averages for the whole range.",
             "Где именно ошибается": "Where exactly the mistakes are",
             "Дней подряд": "Days in a row",
-            "Клетка — действие на своей сложности. Цвет по точности: зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено, значок — ранг темы.": "A cell is one operation at one difficulty. Colour follows accuracy: green from 85%, amber from 65%, red below. Under the percentage is how many were solved; the badge is the topic's rank.",
-            "Клетка — действие на своей сложности. Число — сколько примеров решено, значок — награда за тему. Зелёная клетка значит «идёт уверенно», жёлтая и красная — тут ещё работаем.": "A cell is one operation at one difficulty. The number is how many problems were solved; the badge is the award for that topic. A green cell means it is going well, amber and red mean there is still work to do.",
             "%1 — решено %2": "%1 — %2 solved",
             "Пазлов": "Puzzles",
             "Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.\n                    Отвечает на вопрос, которого не задать общему списку, — ошибается\n                    вразнобой или дыра в одном конкретном месте.": "The same mistakes, broken down by cell: section, operation, star. It answers what the list above cannot \u2014 whether the mistakes are scattered or there is a hole in one specific place.",
@@ -2237,8 +2243,7 @@
             "%1: закрыто полностью.": "%1: fully locked.",
             "📈 Продвижение по лесенкам тем: %1 %2": "📈 Ladder progress across topics: %1 %2",
             "Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни\n                        уже не хранятся, а итоги остаются навсегда.": "Every 180 days your sessions fold into a card — the daily details are dropped, but the totals stay forever.",
-            "Клетка — действие на своей сложности. Цвет по точности:\n                    зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено,\n                    значок — ранг темы.": "Each cell is one operation at one difficulty. Color shows accuracy: green from 85%, yellow from 65%, red below. Under the percentage is how many you've solved, and the icon is the topic's rank.",
-            "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Пустая клетка: до неё ещё не дошли.": "Rows are operations, columns are difficulty levels. Green means solid (85% correct or better), yellow means there's work to do, red means the topic just started. An empty cell means you haven't gotten there yet.",
+            "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Если решено меньше 25 примеров, в клетке стоит их число,\n                    а цвета нет: судить о точности по такой горстке рано. Пустая клетка:\n                    до неё ещё не дошли.": "Rows are operations, columns are difficulty levels. Green means solid (85% correct or better), yellow means there's work to do, red means the topic just started. If fewer than 25 problems have been solved, the cell shows their number and no colour: it is too early to judge accuracy from a handful. An empty cell means you haven't gotten there yet.",
             "🧩 Текущий пазл": "🧩 Current puzzle",
             "🧩 Пазл собирается:": "🧩 Puzzle in progress:",
             "🧩 Пазл собран! Покажу в конце испытания.": "🧩 Puzzle complete! I'll show it at the end of the challenge.",
@@ -2302,6 +2307,8 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет. Значки внизу — ступени: точность, скорость, количество.": "Une case, c'est une opération à une difficulté donnée. La couleur suit la précision : vert à partir de %1 %, orange à partir de %2 %, rouge en dessous. Tant que moins de %3 calculs sont résolus, la case affiche leur nombre et reste sans couleur. Les icônes du bas sont les paliers : précision, vitesse, quantité.",
+            "%1 — решено %2, точность появится с %3": "%1 — %2 résolus, la précision apparaît à partir de %3",
             "Вход": "Connexion",
             "Логин": "Identifiant",
             "Пароль": "Mot de passe",
@@ -2466,7 +2473,6 @@
             "без пропусков": "sans interruption",
             "%1 — не занимался": "%1 — pas de séance",
             "%1 из %2 · самый долгий перерыв %3 · в среднем %4 за занятие": "%1 sur %2 · plus longue interruption %3 · %4 par séance en moyenne",
-            "Число — сколько решено. Зелёная клетка — идёт уверенно.": "Le nombre indique combien ont été résolus. Une case verte veut dire « ça roule ».",
             "Как меняется": "Comment ça évolue",
             "Скорость ответа": "Temps de réponse",
             "Точность": "Précision",
@@ -2699,8 +2705,6 @@
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Trop peu de données pour comparer les deux moitiés de la période — voici les moyennes sur l'ensemble.",
             "Где именно ошибается": "Où exactement se trouvent les erreurs",
             "Дней подряд": "Jours d'affilée",
-            "Клетка — действие на своей сложности. Цвет по точности: зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено, значок — ранг темы.": "Une case, c'est une opération à une difficulté donnée. La couleur suit la précision : vert à partir de 85 %, orange à partir de 65 %, rouge en dessous. Sous le pourcentage, le nombre de calculs résolus ; le badge est le rang du thème.",
-            "Клетка — действие на своей сложности. Число — сколько примеров решено, значок — награда за тему. Зелёная клетка значит «идёт уверенно», жёлтая и красная — тут ещё работаем.": "Une case, c'est une opération à une difficulté donnée. Le nombre indique combien de calculs ont été résolus ; le badge est la récompense du thème. Une case verte veut dire « ça roule », orange et rouge veulent dire qu'on y travaille encore.",
             "%1 — решено %2": "%1 — %2 résolus",
             "Пазлов": "Puzzles",
             "Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.\n                    Отвечает на вопрос, которого не задать общему списку, — ошибается\n                    вразнобой или дыра в одном конкретном месте.": "Les mêmes erreurs, mais réparties par case : section, opération, étoile. Cela répond à une question que la liste ci-dessus ne pose pas — les erreurs sont-elles dispersées ou y a-t-il un trou à un endroit précis.",
@@ -2726,8 +2730,7 @@
             "%1: закрыто полностью.": "%1 : entièrement fermé.",
             "📈 Продвижение по лесенкам тем: %1 %2": "📈 Progression sur les échelles des thèmes : %1 %2",
             "Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни\n                        уже не хранятся, а итоги остаются навсегда.": "Tous les 180 jours, les séances se replient en une carte — le détail de ces jours n'est plus conservé, mais les totaux restent pour toujours.",
-            "Клетка — действие на своей сложности. Цвет по точности:\n                    зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено,\n                    значок — ранг темы.": "Une case, c'est une opération à une difficulté donnée. La couleur suit la précision : vert à partir de 85 %, orange à partir de 65 %, rouge en dessous. Sous le pourcentage, le nombre de calculs résolus ; l'icône est le rang du thème.",
-            "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Пустая клетка: до неё ещё не дошли.": "Les lignes sont les opérations, les colonnes les niveaux de difficulté. Le vert veut dire solide (85 % de bonnes réponses ou plus), l'orange qu'il reste du travail, le rouge que le thème vient de commencer. Une case vide : on n'y est pas encore arrivé.",
+            "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Если решено меньше 25 примеров, в клетке стоит их число,\n                    а цвета нет: судить о точности по такой горстке рано. Пустая клетка:\n                    до неё ещё не дошли.": "Les lignes sont les opérations, les colonnes les niveaux de difficulté. Le vert veut dire solide (85 % de bonnes réponses ou plus), l'orange qu'il reste du travail, le rouge que le thème vient de commencer. Si moins de 25 calculs ont été résolus, la case affiche leur nombre et reste sans couleur : il est trop tôt pour juger la précision sur une poignée. Une case vide : on n'y est pas encore arrivé.",
             "🧩 Текущий пазл": "🧩 Puzzle en cours",
             "🧩 Пазл собирается:": "🧩 Puzzle en cours de montage :",
             "🧩 Пазл собран! Покажу в конце испытания.": "🧩 Puzzle terminé ! Je le montrerai à la fin du défi.",
@@ -2785,6 +2788,8 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет. Значки внизу — ступени: точность, скорость, количество.": "Ein Feld ist eine Rechenart auf einer Schwierigkeit. Die Farbe folgt der Genauigkeit: Grün ab %1 %, Gelb ab %2 %, darunter Rot. Solange weniger als %3 Aufgaben gelöst sind, steht im Feld ihre Anzahl und es bleibt farblos. Die Symbole unten sind die Stufen: Genauigkeit, Tempo, Menge.",
+            "%1 — решено %2, точность появится с %3": "%1 — %2 gelöst, Genauigkeit ab %3",
             "Вход": "Anmelden",
             "Логин": "Benutzername",
             "Пароль": "Passwort",
@@ -2949,7 +2954,6 @@
             "без пропусков": "ohne Pausen",
             "%1 — не занимался": "%1 — keine Übung",
             "%1 из %2 · самый долгий перерыв %3 · в среднем %4 за занятие": "%1 von %2 · längste Pause %3 · durchschnittlich %4 pro Übung",
-            "Число — сколько решено. Зелёная клетка — идёт уверенно.": "Die Zahl zeigt, wie viele gelöst wurden. Ein grünes Feld heißt: läuft sicher.",
             "Как меняется": "Wie es sich verändert",
             "Скорость ответа": "Antwortzeit",
             "Точность": "Genauigkeit",
@@ -3182,8 +3186,6 @@
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Zu wenig Daten, um beide Hälften des Zeitraums zu vergleichen — hier die Mittelwerte über den ganzen Zeitraum.",
             "Где именно ошибается": "Wo genau die Fehler sitzen",
             "Дней подряд": "Tage in Folge",
-            "Клетка — действие на своей сложности. Цвет по точности: зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено, значок — ранг темы.": "Ein Feld ist eine Rechenart auf einer Schwierigkeit. Die Farbe folgt der Genauigkeit: Grün ab 85 %, Gelb ab 65 %, darunter Rot. Unter dem Prozentwert steht, wie viel gelöst wurde; das Abzeichen ist der Rang des Themas.",
-            "Клетка — действие на своей сложности. Число — сколько примеров решено, значок — награда за тему. Зелёная клетка значит «идёт уверенно», жёлтая и красная — тут ещё работаем.": "Ein Feld ist eine Rechenart auf einer Schwierigkeit. Die Zahl zeigt, wie viele Aufgaben gelöst wurden; das Abzeichen ist die Auszeichnung für das Thema. Ein grünes Feld heißt „läuft sicher“, Gelb und Rot heißen: daran arbeiten wir noch.",
             "%1 — решено %2": "%1 — %2 gelöst",
             "Пазлов": "Puzzles",
             "Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.\n                    Отвечает на вопрос, которого не задать общему списку, — ошибается\n                    вразнобой или дыра в одном конкретном месте.": "Dieselben Fehler, aber nach Feldern aufgeschlüsselt: Bereich, Rechenart, Stern. Das beantwortet die Frage, die die Liste oben nicht stellt — sind die Fehler verstreut oder sitzt an einer bestimmten Stelle eine Lücke.",
@@ -3209,8 +3211,7 @@
             "%1: закрыто полностью.": "%1: vollständig gesperrt.",
             "📈 Продвижение по лесенкам тем: %1 %2": "📈 Fortschritt auf den Themenleitern: %1 %2",
             "Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни\n                        уже не хранятся, а итоги остаются навсегда.": "Alle 180 Tage werden die Übungen zu einer Karte zusammengefasst — die Einzelheiten dieser Tage werden nicht mehr gespeichert, die Summen bleiben für immer.",
-            "Клетка — действие на своей сложности. Цвет по точности:\n                    зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено,\n                    значок — ранг темы.": "Ein Feld ist eine Rechenart auf einer Schwierigkeit. Die Farbe folgt der Genauigkeit: Grün ab 85 %, Gelb ab 65 %, darunter Rot. Unter dem Prozentwert steht, wie viel gelöst wurde; das Symbol ist der Rang des Themas.",
-            "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Пустая клетка: до неё ещё не дошли.": "Die Zeilen sind die Rechenarten, die Spalten die Schwierigkeitsstufen. Grün heißt sicher (85 % richtig oder mehr), Gelb heißt, es gibt noch zu tun, Rot heißt, das Thema hat gerade erst begonnen. Ein leeres Feld: so weit sind wir noch nicht.",
+            "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Если решено меньше 25 примеров, в клетке стоит их число,\n                    а цвета нет: судить о точности по такой горстке рано. Пустая клетка:\n                    до неё ещё не дошли.": "Die Zeilen sind die Rechenarten, die Spalten die Schwierigkeitsstufen. Grün heißt sicher (85 % richtig oder mehr), Gelb heißt, es gibt noch zu tun, Rot heißt, das Thema hat gerade erst begonnen. Sind weniger als 25 Aufgaben gelöst, steht im Feld ihre Anzahl und es bleibt farblos: über die Genauigkeit lässt sich bei einer Handvoll noch nichts sagen. Ein leeres Feld: so weit sind wir noch nicht.",
             "🧩 Текущий пазл": "🧩 Aktuelles Puzzle",
             "🧩 Пазл собирается:": "🧩 Puzzle wird zusammengesetzt:",
             "🧩 Пазл собран! Покажу в конце испытания.": "🧩 Puzzle fertig! Ich zeige es am Ende der Runde.",
@@ -10391,10 +10392,10 @@
 
             // --- Карта разделов: где силён, где остановился ---
             document.getElementById('statsMapTitle').innerText = t('Карта разделов ') + periodLabel;
-            const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap', { noPct: !forTutor });
-            document.getElementById('statsMapHint').innerText = forTutor
-                ? t('Клетка — действие на своей сложности. Цвет по точности: зелёный от 85%, жёлтый от 65%, красный ниже. Под процентом — сколько решено, значок — ранг темы.')
-                : t('Число — сколько решено. Зелёная клетка — идёт уверенно.');
+            const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap');
+            document.getElementById('statsMapHint').innerText = tf(
+                'Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет. Значки внизу — ступени: точность, скорость, количество.',
+                MAP_HI, MAP_MID, MAP_PCT_MIN);
             document.getElementById('statsMapSection').style.display = mapDrawn ? 'block' : 'none';
 
             // --- Над чем работать: ошибки за период, разобранные по причине ---
@@ -10786,18 +10787,33 @@
             simplify: t('сокр.'), toMixed: t('в см.'), toImproper: t('в непр.'), fracOfNumber: t('от числа')
         };
 
+        // Что показывает клетка карты. Отдельной функцией — чтобы правило можно было
+        // проверить тестом: процент считался при ЛЮБОМ числе попыток, поэтому клетка
+        // с двумя ответами и одной ошибкой красилась в красное «50%».
+        //
+        // Цвет привязан к точности намеренно: он и крупное число в клетке должны
+        // говорить одно и то же, иначе клетка спорит сама с собой. «Что заработано
+        // навсегда» — слой отдельный, его несут значки лесенок.
+        const MAP_HI = 85, MAP_MID = 65;
+        function mapCellView(attempts, correct, minAttempts) {
+            if (!attempts) return { tone: 'empty', pct: null };
+            if (attempts < minAttempts) return { tone: 'dim', pct: null };
+            const pct = Math.round(correct / attempts * 100);
+            return { tone: pct >= MAP_HI ? 'hi' : pct >= MAP_MID ? 'mid' : 'lo', pct };
+        }
+
         // byTopic — { 'integer+:add:1': {correct, wrong} }. Рисуем только те разделы,
         // где ученик реально что-то решал: пустая сетка из двадцати прочерков не
         // информация, а шум.
+        //
+        // Вид у ребёнка и у репетитора один и тот же. Раньше ребёнку показывали только
+        // количество, и экран противоречил сам себе: сверху карточка «Точность 91%»,
+        // ниже карта, где о точности ни слова.
         function renderMasteryMap(byTopic, unlocks, containerId, opts) {
             const wrap = document.getElementById(containerId);
             if (!wrap) return 0;
             wrap.innerHTML = '';
             const compact = !!(opts && opts.compact);
-            // Детский вид: в клетке вместо процента точности — сколько решено. Цвет
-            // остаётся: он тут работает как рельеф («сюда дошёл, сюда ещё нет»), а не
-            // как отметка. А процент — именно отметка, и её ребёнку показывать незачем.
-            const noPct = !!(opts && opts.noPct);
             let drawn = 0;
 
             MAP_SECTIONS.forEach(sec => {
@@ -10843,35 +10859,45 @@
                     for (let lv = 1; lv <= 5; lv++) {
                         const c = cells.find(x => x.op === op && x.lv === lv);
                         const cell = document.createElement('div');
-                        const pct = c.attempts > 0 ? Math.round(c.correct / c.attempts * 100) : null;
-                        cell.className = 'map-cell ' + (pct === null ? 'empty'
-                            : pct >= 85 ? 'hi' : pct >= 65 ? 'mid' : 'lo');
+                        const view = mapCellView(c.attempts, c.correct, MAP_PCT_MIN);
+                        cell.className = 'map-cell ' + view.tone;
 
+                        // Пока процента нет, наверху стоит число решённых: клетка не
+                        // пустеет и не врёт, просто говорит меньше.
                         const val = document.createElement('div');
                         val.className = 'map-pct';
-                        val.innerText = pct === null ? '·' : (noPct ? String(c.attempts) : pct + '%');
+                        val.innerText = view.pct !== null ? view.pct + '%'
+                            : (c.attempts > 0 ? String(c.attempts) : '·');
                         cell.appendChild(val);
 
-                        if (pct !== null && !compact) {
-                            if (!noPct) {
+                        if (c.attempts > 0 && !compact) {
+                            // Число решённых — только под процентом: без процента оно
+                            // уже стоит наверху, и повторять его незачем.
+                            if (view.pct !== null) {
                                 const nEl = document.createElement('div');
                                 nEl.className = 'map-n';
                                 nEl.innerText = c.attempts;
                                 cell.appendChild(nEl);
                             }
 
-                            const badge = unlocks ? topicBadge(unlocks, c.key) : '';
-                            if (badge) {
-                                const t = document.createElement('div');
-                                t.className = 'map-tier';
-                                t.innerText = badge;
-                                cell.appendChild(t);
+                            const marks = unlocks ? topicLadderMarks(unlocks, c.key) : null;
+                            if (marks) {
+                                const row = document.createElement('div');
+                                row.className = 'map-marks';
+                                marks.forEach(m => {
+                                    const el = document.createElement('div');
+                                    el.className = 'map-mark' + (m === '·' ? ' none' : '');
+                                    el.innerText = m;
+                                    row.appendChild(el);
+                                });
+                                cell.appendChild(row);
                             }
                         }
-                        cell.title = pct === null
+                        cell.title = c.attempts === 0
                             ? tf('%1 — ещё не решал', topicLabelWithLevel(c.key))
-                            : (noPct ? tf('%1 — решено %2', topicLabelWithLevel(c.key), c.attempts)
-                                     : tf('%1 — %2% из %3', topicLabelWithLevel(c.key), pct, c.attempts));
+                            : view.pct === null
+                                ? tf('%1 — решено %2, точность появится с %3', topicLabelWithLevel(c.key), c.attempts, MAP_PCT_MIN)
+                                : tf('%1 — %2% из %3', topicLabelWithLevel(c.key), view.pct, c.attempts);
                         grid.appendChild(cell);
                     }
                 });
@@ -11212,6 +11238,12 @@
         const COUNT_TIERS = [25, 60, 100, 150, 250];          // верных ответов по теме, за всё время
         const ACCURACY_TIERS = [80, 85, 90, 95, 99];          // процент за последнюю сотню
 
+        // Сколько попыток должно быть в клетке карты, чтобы показывать там процент.
+        // Величина не выдумана отдельно: это бронза по количеству. Ниже неё доля
+        // попаданий — не точность, а случайность, и до этой правки клетка с двумя
+        // ответами и одной ошибкой светилась красным «50%».
+        const MAP_PCT_MIN = COUNT_TIERS[0];
+
         // Пороги скорости у целых чисел плоские: они больше ничего не открывают, а служат
         // ориентиром и условием двух высших ступеней. Плоская шкала честно говорит, что
         // легенда на пятой звезде дороже легенды на первой, — вместо того чтобы выдавать
@@ -11407,12 +11439,16 @@
                 && ladderTierEarned(unlocks, topicKey, 'c') >= LEVEL_GATE_TIER;
         }
 
-        // Один значок на клетку карты: мастерство, если взято, иначе золото ворот.
-        // Ниже золота значка нет — там ещё нечего показывать, кроме процента.
-        function topicBadge(unlocks, topicKey) {
-            const mastery = topicMasteryTier(unlocks, topicKey);
-            if (mastery >= MASTERY_MIN_TIER) return TIER_ICONS[mastery];
-            return levelGatePassed(unlocks, topicKey) ? TIER_ICONS[LEVEL_GATE_TIER] : '';
+        // Ступени темы значками для клетки карты: точность, скорость, количество.
+        // Раньше значок был один и сводный, и врал в обе стороны: минимум из трёх почти
+        // всегда пуст (одна отстающая лесенка гасит две взятые), максимум обещал
+        // освоенную тему за одну взятую ступень. Три метки говорят и что уже взято,
+        // и где отстаём, — то есть ровно то, ради чего значок в клетке и нужен.
+        const MAP_MARK_LADDERS = ['a', 's', 'c'];
+        function topicLadderMarks(unlocks, topicKey) {
+            const tiers = MAP_MARK_LADDERS.map(id => ladderTierEarned(unlocks || {}, topicKey, id));
+            if (!tiers.some(x => x > 0)) return null;   // пусто везде — строку не рисуем
+            return tiers.map(x => x > 0 ? TIER_ICONS[x] : '·');
         }
 
         // Проверяет лесенки ОДНОЙ темы и выдаёт то, что заслужено. Ограничителя больше нет:
