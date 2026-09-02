@@ -1194,7 +1194,7 @@
             color: var(--gold); font-weight: 700; margin-bottom: 2px;
         }
         .ach-banner .ach-title { font-size: 0.95rem; font-weight: 600; line-height: 1.3; }
-        /* Вторая строка — только у количества: там же и цель испытания. */
+        /* Вторая строка — только у количества: там же и цель миссии. */
         .ach-banner .ach-sub { font-size: 0.8rem; color: #c9b98a; margin-top: 3px; line-height: 1.3; }
         @keyframes achIn { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: none; } }
         @keyframes achOut { to { opacity: 0; transform: translateY(-18px); } }
@@ -1316,7 +1316,7 @@
         </div>
 
         <div style="margin-top:18px;">
-            <button class="menu-btn danger" onclick="menuEndSession()">⚔️ <span>Завершить испытание</span></button>
+            <button class="menu-btn danger" onclick="menuEndSession()">🏁 <span>Завершить миссию</span></button>
         </div>
     </div>
 
@@ -1328,7 +1328,7 @@
         </div>
         <div class="menu-section-label">Разделы</div>
         <button class="menu-btn" onclick="startMenuGoCollection()">🧩 <span>Коллекция пазлов</span></button>
-        <button class="menu-btn" onclick="startMenuGoSettings()">⚙️ <span>Настройка испытаний</span></button>
+        <button class="menu-btn" onclick="startMenuGoSettings()">⚙️ <span>Настройка миссии</span></button>
         <button class="menu-btn" onclick="startMenuGoStats()">📊 <span>Статистика</span></button>
         <button class="menu-btn" onclick="startMenuGoAchievements()">🏅 <span>Достижения</span></button>
         <button class="menu-btn" onclick="startMenuGoProfile()">👤 <span>Профиль</span></button>
@@ -1648,7 +1648,7 @@
     <!-- Экран настройки генерации примеров -->
     <div class="modal-screen" id="configScreen">
         <button class="start-menu-btn" id="btnOpenStartMenu" aria-label="Меню">☰</button>
-        <h1 class="start-title">🔮 Настройка Испытаний</h1>
+        <h1 class="start-title">🔮 Настройка миссии</h1>
 
         <!-- ШАГ 1: только выбор категории -->
         <div id="categoryStepScreen" style="width:100%; display:flex; flex-direction:column; align-items:center;">
@@ -1692,10 +1692,10 @@
                 <div class="config-section" id="difficultyContainer" style="display:none;">
                     <div class="config-section-title">2️⃣ Сложность</div>
                     <div id="difficultyList"></div>
-                    <div class="config-hint">Одно испытание — один вид примеров на одной звезде</div>
+                    <div class="config-hint">Одна миссия — один вид примеров на одной звезде</div>
                 </div>
             </div>
-            <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">⚔️ Начать испытание</button>
+            <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">🚀 Начать миссию</button>
         </div>
     </div>
 
@@ -1729,7 +1729,7 @@
                 <div>❌ Ошибки: <span id="stat-wrong" style="color:#ef4444;">0</span></div>
             </div>
             <!-- Точность и скорость — за текущий забег: окно лесенки в сто ответов почти
-                 не двигается и как живая обратная связь бесполезно. Подписи «за испытание»
+                 не двигается и как живая обратная связь бесполезно. Подписи «за миссию»
                  нет намеренно — рядом стоят «Верно» и «Ошибки» того же забега, и в этом
                  ряду всё читается однозначно. А счётчик за чертой — уже от лесенки,
                  он пожизненный и открывает следующую звезду. -->
@@ -1755,12 +1755,12 @@
 
     <div class="control-panel">
         <button class="btn-final" id="btn-exam">
-            <span class="name">⚔️ Завершить испытание</span>
+            <span class="name">🏁 Завершить миссию</span>
         </button>
     </div>
 
     <div class="win-screen" id="winScreen">
-        <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;">Экзамен сдан!</h1>
+        <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;">Миссия выполнена!</h1>
         <p id="winDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size: 1.1rem; white-space:pre-line;"></p>
         <div class="win-actions">
             <button class="btn-win secondary" id="btnWinMistakes" onclick="openMistakesScreen()" style="display:none;">📋 Разбор ошибок</button>
@@ -1771,7 +1771,7 @@
         </div>
     </div>
 
-    <!-- Разбор ошибок за испытание. Живёт только до ухода с экрана "Экзамен сдан!". -->
+    <!-- Разбор ошибок за миссию. Живёт только до ухода с экрана "Миссия выполнена!". -->
     <div class="modal-screen" id="mistakesScreen" style="z-index:250; display:none;">
         <button class="start-menu-btn" onclick="closeMistakesScreen()" aria-label="Назад">◀️</button>
         <h1 class="start-title">📋 Разбор ошибок</h1>
@@ -1923,13 +1923,13 @@
             "Удалить профиль насовсем?": "Delete this profile for good?",
             "Не удалось удалить профиль.": "Couldn't delete the profile.",
             "Неверный пароль — профиль не тронут.": "Wrong password — nothing was deleted.",
-            "🔮 Настройка Испытаний": "🔮 Set up a challenge",
-            "Настройка испытаний": "Challenge setup",
+            "🔮 Настройка миссии": "🔮 Set up a mission",
+            "Настройка миссии": "Mission setup",
             "1️⃣ Что тренируем": "1️⃣ What to practice",
             "2️⃣ Сложность": "2️⃣ Difficulty",
             "Можно выбрать один или несколько режимов": "Pick one mode",
-            "Одно испытание — один вид примеров на одной звезде": "One challenge — one kind of problem on one star",
-            "⚔️ Начать испытание": "⚔️ Start challenge",
+            "Одна миссия — один вид примеров на одной звезде": "One mission — one kind of problem on one star",
+            "🚀 Начать миссию": "🚀 Start the mission",
             "Целые": "Whole numbers",
             "Дроби": "Fractions",
             "Десятичные": "Decimals",
@@ -1948,9 +1948,9 @@
             "✨ Особые режимы дробей — только положительные числа": "✨ Special fraction modes — positive numbers only",
             "Сменить настройки примеров": "Change problem settings",
             "Сменить настройки примеров?": "Change problem settings?",
-            "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущего испытания.": "Your puzzle and all saved progress stay put. Only this challenge's counters reset.",
+            "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.": "Your puzzle and all saved progress stay put. Only this mission's counters reset.",
             "Открыть настройки": "Open settings",
-            "Загляни в настройку испытаний.": "Take a look at the challenge setup.",
+            "Загляни в настройку миссии.": "Take a look at the mission setup.",
             "Этот режим больше не открыт — выбери другой.": "That mode isn't open anymore — pick another one.",
             "Загрузка...": "Loading…",
             "Верно!": "Correct!",
@@ -1962,12 +1962,12 @@
             "Подряд: %1": "Streak: %1",
             "Подряд: 0": "Streak: 0",
             "⏳ Время Эпохи:": "⏳ Era time:",
-            "⚔️ Завершить испытание": "⚔️ Finish challenge",
-            "Завершить испытание": "Finish challenge",
-            "Завершить испытание?": "Finish the challenge?",
+            "🏁 Завершить миссию": "🏁 Finish the mission",
+            "Завершить миссию": "Finish the mission",
+            "Завершить миссию?": "Finish the mission?",
             "Завершить": "Finish",
             "Покажу результат и разбор ошибок. Решённое засчитано и никуда не денется.": "I'll show your results and go over the mistakes. Everything you solved is saved.",
-            "Экзамен сдан!": "Challenge complete!",
+            "Миссия выполнена!": "Mission complete!",
             "📋 Разбор ошибок": "📋 Review mistakes",
             "📋 Разбор ошибок (%1)": "📋 Review mistakes (%1)",
             "⏱️ Время: %1\n✅ Верно: %2 | ❌ Ошибок: %3": "⏱️ Time: %1\n✅ Correct: %2 | ❌ Wrong: %3",
@@ -2248,7 +2248,7 @@
             "Этой звезды нет в коде от репетитора": "This star isn't in your tutor's code",
             "всё": "all",
             "<div class=\"menu-empty\">Загружаю…</div>": "<div class=\"menu-empty\">Loading…</div>",
-            "<div class=\"menu-empty\">Ни одной ошибки за испытание.<br>Так держать!</div>": "<div class=\"menu-empty\">Not a single mistake this challenge.<br>Keep it up!</div>",
+            "<div class=\"menu-empty\">Ни одной ошибки за миссию.<br>Так держать!</div>": "<div class=\"menu-empty\">Not a single mistake this mission.<br>Keep it up!</div>",
             "<div class=\"menu-empty\">Пока мало данных.<br>Реши несколько примеров — здесь появится разбор по темам.</div>": "<div class=\"menu-empty\">Not enough data yet.<br>Solve a few problems and your topics will show up here.</div>",
             "<div class=\"menu-empty\">Пока пусто.<br>Реши несколько примеров — здесь появится карта.</div>": "<div class=\"menu-empty\">Nothing here yet.<br>Solve a few problems and the map will appear.</div>",
             "<div class=\"trend-empty\">Мало данных<br>для кривой</div>": "<div class=\"trend-empty\">Not enough data<br>for a chart</div>",
@@ -2290,7 +2290,7 @@
             "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Если решено меньше 25 примеров, в клетке стоит их число,\n                    а цвета нет: судить о точности по такой горстке рано. Пустая клетка:\n                    до неё ещё не дошли.": "Rows are operations, columns are difficulty levels. Green means solid (85% correct or better), yellow means there's work to do, red means the topic just started. If fewer than 25 problems have been solved, the cell shows their number and no colour: it is too early to judge accuracy from a handful. An empty cell means you haven't gotten there yet.",
             "🧩 Текущий пазл": "🧩 Current puzzle",
             "🧩 Пазл собирается:": "🧩 Puzzle in progress:",
-            "🧩 Пазл собран! Покажу в конце испытания.": "🧩 Puzzle complete! I'll show it at the end of the challenge.",
+            "🧩 Пазл собран! Покажу в конце миссии.": "🧩 Puzzle complete! I'll show it at the end of the mission.",
             "🧩 пазлов:": "🧩 puzzles:",
             "🖼️ Моя коллекция": "🖼️ My collection",
             "🔵 Положительные": "🔵 Positive",
@@ -2412,13 +2412,13 @@
             "Удалить профиль насовсем?": "Supprimer ce profil définitivement ?",
             "Не удалось удалить профиль.": "Impossible de supprimer le profil.",
             "Неверный пароль — профиль не тронут.": "Mot de passe incorrect — rien n'a été supprimé.",
-            "🔮 Настройка Испытаний": "🔮 Préparer un défi",
-            "Настройка испытаний": "Préparation du défi",
+            "🔮 Настройка миссии": "🔮 Préparer une mission",
+            "Настройка миссии": "Préparation de la mission",
             "1️⃣ Что тренируем": "1️⃣ Ce qu'on travaille",
             "2️⃣ Сложность": "2️⃣ Difficulté",
             "Можно выбрать один или несколько режимов": "Tu peux choisir un mode ou plusieurs",
-            "Одно испытание — один вид примеров на одной звезде": "Un défi — un type de calcul sur une seule étoile",
-            "⚔️ Начать испытание": "⚔️ Commencer le défi",
+            "Одна миссия — один вид примеров на одной звезде": "Une mission — un type de calcul sur une seule étoile",
+            "🚀 Начать миссию": "🚀 Commencer la mission",
             "Целые": "Nombres entiers",
             "Дроби": "Fractions",
             "Десятичные": "Nombres décimaux",
@@ -2437,9 +2437,9 @@
             "✨ Особые режимы дробей — только положительные числа": "✨ Modes spéciaux des fractions — nombres positifs uniquement",
             "Сменить настройки примеров": "Changer les réglages des calculs",
             "Сменить настройки примеров?": "Changer les réglages des calculs ?",
-            "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущего испытания.": "Le puzzle et toute la progression enregistrée restent en place. Seuls les compteurs du défi en cours repartent à zéro.",
+            "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.": "Le puzzle et toute la progression enregistrée restent en place. Seuls les compteurs de la mission en cours repartent à zéro.",
             "Открыть настройки": "Ouvrir les réglages",
-            "Загляни в настройку испытаний.": "Jette un œil à la préparation du défi.",
+            "Загляни в настройку миссии.": "Jette un œil à la préparation de la mission.",
             "Этот режим больше не открыт — выбери другой.": "Ce mode n'est plus ouvert — choisis-en un autre.",
             "Загрузка...": "Chargement…",
             "Верно!": "Correct !",
@@ -2451,12 +2451,12 @@
             "Подряд: %1": "D'affilée : %1",
             "Подряд: 0": "D'affilée : 0",
             "⏳ Время Эпохи:": "⏳ Temps de l'ère :",
-            "⚔️ Завершить испытание": "⚔️ Terminer le défi",
-            "Завершить испытание": "Terminer le défi",
-            "Завершить испытание?": "Terminer le défi ?",
+            "🏁 Завершить миссию": "🏁 Terminer la mission",
+            "Завершить миссию": "Terminer la mission",
+            "Завершить миссию?": "Terminer la mission ?",
             "Завершить": "Terminer",
             "Покажу результат и разбор ошибок. Решённое засчитано и никуда не денется.": "Je montre le résultat et la revue des erreurs. Tout ce qui est résolu est compté et reste acquis.",
-            "Экзамен сдан!": "Défi réussi !",
+            "Миссия выполнена!": "Mission accomplished!",
             "📋 Разбор ошибок": "📋 Revue des erreurs",
             "📋 Разбор ошибок (%1)": "📋 Revue des erreurs (%1)",
             "⏱️ Время: %1\n✅ Верно: %2 | ❌ Ошибок: %3": "⏱️ Temps : %1\n✅ Correct : %2 | ❌ Erreurs : %3",
@@ -2737,7 +2737,7 @@
             "Этой звезды нет в коде от репетитора": "Cette étoile n'est pas dans le code du professeur",
             "всё": "tout",
             "<div class=\"menu-empty\">Загружаю…</div>": "<div class=\"menu-empty\">Chargement…</div>",
-            "<div class=\"menu-empty\">Ни одной ошибки за испытание.<br>Так держать!</div>": "<div class=\"menu-empty\">Pas une seule erreur sur ce défi.<br>Continue comme ça !</div>",
+            "<div class=\"menu-empty\">Ни одной ошибки за миссию.<br>Так держать!</div>": "<div class=\"menu-empty\">Pas une seule erreur sur cette mission.<br>Continue comme ça !</div>",
             "<div class=\"menu-empty\">Пока мало данных.<br>Реши несколько примеров — здесь появится разбор по темам.</div>": "<div class=\"menu-empty\">Trop peu de données pour l'instant.<br>Résous quelques calculs et le détail par thème apparaîtra ici.</div>",
             "<div class=\"menu-empty\">Пока пусто.<br>Реши несколько примеров — здесь появится карта.</div>": "<div class=\"menu-empty\">Encore vide.<br>Résous quelques calculs et la carte apparaîtra.</div>",
             "<div class=\"trend-empty\">Мало данных<br>для кривой</div>": "<div class=\"trend-empty\">Trop peu de données<br>pour la courbe</div>",
@@ -2779,7 +2779,7 @@
             "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Если решено меньше 25 примеров, в клетке стоит их число,\n                    а цвета нет: судить о точности по такой горстке рано. Пустая клетка:\n                    до неё ещё не дошли.": "Les lignes sont les opérations, les colonnes les niveaux de difficulté. Le vert veut dire solide (85 % de bonnes réponses ou plus), l'orange qu'il reste du travail, le rouge que le thème vient de commencer. Si moins de 25 calculs ont été résolus, la case affiche leur nombre et reste sans couleur : il est trop tôt pour juger la précision sur une poignée. Une case vide : on n'y est pas encore arrivé.",
             "🧩 Текущий пазл": "🧩 Puzzle en cours",
             "🧩 Пазл собирается:": "🧩 Puzzle en cours de montage :",
-            "🧩 Пазл собран! Покажу в конце испытания.": "🧩 Puzzle terminé ! Je le montrerai à la fin du défi.",
+            "🧩 Пазл собран! Покажу в конце миссии.": "🧩 Puzzle terminé ! Je le montrerai à la fin de la mission.",
             "🧩 пазлов:": "🧩 puzzles :",
             "🖼️ Моя коллекция": "🖼️ Ma collection",
             "🔵 Положительные": "🔵 Positifs",
@@ -2895,13 +2895,13 @@
             "Удалить профиль насовсем?": "Dieses Profil endgültig löschen?",
             "Не удалось удалить профиль.": "Das Profil konnte nicht gelöscht werden.",
             "Неверный пароль — профиль не тронут.": "Falsches Passwort — es wurde nichts gelöscht.",
-            "🔮 Настройка Испытаний": "🔮 Runde einrichten",
-            "Настройка испытаний": "Runde einrichten",
+            "🔮 Настройка миссии": "🔮 Mission einrichten",
+            "Настройка миссии": "Mission einrichten",
             "1️⃣ Что тренируем": "1️⃣ Was geübt wird",
             "2️⃣ Сложность": "2️⃣ Schwierigkeit",
             "Можно выбрать один или несколько режимов": "Du kannst einen oder mehrere Modi wählen",
-            "Одно испытание — один вид примеров на одной звезде": "Eine Runde — eine Aufgabenart auf einem Stern",
-            "⚔️ Начать испытание": "⚔️ Runde starten",
+            "Одна миссия — один вид примеров на одной звезде": "Eine Mission — eine Aufgabenart auf einem Stern",
+            "🚀 Начать миссию": "🚀 Mission starten",
             "Целые": "Ganze Zahlen",
             "Дроби": "Brüche",
             "Десятичные": "Dezimalzahlen",
@@ -2920,9 +2920,9 @@
             "✨ Особые режимы дробей — только положительные числа": "✨ Besondere Bruch-Modi — nur positive Zahlen",
             "Сменить настройки примеров": "Aufgaben-Einstellungen ändern",
             "Сменить настройки примеров?": "Aufgaben-Einstellungen ändern?",
-            "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущего испытания.": "Puzzle und der gesamte gespeicherte Fortschritt bleiben erhalten. Nur die Zähler dieser Runde starten neu.",
+            "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.": "Puzzle und der gesamte gespeicherte Fortschritt bleiben erhalten. Nur die Zähler dieser Mission starten neu.",
             "Открыть настройки": "Einstellungen öffnen",
-            "Загляни в настройку испытаний.": "Schau dir die Runden-Einrichtung an.",
+            "Загляни в настройку миссии.": "Schau dir die Missions-Einrichtung an.",
             "Этот режим больше не открыт — выбери другой.": "Dieser Modus ist nicht mehr offen — wähl einen anderen.",
             "Загрузка...": "Lädt…",
             "Верно!": "Richtig!",
@@ -2934,12 +2934,12 @@
             "Подряд: %1": "In Folge: %1",
             "Подряд: 0": "In Folge: 0",
             "⏳ Время Эпохи:": "⏳ Zeit der Epoche:",
-            "⚔️ Завершить испытание": "⚔️ Runde beenden",
-            "Завершить испытание": "Runde beenden",
-            "Завершить испытание?": "Runde beenden?",
+            "🏁 Завершить миссию": "🏁 Mission beenden",
+            "Завершить миссию": "Mission beenden",
+            "Завершить миссию?": "Mission beenden?",
             "Завершить": "Beenden",
             "Покажу результат и разбор ошибок. Решённое засчитано и никуда не денется.": "Ich zeige das Ergebnis und die Fehler. Alles Gelöste ist gezählt und bleibt erhalten.",
-            "Экзамен сдан!": "Runde geschafft!",
+            "Миссия выполнена!": "Mission erfüllt!",
             "📋 Разбор ошибок": "📋 Fehler ansehen",
             "📋 Разбор ошибок (%1)": "📋 Fehler ansehen (%1)",
             "⏱️ Время: %1\n✅ Верно: %2 | ❌ Ошибок: %3": "⏱️ Zeit: %1\n✅ Richtig: %2 | ❌ Fehler: %3",
@@ -3220,7 +3220,7 @@
             "Этой звезды нет в коде от репетитора": "Dieser Stern steht nicht im Code des Lehrers",
             "всё": "alles",
             "<div class=\"menu-empty\">Загружаю…</div>": "<div class=\"menu-empty\">Lädt…</div>",
-            "<div class=\"menu-empty\">Ни одной ошибки за испытание.<br>Так держать!</div>": "<div class=\"menu-empty\">Kein einziger Fehler in dieser Runde.<br>Weiter so!</div>",
+            "<div class=\"menu-empty\">Ни одной ошибки за миссию.<br>Так держать!</div>": "<div class=\"menu-empty\">Kein einziger Fehler in dieser Mission.<br>Weiter so!</div>",
             "<div class=\"menu-empty\">Пока мало данных.<br>Реши несколько примеров — здесь появится разбор по темам.</div>": "<div class=\"menu-empty\">Noch zu wenig Daten.<br>Löse ein paar Aufgaben, dann erscheint hier die Aufschlüsselung nach Themen.</div>",
             "<div class=\"menu-empty\">Пока пусто.<br>Реши несколько примеров — здесь появится карта.</div>": "<div class=\"menu-empty\">Noch leer.<br>Löse ein paar Aufgaben, dann erscheint die Karte.</div>",
             "<div class=\"trend-empty\">Мало данных<br>для кривой</div>": "<div class=\"trend-empty\">Zu wenig Daten<br>für die Kurve</div>",
@@ -3262,7 +3262,7 @@
             "Строки — действия, столбцы — уровни сложности. Зелёный значит уверенно\n                    (85% верных и выше), жёлтый — есть над чем поработать, красный — тема\n                    только началась. Если решено меньше 25 примеров, в клетке стоит их число,\n                    а цвета нет: судить о точности по такой горстке рано. Пустая клетка:\n                    до неё ещё не дошли.": "Die Zeilen sind die Rechenarten, die Spalten die Schwierigkeitsstufen. Grün heißt sicher (85 % richtig oder mehr), Gelb heißt, es gibt noch zu tun, Rot heißt, das Thema hat gerade erst begonnen. Sind weniger als 25 Aufgaben gelöst, steht im Feld ihre Anzahl und es bleibt farblos: über die Genauigkeit lässt sich bei einer Handvoll noch nichts sagen. Ein leeres Feld: so weit sind wir noch nicht.",
             "🧩 Текущий пазл": "🧩 Aktuelles Puzzle",
             "🧩 Пазл собирается:": "🧩 Puzzle wird zusammengesetzt:",
-            "🧩 Пазл собран! Покажу в конце испытания.": "🧩 Puzzle fertig! Ich zeige es am Ende der Runde.",
+            "🧩 Пазл собран! Покажу в конце миссии.": "🧩 Puzzle fertig! Ich zeige es am Ende der Mission.",
             "🧩 пазлов:": "🧩 Puzzles:",
             "🖼️ Моя коллекция": "🖼️ Meine Sammlung",
             "🔵 Положительные": "🔵 Positive",
@@ -7048,7 +7048,7 @@
         //   1) в приложении, добавленном на «Домой», они подписаны доменом сайта
         //      и выглядят как чужое окно поверх игры;
         //   2) они блокируют поток целиком — на время открытого confirm() стоят
-        //      и таймер испытания, и фоновая синхронизация прогресса;
+        //      и таймер миссии, и фоновая синхронизация прогресса;
         //   3) на каждое поле нужен свой вызов: добавление ученика было тремя
         //      окнами подряд, без возможности вернуться и поправить первое.
         //
@@ -8691,7 +8691,7 @@
                 await showNotice({
                     title: t('Открыто!'),
                     text: tf('Раздел «%1» теперь доступен.\n', SECTION_TITLES[data.section] || data.section)
-                        + tf('Загляни в настройку испытаний.')
+                        + tf('Загляни в настройку миссии.')
                 });
                 resetConfigScreen();
             } catch (e) {
@@ -9431,7 +9431,7 @@
                 document.getElementById('completeParadoxBody').innerText = px.body;
             }
 
-            // Показ откладывается до конца испытания. Раньше окно открывалось прямо
+            // Показ откладывается до конца миссии. Раньше окно открывалось прямо
             // посреди потока примеров — примерно раз в 140 ответов, то есть раз за
             // занятие. Сама картинка с историей парадокса при этом не помеха, а награда,
             // поэтому она никуда не девается: просто ждёт естественной паузы.
@@ -9443,11 +9443,11 @@
             });
             // Сигнал всё-таки нужен сразу: иначе сотый кусочек встаёт, и внешне не
             // происходит ничего — ученик может не заметить, что вообще что-то случилось.
-            showToast(t('🧩 Пазл собран! Покажу в конце испытания.'), 'ok');
+            showToast(t('🧩 Пазл собран! Покажу в конце миссии.'), 'ok');
             Progress.flush(); // контрольная точка синхронизации
         }
 
-        // Собранные, но ещё не показанные пазлы. За одно испытание их обычно ноль или
+        // Собранные, но ещё не показанные пазлы. За одну миссию их обычно ноль или
         // один: сотня кусочков минус два за ошибку — это около 140 ответов.
         let pendingPuzzleReveals = [];
 
@@ -9794,7 +9794,7 @@
             document.getElementById('startMenuOverlay').classList.remove('open');
         }
         function startMenuGoCollection() { closeStartMenu(); openCollectionModal(); }
-        // Пункт ведёт на текущий экран настройки испытаний — он уже под меню, просто закрываем.
+        // Пункт ведёт на текущий экран настройки миссии — он уже под меню, просто закрываем.
         function startMenuGoSettings() { closeStartMenu(); }
 
         function startMenuGoStats() {
@@ -11602,7 +11602,7 @@
                     ? names[0]
                     : names.slice(0, -1).join(', ') + t(' и ') + names[names.length - 1];
 
-                // У количества ступень — это ещё и цель испытания, поэтому вместе с ней
+                // У количества ступень — это ещё и цель миссии, поэтому вместе с ней
                 // сразу называем следующую. Раньше на этом месте открывалось окно
                 // «продолжить или закончить» — оно останавливало игру ровно в тот момент,
                 // когда получалось лучше всего. Теперь ничего не останавливается: плашка
@@ -12901,7 +12901,7 @@
         }
 
         // Обнуление счётчиков текущей сессии. Пазл и весь накопленный прогресс не трогаются —
-        // они живут в Progress и переживают сколько угодно испытаний.
+        // они живут в Progress и переживают сколько угодно миссий.
         function resetSessionCounters() {
             clearInterval(timerInterval);
             gameActive = false;
@@ -12917,7 +12917,7 @@
         }
 
         // Возврат экрана настройки к первому шагу с чистого листа. Нужен после завершённого
-        // испытания: следующее ученик собирает заново, а не доедает подсвеченный прошлый выбор
+        // миссии: следующее ученик собирает заново, а не доедает подсвеченный прошлый выбор
         // (там же остаются и .selected на кнопках, и заполненный exampleConfig).
         function resetConfigScreen() {
             refreshSectionLocks();
@@ -12928,7 +12928,7 @@
             document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('selected'));
             document.getElementById('fracSpecialBlock').style.display = 'none';
             renderDifficultyList();   // сама спрячет блок сложности, раз режимов не выбрано
-            updateConfigValidity();   // и погасит кнопку "Начать испытание"
+            updateConfigValidity();   // и погасит кнопку "Начать миссию"
             document.getElementById('restStepScreen').style.display = 'none';
             document.getElementById('categoryStepScreen').style.display = 'flex';
         }
@@ -12939,7 +12939,7 @@
         async function menuGoSettings() {
             const ok = await askConfirm({
                 title: t('Сменить настройки примеров?'),
-                text: t('Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущего испытания.'),
+                text: t('Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.'),
                 okText: t('Открыть настройки')
             });
             if (!ok) return;
@@ -12950,7 +12950,7 @@
             document.getElementById('configScreen').style.display = 'flex';
         }
 
-        // Уход с экрана "Экзамен сдан!" — раньше здесь была одна кнопка "Начать заново",
+        // Уход с экрана "Миссия выполнена!" — раньше здесь была одна кнопка "Начать заново",
         // которая перезагружала страницу. Перезагрузка не нужна: состояние живёт в Progress,
         // а счётчики сессии мы и так обнуляем.
         function winLeaveToConfig() {
@@ -12991,7 +12991,7 @@
         document.getElementById('btnDetailBack').addEventListener('click', showCollectionList);
         document.getElementById('collectionCloseBtn').addEventListener('click', closeCollectionModal);
 
-        // Закрытие окна поздравления. Если за испытание собрался ещё один пазл — показываем
+        // Закрытие окна поздравления. Если за миссию собрался ещё один пазл — показываем
         // его следом; если больше нечего, а игра уже завершена — открываем экран итогов,
         // который всё это время ждал за окном пазла.
         function dismissPuzzleReveal() {
@@ -13009,12 +13009,12 @@
         let totalSeconds = 0;
         let correctCount = 0;
         let wrongCount = 0;
-        // Суммарное время всех ответов за испытание — для живой скорости на экране.
+        // Суммарное время всех ответов за миссию — для живой скорости на экране.
         // Считается по тому же правилу, что и лесенка: всё время делится на число верных.
         let sessionAnswerMs = 0;
 
         // ===================== ЦЕЛЬ ИСПЫТАНИЯ =====================
-        // Испытание больше не «сколько высижу»: у него есть конец, и это ближайшая
+        // Миссия больше не «сколько высижу»: у него есть конец, и это ближайшая
         // невзятая ступень КОЛИЧЕСТВА в той клетке, где ученик сейчас решает.
         //
         // Почему именно количество, а не точность и не скорость. Только у количества
@@ -13022,7 +13022,7 @@
         // видно заранее. Точность и скорость — это не расстояние, а состояние: сказать
         // «до серебра осталось 4% точности» нельзя, потому что один неверный ответ
         // отбрасывает назад, а один верный продвигает на непредсказуемую долю. Такие
-        // ступени приходят сами собой и показываются плашкой, но целью испытания служить
+        // ступени приходят сами собой и показываются плашкой, но целью миссии служить
         // не могут — цель должна быть измеримой в том, что ученик делает.
         //
         // Считаем по пожизненному числу верных в клетке — ровно по тому же числу, по
@@ -13038,7 +13038,7 @@
             return null;   // все пять ступеней количества взяты — цели в этой клетке больше нет
         }
 
-        // Живая строка под примером. Точность и скорость — за испытание: окно лесенки
+        // Живая строка под примером. Точность и скорость — за миссию: окно лесенки
         // в сто ответов почти не двигается и как обратная связь бесполезно. А цель
         // справа берётся из лесенки количества: именно она открывает следующую звезду.
         function renderLiveStats() {
@@ -13051,7 +13051,7 @@
             const wrap = document.getElementById('live-goal-wrap');
             const key = currentProblemMeta ? buildTopicKey(currentProblemMeta) : null;
             if (!key) { wrap.style.display = 'none'; return; }
-            // Ближайшая невзятая ступень количества — она же цель испытания. Показываем
+            // Ближайшая невзятая ступень количества — она же цель миссии. Показываем
             // остаток, а не «12 из 25»: вопрос у ученика посреди счёта один — сколько
             // ещё, — и отвечать на него вычитанием в уме не нужно. Число само убывает,
             // и это видно лучше, чем растущее.
@@ -13205,8 +13205,8 @@
         let isUltimateStorm = false;
 
         // ===================== РАЗБОР ОШИБОК =====================
-        // Живёт только в памяти и только на время одного испытания: посмотрел разбор на экране
-        // "Экзамен сдан!" — и всё, дальше не храним. На сервер не уходит, в Progress не пишется.
+        // Живёт только в памяти и только на время одной миссии: посмотрел разбор на экране
+        // "Миссия выполнена!" — и всё, дальше не храним. На сервер не уходит, в Progress не пишется.
         let sessionMistakes = [];
 
         // Снимок примера в момент неверного ответа. Условие и варианты берём готовыми из DOM
@@ -13251,7 +13251,7 @@
 
             if (!sessionMistakes.length) {
                 sub.innerText = t('Ошибок не было');
-                wrap.innerHTML = t('<div class="menu-empty">Ни одной ошибки за испытание.<br>Так держать!</div>');
+                wrap.innerHTML = t('<div class="menu-empty">Ни одной ошибки за миссию.<br>Так держать!</div>');
                 return;
             }
             // "Почти" и настоящая ошибка — разные исходы, в подписи не сливаем их в одну цифру.
@@ -13306,9 +13306,9 @@
         }
         function startGame() {
             gameActive = true;
-            sessionMistakes = []; // новое испытание — разбор начинается с чистого листа
+            sessionMistakes = []; // новая миссия — разбор начинается с чистого листа
             // Отложенные пазлы тоже: показывать прошлый выигрыш вместе со статистикой
-            // текущего испытания было бы враньём, а картинка и так лежит в коллекции.
+            // текущей миссии было бы враньём, а картинка и так лежит в коллекции.
             pendingPuzzleReveals = [];
             resizeCanvas();
             initPuzzle();
@@ -13369,7 +13369,7 @@
             }, 100);
 
             const isNegative = exampleConfig.numberType === 'negative';
-            // Режим в испытании ровно один — см. выбор режима на экране настройки.
+            // Режим в миссии ровно один — см. выбор режима на экране настройки.
             // Случайный выбор из нескольких оставлен на случай старой сохранённой
             // настройки: она в игру не подставляется, но лишний раз падать незачем.
             const opsKeys = Object.keys(exampleConfig.operations);
@@ -13691,11 +13691,11 @@
             // Дальше — оба "неверных" исхода (настоящая ошибка и "забыл сократить") останавливают
             // таймер и на пару секунд показывают разбор, прежде чем перейти к следующему примеру.
             //
-            // Здесь же складываем карточку примера для разбора в конце испытания. Снимок берём
+            // Здесь же складываем карточку примера для разбора в конце миссии. Снимок берём
             // ДО того, как ниже навешиваются классы btn-correct/btn-wrong/locked: нам нужно
             // содержимое кнопок, а не их подсветка — раскрашивать будем сами на своём экране.
             // Что именно сделано не так. Разбираем один раз и пользуемся дважды:
-            // в карточке разбора в конце испытания и в накопительной статистике.
+            // в карточке разбора в конце миссии и в накопительной статистике.
             const mistakeKind = isUnreducedMatch
                 ? 'не сократил'
                 : classifyMistake(currentProblemMeta, currentProblem, correctAnswer, chosen);
@@ -13892,7 +13892,7 @@
             Progress.flush(); // без force — уйдёт на сервер, только если реально что-то изменилось
         }, 8000);
 
-        // Завершение испытания. Путь один на всех: и кнопка «Завершить», и окно
+        // Завершение миссии. Путь один на всех: и кнопка «Завершить», и окно
         // «цель взята» ведут сюда, чтобы итоги, разбор ошибок и показ собранных пазлов
         // не разъехались между двумя копиями кода.
         function finishChallenge() {
@@ -13906,7 +13906,7 @@
             mistakesBtn.style.display = sessionMistakes.length ? '' : 'none';
             mistakesBtn.innerText = tf('📋 Разбор ошибок (%1)', sessionMistakes.length);
 
-            // Собранные за испытание пазлы показываем здесь — в естественной паузе,
+            // Собранные за миссию пазлы показываем здесь — в естественной паузе,
             // а не посреди потока примеров. Экран итогов ждёт за ними.
             if (!showNextPuzzleReveal()) {
                 document.getElementById('winScreen').classList.add('active');
@@ -13917,11 +13917,11 @@
         document.getElementById('btn-exam').addEventListener('click', async () => {
             if (!gameActive) return;
             const confirmed = await askConfirm({
-                title: t('Завершить испытание?'),
+                title: t('Завершить миссию?'),
                 text: t('Покажу результат и разбор ошибок. Решённое засчитано и никуда не денется.'),
                 okText: t('Завершить')
             });
-            // Пока окно открыто, испытание продолжается — таймер не стоит, как это было
+            // Пока окно открыто, миссия продолжается — таймер не стоит, как это было
             // с системным confirm(). Поэтому проверяем ещё раз: за это время игру могли
             // завершить и другим способом.
             if (!confirmed || !gameActive) return;
@@ -13939,7 +13939,7 @@
             refreshAccess().then(refreshSectionLocks).catch(() => { /* сети нет — оставляем как было */ });
         });
 
-        // Экран настройки испытания всегда открывается заново, с первого шага — не
+        // Экран настройки миссии всегда открывается заново, с первого шага — не
         // подставляем прошлый выбор режимов/сложности, ученик/репетитор выбирает
         // заново каждый раз (Progress.setConfig() всё ещё сохраняет последний выбор
         // в state — это часть схемы синхронизации, но на экран он больше не влияет).
