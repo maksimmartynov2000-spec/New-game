@@ -199,11 +199,24 @@
 
         /* --- Достижения по разделам: раздел → действие → пять звёзд --- */
         .ach-section { margin-bottom: 16px; }
-        .ach-section-title {
-            font-size: 0.78rem; color: var(--cyan); letter-spacing: 0.04em;
-            text-transform: uppercase; margin-bottom: 8px;
-            border-bottom: 1px solid rgba(255,255,255,0.10); padding-bottom: 5px;
+        /* Заголовок раздела — кнопка: раздел сворачивается. Полный список это двадцать
+           строк и сто чипов, на узком телефоне четыре экрана прокрутки. Свёрнутый
+           заголовок несёт сводку, иначе он был бы пустой дверью. */
+        .ach-section-head {
+            width: 100%; display: flex; align-items: center; gap: 8px;
+            background: none; border: none; cursor: pointer;
+            font-family: inherit; text-align: left; color: var(--cyan);
+            padding: 4px 0 5px; margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255,255,255,0.10);
         }
+        .ach-section.closed .ach-section-head { margin-bottom: 0; }
+        .ach-section-chevron { font-size: 0.62rem; color: #64748b; width: 10px; }
+        .ach-section-name { font-size: 0.78rem; letter-spacing: 0.04em; text-transform: uppercase; }
+        .ach-section-sum {
+            margin-left: auto; font-size: 0.66rem; color: #94a3b8;
+            letter-spacing: 0; text-transform: none; white-space: nowrap;
+        }
+        .ach-section.locked .ach-section-name { color: #64748b; }
         .ach-op-row {
             display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
             padding: 6px 0;
@@ -1849,6 +1862,8 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "звёзд %1 из %2": "%1 of %2 stars",
+            "раздел закрыт": "section locked",
             "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "A cell is one operation at one difficulty. Colour follows accuracy: green from %1%, amber from %2%, red below. While fewer than %3 problems are solved, the cell shows their number and no colour.",
             "%1 — решено %2, точность появится с %3": "%1 — %2 solved, accuracy appears from %3",
             "Вход": "Sign in",
@@ -2336,6 +2351,8 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "звёзд %1 из %2": "%1 étoiles sur %2",
+            "раздел закрыт": "section fermée",
             "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "Une case, c'est une opération à une difficulté donnée. La couleur suit la précision : vert à partir de %1 %, orange à partir de %2 %, rouge en dessous. Tant que moins de %3 calculs sont résolus, la case affiche leur nombre et reste sans couleur.",
             "%1 — решено %2, точность появится с %3": "%1 — %2 résolus, la précision apparaît à partir de %3",
             "Вход": "Connexion",
@@ -2817,6 +2834,8 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "звёзд %1 из %2": "%1 von %2 Sternen",
+            "раздел закрыт": "Bereich gesperrt",
             "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "Ein Feld ist eine Rechenart auf einer Schwierigkeit. Die Farbe folgt der Genauigkeit: Grün ab %1 %, Gelb ab %2 %, darunter Rot. Solange weniger als %3 Aufgaben gelöst sind, steht im Feld ihre Anzahl und es bleibt farblos.",
             "%1 — решено %2, точность появится с %3": "%1 — %2 gelöst, Genauigkeit ab %3",
             "Вход": "Anmelden",
@@ -12031,6 +12050,76 @@
             renderAchievementsScreen();
         }
 
+        // Какие разделы развёрнуты. Полный список — двадцать строк и сто чипов: на узком
+        // телефоне это четыре экрана прокрутки, и восемь из двадцати строк у ученика
+        // сплошь замки. Свёрнутый раздел не прячет картину, а сжимает её: сводка стоит
+        // прямо в заголовке.
+        const ACH_OPEN_KEY = 'mathCitadelAchOpen_v1';
+        let openAchSections = null;   // Set; null — ещё не решали, что открыть
+
+        function loadOpenAchSections() {
+            try {
+                const raw = localStorage.getItem(ACH_OPEN_KEY);
+                if (raw) return new Set(JSON.parse(raw));
+            } catch (e) { /* хранилище недоступно — не беда, посчитаем заново */ }
+            return null;
+        }
+
+        function saveOpenAchSections() {
+            try {
+                localStorage.setItem(ACH_OPEN_KEY, JSON.stringify([...openAchSections]));
+            } catch (e) { /* не сохранилось — переживём */ }
+        }
+
+        // Раздел, в котором ученик занимается сейчас: берём последний день с записями и
+        // в нём тему с наибольшим числом попыток. Открывать все четыре бессмысленно, но и
+        // четыре закрытые двери показывать неправильно.
+        function activeSectionKey(daily) {
+            const days = Object.keys(daily || {}).sort().reverse();
+            for (const d of days) {
+                const t = daily[d] && daily[d].t;
+                if (!t) continue;
+                let best = null, bestN = -1;
+                Object.keys(t).forEach(key => {
+                    const v = t[key] || [];
+                    const n = (v[0] || 0) + (v[1] || 0);
+                    if (n > bestN) { bestN = n; best = key; }
+                });
+                if (best) return best.split(':')[0];
+            }
+            return null;
+        }
+
+        // Сводка раздела для заголовка. Состояние звезды берём той же функцией, что рисует
+        // чипы: иначе сводка и содержимое разъедутся, и заметит это только ученик.
+        function sectionSummary(secKey, ops, unlocks) {
+            let total = 0, opened = 0, mastered = 0, reachable = 0;
+            ops.forEach(op => {
+                for (let lvl = 1; lvl <= 5; lvl++) {
+                    total++;
+                    const state = starChipState(unlocks, secKey, op, lvl, false);
+                    if (state.cls === 'gold' || state.cls === 'mastery') opened++;
+                    if (state.cls === 'mastery') mastered++;
+                    if (state.cls !== 'locked') reachable++;
+                }
+            });
+            return { total, opened, mastered, locked: reachable === 0 };
+        }
+
+        function sectionSummaryText(sum) {
+            if (sum.locked) return t('раздел закрыт');
+            let out = tf('звёзд %1 из %2', sum.opened, sum.total);
+            if (sum.mastered) out += ` · ${TIER_ICONS[MASTERY_MIN_TIER]} ${sum.mastered}`;
+            return out;
+        }
+
+        function toggleAchSection(secKey) {
+            if (openAchSections.has(secKey)) openAchSections.delete(secKey);
+            else openAchSections.add(secKey);
+            saveOpenAchSections();
+            renderAchievementsScreen();
+        }
+
         // Состояние звезды одним значком: мастерство важнее ворот, ворота важнее замка.
         function starChipState(unlocks, secKey, op, level, hasData) {
             const key = `${secKey}:${op}:${level}`;
@@ -12052,6 +12141,33 @@
 
             let drawnOps = 0, opened = 0, mastered = 0;
 
+            // Итоги в подзаголовке считаются по ВСЕМ разделам, а не по нарисованным:
+            // иначе свёрнутый раздел вычитался бы из «звёзд взято», и число прыгало бы
+            // от каждого нажатия на заголовок.
+            const sums = {};
+            MAP_SECTIONS.forEach(sec => {
+                const secKey = `${sec.cat}${sec.sign}`;
+                const sum = sectionSummary(secKey, sec.ops, unlocks);
+                sums[secKey] = sum;
+                drawnOps += sec.ops.length;
+                opened += sum.opened;
+                mastered += sum.mastered;
+            });
+
+            // Что открыто при входе: раздел последней активности, остальные свёрнуты.
+            // Закрытые репетитором разделы не открываем — там сплошные замки.
+            if (!openAchSections) {
+                openAchSections = loadOpenAchSections();
+                if (!openAchSections) {
+                    const active = activeSectionKey(st && st.daily);
+                    const fallback = MAP_SECTIONS
+                        .map(sec => `${sec.cat}${sec.sign}`)
+                        .filter(k => !sums[k].locked)[0];
+                    const pick = (active && sums[active] && !sums[active].locked) ? active : fallback;
+                    openAchSections = new Set(pick ? [pick] : []);
+                }
+            }
+
             // Показываем ВСЁ, включая нетронутое и закрытое. Раньше пустые разделы
             // прятались — но то была защита от плоского списка карточек, где сотня
             // конфигураций давала сотню карточек. В нынешней форме полная картина —
@@ -12061,15 +12177,32 @@
                 const secKey = `${sec.cat}${sec.sign}`;
                 const liveOps = sec.ops;
 
+                const sum = sums[secKey];
+                const isOpen = openAchSections.has(secKey);
+
                 const block = document.createElement('div');
-                block.className = 'ach-section';
-                const title = document.createElement('div');
-                title.className = 'ach-section-title';
-                title.innerText = sec.label;
-                block.appendChild(title);
+                block.className = 'ach-section' + (isOpen ? '' : ' closed') + (sum.locked ? ' locked' : '');
+
+                const head = document.createElement('button');
+                head.className = 'ach-section-head';
+                const chevron = document.createElement('span');
+                chevron.className = 'ach-section-chevron';
+                chevron.innerText = isOpen ? '▾' : '▸';
+                head.appendChild(chevron);
+                const name = document.createElement('span');
+                name.className = 'ach-section-name';
+                name.innerText = sec.label + (sum.locked ? ' 🔒' : '');
+                head.appendChild(name);
+                const sumEl = document.createElement('span');
+                sumEl.className = 'ach-section-sum';
+                sumEl.innerText = sectionSummaryText(sum);
+                head.appendChild(sumEl);
+                head.addEventListener('click', () => toggleAchSection(secKey));
+                block.appendChild(head);
+
+                if (!isOpen) { wrap.appendChild(block); return; }
 
                 liveOps.forEach(op => {
-                    drawnOps++;
                     const row = document.createElement('div');
                     row.className = 'ach-op-row';
                     const name = document.createElement('div');
@@ -12082,12 +12215,6 @@
                     for (let lvl = 1; lvl <= 5; lvl++) {
                         const key = `${secKey}:${op}:${lvl}`;
                         const state = starChipState(unlocks, secKey, op, lvl, hasData(key));
-                        // Мастерство подразумевает взятые ворота (минимум из трёх не может
-                        // быть выше четвёртой ступени, пока точность и количество ниже золота),
-                        // поэтому такая звезда считается и там, и там.
-                        if (state.cls === 'gold' || state.cls === 'mastery') opened++;
-                        if (state.cls === 'mastery') mastered++;
-
                         const chip = document.createElement('button');
                         chip.className = 'ach-star ' + state.cls
                             + (openLadderKey === key ? ' open' : '');
