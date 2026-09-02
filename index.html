@@ -858,11 +858,17 @@
             align-items: center; justify-content: center; min-height: 18px;
         }
         .map-row-label { justify-content: flex-start; white-space: nowrap; }
+        /* Квадрат клетке больше не навязан: ширину задаёт сетка, высоту — содержимое.
+           С жёстким aspect-ratio на узком экране клетка выходила 40 px, три строки
+           влезали впритык, и медали на айфоне налезали на число сверху — шрифт эмодзи
+           там выходит за свою строку заметно дальше, чем цифры. */
         .map-cell {
-            aspect-ratio: 1; border-radius: 7px; display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
+            min-height: 44px; border-radius: 7px; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; padding: 4px 0;
             border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.03);
         }
+        /* В отчёте на листе клетка односложная — там квадрат уместен и ничему не мешает. */
+        .map-grid.compact .map-cell { aspect-ratio: 1; min-height: 0; padding: 0; }
         .map-cell.empty { border-style: dashed; border-color: rgba(255,255,255,0.10); }
         .map-cell.lo   { background: rgba(239,68,68,0.20);  border-color: rgba(239,68,68,0.45); }
         .map-cell.mid  { background: rgba(245,158,11,0.20); border-color: rgba(245,158,11,0.45); }
@@ -873,8 +879,28 @@
            ни жирного шрифта. */
         .map-cell.dim .map-pct { color: #94a3b8; font-weight: normal; }
         .map-n { font-size: 0.56rem; color: #94a3b8; margin-top: 2px; }
-        .map-marks { display: flex; gap: 2px; font-size: 0.56rem; line-height: 1; margin-top: 2px; }
+        /* Высота строки с запасом: медали рисуются эмодзи-шрифтом, а он выходит за
+           границы строки. При line-height: 1 запаса нет, и глиф лезет на соседа. */
+        /* Размер значков растёт вместе с экраном: на телефоне их ширина упирается в
+           ширину клетки, на планшете места вдоволь. */
+        .map-marks {
+            display: flex; gap: 2px; line-height: 1.35; margin-top: 1px;
+            font-size: clamp(0.56rem, 1.5vw, 0.78rem);
+        }
         .map-mark.none { color: #475569; }
+
+        /* Образец: клетка-пример и подписи к трём значкам. Три бронзы подряд выглядят
+           как одна вещь, повторённая трижды, — без образца понять, какая позиция за
+           что, нельзя в принципе. */
+        .map-legend {
+            display: flex; align-items: center; gap: 12px; margin-top: 10px;
+            padding: 8px 10px; border-radius: 10px;
+            border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
+        }
+        .map-legend .map-cell { width: 54px; flex: 0 0 auto; }
+        .map-legend-items { display: flex; flex-direction: column; gap: 3px; }
+        .map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: #94a3b8; }
+        .map-legend-mark { font-size: 0.72rem; line-height: 1.35; }
         .map-hint { font-size: 0.68rem; color: #64748b; margin-top: 8px; }
 
         /* Отчёт родителям — светлый лист (его печатают и пересылают), поэтому те же
@@ -890,6 +916,8 @@
         .report-sheet .map-cell.hi  { background: #d1fae5; border-color: #6ee7b7; }
         .report-sheet .map-n { color: #64748b; }
         .report-sheet .map-cell.dim .map-pct { color: #64748b; font-weight: normal; }
+        .report-sheet .map-legend { border-color: #e2e8f0; background: #f8fafc; }
+        .report-sheet .map-legend-item { color: #64748b; }
         /* Полоски причин ошибок в отчёте — тоже на светлом. */
         .report-sheet .kind-name { color: #0f172a; }
         .report-sheet .kind-count { color: #64748b; }
@@ -1390,6 +1418,7 @@
             <div class="config-section" id="statsMapSection">
                 <div class="config-section-title" id="statsMapTitle">Карта разделов</div>
                 <div id="statsMap"></div>
+                <div class="map-legend" id="statsMapLegend"></div>
                 <div class="map-hint" id="statsMapHint"></div>
             </div>
 
@@ -1820,7 +1849,7 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
-            "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет. Значки внизу — ступени: точность, скорость, количество.": "A cell is one operation at one difficulty. Colour follows accuracy: green from %1%, amber from %2%, red below. While fewer than %3 problems are solved, the cell shows their number and no colour. The icons at the bottom are the tiers: accuracy, speed, count.",
+            "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "A cell is one operation at one difficulty. Colour follows accuracy: green from %1%, amber from %2%, red below. While fewer than %3 problems are solved, the cell shows their number and no colour.",
             "%1 — решено %2, точность появится с %3": "%1 — %2 solved, accuracy appears from %3",
             "Вход": "Sign in",
             "Логин": "Username",
@@ -2307,7 +2336,7 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
-            "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет. Значки внизу — ступени: точность, скорость, количество.": "Une case, c'est une opération à une difficulté donnée. La couleur suit la précision : vert à partir de %1 %, orange à partir de %2 %, rouge en dessous. Tant que moins de %3 calculs sont résolus, la case affiche leur nombre et reste sans couleur. Les icônes du bas sont les paliers : précision, vitesse, quantité.",
+            "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "Une case, c'est une opération à une difficulté donnée. La couleur suit la précision : vert à partir de %1 %, orange à partir de %2 %, rouge en dessous. Tant que moins de %3 calculs sont résolus, la case affiche leur nombre et reste sans couleur.",
             "%1 — решено %2, точность появится с %3": "%1 — %2 résolus, la précision apparaît à partir de %3",
             "Вход": "Connexion",
             "Логин": "Identifiant",
@@ -2788,7 +2817,7 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
-            "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет. Значки внизу — ступени: точность, скорость, количество.": "Ein Feld ist eine Rechenart auf einer Schwierigkeit. Die Farbe folgt der Genauigkeit: Grün ab %1 %, Gelb ab %2 %, darunter Rot. Solange weniger als %3 Aufgaben gelöst sind, steht im Feld ihre Anzahl und es bleibt farblos. Die Symbole unten sind die Stufen: Genauigkeit, Tempo, Menge.",
+            "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "Ein Feld ist eine Rechenart auf einer Schwierigkeit. Die Farbe folgt der Genauigkeit: Grün ab %1 %, Gelb ab %2 %, darunter Rot. Solange weniger als %3 Aufgaben gelöst sind, steht im Feld ihre Anzahl und es bleibt farblos.",
             "%1 — решено %2, точность появится с %3": "%1 — %2 gelöst, Genauigkeit ab %3",
             "Вход": "Anmelden",
             "Логин": "Benutzername",
@@ -10393,8 +10422,14 @@
             // --- Карта разделов: где силён, где остановился ---
             document.getElementById('statsMapTitle').innerText = t('Карта разделов ') + periodLabel;
             const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap');
-            document.getElementById('statsMapHint').innerText = tf(
-                'Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет. Значки внизу — ступени: точность, скорость, количество.',
+            // Образец — обоим: это не детская подсказка, а расшифровка обозначений.
+            renderMapLegend('statsMapLegend');
+            // А разбор порогов — только репетитору: у ребёнка этот абзац занимал пять
+            // строк и становился самым заметным на экране, ничего ему не давая.
+            const hintEl = document.getElementById('statsMapHint');
+            hintEl.style.display = forTutor ? '' : 'none';
+            hintEl.innerText = tf(
+                'Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.',
                 MAP_HI, MAP_MID, MAP_PCT_MIN);
             document.getElementById('statsMapSection').style.display = mapDrawn ? 'block' : 'none';
 
@@ -10839,7 +10874,7 @@
                 block.appendChild(title);
 
                 const grid = document.createElement('div');
-                grid.className = 'map-grid';
+                grid.className = 'map-grid' + (compact ? ' compact' : '');
                 grid.style.gridTemplateColumns = 'auto repeat(5, 1fr)';
 
                 grid.appendChild(Object.assign(document.createElement('div'), { className: 'map-head' }));
@@ -10910,6 +10945,56 @@
                 wrap.innerHTML = t('<div class="menu-empty">Пока пусто.<br>Реши несколько примеров — здесь появится карта.</div>');
             }
             return drawn;
+        }
+
+        // Образец под картой: клетка-пример и подписи к трём значкам. Ступени в примере
+        // взяты РАЗНЫЕ намеренно — три одинаковые медали не показали бы, что позиции
+        // означают разное. Подписи идут в том же порядке, в каком клетка рисует значки:
+        // и то и другое берётся из MAP_MARK_LADDERS, разойтись им негде.
+        const MAP_LEGEND_TIERS = [2, 3, 1];      // серебро, золото, бронза — чтобы различались
+        const MAP_LEGEND_SAMPLE = { pct: 92, n: 120 };
+        function renderMapLegend(containerId) {
+            const wrap = document.getElementById(containerId);
+            if (!wrap) return;
+            wrap.innerHTML = '';
+
+            const cell = document.createElement('div');
+            cell.className = 'map-cell hi';
+            const pct = document.createElement('div');
+            pct.className = 'map-pct';
+            pct.innerText = MAP_LEGEND_SAMPLE.pct + '%';
+            cell.appendChild(pct);
+            const n = document.createElement('div');
+            n.className = 'map-n';
+            n.innerText = MAP_LEGEND_SAMPLE.n;
+            cell.appendChild(n);
+            const marks = document.createElement('div');
+            marks.className = 'map-marks';
+            MAP_LEGEND_TIERS.forEach(tier => {
+                const el = document.createElement('div');
+                el.className = 'map-mark';
+                el.innerText = TIER_ICONS[tier];
+                marks.appendChild(el);
+            });
+            cell.appendChild(marks);
+            wrap.appendChild(cell);
+
+            const items = document.createElement('div');
+            items.className = 'map-legend-items';
+            MAP_MARK_LADDERS.forEach((id, i) => {
+                const l = LADDERS.filter(x => x.id === id)[0];
+                const row = document.createElement('div');
+                row.className = 'map-legend-item';
+                const mark = document.createElement('span');
+                mark.className = 'map-legend-mark';
+                mark.innerText = TIER_ICONS[MAP_LEGEND_TIERS[i]];
+                row.appendChild(mark);
+                const name = document.createElement('span');
+                name.innerText = `${l.icon} ${l.name}`;
+                row.appendChild(name);
+                items.appendChild(row);
+            });
+            wrap.appendChild(items);
         }
 
         // ---- Разбор по типам примеров ----
@@ -11444,7 +11529,10 @@
         // всегда пуст (одна отстающая лесенка гасит две взятые), максимум обещал
         // освоенную тему за одну взятую ступень. Три метки говорят и что уже взято,
         // и где отстаём, — то есть ровно то, ради чего значок в клетке и нужен.
-        const MAP_MARK_LADDERS = ['a', 's', 'c'];
+        // Порядок берётся у LADDERS, а не переписывается: на экране достижений лесенки
+        // идут скорость, точность, количество, и второй порядок в карте означал бы, что
+        // ученику приходится помнить два.
+        const MAP_MARK_LADDERS = LADDERS.map(l => l.id);
         function topicLadderMarks(unlocks, topicKey) {
             const tiers = MAP_MARK_LADDERS.map(id => ladderTierEarned(unlocks || {}, topicKey, id));
             if (!tiers.some(x => x > 0)) return null;   // пусто везде — строку не рисуем
