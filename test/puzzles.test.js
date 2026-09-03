@@ -190,6 +190,38 @@ test('при нескольких действиях клетки нет', () =>
     eq(box.R.currentMissionTopicKey(), null);
 });
 
+group('Коллекция как карта');
+
+const STYLE = HTML.slice(HTML.indexOf('<style>'), HTML.indexOf('</style>'));
+function rule(selector) {
+    const at = STYLE.indexOf(selector + ' {');
+    if (at < 0) throw new Error('не найдено правило ' + selector);
+    return STYLE.slice(at, STYLE.indexOf('}', at));
+}
+
+test('в ряду ровно пять картинок — по числу звёзд', () => {
+    // Ряд это действие, столбец это звезда. Другое число колонок ломает чтение.
+    assert(/repeat\(5,\s*1fr\)/.test(rule('.collection-grid')),
+        'сетка коллекции должна быть на пять колонок');
+});
+
+test('картинки разложены по действиям', () => {
+    const from = SCRIPT.indexOf('function renderCollectionGrid');
+    const body = SCRIPT.slice(from, SCRIPT.indexOf('function buildCollectionItem', from));
+    assert(/PUZZLE_CELL_OPS\.forEach/.test(body), 'группы должны строиться по действиям');
+    assert(/OP_LABELS\[group\.op\]/.test(body), 'у группы должен быть заголовок с названием действия');
+});
+
+test('звезда подписана и у закрытых картинок', () => {
+    // Иначе непонятно, за что клетка, пока она не собрана.
+    const from = SCRIPT.indexOf('function buildCollectionItem');
+    const body = SCRIPT.slice(from, SCRIPT.indexOf('\n        }', from));
+    const badgeAt = body.indexOf("badge.className = 'collection-cell'");
+    const unlockedAt = body.indexOf('if (unlocked) {');
+    assert(badgeAt > 0 && unlockedAt > 0 && badgeAt < unlockedAt,
+        'метка звезды должна ставиться до проверки «собрана ли»');
+});
+
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
 if (failed) {
     console.log('\nУпавшие проверки:');

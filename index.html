@@ -582,7 +582,15 @@
         .puzzle-mini-status { display: none; }
 
         /* ===== Коллекция собранных пазлов ===== */
-        .collection-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; width: 100%; margin-bottom: 14px; }
+        /* Пять картинок в ряд — по числу звёзд. Каждый ряд это одно действие, и
+           коллекция читается той же картой, что в статистике: видно, что уже собрано
+           за сложение, а где ещё дыры. Подписи с названиями парадоксов при такой
+           ширине не помещаются, поэтому название открывается тапом. */
+        .collection-group { width: 100%; margin-bottom: 14px; }
+        .collection-group-title {
+            font-size: 0.72rem; color: #94a3b8; margin: 0 0 6px 2px; letter-spacing: 0.02em;
+        }
+        .collection-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; }
         .collection-item { aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; position: relative; border: 2px solid rgba(255,255,255,0.12); background: #0b0e18; }
         .collection-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .collection-item.locked img { filter: grayscale(1) brightness(0.25); }
@@ -594,8 +602,9 @@
         .collection-item.unlocked { cursor: pointer; }
         .collection-item.unlocked:active { transform: scale(0.96); }
         .collection-item .collection-cell {
-            position: absolute; top: 4px; left: 4px; padding: 2px 5px; border-radius: 6px;
-            background: rgba(2,3,8,0.72); color: #cbd5e1; font-size: 0.5rem; line-height: 1.1;
+            position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 2px 2px;
+            background: linear-gradient(transparent, rgba(2,3,8,0.9));
+            color: #cbd5e1; font-size: 0.52rem; line-height: 1.1; text-align: center;
         }
         .collection-item .item-caption {
             position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 5px 4px;
@@ -1933,7 +1942,7 @@
             <button class="puzzle-close" id="collectionCloseBtn">✕</button>
             <div id="collectionListView">
                 <div class="puzzle-modal-title">🏆 Парадоксы математики: <span id="collectionCountLabel">0/20</span></div>
-                <div class="collection-grid" id="collectionGrid"></div>
+                <div id="collectionGroups"></div>
                 <div class="puzzle-save-hint">Нажми на собранную картинку — узнаешь, что это за парадокс</div>
             </div>
             <div class="collection-detail" id="collectionDetail">
@@ -1985,6 +1994,7 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "Остальные — %1/%2": "Others — %1/%2",
             "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Collection complete (%1/%2)",
             "Не учёл ноль в примере": "Missed the zero in the problem",
             "ноль": "zero",
@@ -2490,6 +2500,7 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "Остальные — %1/%2": "Autres — %1/%2",
             "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Collection complète (%1/%2)",
             "Не учёл ноль в примере": "N’a pas tenu compte du zéro",
             "ноль": "zéro",
@@ -2989,6 +3000,7 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "Остальные — %1/%2": "Weitere — %1/%2",
             "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Sammlung vollständig (%1/%2)",
             "Не учёл ноль в примере": "Die Null in der Aufgabe übersehen",
             "ноль": "Null",
@@ -9941,9 +9953,46 @@
 
         function renderCollectionGrid() {
             const collection = loadCollectionArray();
-            const grid = document.getElementById('collectionGrid');
-            grid.innerHTML = '';
+            const wrap = document.getElementById('collectionGroups');
+            wrap.innerHTML = '';
+
+            // Ряд — действие, столбец — звезда. Картинки, не попавшие ни в одну клетку,
+            // складываем в отдельную группу в конце: сейчас таких нет, но появятся,
+            // как только картинок станет больше двадцати.
+            const groups = [];
+            PUZZLE_CELL_OPS.forEach(op => groups.push({ op, items: [] }));
+            const extra = { op: null, items: [] };
             for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
+                const cellKey = puzzleTopicForIndex(i);
+                const at = cellKey ? PUZZLE_CELL_OPS.indexOf(parseTopicKey(cellKey).op) : -1;
+                (at >= 0 ? groups[at] : extra).items.push(i);
+            }
+            if (extra.items.length) groups.push(extra);
+
+            groups.forEach(group => {
+                if (!group.items.length) return;
+                const block = document.createElement('div');
+                block.className = 'collection-group';
+                const title = document.createElement('div');
+                title.className = 'collection-group-title';
+                const done = group.items.filter(i => collection[i]).length;
+                title.innerText = group.op
+                    ? `${OP_LABELS[group.op] || group.op} — ${done}/${group.items.length}`
+                    : tf('Остальные — %1/%2', done, group.items.length);
+                block.appendChild(title);
+                const grid = document.createElement('div');
+                grid.className = 'collection-grid';
+                group.items.forEach(i => grid.appendChild(buildCollectionItem(i, collection)));
+                block.appendChild(grid);
+                wrap.appendChild(block);
+            });
+
+            document.getElementById('collectionCountLabel').innerText =
+                `${collectionCollectedCount(collection)}/${PUZZLE_IMAGE_SRCS.length}`;
+        }
+
+        // Одна плитка коллекции.
+        function buildCollectionItem(i, collection) {
                 const unlocked = !!collection[i];
                 const item = document.createElement('div');
                 item.className = 'collection-item ' + (unlocked ? 'unlocked' : 'locked');
@@ -9955,29 +10004,25 @@
                 img.alt = collection[i] ? ((pxList[i] && pxList[i].name) || t('Парадокс')) : t('Ещё не открыто');
                 item.appendChild(img);
 
-                // Название парадокса подписываем только у собранных — у остальных
-                // это был бы спойлер к ещё не открытой картинке.
+                // Звезда подписана у всех клеток, включая закрытые: по ней видно, за что
+                // картинка, а спойлером это не является — название по-прежнему только
+                // у собранных, и открывается тапом.
+                const cellKey = puzzleTopicForIndex(i);
+                if (cellKey) {
+                    const p = parseTopicKey(cellKey);
+                    const badge = document.createElement('div');
+                    badge.className = 'collection-cell';
+                    badge.innerText = `${p.level}★`;
+                    item.appendChild(badge);
+                }
+                // Название парадокса — только у собранных: у остальных это спойлер
+                // к ещё не открытой картинке. Подписью оно больше не влезает, поэтому
+                // открывается тапом.
                 if (unlocked) {
-                    const cap = document.createElement('div');
-                    cap.className = 'item-caption';
-                    cap.innerText = (pxList[i] && pxList[i].name) || '';
-                    item.appendChild(cap);
-                    // Метка клетки: без неё коллекция не читается как карта — непонятно,
-                    // откуда картинка взялась.
-                    const cellKey = puzzleTopicForIndex(i);
-                    if (cellKey) {
-                        const p = parseTopicKey(cellKey);
-                        const badge = document.createElement('div');
-                        badge.className = 'collection-cell';
-                        badge.innerText = `${OP_SHORT[p.op] || p.op} ${p.level}★`;
-                        item.appendChild(badge);
-                    }
+                    item.title = (pxList[i] && pxList[i].name) || '';
                     item.addEventListener('click', () => showParadoxDetail(i));
                 }
-                grid.appendChild(item);
-            }
-            document.getElementById('collectionCountLabel').innerText =
-                `${collectionCollectedCount(collection)}/${PUZZLE_IMAGE_SRCS.length}`;
+                return item;
         }
         function openCollectionModal() {
             renderCollectionGrid();
