@@ -46,6 +46,8 @@ function group(name) { console.log(`\n${name}`); }
 
 const CONTENT = loadContent();
 const RU = CONTENT.ru;
+const LANGS = Object.keys(CONTENT);
+const FIELDS = ['name', 'era', 'hook', 'body', 'probe', 'answer'];
 
 group('Состав');
 
@@ -57,11 +59,48 @@ test('парадоксов ровно столько же, сколько кар
     eq(RU.length, images, 'парадоксов и картинок должно быть поровну');
 });
 
-test('у каждой карточки заполнены все поля', () => {
+test('у каждой карточки во всех языках заполнены все поля', () => {
+    LANGS.forEach(lang => {
+        CONTENT[lang].forEach((px, i) => {
+            FIELDS.forEach(k => {
+                assert(typeof px[k] === 'string' && px[k].trim().length > 0,
+                    `[${lang}] у карточки №${i + 1} («${px.name}») пусто поле ${k}`);
+            });
+        });
+    });
+});
+
+test('во всех языках одинаковое число карточек', () => {
+    LANGS.forEach(lang => {
+        eq(CONTENT[lang].length, RU.length, `в языке ${lang} карточек не столько же`);
+    });
+});
+
+test('порядок карточек одинаков во всех языках', () => {
+    // Индекс — это картинка пазла. Если перевод переставили, у собравшего коллекцию
+    // под картинкой окажется чужой текст, и никакой тест кроме этого не заметит.
+    const year = (era) => { const m = /\d{3,4}/.exec(era); return m ? m[0] : null; };
+    let checked = 0;
     RU.forEach((px, i) => {
-        ['name', 'era', 'hook', 'body', 'probe', 'answer'].forEach(k => {
-            assert(typeof px[k] === 'string' && px[k].trim().length > 0,
-                `у карточки №${i + 1} («${px.name}») пусто поле ${k}`);
+        const ruYear = year(px.era);
+        if (!ruYear) return;
+        checked++;
+        LANGS.forEach(lang => {
+            const other = year(CONTENT[lang][i].era);
+            assert(other === ruYear,
+                `[${lang}] карточка №${i + 1}: год ${other} вместо ${ruYear} — порядок разъехался`);
+        });
+    });
+    assert(checked >= 15, `годов для сверки нашлось всего ${checked} — проверка ослабла`);
+});
+
+test('в переводах не осталось русского текста', () => {
+    LANGS.filter(l => l !== 'ru').forEach(lang => {
+        CONTENT[lang].forEach((px, i) => {
+            FIELDS.forEach(k => {
+                assert(!/[А-Яа-яЁё]/.test(px[k]),
+                    `[${lang}] карточка №${i + 1}, поле ${k}: остался русский текст`);
+            });
         });
     });
 });
@@ -76,36 +115,38 @@ test('названия не повторяются', () => {
 
 group('Форма текста');
 
+const each = (fn) => LANGS.forEach(lang => CONTENT[lang].forEach((px, i) => fn(px, lang, i)));
+
 test('в теле два абзаца: что происходит и в чём подвох', () => {
-    RU.forEach(px => {
+    each((px, lang) => {
         const parts = px.body.split('\n\n').filter(x => x.trim());
-        eq(parts.length, 2, `у «${px.name}» абзацев ${parts.length}, а должно быть два`);
+        eq(parts.length, 2, `[${lang}] у «${px.name}» абзацев ${parts.length}, а должно быть два`);
     });
 });
 
 test('тело не разрастается: карточку читают с телефона', () => {
-    RU.forEach(px => {
-        assert(px.body.length <= 700, `у «${px.name}» тело ${px.body.length} символов — длинновато`);
+    // Немецкий и французский длиннее русского, поэтому потолок общий и с запасом.
+    each((px, lang) => {
+        assert(px.body.length <= 750, `[${lang}] у «${px.name}» тело ${px.body.length} символов — длинновато`);
     });
 });
 
 test('крючок — одна короткая фраза', () => {
-    RU.forEach(px => {
-        assert(px.hook.length <= 100, `крючок «${px.name}» длиной ${px.hook.length} — это уже не крючок`);
+    each((px, lang) => {
+        assert(px.hook.length <= 120, `[${lang}] крючок «${px.name}» длиной ${px.hook.length} — это уже не крючок`);
     });
 });
 
 test('вопрос «проверь» действительно вопрос', () => {
-    RU.forEach(px => {
-        assert(/[?？]\s*$/.test(px.probe.trim()) || /\?/.test(px.probe),
-            `у «${px.name}» строка проверки не спрашивает: ${px.probe}`);
+    each((px, lang) => {
+        assert(/\?/.test(px.probe), `[${lang}] у «${px.name}» строка проверки не спрашивает: ${px.probe}`);
     });
 });
 
-test('ответ короче вопроса не бывает пустым и не повторяет его дословно', () => {
-    RU.forEach(px => {
-        assert(px.answer.length >= 20, `ответ у «${px.name}» слишком короткий`);
-        assert(px.answer.trim() !== px.probe.trim(), `ответ у «${px.name}» повторяет вопрос`);
+test('ответ не бывает пустым и не повторяет вопрос дословно', () => {
+    each((px, lang) => {
+        assert(px.answer.length >= 20, `[${lang}] ответ у «${px.name}» слишком короткий`);
+        assert(px.answer.trim() !== px.probe.trim(), `[${lang}] ответ у «${px.name}» повторяет вопрос`);
     });
 });
 
@@ -129,10 +170,18 @@ test('без файла с текстами игра не падает', () => {
     assert(Array.isArray(got) && got.length === 0, 'без содержимого должен вернуться пустой список');
 });
 
+test('каждый язык отдаёт свои тексты', () => {
+    LANGS.forEach(lang => {
+        const box = loadResolver({ PARADOX_CONTENT: CONTENT });
+        box.LANG = lang;
+        eq(box.R()[0].name, CONTENT[lang][0].name, `язык ${lang}`);
+    });
+});
+
 test('язык, которого нет, откатывается на русский', () => {
     const box = loadResolver({ PARADOX_CONTENT: CONTENT });
-    box.LANG = 'fr';
-    eq(box.R().length, RU.length, 'французского пока нет — должен показаться русский');
+    box.LANG = 'es';
+    eq(box.R()[0].name, RU[0].name, 'испанского нет — должен показаться русский');
 });
 
 test('русский берётся, когда язык русский', () => {
