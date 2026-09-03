@@ -27,12 +27,20 @@
 
 window.HINT_CONTENT = {
     ru: {
+        'ноль в примере:mul': {
+            game: 'Сложи %1 нулей — получится ноль.',
+            review: '%1 × %2 = 0. Умножение — это сложение одинаковых чисел: сколько нулей ни сложи, будет ноль. Поэтому ноль в умножении всегда даёт ноль.'
+        },
+        'ноль в примере:div': {
+            game: 'Ноль раздели на что угодно — останется ноль.',
+            review: '%1 ÷ %2 = 0: ноль сколько ни дели, в каждой части будет ноль. Делить ноль можно — нельзя делить НА ноль, это разные вещи.'
+        },
         'ошибка в десятках:add': {
-            game: 'Мимо ровно на десяток. Единицы верные — проверь перенос.',
+            game: 'Мимо ровно на десяток. Единицы верные — пересчитай десятки.',
             review: '%1 + %2: единицы %3 + %4 = %5 — пишем %6, десяток уходит наверх. Промах ровно на десяток почти всегда значит, что этот десяток потеряли.'
         },
         'ошибка в десятках:sub': {
-            game: 'Мимо ровно на десяток. Единицы верные — проверь заём.',
+            game: 'Мимо ровно на десяток. Единицы верные — пересчитай десятки.',
             review: '%1 − %2: единицы сошлись, а десяток при заёме потерялся. Промах ровно на десяток почти всегда значит именно это — проверь, сколько десятков осталось.'
         },
         'ошибка в единицах:add': {
@@ -86,12 +94,20 @@ window.HINT_CONTENT = {
     },
 
     en: {
+        'ноль в примере:mul': {
+            game: 'Add up %1 zeros — you still get zero.',
+            review: '%1 × %2 = 0. Multiplication is adding the same number again and again: however many zeros you add, you get zero. That is why a zero in a multiplication always gives zero.'
+        },
+        'ноль в примере:div': {
+            game: 'Divide zero by anything — it stays zero.',
+            review: '%1 ÷ %2 = 0: however many parts you split zero into, each part is zero. Dividing zero is allowed — what you cannot do is divide BY zero, and those are two different things.'
+        },
         'ошибка в десятках:add': {
-            game: 'Off by exactly ten. The units are right — check the carry.',
+            game: 'Off by exactly ten. The units are right — count the tens again.',
             review: '%1 + %2: the units give %3 + %4 = %5 — write %6 and carry the ten upstairs. Being off by exactly ten almost always means that ten got lost.'
         },
         'ошибка в десятках:sub': {
-            game: 'Off by exactly ten. The units are right — check the borrow.',
+            game: 'Off by exactly ten. The units are right — count the tens again.',
             review: '%1 − %2: the units came out right, but a ten went missing in the borrow. Off by exactly ten almost always means just that — check how many tens are left.'
         },
         'ошибка в единицах:add': {
@@ -145,12 +161,20 @@ window.HINT_CONTENT = {
     },
 
     fr: {
+        'ноль в примере:mul': {
+            game: 'Additionne %1 zéros — cela fait toujours zéro.',
+            review: '%1 × %2 = 0. Multiplier, c’est additionner le même nombre plusieurs fois : autant de zéros que tu veux, cela fait zéro. Voilà pourquoi un zéro dans une multiplication donne toujours zéro.'
+        },
+        'ноль в примере:div': {
+            game: 'Divise zéro par n’importe quoi — il reste zéro.',
+            review: '%1 ÷ %2 = 0 : en combien de parts que tu partages zéro, chaque part vaut zéro. Diviser zéro est permis — ce qui est interdit, c’est de diviser PAR zéro, et ce n’est pas la même chose.'
+        },
         'ошибка в десятках:add': {
-            game: 'Raté de dix pile. Les unités sont bonnes — vérifie la retenue.',
+            game: 'Raté de dix pile. Les unités sont bonnes — recompte les dizaines.',
             review: '%1 + %2 : les unités donnent %3 + %4 = %5 — on écrit %6 et la dizaine monte. Se tromper de dix pile veut presque toujours dire que cette dizaine a été oubliée.'
         },
         'ошибка в десятках:sub': {
-            game: 'Raté de dix pile. Les unités sont bonnes — vérifie l’emprunt.',
+            game: 'Raté de dix pile. Les unités sont bonnes — recompte les dizaines.',
             review: '%1 − %2 : les unités sont justes, mais une dizaine s’est perdue dans l’emprunt. Se tromper de dix pile veut presque toujours dire cela — vérifie combien de dizaines il reste.'
         },
         'ошибка в единицах:add': {
@@ -204,12 +228,20 @@ window.HINT_CONTENT = {
     },
 
     de: {
+        'ноль в примере:mul': {
+            game: 'Zähl %1 Nullen zusammen — es bleibt null.',
+            review: '%1 × %2 = 0. Multiplizieren heißt, dieselbe Zahl mehrmals zu addieren: wie viele Nullen du auch addierst, es bleibt null. Deshalb ergibt eine Null in der Multiplikation immer null.'
+        },
+        'ноль в примере:div': {
+            game: 'Teile null durch was du willst — es bleibt null.',
+            review: '%1 ÷ %2 = 0: in wie viele Teile du null auch teilst, jeder Teil ist null. Null teilen darf man — nicht erlaubt ist das Teilen DURCH null, und das sind zwei verschiedene Dinge.'
+        },
         'ошибка в десятках:add': {
-            game: 'Genau zehn daneben. Die Einer stimmen — prüfe den Übertrag.',
+            game: 'Genau zehn daneben. Die Einer stimmen — zähl die Zehner nach.',
             review: '%1 + %2: die Einer ergeben %3 + %4 = %5 — %6 hinschreiben, der Zehner wandert nach oben. Genau zehn daneben heißt fast immer, dass dieser Zehner verloren ging.'
         },
         'ошибка в десятках:sub': {
-            game: 'Genau zehn daneben. Die Einer stimmen — prüfe das Entbündeln.',
+            game: 'Genau zehn daneben. Die Einer stimmen — zähl die Zehner nach.',
             review: '%1 − %2: die Einer stimmen, aber beim Entbündeln ist ein Zehner verloren gegangen. Genau zehn daneben heißt fast immer genau das — prüfe, wie viele Zehner übrig bleiben.'
         },
         'ошибка в единицах:add': {
