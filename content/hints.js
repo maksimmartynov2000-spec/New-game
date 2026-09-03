@@ -19,7 +19,7 @@
 //   не занял десяток        game ед1, ед2, ед1+10          review a, b, ед1, ед2, ед1+10, ед1+10−ед2
 //   таблица умножения       game взятое1, взятое2, a, b, разница
 //                           review взятое1, взятое2, что вышло, a, b, верный ответ
-//   сложил вместо умножения game a, b         review a, b, верный ответ, a+b
+//   сложил вместо умножения game a, b, «21 раз»   review a, b, верный ответ, a+b, «21 раз»
 //   перепутал действие:*    game —            review a, b, верный ответ, что посчитал
 //   взял одно из чисел      game a, b         review a, b, верный ответ
 //   делил на ноль           game —            review a
@@ -28,7 +28,7 @@
 window.HINT_CONTENT = {
     ru: {
         'ноль в примере:mul': {
-            game: 'Сложи %1 нулей — получится ноль.',
+            game: 'Сложи %1 — получится ноль.',
             review: '%1 × %2 = 0. Умножение — это сложение одинаковых чисел: сколько нулей ни сложи, будет ноль. Поэтому ноль в умножении всегда даёт ноль.'
         },
         'ноль в примере:div': {
@@ -60,8 +60,8 @@ window.HINT_CONTENT = {
             review: '%1 × %2 = %3, а %4 × %5 = %6. Соседние клетки таблицы отличаются на целый множитель, а не на единицу — поэтому промах здесь всегда крупный.'
         },
         'сложил вместо умножения': {
-            game: '%1 × %2 — это %2 раза по %1, а не %1 + %2.',
-            review: '%1 × %2 = %3: это %2 раза по %1. Умножение — короткая запись сложения одинаковых чисел, поэтому ответ намного больше суммы %1 + %2 = %4.'
+            game: '%1 × %2 — это %1, взятое %3, а не %1 + %2.',
+            review: '%1 × %2 = %3: это %1, взятое %5. Умножение — короткая запись сложения одинаковых чисел, поэтому ответ намного больше суммы %1 + %2 = %4.'
         },
         'перепутал действие:add': {
             game: 'Ты вычел, а в примере сложение.',
@@ -95,7 +95,7 @@ window.HINT_CONTENT = {
 
     en: {
         'ноль в примере:mul': {
-            game: 'Add up %1 zeros — you still get zero.',
+            game: 'Add up %1 — you still get zero.',
             review: '%1 × %2 = 0. Multiplication is adding the same number again and again: however many zeros you add, you get zero. That is why a zero in a multiplication always gives zero.'
         },
         'ноль в примере:div': {
@@ -127,8 +127,8 @@ window.HINT_CONTENT = {
             review: '%1 × %2 = %3, while %4 × %5 = %6. Neighbouring cells of the table differ by a whole factor, not by one — that is why a slip here is always a big one.'
         },
         'сложил вместо умножения': {
-            game: '%1 × %2 means %2 lots of %1, not %1 + %2.',
-            review: '%1 × %2 = %3: that is %2 lots of %1. Multiplication is shorthand for adding the same number again and again, so the answer is far bigger than the sum %1 + %2 = %4.'
+            game: '%1 × %2 means %1 taken %3, not %1 + %2.',
+            review: '%1 × %2 = %3: that is %1 taken %5. Multiplication is shorthand for adding the same number again and again, so the answer is far bigger than the sum %1 + %2 = %4.'
         },
         'перепутал действие:add': {
             game: 'You subtracted, but the problem is addition.',
@@ -162,7 +162,7 @@ window.HINT_CONTENT = {
 
     fr: {
         'ноль в примере:mul': {
-            game: 'Additionne %1 zéros — cela fait toujours zéro.',
+            game: 'Additionne %1 — cela fait toujours zéro.',
             review: '%1 × %2 = 0. Multiplier, c’est additionner le même nombre plusieurs fois : autant de zéros que tu veux, cela fait zéro. Voilà pourquoi un zéro dans une multiplication donne toujours zéro.'
         },
         'ноль в примере:div': {
@@ -194,8 +194,8 @@ window.HINT_CONTENT = {
             review: '%1 × %2 = %3, alors que %4 × %5 = %6. Deux cases voisines de la table diffèrent d’un facteur entier, pas d’une unité — c’est pourquoi l’écart est toujours grand ici.'
         },
         'сложил вместо умножения': {
-            game: '%1 × %2, c’est %2 fois %1, pas %1 + %2.',
-            review: '%1 × %2 = %3 : c’est %2 fois %1. La multiplication est une écriture courte de l’addition répétée, donc le résultat est bien plus grand que la somme %1 + %2 = %4.'
+            game: '%1 × %2, c’est %1 pris %3, pas %1 + %2.',
+            review: '%1 × %2 = %3 : c’est %1 pris %5. La multiplication est une écriture courte de l’addition répétée, donc le résultat est bien plus grand que la somme %1 + %2 = %4.'
         },
         'перепутал действие:add': {
             game: 'Tu as soustrait, mais le calcul est une addition.',
@@ -229,7 +229,7 @@ window.HINT_CONTENT = {
 
     de: {
         'ноль в примере:mul': {
-            game: 'Zähl %1 Nullen zusammen — es bleibt null.',
+            game: 'Zähl %1 zusammen — es bleibt null.',
             review: '%1 × %2 = 0. Multiplizieren heißt, dieselbe Zahl mehrmals zu addieren: wie viele Nullen du auch addierst, es bleibt null. Deshalb ergibt eine Null in der Multiplikation immer null.'
         },
         'ноль в примере:div': {
@@ -261,8 +261,8 @@ window.HINT_CONTENT = {
             review: '%1 × %2 = %3, aber %4 × %5 = %6. Benachbarte Felder des Einmaleins unterscheiden sich um einen ganzen Faktor, nicht um eins — deshalb ist der Fehler hier immer groß.'
         },
         'сложил вместо умножения': {
-            game: '%1 × %2 heißt %2 mal die %1, nicht %1 + %2.',
-            review: '%1 × %2 = %3: das sind %2 mal die %1. Multiplizieren ist die Kurzschrift für wiederholtes Addieren, deshalb ist das Ergebnis viel größer als die Summe %1 + %2 = %4.'
+            game: '%1 × %2 heißt die %1 %3 genommen, nicht %1 + %2.',
+            review: '%1 × %2 = %3: das ist die %1 %5 genommen. Multiplizieren ist die Kurzschrift für wiederholtes Addieren, deshalb ist das Ergebnis viel größer als die Summe %1 + %2 = %4.'
         },
         'перепутал действие:add': {
             game: 'Du hast subtrahiert, gefragt war eine Addition.',
