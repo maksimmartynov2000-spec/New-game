@@ -902,6 +902,42 @@
         .week-bar-label { font-size: 0.58rem; color: #64748b; margin-top: 4px; white-space: nowrap; }
         .strip-legend .day-cell { width: 10px; aspect-ratio: 1; }
 
+        /* --- Задача за мастерство --- */
+        .challenge-back {
+            position: fixed; inset: 0; z-index: 265; display: flex;
+            align-items: center; justify-content: center; padding: 20px;
+            background: rgba(8, 6, 20, 0.78); backdrop-filter: blur(2px);
+        }
+        .challenge-back[hidden] { display: none; }
+        .challenge-card {
+            width: min(94vw, 480px); max-height: 86vh; overflow-y: auto;
+            padding: 18px 20px; border-radius: 16px; text-align: center; cursor: pointer;
+            background: linear-gradient(180deg, rgba(58,42,92,0.96), rgba(20,15,36,0.97));
+            border: 1px solid rgba(196, 181, 253, 0.45);
+            box-shadow: 0 0 36px rgba(167, 139, 250, 0.25);
+        }
+        .challenge-cap {
+            font-size: 0.74rem; color: #c4b5fd; letter-spacing: 0.04em;
+            text-transform: uppercase; margin-bottom: 4px;
+        }
+        .challenge-topic { font-size: 0.68rem; color: #64748b; margin-bottom: 11px; }
+        .challenge-task { font-size: 1rem; line-height: 1.5; color: #f1f5f9; }
+        .challenge-answer {
+            margin-top: 12px; padding-top: 12px; font-size: 0.92rem; line-height: 1.5; color: #cbd5e1;
+            border-top: 1px solid rgba(196, 181, 253, 0.2);
+        }
+        .challenge-tap { margin-top: 13px; font-size: 0.7rem; color: #64748b; }
+
+        /* Та же задача в карточке достижений — чтобы можно было перечитать. */
+        .ladder-challenge {
+            margin-top: 10px; padding: 11px 13px; border-radius: 11px; cursor: pointer;
+            background: rgba(167, 139, 250, 0.09); border: 1px solid rgba(196, 181, 253, 0.25);
+        }
+        .ladder-challenge-cap { font-size: 0.66rem; color: #c4b5fd; letter-spacing: 0.03em; }
+        .ladder-challenge-task { font-size: 0.82rem; line-height: 1.45; color: #e2e8f0; margin-top: 5px; }
+        .ladder-challenge-answer { font-size: 0.8rem; line-height: 1.45; color: #94a3b8; margin-top: 7px; }
+        .ladder-challenge-tap { font-size: 0.64rem; color: #64748b; margin-top: 6px; }
+
         /* --- Подсказка с заморозкой времени --- */
         .hint-freeze {
             position: fixed; inset: 0; z-index: 260; display: flex;
@@ -1349,6 +1385,9 @@
     <!-- Подсказки по видам ошибок. Тоже внешний файл: не доехал — игра идёт как раньше,
          просто молча (см. resolveHints). -->
     <script src="content/hints.js"></script>
+    <!-- Задачи за мастерство. Внешний файл: не доехал — мастерство просто не даёт
+         карточку, всё остальное работает (см. resolveChallenges). -->
+    <script src="content/challenges.js"></script>
 </head>
 <body>
 
@@ -1959,6 +1998,18 @@
         </div>
     </div>
 
+    <!-- Задача за мастерство. Первый тап раскрывает разбор, второй закрывает: сначала
+         ученик думает сам, и только потом смотрит. -->
+    <div class="challenge-back" id="challengeReveal" hidden>
+        <div class="challenge-card">
+            <div class="challenge-cap" id="challengeCap"></div>
+            <div class="challenge-topic" id="challengeTopic"></div>
+            <div class="challenge-task" id="challengeTask"></div>
+            <div class="challenge-answer" id="challengeAnswer" hidden></div>
+            <div class="challenge-tap" id="challengeTap"></div>
+        </div>
+    </div>
+
     <!-- Подсказка с заморозкой времени. Появляется в паузе после неверного ответа:
          часы миссии и полоска времени встают, спешить некуда. Уходит по нажатию. -->
     <div class="hint-freeze" id="hintFreeze" hidden>
@@ -1994,6 +2045,8 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "%1 Задача за мастерство": "%1 Mastery problem",
+            "%1 Задача за легенду": "%1 Legend problem",
             "Остальные — %1/%2": "Others — %1/%2",
             "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Collection complete (%1/%2)",
             "Не учёл ноль в примере": "Missed the zero in the problem",
@@ -2500,6 +2553,8 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "%1 Задача за мастерство": "%1 Défi de maîtrise",
+            "%1 Задача за легенду": "%1 Défi de légende",
             "Остальные — %1/%2": "Autres — %1/%2",
             "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Collection complète (%1/%2)",
             "Не учёл ноль в примере": "N’a pas tenu compte du zéro",
@@ -3000,6 +3055,8 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "%1 Задача за мастерство": "%1 Meister-Aufgabe",
+            "%1 Задача за легенду": "%1 Legenden-Aufgabe",
             "Остальные — %1/%2": "Weitere — %1/%2",
             "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Sammlung vollständig (%1/%2)",
             "Не учёл ноль в примере": "Die Null in der Aufgabe übersehen",
@@ -12245,9 +12302,96 @@
                         icon: TIER_ICONS[mastery],
                         title: `${topicLabelWithLevel(topicKey)} — ${TIER_NAMES[mastery]}!`
                     });
+                    // Каждая взятая ступень мастерства открывает свою задачу. Если
+                    // ступени пришли разом, покажем обе — по очереди, в конце миссии.
+                    for (let tier = masteryBefore + 1; tier <= mastery; tier++) {
+                        if (challengeFor(topicKey, tier)) pendingChallengeReveals.push({ key: topicKey, tier });
+                    }
                 }
             }
             return fresh;
+        }
+
+        // ===================== ЗАДАЧИ ЗА МАСТЕРСТВО =====================
+        // Мастерство до сих пор не давало ничего, кроме значка, хотя это самая дорогая
+        // вещь в игре: минимум из трёх лесенок сразу. Теперь за алмаз и за легенду
+        // даётся задача — по действию клетки, но применённому вбок.
+        //
+        // Никакого нового поля в сохранении: что открыто, считается из уже имеющихся
+        // достижений. Для живых учеников это значит ноль риска.
+        const CHALLENGE_TIERS = { 4: 'diamond', 5: 'legend' };
+
+        function resolveChallenges() {
+            const all = (typeof window !== 'undefined' && window.CHALLENGE_CONTENT) || null;
+            if (!all) return null;
+            const lang = (typeof LANG === 'string' && LANG) || 'ru';
+            return all[lang] || all.ru || null;
+        }
+
+        function challengeFor(topicKey, tier) {
+            const table = resolveChallenges();
+            const name = CHALLENGE_TIERS[tier];
+            if (!table || !name || !topicKey) return null;
+            const cell = table[topicKey];
+            const item = cell && cell[name];
+            return (item && item.task && item.answer) ? item : null;
+        }
+
+        // Что уже заработано по этой клетке — для перечитывания в достижениях.
+        function earnedChallenges(unlocks, topicKey) {
+            const mastery = topicMasteryTier(unlocks, topicKey);
+            const out = [];
+            for (let tier = MASTERY_MIN_TIER; tier <= 5; tier++) {
+                if (mastery < tier) break;
+                const item = challengeFor(topicKey, tier);
+                if (item) out.push({ tier, item });
+            }
+            return out;
+        }
+
+        // Показ откладывается до конца миссии — как и пазлы. Посреди примеров задача
+        // не читается, а после «Миссия выполнена» для неё самое место.
+        let pendingChallengeReveals = [];
+        let challengeAnswerShown = false;
+
+        function showNextChallengeReveal() {
+            const next = pendingChallengeReveals.shift();
+            if (!next) return false;
+            const item = challengeFor(next.key, next.tier);
+            if (!item) return showNextChallengeReveal();      // текстов нет — идём дальше
+
+            document.getElementById('challengeCap').innerText = next.tier >= 5
+                ? tf('%1 Задача за легенду', TIER_ICONS[5])
+                : tf('%1 Задача за мастерство', TIER_ICONS[4]);
+            document.getElementById('challengeTopic').innerText = topicLabelWithLevel(next.key);
+            document.getElementById('challengeTask').innerText = item.task;
+            const ans = document.getElementById('challengeAnswer');
+            ans.innerText = item.answer;
+            ans.hidden = true;
+            challengeAnswerShown = false;
+            document.getElementById('challengeTap').innerText = t('Нажми, чтобы увидеть ответ');
+            document.getElementById('challengeReveal').hidden = false;
+            return true;
+        }
+
+        function tapChallengeReveal() {
+            const ans = document.getElementById('challengeAnswer');
+            if (!challengeAnswerShown) {
+                challengeAnswerShown = true;
+                ans.hidden = false;
+                document.getElementById('challengeTap').innerText = t('Нажми, чтобы продолжить');
+                return;
+            }
+            document.getElementById('challengeReveal').hidden = true;
+            advanceMissionReveals();
+        }
+
+        // Очередь наград после миссии: сначала собранные пазлы, потом задачи за
+        // мастерство, и только потом экран итогов.
+        function advanceMissionReveals() {
+            if (showNextPuzzleReveal()) return;
+            if (showNextChallengeReveal()) return;
+            document.getElementById('winScreen').classList.add('active');
         }
 
         // Показывает плашку о новом достижении прямо в игре.
@@ -12959,6 +13103,38 @@
                 if (cntTier < LEVEL_GATE_TIER) need.push(tf('%1 верных', COUNT_TIERS[LEVEL_GATE_TIER - 1]));
                 foot.innerText = tf('До %1★: %2', lvl + 1, need.join(t(' и ')));
             }
+
+            // Задачи за мастерство — здесь же, под лесенками: ученик видит свой алмаз
+            // и рядом то, что за него получил. Отдельного экрана заводить незачем.
+            earnedChallenges(unlocks, key).forEach(({ tier, item }) => {
+                const box = document.createElement('div');
+                box.className = 'ladder-challenge';
+                const cap = document.createElement('div');
+                cap.className = 'ladder-challenge-cap';
+                cap.innerText = tier >= 5
+                    ? tf('%1 Задача за легенду', TIER_ICONS[5])
+                    : tf('%1 Задача за мастерство', TIER_ICONS[4]);
+                box.appendChild(cap);
+                const task = document.createElement('div');
+                task.className = 'ladder-challenge-task';
+                task.innerText = item.task;
+                box.appendChild(task);
+                const tap = document.createElement('div');
+                tap.className = 'ladder-challenge-tap';
+                tap.innerText = t('Нажми, чтобы увидеть ответ');
+                box.appendChild(tap);
+                const ans = document.createElement('div');
+                ans.className = 'ladder-challenge-answer';
+                ans.innerText = item.answer;
+                ans.hidden = true;
+                box.appendChild(ans);
+                box.addEventListener('click', () => {
+                    ans.hidden = !ans.hidden;
+                    tap.innerText = ans.hidden ? t('Нажми, чтобы увидеть ответ') : t('Скрыть ответ');
+                });
+                card.appendChild(box);
+            });
+
             return card;
         }
 
@@ -13513,6 +13689,8 @@
             document.getElementById('comboBadge').classList.remove('frenzy');
             answerLocked = false;
             resetSessionHints();
+            pendingChallengeReveals = [];
+            document.getElementById('challengeReveal').hidden = true;
         }
 
         // Возврат экрана выбора миссии к первому шагу с чистого листа. Нужен после завершённого
@@ -13600,10 +13778,10 @@
             // Окно могли открыть и по ходу игры, тапнув по миниатюре, — тогда просто
             // закрываем и ничего не показываем следом.
             if (gameActive) return;
-            if (showNextPuzzleReveal()) return;
-            document.getElementById('winScreen').classList.add('active');
+            advanceMissionReveals();
         }
         document.getElementById('btnContinuePlaying').addEventListener('click', dismissPuzzleReveal);
+        document.getElementById('challengeReveal').addEventListener('click', tapChallengeReveal);
 
         // ===================== ИГРОВАЯ ЛОГИКА (минимальная) =====================
         let gameActive = false;
@@ -14579,9 +14757,7 @@
 
             // Собранные за миссию пазлы показываем здесь — в естественной паузе,
             // а не посреди потока примеров. Экран итогов ждёт за ними.
-            if (!showNextPuzzleReveal()) {
-                document.getElementById('winScreen').classList.add('active');
-            }
+            advanceMissionReveals();
             Progress.flush(); // контрольная точка синхронизации
         }
 
