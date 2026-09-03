@@ -593,6 +593,10 @@
         .collection-item.unlocked { border-color: rgba(255, 215, 0, 0.5); box-shadow: 0 0 14px rgba(255,215,0,0.2); }
         .collection-item.unlocked { cursor: pointer; }
         .collection-item.unlocked:active { transform: scale(0.96); }
+        .collection-item .collection-cell {
+            position: absolute; top: 4px; left: 4px; padding: 2px 5px; border-radius: 6px;
+            background: rgba(2,3,8,0.72); color: #cbd5e1; font-size: 0.5rem; line-height: 1.1;
+        }
         .collection-item .item-caption {
             position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 5px 4px;
             background: linear-gradient(transparent, rgba(2,3,8,0.92));
@@ -1981,6 +1985,7 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Collection complete (%1/%2)",
             "Не учёл ноль в примере": "Missed the zero in the problem",
             "ноль": "zero",
             "ты выбрал %1": "you chose %1",
@@ -2485,6 +2490,7 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Collection complète (%1/%2)",
             "Не учёл ноль в примере": "N’a pas tenu compte du zéro",
             "ноль": "zéro",
             "ты выбрал %1": "tu as choisi %1",
@@ -2983,6 +2989,7 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Sammlung vollständig (%1/%2)",
             "Не учёл ноль в примере": "Die Null in der Aufgabe übersehen",
             "ноль": "Null",
             "ты выбрал %1": "du hast %1 gewählt",
@@ -9536,33 +9543,87 @@
             return { idx: p.idx, filled: p.filled };
         }
 
-        function pickRandomPuzzleImageIndex(avoidIndex) {
-            if (PUZZLE_IMAGE_SRCS.length <= 1) return 0;
+        // У каждой из двадцати клеток положительных чисел своя закреплённая картинка:
+        // четыре действия по пять звёзд, ровно двадцать пазлов. Коллекция перестаёт
+        // быть набором трофеев и становится картой пройденного — видно, откуда что.
+        //
+        // Счёт при этом остаётся ОБЩИМ: сто верных ответов — картинка, откуда бы
+        // ответы ни пришли. Привязать к клетке ещё и счёт значило бы оставить без
+        // картинок слабого ученика, который сидит на первой звезде.
+        const PUZZLE_CELL_OPS = ['add', 'sub', 'mul', 'div'];
+        const PUZZLE_CELL_LEVELS = 5;
 
-            let collection = loadCollectionArray();
-            let candidates = [];
-            for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
-                if (!collection[i] && i !== avoidIndex) candidates.push(i);
-            }
+        function puzzleIndexForTopic(topicKey) {
+            const p = parseTopicKey(topicKey);
+            if (!p || p.category !== 'integer' || p.sign !== '+') return null;
+            const opAt = PUZZLE_CELL_OPS.indexOf(p.op);
+            const lvl = Number(p.level) || 0;
+            if (opAt < 0 || lvl < 1 || lvl > PUZZLE_CELL_LEVELS) return null;
+            const idx = opAt * PUZZLE_CELL_LEVELS + (lvl - 1);
+            return idx < PUZZLE_IMAGE_SRCS.length ? idx : null;
+        }
 
-            if (candidates.length === 0) {
-                // Либо всё уже собрано, либо единственная несобранная картинка — та же,
-                // что мы хотим избежать повтора. В обоих случаях начинаем новый цикл коллекции.
-                collection = new Array(PUZZLE_IMAGE_SRCS.length).fill(false);
-                saveCollectionArray(collection);
-                updateCollectionBadge();
-                for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
-                    if (i !== avoidIndex) candidates.push(i);
+        // Обратное соответствие — для подписи в коллекции.
+        function puzzleTopicForIndex(idx) {
+            if (!Number.isInteger(idx) || idx < 0
+                || idx >= PUZZLE_CELL_OPS.length * PUZZLE_CELL_LEVELS) return null;
+            return `integer+:${PUZZLE_CELL_OPS[Math.floor(idx / PUZZLE_CELL_LEVELS)]}`
+                 + `:${(idx % PUZZLE_CELL_LEVELS) + 1}`;
+        }
+
+        // Какую картинку собирать дальше. Своя клетка → ближайшая несобранная того же
+        // действия → любая несобранная. Когда собрано всё, коллекцию НЕ обнуляем:
+        // раньше она стиралась в ноль, и ученик, дошедший до конца, терял разом все
+        // двадцать открытых карточек. Вместо этого пазл просто собирается заново.
+        function pickPuzzleImageIndex(topicKey, avoidIndex) {
+            const total = PUZZLE_IMAGE_SRCS.length;
+            if (total <= 1) return 0;
+            const collection = loadCollectionArray();
+            const free = (i) => i >= 0 && i < total && !collection[i];
+
+            const own = puzzleIndexForTopic(topicKey);
+            if (own !== null && free(own)) return own;
+
+            // Ученик застрял на своей звезде, а картинки всё равно идут «про сложение».
+            if (own !== null) {
+                const base = Math.floor(own / PUZZLE_CELL_LEVELS) * PUZZLE_CELL_LEVELS;
+                for (let d = 1; d < PUZZLE_CELL_LEVELS; d++) {
+                    const near = [own - d, own + d];
+                    for (const cand of near) {
+                        if (cand >= base && cand < base + PUZZLE_CELL_LEVELS && free(cand)) return cand;
+                    }
                 }
             }
 
-            return candidates[randInt(0, candidates.length - 1)];
+            const rest = [];
+            for (let i = 0; i < total; i++) if (free(i) && i !== avoidIndex) rest.push(i);
+            if (rest.length) return rest[randInt(0, rest.length - 1)];
+
+            // Собрано всё. Пересобираем картинку своей клетки, а если клетки нет —
+            // любую, кроме только что законченной.
+            if (own !== null) return own;
+            const any = [];
+            for (let i = 0; i < total; i++) if (i !== avoidIndex) any.push(i);
+            return any.length ? any[randInt(0, any.length - 1)] : 0;
+        }
+
+        // Клетка текущей миссии. Пока пример не сгенерирован, берём её из выбора на
+        // экране миссии — пазл заводится раньше первого примера.
+        function currentMissionTopicKey() {
+            if (typeof currentProblemMeta !== 'undefined' && currentProblemMeta) {
+                return buildTopicKey(currentProblemMeta);
+            }
+            const cfg = (typeof exampleConfig !== 'undefined' && exampleConfig) || {};
+            const ops = Object.keys(cfg.operations || {});
+            if (!cfg.category || ops.length !== 1) return null;
+            return buildTopicKey({ category: cfg.category, opKey: ops[0],
+                level: cfg.operations[ops[0]], isNegative: cfg.numberType === 'negative' });
         }
 
         // Полностью переключает пазл на новую случайную картинку: новая форма кусочков,
         // сброшенный прогресс. Игра при этом не останавливается — только сам пазл обновляется.
         function startNewPuzzle() {
-            const idx = pickRandomPuzzleImageIndex(currentPuzzleImageIndex);
+            const idx = pickPuzzleImageIndex(currentMissionTopicKey(), currentPuzzleImageIndex);
             currentPuzzleImageIndex = idx;
             const imgEl = document.getElementById('puzzleFullImg');
             imgEl.setAttribute('href', PUZZLE_IMAGE_SRCS[idx]);
@@ -9743,9 +9804,10 @@
             const completedSrc = PUZZLE_IMAGE_SRCS[completedIndex];
             const completedPaths = PUZZLE_PIECE_PATHS.map(row => row.slice());
 
-            // Отмечаем картинку собранной в коллекции — если собраны уже все, цикл сам
-            // сбросится при следующем выборе случайного пазла (см. pickRandomPuzzleImageIndex).
+            // Отмечаем картинку собранной. Когда собрано всё, коллекция остаётся полной
+            // и пазлы идут по второму кругу — см. pickPuzzleImageIndex.
             const collection = loadCollectionArray();
+            const wasCollected = !!collection[completedIndex];
             collection[completedIndex] = true;
             saveCollectionArray(collection);
             updateCollectionBadge();
@@ -9773,7 +9835,8 @@
                 index: completedIndex,
                 src: completedSrc,
                 paths: completedPaths,
-                collectedCount
+                collectedCount,
+                repeat: wasCollected
             });
             // Сигнал всё-таки нужен сразу: иначе сотый кусочек встаёт, и внешне не
             // происходит ничего — ученик может не заметить, что вообще что-то случилось.
@@ -9793,8 +9856,9 @@
             fillParadoxCard('complete', resolveParadoxes()[item.index]);
             document.getElementById('puzzleCompleteStats').innerText =
                 tf('⏱️ Время: %1  |  ✅ %2  |  ❌ %3  |  🧩 Пазлов собрано: %4', formatTime(totalSeconds), correctCount, wrongCount, puzzlesCompletedCount);
-            document.getElementById('collectionAddedLine').innerText =
-                tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length);
+            document.getElementById('collectionAddedLine').innerText = item.repeat
+                ? tf('🏆 Коллекция собрана полностью (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length)
+                : tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length);
 
             const imgEl = document.getElementById('puzzleCompleteImg');
             imgEl.removeAttribute('src');
@@ -9898,6 +9962,16 @@
                     cap.className = 'item-caption';
                     cap.innerText = (pxList[i] && pxList[i].name) || '';
                     item.appendChild(cap);
+                    // Метка клетки: без неё коллекция не читается как карта — непонятно,
+                    // откуда картинка взялась.
+                    const cellKey = puzzleTopicForIndex(i);
+                    if (cellKey) {
+                        const p = parseTopicKey(cellKey);
+                        const badge = document.createElement('div');
+                        badge.className = 'collection-cell';
+                        badge.innerText = `${OP_SHORT[p.op] || p.op} ${p.level}★`;
+                        item.appendChild(badge);
+                    }
                     item.addEventListener('click', () => showParadoxDetail(i));
                 }
                 grid.appendChild(item);
