@@ -7009,7 +7009,8 @@
             if (kind === 'сложил вместо умножения') {
                 // «1 × 6 — это 6 раза по 1» ничему не учит и звучит криво.
                 if (a === 1 || b === 1) return null;
-                return { game: [a, b], review: [a, b, correct, a + b] };
+                const times = hintCountPhrase('times', b);
+                return { game: [a, b, times], review: [a, b, correct, a + b, times] };
             }
             if (kind === 'перепутал действие') {
                 return { game: [], review: [a, b, correct, chosen] };
@@ -7025,7 +7026,7 @@
                 // В умножении считаем нулями по второму множителю: «сложи восемь нулей».
                 // Если оба нуля — считать нечего, молчим.
                 if (a === 0 && b === 0) return null;
-                return { game: [a === 0 ? b : a], review: [a, b] };
+                return { game: [hintCountPhrase('zeros', a === 0 ? b : a)], review: [a, b] };
             }
             if (kind === 'делил на ноль') {
                 return { game: [], review: [a] };
@@ -7055,6 +7056,34 @@
         }
 
         const HINT_OP_SIGNS = { add: '+', sub: '−', mul: '×', div: '÷' };
+
+        // Счётные слова склоняются, и на двузначных множителях это стало видно:
+        // «21 раза по 40» вместо «21 раз», «Сложи 2 нулей» вместо «2 нуля». Считаем
+        // словосочетание целиком и отдаём подсказке готовым одним аргументом: в
+        // остальных языках форма одна, но номер подстановки тот же, поэтому шаблоны
+        // всех четырёх языков остаются сверяемыми.
+        const HINT_COUNT_WORDS = {
+            times: { ru: ['раз', 'раза', 'раз'], en: ['times'], fr: ['fois'], de: ['-mal'] },
+            zeros: { ru: ['ноль', 'нуля', 'нулей'], en: ['zeros'], fr: ['zéros'], de: ['Nullen'] }
+        };
+
+        // 1, 21, 31 — первая форма; 2–4, 22–24 — вторая; остальное — третья.
+        function ruPluralIndex(n) {
+            const d100 = Math.abs(n) % 100, d10 = Math.abs(n) % 10;
+            if (d100 >= 11 && d100 <= 14) return 2;
+            if (d10 === 1) return 0;
+            if (d10 >= 2 && d10 <= 4) return 1;
+            return 2;
+        }
+
+        function hintCountPhrase(what, n) {
+            const table = HINT_COUNT_WORDS[what];
+            if (!table) return String(n);
+            const forms = table[(typeof LANG === 'string' && LANG) || 'ru'] || table.ru;
+            const word = forms.length > 1 ? forms[ruPluralIndex(n)] : forms[0];
+            // Немецкое «21-mal» пишется слитно, без пробела.
+            return word.charAt(0) === '-' ? `${n}${word}` : `${n} ${word}`;
+        }
 
         // Строка примера для карточки: «16 − 9 = 7». Карточка накрывает экран целиком,
         // и без неё подсказка висит в воздухе — за ней не видно ни примера, ни ответа,

@@ -324,6 +324,52 @@ test('ноль на ноль — молчим', () => {
     eq(H.R.hintText('game', 'ноль в примере', meta('mul'), { a: 0, b: 0 }, 0, 1), '');
 });
 
+group('Счётные слова');
+
+test('«раз» склоняется по числу множителя', () => {
+    // На однозначных этого не было видно, на двузначных вылезло: «21 раза по 40».
+    const at = (b) => H.R.hintText('game', 'сложил вместо умножения', meta('mul'), { a: 40, b }, 40 * b, 40 + b);
+    assert(/взятое 21 раз,/.test(at(21)), at(21));
+    assert(/взятое 22 раза,/.test(at(22)), at(22));
+    assert(/взятое 25 раз,/.test(at(25)), at(25));
+    assert(/взятое 12 раз,/.test(at(12)), at(12));   // 12–14 — исключение из правила
+    assert(/взятое 3 раза,/.test(at(3)), at(3));
+});
+
+test('«ноль» тоже склоняется', () => {
+    const at = (b) => H.R.hintText('game', 'ноль в примере', meta('mul'), { a: 0, b }, 0, 1);
+    eq(at(2), 'Сложи 2 нуля — получится ноль.');
+    eq(at(5), 'Сложи 5 нулей — получится ноль.');
+    eq(at(21), 'Сложи 21 ноль — получится ноль.');
+    eq(at(11), 'Сложи 11 нулей — получится ноль.');
+});
+
+test('в разборе счётное слово тоже согласовано', () => {
+    const got = H.R.hintText('review', 'сложил вместо умножения', meta('mul'), { a: 40, b: 21 }, 840, 61);
+    assert(/взятое 21 раз\./.test(got), got);
+});
+
+test('в других языках счётное слово одной формы', () => {
+    const forms = { en: [/taken 21 times/, /taken 22 times/], fr: [/pris 21 fois/, /pris 22 fois/],
+                    de: [/die 40 21-mal genommen/, /die 40 22-mal genommen/] };
+    Object.keys(forms).forEach(lang => {
+        const box = loadHints({ HINT_CONTENT: CONTENT });
+        box.LANG = lang;
+        forms[lang].forEach((re, i) => {
+            const b = 21 + i;
+            const got = box.R.hintText('game', 'сложил вместо умножения', meta('mul'), { a: 40, b }, 40 * b, 40 + b);
+            assert(re.test(got), `[${lang}] ${got}`);
+        });
+    });
+});
+
+test('немецкое «-mal» пишется слитно, а не через пробел', () => {
+    const box = loadHints({ HINT_CONTENT: CONTENT });
+    box.LANG = 'de';
+    const got = box.R.hintText('game', 'сложил вместо умножения', meta('mul'), { a: 40, b: 21 }, 840, 61);
+    assert(/21-mal/.test(got) && !/21 -mal/.test(got), got);
+});
+
 group('Слова, а не термины');
 
 test('в игре сказано «пересчитай десятки», а не «проверь перенос»', () => {
