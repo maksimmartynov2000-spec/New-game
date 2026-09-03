@@ -73,6 +73,25 @@ function loadHints(windowObj) {
     return box;
 }
 
+// Полный classifyMistake — для видов, которые ставятся выше разрядных моделей.
+function loadFullClassifier() {
+    const box = { console, Math, Number, String, parseInt,
+                  isFrac: () => false, sameValue: () => false,
+                  isDecimalValue: () => false, classifyFractionArith: () => null,
+                  classifyFracOfNumber: () => null };
+    const src = slice('function noBorrowSub(a, b)', '\n\n', 'noBorrowSub')
+        + '\n' + slice('function classifyIntegerLike(problem, correct, chosen, opKey)',
+                       '// «Дробь от числа»', 'разрядные модели')
+        + '\n' + slice('function classifyZeroInExample(opKey, problem, chosen)',
+                       '// «Дробь от числа»', 'ноль в примере')
+        + '\n' + slice('function classifyMistake(meta, problem, correct, chosen)',
+                       '// ===================== ПАЗЛ', 'classifyMistake')
+        + ';globalThis.CM = classifyMistake;';
+    vm.createContext(box);
+    vm.runInContext(src, box, { filename: 'index.html<classifyMistake>' });
+    return box.CM;
+}
+
 // Классификатор — отдельным срезом: новый вид «ошибка в единицах» надо проверить прямо.
 function loadClassifier() {
     const box = { console, Math, Number, String, parseInt };
@@ -146,6 +165,7 @@ test('коды видов ошибок не переведены', () => {
 group('Подстановка чисел');
 
 const H = loadHints({ HINT_CONTENT: CONTENT });
+const CM = loadFullClassifier();
 const meta = (op) => ({ opKey: op, category: 'integer' });
 
 test('заём: подсказка говорит цифрами примера', () => {
@@ -221,6 +241,96 @@ test('шаблон, которому не хватило аргументов, �
 test('без файла с текстами подсказок нет, но и падения нет', () => {
     const box = loadHints({});
     eq(box.R.hintText('game', 'не занял десяток', meta('sub'), { a: 52, b: 8 }, 44, 56), '');
+});
+
+group('Когда молчим: текст был бы неправдой');
+
+test('перенос не упоминается там, где переноса нет', () => {
+    // 10 + 7 = 17: единицы 0 + 7, наверх ничего не уходит.
+    eq(H.R.hintText('game', 'ошибка в десятках', meta('add'), { a: 10, b: 7 }, 17, 27), '');
+    eq(H.R.hintText('review', 'ошибка в десятках', meta('add'), { a: 10, b: 7 }, 17, 27), '');
+});
+
+test('с настоящим переносом подсказка остаётся', () => {
+    const got = H.R.hintText('review', 'ошибка в десятках', meta('add'), { a: 19, b: 46 }, 65, 75);
+    assert(/9 \+ 6 = 15/.test(got), got);
+});
+
+test('заём не упоминается там, где занимать нечего', () => {
+    // 13 − 2: единицы 3 и 2, заём не нужен.
+    eq(H.R.hintText('game', 'ошибка в десятках', meta('sub'), { a: 13, b: 2 }, 11, 21), '');
+});
+
+test('с настоящим заёмом подсказка остаётся', () => {
+    assert(H.R.hintText('game', 'ошибка в десятках', meta('sub'), { a: 52, b: 17 }, 35, 45), 'должна быть');
+});
+
+test('«посчитай отдельно единицы» не говорим, когда единицы — весь пример', () => {
+    // 9 + 1 = 10: столбика нет, совет повторяет условие.
+    eq(H.R.hintText('game', 'ошибка в единицах', meta('add'), { a: 9, b: 1 }, 10, 12), '');
+});
+
+test('при двузначном числе разбор по единицам остаётся', () => {
+    assert(H.R.hintText('game', 'ошибка в единицах', meta('add'), { a: 24, b: 38 }, 62, 68), 'должна быть');
+});
+
+test('про множитель единицу молчим', () => {
+    // «1 × 6 — это 6 раза по 1» ничему не учит.
+    eq(H.R.hintText('game', 'сложил вместо умножения', meta('mul'), { a: 1, b: 6 }, 6, 7), '');
+    eq(H.R.hintText('game', 'сложил вместо умножения', meta('mul'), { a: 6, b: 1 }, 6, 7), '');
+});
+
+test('про клетку таблицы с нулём молчим', () => {
+    // 1 × 9, выбрал 0 — формально соседняя клетка 1 × 0, сказать нечего.
+    eq(H.R.hintText('game', 'таблица умножения', meta('mul'), { a: 1, b: 9 }, 9, 0), '');
+});
+
+test('про делитель единицу молчим', () => {
+    // Иначе разбор утверждает «ответ всегда меньше делимого», а он равен ему.
+    eq(H.R.hintText('review', 'взял одно из чисел', meta('div'), { a: 12, b: 1 }, 12, 1), '');
+});
+
+group('Ноль в примере');
+
+test('классификатор видит ноль в умножении', () => {
+    const box = loadHints({ HINT_CONTENT: CONTENT });
+    eq(CM({ opKey: 'mul', category: 'integer' }, { a: 0, b: 8 }, 0, 1), 'ноль в примере');
+});
+
+test('классификатор видит делённый ноль', () => {
+    eq(CM({ opKey: 'div', category: 'integer' }, { a: 0, b: 10 }, 0, 10), 'ноль в примере');
+});
+
+test('«нет решения» при делении ноля — та же путаница', () => {
+    // 0 ÷ 10 и 10 ÷ 0 путают постоянно; выбор «нет решения» это ровно она.
+    eq(CM({ opKey: 'div', category: 'integer' }, { a: 0, b: 10 }, 0, 'NO_SOLUTION'), 'ноль в примере');
+});
+
+test('верный ноль ошибкой не считается', () => {
+    assert(CM({ opKey: 'mul', category: 'integer' }, { a: 0, b: 8 }, 0, 0) !== 'ноль в примере');
+});
+
+test('подсказка про ноль считает нулями по второму множителю', () => {
+    eq(H.R.hintText('game', 'ноль в примере', meta('mul'), { a: 0, b: 8 }, 0, 1),
+       'Сложи 8 нулей — получится ноль.');
+});
+
+test('про деление ноля говорим отдельно от деления на ноль', () => {
+    const got = H.R.hintText('review', 'ноль в примере', meta('div'), { a: 0, b: 10 }, 0, 10);
+    assert(/НА ноль/.test(got), `разбор должен развести два случая: ${got}`);
+});
+
+test('ноль на ноль — молчим', () => {
+    eq(H.R.hintText('game', 'ноль в примере', meta('mul'), { a: 0, b: 0 }, 0, 1), '');
+});
+
+group('Слова, а не термины');
+
+test('в игре сказано «пересчитай десятки», а не «проверь перенос»', () => {
+    // «Перенос» — жаргон. Термин остаётся в разборе, где есть место объяснить.
+    const got = H.R.hintText('game', 'ошибка в десятках', meta('add'), { a: 19, b: 46 }, 65, 75);
+    assert(/пересчитай десятки/.test(got), got);
+    assert(!/перенос/.test(got), `в игре термина быть не должно: ${got}`);
 });
 
 group('Когда показывать');
