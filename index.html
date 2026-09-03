@@ -908,7 +908,12 @@
             font-size: 0.72rem; color: #7dd3fc; letter-spacing: 0.04em;
             text-transform: uppercase; margin-bottom: 9px;
         }
-        .hint-freeze-text { font-size: 1rem; line-height: 1.45; color: #e2e8f0; }
+        .hint-freeze-example { font-size: 1.15rem; font-weight: bold; color: #f8fafc; line-height: 1.2; }
+        .hint-freeze-chosen { font-size: 0.72rem; color: #f87171; margin-top: 3px; }
+        .hint-freeze-text {
+            font-size: 1rem; line-height: 1.45; color: #e2e8f0;
+            margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(125,211,252,0.18);
+        }
         .hint-freeze-tap { margin-top: 12px; font-size: 0.7rem; color: #64748b; }
         /* Иней на полоске времени: видно, что остановилось именно время, а не игра. */
         .timer-bar.frozen { background: linear-gradient(90deg, #7dd3fc, #38bdf8) !important; opacity: 0.85; }
@@ -1946,6 +1951,10 @@
     <div class="hint-freeze" id="hintFreeze" hidden>
         <div class="hint-freeze-card">
             <div class="hint-freeze-ice">❄️ <span id="hintFreezeLabel">Время остановлено</span></div>
+            <!-- Пример повторён внутри карточки: она накрывает экран целиком, и без
+                 этого непонятно, о каком примере вообще речь. -->
+            <div class="hint-freeze-example" id="hintFreezeExample"></div>
+            <div class="hint-freeze-chosen" id="hintFreezeChosen"></div>
             <div class="hint-freeze-text" id="hintFreezeText"></div>
             <div class="hint-freeze-tap" id="hintFreezeTap">Нажми, чтобы продолжить</div>
         </div>
@@ -1972,6 +1981,7 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "ты выбрал %1": "you chose %1",
             "Время остановлено": "Time is frozen",
             "Нажми, чтобы продолжить": "Tap to continue",
             "Где чаще всего спотыкался": "Where you stumbled most",
@@ -2473,6 +2483,7 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "ты выбрал %1": "tu as choisi %1",
             "Время остановлено": "Le temps est figé",
             "Нажми, чтобы продолжить": "Touche pour continuer",
             "Где чаще всего спотыкался": "Où tu as le plus buté",
@@ -2968,6 +2979,7 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "ты выбрал %1": "du hast %1 gewählt",
             "Время остановлено": "Die Zeit steht still",
             "Нажми, чтобы продолжить": "Tippen, um weiterzumachen",
             "Где чаще всего спотыкался": "Wo es am häufigsten hakte",
@@ -6793,7 +6805,13 @@
             // Ставится САМОЙ последней, ниже промаха на единицу: «34 вместо 35» это тоже
             // верные десятки при неверной единице, но там ученику полезнее услышать
             // «мимо на единицу». Отрицательные не трогаем: там своя арифметика разрядов.
-            if ((opKey === 'add' || opKey === 'sub') && chosen >= 0 && correct >= 0
+            //
+            // Оба числа должны быть не меньше десяти. Без этого условия «9 вместо 7»
+            // тоже считалось «верными десятками» — их там просто нет ни одного, — и
+            // подсказка говорила «десятки сошлись» на первой звезде вычитания в ста
+            // процентах случаев. Однозначный промах честнее оставить «другой ошибкой»:
+            // про него мы действительно ничего не знаем.
+            if ((opKey === 'add' || opKey === 'sub') && chosen >= 10 && correct >= 10
                 && chosen % 10 !== correct % 10
                 && Math.floor(chosen / 10) === Math.floor(correct / 10)) {
                 return 'ошибка в единицах';
@@ -6983,6 +7001,24 @@
             }
         }
 
+        const HINT_OP_SIGNS = { add: '+', sub: '−', mul: '×', div: '÷' };
+
+        // Строка примера для карточки: «16 − 9 = 7». Карточка накрывает экран целиком,
+        // и без неё подсказка висит в воздухе — за ней не видно ни примера, ни ответа,
+        // и ученик не понимает, о чём вообще речь.
+        function hintProblemLine(meta, problem, correct) {
+            const sign = HINT_OP_SIGNS[meta && meta.opKey];
+            if (!sign || !problem || typeof problem.a !== 'number' || typeof problem.b !== 'number') return '';
+            const right = (typeof correct === 'number') ? String(correct) : t('Нет решения');
+            return `${problem.a} ${sign} ${problem.b} = ${right}`;
+        }
+
+        function hintChosenLine(chosen) {
+            const what = (typeof chosen === 'number') ? String(chosen)
+                : (chosen === 'NO_SOLUTION' ? t('Нет решения') : '');
+            return what ? tf('ты выбрал %1', what) : '';
+        }
+
         // Счётчики живут ровно одну миссию.
         let sessionKindCounts = {};
         let sessionHintsShown = 0;
@@ -7011,11 +7047,19 @@
         // автоскрытия нет: подсказка ждёт нажатия.
         let hintFreezeResume = null;
 
-        function showHintFreeze(text, onDone) {
+        function showHintFreeze(text, onDone, extra) {
             const done = typeof onDone === 'function' ? onDone : function () {};
             const box = document.getElementById('hintFreeze');
             if (!box || !text) { done(); return; }
             try {
+                const put = (id, value) => {
+                    const el = document.getElementById(id);
+                    if (!el) return;
+                    el.innerText = value || '';
+                    el.hidden = !value;
+                };
+                put('hintFreezeExample', extra && extra.example);
+                put('hintFreezeChosen', extra && extra.chosen);
                 document.getElementById('hintFreezeText').innerText = text;
                 document.getElementById('hintFreezeLabel').innerText = t('Время остановлено');
                 document.getElementById('hintFreezeTap').innerText = t('Нажми, чтобы продолжить');
@@ -14163,9 +14207,14 @@
                 }
             }
 
+            const freezeExample = freezeHint
+                ? { example: hintProblemLine(currentProblemMeta, currentProblem, correctAnswer),
+                    chosen: hintChosenLine(chosen) }
+                : null;
+
             setTimeout(() => {
                 const next = () => { answerLocked = false; generateMath(); };
-                if (freezeHint) showHintFreeze(freezeHint, next);
+                if (freezeHint) showHintFreeze(freezeHint, next, freezeExample);
                 else next();
             }, isUnreducedMatch ? 1700 : 1400);
         }
