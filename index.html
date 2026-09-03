@@ -889,6 +889,38 @@
         .week-bar-label { font-size: 0.58rem; color: #64748b; margin-top: 4px; white-space: nowrap; }
         .strip-legend .day-cell { width: 10px; aspect-ratio: 1; }
 
+        /* --- Подсказка с заморозкой времени --- */
+        .hint-freeze {
+            position: fixed; inset: 0; z-index: 260; display: flex;
+            align-items: center; justify-content: center; padding: 20px;
+            background: rgba(8, 15, 30, 0.72); backdrop-filter: blur(2px);
+            animation: hintFreezeIn 0.18s ease-out;
+        }
+        .hint-freeze[hidden] { display: none; }
+        @keyframes hintFreezeIn { from { opacity: 0; } to { opacity: 1; } }
+        .hint-freeze-card {
+            width: min(94vw, 460px); padding: 16px 18px; border-radius: 16px; text-align: center;
+            background: linear-gradient(180deg, rgba(30,58,92,0.96), rgba(15,26,44,0.96));
+            border: 1px solid rgba(125, 211, 252, 0.45);
+            box-shadow: 0 0 34px rgba(56, 189, 248, 0.25);
+        }
+        .hint-freeze-ice {
+            font-size: 0.72rem; color: #7dd3fc; letter-spacing: 0.04em;
+            text-transform: uppercase; margin-bottom: 9px;
+        }
+        .hint-freeze-text { font-size: 1rem; line-height: 1.45; color: #e2e8f0; }
+        .hint-freeze-tap { margin-top: 12px; font-size: 0.7rem; color: #64748b; }
+        /* Иней на полоске времени: видно, что остановилось именно время, а не игра. */
+        .timer-bar.frozen { background: linear-gradient(90deg, #7dd3fc, #38bdf8) !important; opacity: 0.85; }
+
+        /* Подсказка в разборе ошибок — над списком. */
+        .hint-review {
+            margin: 0 0 12px; padding: 11px 13px; border-radius: 12px; text-align: left;
+            background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(125, 211, 252, 0.28);
+        }
+        .hint-review-title { font-size: 0.7rem; color: #7dd3fc; text-transform: uppercase; letter-spacing: 0.04em; }
+        .hint-review-text { font-size: 0.84rem; line-height: 1.5; color: #cbd5e1; margin-top: 6px; }
+
         /* --- Дневная цель на экране выбора миссии --- */
         .daily-bar {
             display: flex; align-items: center; gap: 12px;
@@ -1296,6 +1328,9 @@
     <!-- Тексты парадоксов. Обычный файл данных: если он не загрузился, игра работает
          как обычно, просто без карточек — см. resolveParadoxes(). -->
     <script src="content/paradoxes.js"></script>
+    <!-- Подсказки по видам ошибок. Тоже внешний файл: не доехал — игра идёт как раньше,
+         просто молча (см. resolveHints). -->
+    <script src="content/hints.js"></script>
 </head>
 <body>
 
@@ -1906,6 +1941,16 @@
         </div>
     </div>
 
+    <!-- Подсказка с заморозкой времени. Появляется в паузе после неверного ответа:
+         часы миссии и полоска времени встают, спешить некуда. Уходит по нажатию. -->
+    <div class="hint-freeze" id="hintFreeze" hidden>
+        <div class="hint-freeze-card">
+            <div class="hint-freeze-ice">❄️ <span id="hintFreezeLabel">Время остановлено</span></div>
+            <div class="hint-freeze-text" id="hintFreezeText"></div>
+            <div class="hint-freeze-tap" id="hintFreezeTap">Нажми, чтобы продолжить</div>
+        </div>
+    </div>
+
     <!-- Диалог приложения (подтверждения и ввод) и лента коротких уведомлений.
          Содержимое собирается в askConfirm/askForm/showNotice, разметка тут пустая. -->
     <div class="dlg-backdrop" id="appDialog" role="dialog" aria-modal="true">
@@ -1927,6 +1972,11 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "Время остановлено": "Time is frozen",
+            "Нажми, чтобы продолжить": "Tap to continue",
+            "Где чаще всего спотыкался": "Where you stumbled most",
+            "Десятки верные, ошибка в единицах": "Tens right, units wrong",
+            "мимо в единицах": "units off",
             "Сегодня %1 из %2": "Today %1 of %2",
             "Сегодня готово: %1": "Today done: %1",
             "%1 подряд": "%1 in a row",
@@ -2423,6 +2473,11 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "Время остановлено": "Le temps est figé",
+            "Нажми, чтобы продолжить": "Touche pour continuer",
+            "Где чаще всего спотыкался": "Où tu as le plus buté",
+            "Десятки верные, ошибка в единицах": "Dizaines justes, unités fausses",
+            "мимо в единицах": "unités",
             "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
             "Сегодня готово: %1": "Aujourd’hui terminé : %1",
             "%1 подряд": "%1 d’affilée",
@@ -2913,6 +2968,11 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "Время остановлено": "Die Zeit steht still",
+            "Нажми, чтобы продолжить": "Tippen, um weiterzumachen",
+            "Где чаще всего спотыкался": "Wo es am häufigsten hakte",
+            "Десятки верные, ошибка в единицах": "Zehner richtig, Einer falsch",
+            "мимо в единицах": "Einer daneben",
             "Сегодня %1 из %2": "Heute %1 von %2",
             "Сегодня готово: %1": "Heute geschafft: %1",
             "%1 подряд": "%1 in Folge",
@@ -6550,6 +6610,7 @@
             'делил на ноль':               t('Не заметил деления на ноль'),
             'запятая не на месте':         t('Запятая не на месте'),
             'ошибка в десятках':           t('Единицы верные, ошибка в десятках'),
+            'ошибка в единицах':           t('Десятки верные, ошибка в единицах'),
             'не перенёс десяток':          t('Не перенёс десяток'),
             'не занял десяток':            t('Не занял десяток при вычитании'),
             'переставил числа':            t('Поменял числа местами'),
@@ -6585,6 +6646,7 @@
             'делил на ноль':               t('деление на 0'),
             'запятая не на месте':         t('запятая'),
             'ошибка в десятках':           t('мимо на десяток'),
+            'ошибка в единицах':           t('мимо в единицах'),
             'не перенёс десяток':          t('без переноса'),
             'не занял десяток':            t('без займа'),
             'переставил числа':            t('числа местами'),
@@ -6721,6 +6783,21 @@
             // Промах на единицу проверяем последним: иначе он перехватывал бы более
             // говорящие причины, которые случайно оказались рядом с верным ответом.
             if (Math.abs(chosen - correct) === 1) return 'ошибся на единицу';
+
+            // Зеркало «ошибки в десятках»: десятки верные, последняя цифра нет. Это вторая
+            // половина столбикового счёта, и до сих пор она уходила в «другую ошибку» —
+            // самую частую и самую бесполезную корзину на сложении и вычитании. По замеру
+            // на шести тысячах неверных вариантов эта модель забирает из неё 46% на
+            // сложении и 69% на вычитании.
+            //
+            // Ставится САМОЙ последней, ниже промаха на единицу: «34 вместо 35» это тоже
+            // верные десятки при неверной единице, но там ученику полезнее услышать
+            // «мимо на единицу». Отрицательные не трогаем: там своя арифметика разрядов.
+            if ((opKey === 'add' || opKey === 'sub') && chosen >= 0 && correct >= 0
+                && chosen % 10 !== correct % 10
+                && Math.floor(chosen / 10) === Math.floor(correct / 10)) {
+                return 'ошибка в единицах';
+            }
             return null;
         }
 
@@ -6802,6 +6879,163 @@
             } catch (e) {
                 // Разбор ошибок не имеет права уронить игру: не разобрались — и ладно.
                 return 'другая ошибка';
+            }
+        }
+
+        // ===================== ПОДСКАЗКИ ПО ОШИБКАМ =====================
+        // Тексты лежат в content/hints.js. Здесь — когда показывать и какие числа
+        // подставить: подсказка говорит числами того примера, на котором ученик
+        // споткнулся, иначе она превращается в общее место вроде «бывает перенос».
+        //
+        // Показываем скупо. Ошибка одного вида должна повториться трижды за миссию —
+        // один промах это случайность, а не пробел. Один вид подсказывается один раз,
+        // всего за миссию не больше двух подсказок: третья это уже урок посреди игры.
+        const HINT_REPEAT_AT = 3;
+        const HINT_MAX_PER_SESSION = 2;
+        // «Другая ошибка» — корзина, про которую мы честно ничего не знаем; «не сократил»
+        // это вообще не ошибка в счёте. Молчать здесь лучше, чем говорить наугад.
+        const HINT_NEVER = ['другая ошибка', 'не сократил'];
+
+        function resolveHints() {
+            const all = (typeof window !== 'undefined' && window.HINT_CONTENT) || null;
+            if (!all) return null;
+            const lang = (typeof LANG === 'string' && LANG) || 'ru';
+            return all[lang] || all.ru || null;
+        }
+
+        // Ключ ищем сначала с действием ('ошибка в десятках:add'), потом без него:
+        // у сложения и вычитания одна и та же ошибка объясняется разными словами.
+        function hintEntry(kind, opKey) {
+            const table = resolveHints();
+            if (!table || !kind) return null;
+            return (opKey && table[kind + ':' + opKey]) || table[kind] || null;
+        }
+
+        // Какую клетку таблицы ученик посчитал на самом деле. Вид ошибки ставится
+        // ровно тогда, когда неверный ответ равен соседней клетке, — значит её можно
+        // назвать прямо, а не отделываться словом «соседняя».
+        function mulFactUsed(a, b, chosen) {
+            const cands = [[a, b + 1], [a, b - 1], [a + 1, b], [a - 1, b]];
+            for (const pair of cands) if (pair[0] * pair[1] === chosen) return pair;
+            return null;
+        }
+
+        // Аргументы подстановки, отдельно для строки в игре и для разбора. Порядок
+        // описан в шапке content/hints.js и обязан совпадать во всех языках.
+        function hintArgs(kind, meta, problem, correct, chosen) {
+            const op = meta && meta.opKey;
+            const a = problem && problem.a, b = problem && problem.b;
+            if (typeof a !== 'number' || typeof b !== 'number') return null;
+            const u = (x) => Math.abs(x) % 10;
+
+            if (kind === 'ошибка в десятках') {
+                if (op === 'add') { const su = u(a) + u(b); return { game: [], review: [a, b, u(a), u(b), su, su % 10] }; }
+                return { game: [], review: [a, b] };
+            }
+            if (kind === 'ошибка в единицах') {
+                if (op === 'add') { const su = u(a) + u(b); return { game: [u(a), u(b)], review: [a, b, u(a), u(b), su, su % 10] }; }
+                if (typeof correct !== 'number') return null;
+                return { game: [], review: [a, b, u(correct)] };
+            }
+            if (kind === 'не занял десяток') {
+                return { game: [u(a), u(b), u(a) + 10],
+                         review: [a, b, u(a), u(b), u(a) + 10, u(a) + 10 - u(b)] };
+            }
+            if (kind === 'таблица умножения') {
+                const pair = mulFactUsed(a, b, chosen);
+                if (!pair || typeof correct !== 'number') return null;
+                return { game: [pair[0], pair[1], a, b, Math.abs(correct - chosen)],
+                         review: [pair[0], pair[1], chosen, a, b, correct] };
+            }
+            if (kind === 'сложил вместо умножения') {
+                return { game: [a, b], review: [a, b, correct, a + b] };
+            }
+            if (kind === 'перепутал действие') {
+                return { game: [], review: [a, b, correct, chosen] };
+            }
+            if (kind === 'взял одно из чисел') {
+                return { game: [a, b], review: [a, b, correct] };
+            }
+            if (kind === 'делил на ноль') {
+                return { game: [], review: [a] };
+            }
+            if (kind === 'ошибся на единицу') {
+                return { game: [], review: [chosen, correct] };
+            }
+            return null;
+        }
+
+        // Готовый текст подсказки или пустая строка. Пустая — законный ответ: подсказки
+        // нет, файл не доехал, числа не сошлись. Игру это не должно задевать никак.
+        function hintText(form, kind, meta, problem, correct, chosen) {
+            try {
+                const entry = hintEntry(kind, meta && meta.opKey);
+                if (!entry || !entry[form]) return '';
+                const args = hintArgs(kind, meta, problem, correct, chosen);
+                if (!args || !args[form]) return '';
+                let out = entry[form];
+                args[form].forEach((v, i) => { out = out.split('%' + (i + 1)).join(String(v)); });
+                // Осталась неподставленная %N — значит шаблон и аргументы разъехались.
+                // Показывать такое ученику нельзя, лучше промолчать.
+                return /%\d/.test(out) ? '' : out;
+            } catch (e) {
+                return '';
+            }
+        }
+
+        // Счётчики живут ровно одну миссию.
+        let sessionKindCounts = {};
+        let sessionHintsShown = 0;
+        let sessionHintKinds = {};
+
+        function resetSessionHints() {
+            sessionKindCounts = {};
+            sessionHintsShown = 0;
+            sessionHintKinds = {};
+            const box = document.getElementById('hintFreeze');
+            if (box) box.hidden = true;
+            const bar = document.getElementById('timerBar');
+            if (bar) bar.classList.remove('frozen');
+        }
+
+        function shouldShowHint(kind) {
+            if (!kind || HINT_NEVER.indexOf(kind) >= 0) return false;
+            if (sessionHintsShown >= HINT_MAX_PER_SESSION) return false;
+            if (sessionHintKinds[kind]) return false;
+            return (sessionKindCounts[kind] || 0) >= HINT_REPEAT_AT;
+        }
+
+        // Заморозка. Часы миссии и полоска времени крутятся по одному флагу gameActive —
+        // снять его достаточно, чтобы всё встало. Ученику это видно: полоска покрывается
+        // инеем, поверх стоит надпись «время остановлено». Спешить незачем, поэтому
+        // автоскрытия нет: подсказка ждёт нажатия.
+        let hintFreezeResume = null;
+
+        function showHintFreeze(text, onDone) {
+            const done = typeof onDone === 'function' ? onDone : function () {};
+            const box = document.getElementById('hintFreeze');
+            if (!box || !text) { done(); return; }
+            try {
+                document.getElementById('hintFreezeText').innerText = text;
+                document.getElementById('hintFreezeLabel').innerText = t('Время остановлено');
+                document.getElementById('hintFreezeTap').innerText = t('Нажми, чтобы продолжить');
+                const bar = document.getElementById('timerBar');
+                if (bar) bar.classList.add('frozen');
+                gameActive = false;
+                box.hidden = false;
+                hintFreezeResume = () => {
+                    hintFreezeResume = null;
+                    box.hidden = true;
+                    if (bar) bar.classList.remove('frozen');
+                    gameActive = true;
+                    done();
+                };
+                box.onclick = () => { if (hintFreezeResume) hintFreezeResume(); };
+            } catch (e) {
+                // Подсказка — надстройка. Что бы с ней ни случилось, игра обязана идти.
+                box.hidden = true;
+                gameActive = true;
+                done();
             }
         }
 
@@ -13033,6 +13267,7 @@
             document.getElementById('comboBadge').style.display = 'none';
             document.getElementById('comboBadge').classList.remove('frenzy');
             answerLocked = false;
+            resetSessionHints();
         }
 
         // Возврат экрана выбора миссии к первому шагу с чистого листа. Нужен после завершённого
@@ -13333,7 +13568,7 @@
         // Снимок примера в момент неверного ответа. Условие и варианты берём готовыми из DOM
         // (innerHTML), потому что дроби — это разметка, а не текст: пересобирать её заново
         // значило бы дублировать всю логику отрисовки ради того же результата.
-        function rememberMistake(clickedBtn, isAlmost, mistakeKind) {
+        function rememberMistake(clickedBtn, isAlmost, mistakeKind, chosen) {
             try {
                 const questionHtml = document.getElementById('mathQuestion').innerHTML;
                 const chosenKey = clickedBtn ? clickedBtn.dataset.key : null;
@@ -13348,6 +13583,14 @@
                     questionHtml, options, chosenKey, correctKey,
                     isAlmost: !!isAlmost,
                     kind: mistakeKind || null,
+                    // Числа примера — для подсказки в разборе. Она говорит числами того
+                    // примера, на котором споткнулись, а из разметки их не достать.
+                    a: (currentProblem && typeof currentProblem.a === 'number') ? currentProblem.a : null,
+                    b: (currentProblem && typeof currentProblem.b === 'number') ? currentProblem.b : null,
+                    correctVal: correctAnswer,
+                    chosenVal: chosen,
+                    opKey: meta.opKey || null,
+                    category: meta.category || null,
                     topic: meta.category ? `${categoryLabel(meta.category, meta.isNegative ? '-' : '+')} · ${(OP_LABELS[meta.opKey] || meta.opKey || '').replace(/^\S+\s/, '')}` : '',
                     level: meta.level || null
                 });
@@ -13363,6 +13606,42 @@
         }
         function closeMistakesScreen() {
             document.getElementById('mistakesScreen').style.display = 'none';
+        }
+
+        // Самый частый вид ошибки за миссию — и подсказка к нему, на числах того
+        // примера, где он случился. Виды из HINT_NEVER не в счёт: про них нам сказать
+        // нечего, и «побеждать» в этом подсчёте они не должны.
+        function topMistakeKind(list) {
+            const counts = {};
+            (list || []).forEach(m => {
+                if (!m.kind || HINT_NEVER.indexOf(m.kind) >= 0) return;
+                counts[m.kind] = (counts[m.kind] || 0) + 1;
+            });
+            let best = null, bestN = 0;
+            Object.keys(counts).forEach(k => { if (counts[k] > bestN) { bestN = counts[k]; best = k; } });
+            return best;
+        }
+
+        function renderReviewHint(wrap) {
+            const kind = topMistakeKind(sessionMistakes);
+            if (!kind) return;
+            const m = sessionMistakes.filter(x => x.kind === kind && x.a !== null)[0];
+            if (!m) return;
+            const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
+                { a: m.a, b: m.b }, m.correctVal, m.chosenVal);
+            if (!text) return;
+
+            const box = document.createElement('div');
+            box.className = 'hint-review';
+            const title = document.createElement('div');
+            title.className = 'hint-review-title';
+            title.innerText = t('Где чаще всего спотыкался');
+            box.appendChild(title);
+            const body = document.createElement('div');
+            body.className = 'hint-review-text';
+            body.innerText = text;
+            box.appendChild(body);
+            wrap.appendChild(box);
         }
 
         function renderMistakesScreen() {
@@ -13381,6 +13660,11 @@
             sub.innerText = almost > 0
                 ? tf('Ошибок: %1 · «почти»: %2', real, almost)
                 : tf('Ошибок: %1', real);
+
+            // Одна подсказка сверху — про то, где спотыкался чаще всего. Не список
+            // правил на все ошибки: разбор читают в конце занятия, и второе правило
+            // там уже не читают.
+            renderReviewHint(wrap);
 
             sessionMistakes.forEach(m => {
                 const card = document.createElement('div');
@@ -13821,7 +14105,7 @@
                 ? 'не сократил'
                 : classifyMistake(currentProblemMeta, currentProblem, correctAnswer, chosen);
 
-            rememberMistake(clickedBtn, isUnreducedMatch, mistakeKind);
+            rememberMistake(clickedBtn, isUnreducedMatch, mistakeKind, chosen);
 
             answerLocked = true;
             clearInterval(timerInterval);
@@ -13864,9 +14148,25 @@
             // Пауза нужна, чтобы успеть увидеть, какой ответ был верным. Сюда попадают
             // только неверные исходы — верный ответ выходит выше и переходит к следующему
             // примеру сразу, без всякой паузы.
+            // Подсказку готовим здесь, а показываем после паузы: сначала ученик видит,
+            // какой ответ был верным, и только потом — почему он ошибся.
+            let freezeHint = '';
+            if (!isUnreducedMatch && mistakeKind) {
+                sessionKindCounts[mistakeKind] = (sessionKindCounts[mistakeKind] || 0) + 1;
+                if (shouldShowHint(mistakeKind)) {
+                    freezeHint = hintText('game', mistakeKind, currentProblemMeta,
+                        currentProblem, correctAnswer, chosen);
+                    if (freezeHint) {
+                        sessionHintsShown++;
+                        sessionHintKinds[mistakeKind] = true;
+                    }
+                }
+            }
+
             setTimeout(() => {
-                answerLocked = false;
-                generateMath();
+                const next = () => { answerLocked = false; generateMath(); };
+                if (freezeHint) showHintFreeze(freezeHint, next);
+                else next();
             }, isUnreducedMatch ? 1700 : 1400);
         }
 
