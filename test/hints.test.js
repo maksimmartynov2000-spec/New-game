@@ -42,7 +42,8 @@ function makeDoc() {
                      remove(c) { this.list = this.list.filter(x => x !== c); },
                      contains(c) { return this.list.includes(c); } },
         get innerText() { return this._text; }, set innerText(v) { this._text = String(v); } });
-    ['hintFreeze', 'hintFreezeText', 'hintFreezeLabel', 'hintFreezeTap', 'timerBar'].forEach(el);
+    ['hintFreeze', 'hintFreezeText', 'hintFreezeLabel', 'hintFreezeTap', 'timerBar',
+     'hintFreezeExample', 'hintFreezeChosen'].forEach(el);
     return { doc: { getElementById: (id) => byId[id] || null }, byId };
 }
 
@@ -62,6 +63,7 @@ function loadHints(windowObj) {
                 '// ===================== ПАЗЛ: ГЕНЕРАЦИЯ КУСОЧКОВ', 'подсказки')
         + ';globalThis.R = { hintText, hintEntry, hintArgs, mulFactUsed, shouldShowHint,'
         + ' showHintFreeze, resetSessionHints, HINT_REPEAT_AT, HINT_MAX_PER_SESSION, HINT_NEVER,'
+        + ' hintProblemLine, hintChosenLine,'
         + ' bump: (k) => { sessionKindCounts[k] = (sessionKindCounts[k] || 0) + 1; },'
         + ' mark: (k) => { sessionHintKinds[k] = true; sessionHintsShown++; },'
         + ' isActive: () => gameActive };';
@@ -313,6 +315,44 @@ test('сброс миссии снимает заморозку', () => {
     assert(!box.dom.byId.timerBar.classList.contains('frozen'), 'иней тоже');
 });
 
+group('Пример в карточке');
+
+test('карточка сама показывает, о каком примере речь', () => {
+    // Она накрывает экран целиком: за ней не видно ни примера, ни ответа.
+    eq(H.R.hintProblemLine(meta('sub'), { a: 16, b: 9 }, 7), '16 − 9 = 7');
+    eq(H.R.hintProblemLine(meta('mul'), { a: 7, b: 8 }, 56), '7 × 8 = 56');
+    eq(H.R.hintProblemLine(meta('div'), { a: 56, b: 8 }, 7), '56 ÷ 8 = 7');
+});
+
+test('деление на ноль показывает «нет решения», а не пустоту', () => {
+    eq(H.R.hintProblemLine(meta('div'), { a: 7, b: 0 }, 'NO_SOLUTION'), '7 ÷ 0 = Нет решения');
+});
+
+test('без чисел примера строка не собирается', () => {
+    eq(H.R.hintProblemLine(meta('sub'), {}, 7), '');
+});
+
+test('выбранный ответ подписан отдельно', () => {
+    eq(H.R.hintChosenLine(9), 'ты выбрал 9');
+    eq(H.R.hintChosenLine('NO_SOLUTION'), 'ты выбрал Нет решения');
+    eq(H.R.hintChosenLine(null), '');
+});
+
+test('пример и выбор доходят до карточки', () => {
+    const box = loadHints({ HINT_CONTENT: CONTENT });
+    box.R.showHintFreeze('Займи десяток.', () => {},
+        { example: '16 − 9 = 7', chosen: 'ты выбрал 9' });
+    eq(box.dom.byId.hintFreezeExample.innerText, '16 − 9 = 7');
+    eq(box.dom.byId.hintFreezeChosen.innerText, 'ты выбрал 9');
+});
+
+test('без примера строки прячутся, а не висят пустыми', () => {
+    const box = loadHints({ HINT_CONTENT: CONTENT });
+    box.R.showHintFreeze('Займи десяток.', () => {});
+    eq(box.dom.byId.hintFreezeExample.hidden, true);
+    eq(box.dom.byId.hintFreezeChosen.hidden, true);
+});
+
 group('Новый вид ошибки');
 
 const C = loadClassifier();
@@ -343,6 +383,17 @@ test('заём с разницей ровно в десяток уходит в 
     // ровно 10. Не трогаю: перестановка правил сдвинула бы коды в уже собранной
     // статистике трёх учеников.
     eq(C({ a: 52, b: 7 }, 45, 55, 'sub'), 'ошибка в десятках');
+});
+
+test('однозначный промах не выдаётся за ошибку в единицах', () => {
+    // 7 и 9 — десятков нет ни одного, а подсказка говорила «десятки сошлись».
+    // На первой звезде вычитания это было сто процентов случаев.
+    assert(C({ a: 16, b: 9 }, 7, 9, 'sub') !== 'ошибка в единицах',
+        'про однозначный промах мы честно ничего не знаем');
+});
+
+test('двузначный промах в единицах распознаётся как прежде', () => {
+    eq(C({ a: 24, b: 38 }, 62, 68, 'add'), 'ошибка в единицах');
 });
 
 test('в умножении и делении нового вида нет', () => {
