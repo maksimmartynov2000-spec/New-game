@@ -889,6 +889,30 @@
         .week-bar-label { font-size: 0.58rem; color: #64748b; margin-top: 4px; white-space: nowrap; }
         .strip-legend .day-cell { width: 10px; aspect-ratio: 1; }
 
+        /* --- Дневная цель на экране выбора миссии --- */
+        .daily-bar {
+            display: flex; align-items: center; gap: 12px;
+            width: min(94vw, 520px); margin: 0 auto 12px;
+            padding: 9px 12px; border-radius: 12px;
+            border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04);
+        }
+        .daily-bar[hidden] { display: none; }
+        .daily-goal { flex: 1 1 auto; min-width: 0; }
+        .daily-goal-text { font-size: 0.78rem; color: #cbd5e1; }
+        .daily-bar.done .daily-goal-text { color: #6ee7b7; }
+        .daily-goal-track {
+            height: 6px; margin-top: 6px; border-radius: 3px;
+            background: rgba(255,255,255,0.08); overflow: hidden;
+        }
+        .daily-goal-fill { height: 100%; border-radius: 3px; background: var(--cyan); transition: width 0.3s ease; }
+        .daily-bar.done .daily-goal-fill { background: #10b981; }
+        /* Серия: до ударного режима огонёк приглушён, с него — горит. Красным цифру не
+           красим и «ты потерял серию» не пишем: обнуление и так неприятно. */
+        .daily-streak { flex: 0 0 auto; font-size: 0.82rem; color: #64748b; white-space: nowrap; }
+        .daily-streak.fire { color: var(--gold); text-shadow: 0 0 10px rgba(255,215,0,0.35); }
+        .daily-streak .flame { opacity: 0.45; }
+        .daily-streak.fire .flame { opacity: 1; }
+
         /* --- Карта раздела --- */
         .map-block { margin-bottom: 14px; }
         .map-block:last-child { margin-bottom: 0; }
@@ -1684,6 +1708,10 @@
     <div class="modal-screen" id="configScreen">
         <button class="start-menu-btn" id="btnOpenStartMenu" aria-label="Меню">☰</button>
         <h1 class="start-title">🧭 Выбор миссии</h1>
+        <!-- Дневная цель и серия. Причина зайти именно сегодня — единственное, чего
+             в игре не было вовсе: серия дней считалась, но жила в статистике, куда
+             ученик заходит редко. -->
+        <div class="daily-bar" id="dailyBar"></div>
 
         <!-- ШАГ 1: только выбор категории -->
         <div id="categoryStepScreen" style="width:100%; display:flex; flex-direction:column; align-items:center;">
@@ -1899,6 +1927,9 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "Сегодня %1 из %2": "Today %1 of %2",
+            "Сегодня готово: %1": "Today done: %1",
+            "%1 подряд": "%1 in a row",
             "Проверь: ": "Try it: ",
             "Нажми, чтобы увидеть ответ": "Tap to see the answer",
             "Скрыть ответ": "Hide the answer",
@@ -2392,6 +2423,9 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
+            "Сегодня готово: %1": "Aujourd’hui terminé : %1",
+            "%1 подряд": "%1 d’affilée",
             "Проверь: ": "Vérifie : ",
             "Нажми, чтобы увидеть ответ": "Touche pour voir la réponse",
             "Скрыть ответ": "Masquer la réponse",
@@ -2879,6 +2913,9 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "Сегодня %1 из %2": "Heute %1 von %2",
+            "Сегодня готово: %1": "Heute geschafft: %1",
+            "%1 подряд": "%1 in Folge",
             "Проверь: ": "Probier es: ",
             "Нажми, чтобы увидеть ответ": "Tippen, um die Antwort zu sehen",
             "Скрыть ответ": "Antwort ausblenden",
@@ -10140,6 +10177,86 @@
             return best;
         }
 
+        // ===================== ДНЕВНАЯ ЦЕЛЬ =====================
+        // Причина зайти именно сегодня — единственное, чего в игре не было вовсе.
+        // Серия дней считалась и раньше, но жила в статистике, куда ученик заходит
+        // редко; здесь она стоит там, где он бывает каждый раз.
+        //
+        // Цель одна для всех и не подстраивается под ученика. Подстройка выглядит
+        // заботой, а на деле наказывает за хороший день: сделал сегодня много —
+        // завтра требуют больше. Двадцать примеров сильный закроет за три минуты,
+        // слабый за десять, и оба увидят «готово».
+        const DAILY_GOAL = 20;
+
+        // С какой серии режим считается ударным и огонёк загорается.
+        const STREAK_FIRE_AT = 5;
+
+        // Сколько дней подряд занимался, считая назад от сегодня. Если сегодня ещё не
+        // начинал — серия НЕ обрывается: день не кончился. Иначе цифра падала бы в ноль
+        // каждое утро и возвращалась к вечеру, а это не серия, а издевательство.
+        function currentStreak(daily, todayKey) {
+            const d = daily || {};
+            let key = todayKey;
+            if (!isActiveDay(d[key])) key = shiftDayKey(key, -1);
+            let n = 0;
+            // Ограничитель — на случай битого журнала: в норме цикл упирается в дырку.
+            while (n < 500 && isActiveDay(d[key])) { n++; key = shiftDayKey(key, -1); }
+            return n;
+        }
+
+        // Сегодняшний счёт считаем по верным ответам — тем же числом, что двигает
+        // лесенку количества и цель миссии. Иначе «сделано» на трёх экранах означало бы
+        // три разные вещи.
+        function dailyProgress(daily, todayKey, goal) {
+            const day = (daily || {})[todayKey];
+            const done = (day && day.c) || 0;
+            const target = goal || DAILY_GOAL;
+            return { done, goal: target, complete: done >= target,
+                     ratio: Math.min(1, target > 0 ? done / target : 0) };
+        }
+
+        function renderDailyBar() {
+            const bar = document.getElementById('dailyBar');
+            if (!bar || typeof Progress === 'undefined' || !Progress.get) return;
+            const daily = (Progress.get() || {}).daily || {};
+            const today = Progress.dayKey();
+            const p = dailyProgress(daily, today);
+            const streak = currentStreak(daily, today);
+
+            bar.hidden = false;
+            bar.className = 'daily-bar' + (p.complete ? ' done' : '');
+            bar.innerHTML = '';
+
+            const goal = document.createElement('div');
+            goal.className = 'daily-goal';
+            const text = document.createElement('div');
+            text.className = 'daily-goal-text';
+            text.innerText = p.complete
+                ? tf('Сегодня готово: %1', p.done)
+                : tf('Сегодня %1 из %2', p.done, p.goal);
+            goal.appendChild(text);
+            const track = document.createElement('div');
+            track.className = 'daily-goal-track';
+            const fill = document.createElement('div');
+            fill.className = 'daily-goal-fill';
+            fill.style.width = Math.round(p.ratio * 100) + '%';
+            track.appendChild(fill);
+            goal.appendChild(track);
+            bar.appendChild(goal);
+
+            // Нулевую серию не показываем: «0 подряд» — это не факт, а укор.
+            if (streak > 0) {
+                const chip = document.createElement('div');
+                chip.className = 'daily-streak' + (streak >= STREAK_FIRE_AT ? ' fire' : '');
+                const flame = document.createElement('span');
+                flame.className = 'flame';
+                flame.innerText = '🔥';
+                chip.appendChild(flame);
+                chip.appendChild(document.createTextNode(' ' + tf('%1 подряд', streak)));
+                bar.appendChild(chip);
+            }
+        }
+
         function earliestDayKey(daily) {
             const keys = Object.keys(daily || {}).sort();
             return keys.length ? keys[0] : null;
@@ -10327,7 +10444,11 @@
             // Детский вид: те же три карточки, но справа — не оценка, а два счётчика
             // сделанного. Прятать две из трёх было нельзя: осталась бы одна карточка
             // и две дыры на её месте.
-            const streak = longestStreak(daily, fromKey, toKey);
+            // Ребёнку — ЖИВАЯ серия, а не самая длинная внутри периода. Под одной
+            // подписью «Дней подряд» на двух экранах не может стоять два разных числа:
+            // на стартовом теперь горит текущая серия, и статистика обязана говорить
+            // о том же. Самая длинная череда периода осталась у репетитора ниже.
+            const streak = currentStreak(daily, today);
             if (!forTutor) {
                 // Счётчик пазлов отсюда убран: он почти всегда 0 или 1 и на видном месте
                 // выглядит поломкой, а сами пазлы куда лучше показаны в коллекции —
@@ -12945,6 +13066,7 @@
             resetSessionCounters();
             Progress.flush();
             refreshSectionLocks();
+            renderDailyBar();
             document.getElementById('configScreen').style.display = 'flex';
         }
 
@@ -12959,6 +13081,7 @@
             resetConfigScreen();
             Progress.flush();
             refreshSectionLocks();
+            renderDailyBar();
             document.getElementById('configScreen').style.display = 'flex';
         }
         function winGoHome() { winLeaveToConfig(); }
@@ -13942,6 +14065,7 @@
         // заново каждый раз (Progress.setConfig() всё ещё сохраняет последний выбор
         // в state — это часть схемы синхронизации, но на экран он больше не влияет).
         refreshSectionLocks();
+        renderDailyBar();
         applyStaticI18n();       // статическая разметка — один раз при загрузке
         refreshLangButtons();
         document.documentElement.setAttribute('lang', LANG);
