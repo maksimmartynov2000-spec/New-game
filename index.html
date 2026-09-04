@@ -83,6 +83,10 @@
         @supports (justify-content: safe center) {
             .modal-screen { justify-content: safe center; }
         }
+        /* Выбор миссии — исключение: содержимого тут мало, и по центру оно висело
+           посреди экрана с пустотой примерно в треть сверху и столько же снизу,
+           далеко от кнопки в углу. На айпаде это заметнее всего. */
+        #configScreen { justify-content: flex-start; }
         /* Экран прокручивается сам (overflow-y выше), поэтому сжимать содержимое ему нельзя:
            по умолчанию флекс-колонка ужимает детей, когда они не влезают, и блоки начинают
            наезжать друг на друга вместо того, чтобы уехать вниз под прокрутку. */
@@ -1796,7 +1800,10 @@
 
     <!-- Экран выбора миссии: раздел, действие, звезда -->
     <div class="modal-screen" id="configScreen">
-        <button class="start-menu-btn" id="btnOpenStartMenu" aria-label="Меню">☰</button>
+        <!-- Одна кнопка в углу на оба шага: на первом это меню, на втором — «назад».
+             Раньше «назад» была текстовой строкой внутри содержимого: единственная такая
+             кнопка в приложении, и на широком экране она уезжала от заголовка далеко влево. -->
+        <button class="start-menu-btn" id="btnConfigCorner" aria-label="Меню">☰</button>
         <h1 class="start-title">🧭 Выбор миссии</h1>
         <!-- Дневная цель и серия. Причина зайти именно сегодня — единственное, чего
              в игре не было вовсе: серия дней считалась, но жила в статистике, куда
@@ -1819,7 +1826,6 @@
 
         <!-- ШАГ 2: остальной выбор, открывается после выбора категории -->
         <div id="restStepScreen" style="display:none; width:100%; flex-direction:column; align-items:center;">
-            <button id="btnBackToCategory" style="align-self:flex-start; background:none; border:none; color:#94a3b8; font-size:0.95rem; margin-bottom:8px; margin-left:4px; cursor:pointer; line-height:1;">◀️ назад</button>
             <div class="config-container">
                 <div class="config-section">
                     <div class="config-section-title">1️⃣ Что тренируем</div>
@@ -3670,15 +3676,20 @@
                 updateConfigValidity();
 
                 // Переходим на второй экран — остальной выбор (открывается только после выбора категории)
-                document.getElementById('categoryStepScreen').style.display = 'none';
-                document.getElementById('restStepScreen').style.display = 'flex';
+                showConfigStep(2);
             });
         });
 
-        document.getElementById('btnBackToCategory').addEventListener('click', () => {
-            document.getElementById('restStepScreen').style.display = 'none';
-            document.getElementById('categoryStepScreen').style.display = 'flex';
-        });
+        // Шаг 1 — выбор раздела, шаг 2 — всё остальное. Угловая кнопка меняет роль
+        // вместе с шагом: с первого шага уходить некуда, кроме меню, со второго —
+        // назад к разделам.
+        function showConfigStep(step) {
+            document.getElementById('categoryStepScreen').style.display = step === 1 ? 'flex' : 'none';
+            document.getElementById('restStepScreen').style.display = step === 1 ? 'none' : 'flex';
+            const corner = document.getElementById('btnConfigCorner');
+            corner.innerText = step === 1 ? '☰' : '◀️';
+            corner.setAttribute('aria-label', step === 1 ? t('Меню') : t('Назад'));
+        }
 
         // Особые режимы дробей (Сокращение / В смешанное / В неправильную / Дробь от числа)
         // всегда работают только с положительными числами. Если выбраны "Отрицательные числа" —
@@ -10076,7 +10087,10 @@
         function menuGoPuzzle() { closeMainMenu(); openPuzzleModal(); }
 
         // ===================== МЕНЮ СТАРТОВОГО ЭКРАНА =====================
-        document.getElementById('btnOpenStartMenu').addEventListener('click', openStartMenu);
+        document.getElementById('btnConfigCorner').addEventListener('click', () => {
+            if (document.getElementById('restStepScreen').style.display === 'none') openStartMenu();
+            else showConfigStep(1);
+        });
 
         function openStartMenu() {
             document.getElementById('startMenuOverlay').classList.add('open');
@@ -13524,8 +13538,7 @@
             document.getElementById('fracSpecialBlock').style.display = 'none';
             renderDifficultyList();   // сама спрячет блок сложности, раз режимов не выбрано
             updateConfigValidity();   // и погасит кнопку "Начать миссию"
-            document.getElementById('restStepScreen').style.display = 'none';
-            document.getElementById('categoryStepScreen').style.display = 'flex';
+            showConfigStep(1);
         }
 
         // Смена миссии без перезагрузки: пазл и весь накопленный прогресс остаются на месте,
