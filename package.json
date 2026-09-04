@@ -3,7 +3,7 @@
   "private": true,
   "description": "Ключ — тренажёр устного счёта. Сборки нет: index.html открывается как есть.",
   "scripts": {
-    "test": "node test/generator.test.js && node test/storage.test.js && node test/ladders.test.js && node test/report.test.js && node test/i18n.test.js && node test/layout.test.js && node test/map.test.js && node test/achievements.test.js && node test/paradoxes.test.js && node test/daily.test.js && node test/hints.test.js && node test/puzzles.test.js && node test/challenges.test.js && node test/unlock.test.js && node test/folds.test.js && node test/goals.test.js",
+    "test": "node test/generator.test.js && node test/storage.test.js && node test/ladders.test.js && node test/report.test.js && node test/i18n.test.js && node test/layout.test.js && node test/map.test.js && node test/achievements.test.js && node test/paradoxes.test.js && node test/daily.test.js && node test/hints.test.js && node test/puzzles.test.js && node test/challenges.test.js && node test/unlock.test.js && node test/folds.test.js && node test/goals.test.js && node test/tasks.test.js && node test/screens.test.js",
     "test:generator": "node test/generator.test.js",
     "test:storage": "node test/storage.test.js",
     "test:ladders": "node test/ladders.test.js",
@@ -19,6 +19,8 @@
     "test:challenges": "node test/challenges.test.js",
     "test:unlock": "node test/unlock.test.js",
     "test:folds": "node test/folds.test.js",
-    "test:goals": "node test/goals.test.js"
+    "test:goals": "node test/goals.test.js",
+    "test:tasks": "node test/tasks.test.js",
+    "test:screens": "node test/screens.test.js"
   }
 }
