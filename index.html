@@ -949,6 +949,15 @@
             font-size: 1.35rem; font-weight: bold; color: #f8fafc; line-height: 1.2; margin-top: 3px;
         }
         .challenge-answer-why { font-size: 0.88rem; line-height: 1.5; color: #cbd5e1; margin-top: 9px; }
+        .star-unlock-actions {
+            display: flex; flex-direction: column; gap: 8px; margin-top: 16px;
+        }
+        .star-unlock-actions .btn-win { width: 100%; }
+        /* Меню — мелкой строкой: это выход, а не то, ради чего окно показано. */
+        .star-unlock-menu {
+            margin-top: 12px; background: none; border: none; cursor: pointer;
+            color: #94a3b8; font-size: 0.8rem; font-family: inherit; padding: 6px;
+        }
         .challenge-tap { margin-top: 13px; font-size: 0.7rem; color: #64748b; }
 
         /* Та же задача в карточке достижений — чтобы можно было перечитать. */
@@ -2038,6 +2047,23 @@
         </div>
     </div>
 
+    <!-- Открылась следующая звезда. Раньше об этом сообщала только плашка посреди
+         примеров: она пролетала за три секунды, ученик её пропускал, и связь между
+         золотом и открытой звездой не складывалась. Теперь это окно после миссии,
+         и из него можно сразу уйти играть — одним нажатием, без выбора миссии заново. -->
+    <div class="challenge-back" id="starUnlock" hidden>
+        <div class="challenge-card">
+            <div class="challenge-cap" id="starUnlockCap"></div>
+            <div class="challenge-topic" id="starUnlockTopic"></div>
+            <div class="challenge-task" id="starUnlockText"></div>
+            <div class="star-unlock-actions">
+                <button class="btn-win" id="starUnlockNext"></button>
+                <button class="btn-win secondary" id="starUnlockStay"></button>
+            </div>
+            <button class="star-unlock-menu" id="starUnlockMenu"></button>
+        </div>
+    </div>
+
     <!-- Подсказка с заморозкой времени. Появляется в паузе после неверного ответа:
          часы миссии и полоска времени встают, спешить некуда. Уходит по нажатию. -->
     <div class="hint-freeze" id="hintFreeze" hidden>
@@ -2343,6 +2369,11 @@
             "🔓 %1★ открыта": "🔓 %1★ unlocked",
             "🔓 %1 — звезда взята": "🔓 %1 — star earned",
             "Открыта %1★!": "%1★ unlocked!",
+            "🔓 Открыта %1★!": "🔓 %1★ unlocked!",
+            "Ты набрал золото на %1★ — примеры стали сложнее.": "You earned gold on %1★ — the problems just got harder.",
+            "🚀 Играть на %1★": "🚀 Play on %1★",
+            "↩️ Ещё раз на %1★": "↩️ Again on %1★",
+            "☰ В меню": "☰ Menu",
             "до %1: %2": "to %1: %2",
             "до %1: ещё %2 %3": "to %1: %2 more %3",
             "До %1★: %2": "To %1★: %2",
@@ -2837,6 +2868,11 @@
             "🔓 %1★ открыта": "🔓 %1★ débloquée",
             "🔓 %1 — звезда взята": "🔓 %1 — étoile obtenue",
             "Открыта %1★!": "%1★ débloquée !",
+            "🔓 Открыта %1★!": "🔓 %1★ débloquée !",
+            "Ты набрал золото на %1★ — примеры стали сложнее.": "Tu as décroché l’or sur %1★ — les calculs deviennent plus durs.",
+            "🚀 Играть на %1★": "🚀 Jouer sur %1★",
+            "↩️ Ещё раз на %1★": "↩️ Encore sur %1★",
+            "☰ В меню": "☰ Menu",
             "до %1: %2": "jusqu'à %1 : %2",
             "до %1: ещё %2 %3": "jusqu'à %1 : encore %2 %3",
             "До %1★: %2": "Jusqu'à %1★ : %2",
@@ -3325,6 +3361,11 @@
             "🔓 %1★ открыта": "🔓 %1★ freigeschaltet",
             "🔓 %1 — звезда взята": "🔓 %1 — Stern erreicht",
             "Открыта %1★!": "%1★ freigeschaltet!",
+            "🔓 Открыта %1★!": "🔓 %1★ freigeschaltet!",
+            "Ты набрал золото на %1★ — примеры стали сложнее.": "Du hast Gold auf %1★ geholt — die Aufgaben werden schwerer.",
+            "🚀 Играть на %1★": "🚀 Auf %1★ spielen",
+            "↩️ Ещё раз на %1★": "↩️ Nochmal auf %1★",
+            "☰ В меню": "☰ Menü",
             "до %1: %2": "bis %1: %2",
             "до %1: ещё %2 %3": "bis %1: noch %2 %3",
             "До %1★: %2": "Bis %1★: %2",
@@ -12319,6 +12360,8 @@
                         icon: '🔓',
                         title: tf('Открыта %1★!', nextLevel)
                     });
+                    // Плашка пролетает за три секунды; подробный разговор — после миссии.
+                    pendingStarUnlock = { key: topicKey, level: nextLevel };
                 }
                 // Мастерство: минимум из трёх. Сообщаем только про алмаз и легенду —
                 // ниже этот минимум ничего не означает и только шумел бы.
@@ -12415,11 +12458,79 @@
             advanceMissionReveals();
         }
 
+        // ===================== ОТКРЫЛАСЬ ЗВЕЗДА =====================
+        // Золото, открытая звезда и пазл до сих пор жили порознь: о звезде сообщала
+        // плашка посреди примеров, она пролетала за три секунды, и связь «набрал золото →
+        // открылось следующее» не складывалась. Теперь после миссии показывается окно,
+        // из которого можно сразу уйти играть — не собирая миссию заново.
+        let pendingStarUnlock = null;
+
+        function showStarUnlock() {
+            const p = pendingStarUnlock;
+            pendingStarUnlock = null;
+            if (!p) return false;
+
+            const parsed = parseTopicKey(p.key);
+            const secKey = `${parsed.category}${parsed.sign || ''}`;
+            // Пока миссию доигрывали, доступ мог измениться. Обещать звезду, которой
+            // уже нет, нельзя — тогда окно просто не показываем.
+            if (!isLevelOpen(secKey, parsed.op, p.level)) return false;
+
+            document.getElementById('starUnlockCap').innerText = tf('🔓 Открыта %1★!', p.level);
+            document.getElementById('starUnlockTopic').innerText = topicLabelWithLevel(p.key);
+            document.getElementById('starUnlockText').innerText =
+                tf('Ты набрал золото на %1★ — примеры стали сложнее.', p.level - 1);
+
+            const next = document.getElementById('starUnlockNext');
+            const stay = document.getElementById('starUnlockStay');
+            // На пятой звезде поднимать сложность некуда: шестой не бывает.
+            next.hidden = p.level > 5;
+            next.innerText = tf('🚀 Играть на %1★', p.level);
+            next.onclick = () => startMissionAt(parsed.op, p.level, secKey);
+            stay.innerText = tf('↩️ Ещё раз на %1★', p.level - 1);
+            stay.onclick = () => startMissionAt(parsed.op, p.level - 1, secKey);
+            const menu = document.getElementById('starUnlockMenu');
+            menu.innerText = t('☰ В меню');
+            menu.onclick = () => {
+                document.getElementById('starUnlock').hidden = true;
+                document.getElementById('winScreen').classList.add('active');
+            };
+            document.getElementById('starUnlock').hidden = false;
+            return true;
+        }
+
+        // Запуск миссии прямо из окна: тот же путь, что и с экрана выбора, но без
+        // самого экрана. Ровно один режим и ровно одна звезда — как везде в приложении.
+        function startMissionAt(op, level, secKey) {
+            document.getElementById('starUnlock').hidden = true;
+            document.getElementById('winScreen').classList.remove('active');
+            document.getElementById('mistakesScreen').style.display = 'none';
+            sessionMistakes = [];
+            resetSessionCounters();
+            Progress.flush();
+            if (!isLevelOpen(secKey, op, level)) {   // доступ мог измениться — не пускаем
+                resetConfigScreen();
+                refreshSectionLocks();
+                renderDailyBar();
+                document.getElementById('configScreen').style.display = 'flex';
+                showToast(t('Этот режим больше не открыт — выбери другой.'), 'error');
+                return;
+            }
+            exampleConfig.operations = {};
+            exampleConfig.operations[op] = level;
+            Progress.setConfig(exampleConfig);
+            document.getElementById('configScreen').style.display = 'none';
+            startGame();
+        }
+
         // Очередь наград после миссии: сначала собранные пазлы, потом задачи за
-        // мастерство, и только потом экран итогов.
+        // мастерство, потом открытая звезда — и только потом экран итогов. Звезда идёт
+        // последней намеренно: из её окна уходят играть, и всё, что показалось бы после,
+        // ученик уже не увидел бы.
         function advanceMissionReveals() {
             if (showNextPuzzleReveal()) return;
             if (showNextChallengeReveal()) return;
+            if (showStarUnlock()) return;
             document.getElementById('winScreen').classList.add('active');
         }
 
@@ -13736,7 +13847,9 @@
             answerLocked = false;
             resetSessionHints();
             pendingChallengeReveals = [];
+            pendingStarUnlock = null;
             document.getElementById('challengeReveal').hidden = true;
+            document.getElementById('starUnlock').hidden = true;
         }
 
         // Возврат экрана выбора миссии к первому шагу с чистого листа. Нужен после завершённого
