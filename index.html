@@ -1147,6 +1147,26 @@
         .trend-svg { width: 100%; height: 42px; display: block; }
         .trend-empty { font-size: 0.68rem; color: #64748b; text-align: center; padding: 12px 0; }
 
+        /* --- Вводный экзамен --- */
+        .exam-log-row {
+            font-size: 0.76rem; color: #cbd5e1; padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .exam-log-row:last-child { border-bottom: none; }
+        .exam-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+        .exam-step { font-size: 0.78rem; color: #94a3b8; }
+        .exam-time { font-size: 0.9rem; font-weight: bold; color: var(--cyan); }
+        /* Последние пять секунд — красным. Не таймер миссии: тут время не жмёт,
+           тридцати секунд хватает на любой пример, и краснеть ему почти не приходится. */
+        .exam-time.low { color: #f87171; }
+        .exam-question {
+            font-size: clamp(1.6rem, 9vw, 2.4rem); font-weight: bold; color: #e2e8f0;
+            text-align: center; margin: 10px 0 18px;
+        }
+        .exam-result-cap { font-size: 1.15rem; font-weight: bold; color: var(--gold); text-align: center; }
+        .exam-result-text { font-size: 0.88rem; color: #cbd5e1; line-height: 1.5; text-align: center; margin: 12px 0 16px; }
+        .exam-result-note { font-size: 0.78rem; color: #fbbf24; line-height: 1.45; text-align: center; margin-bottom: 14px; }
+
         /* --- Технические работы --- */
         .maintenance-screen {
             position: fixed; inset: 0; z-index: 9000;
@@ -1660,6 +1680,13 @@
             <!-- Задания ученика. Репетитору они нужны не меньше, чем ему: по ним видно,
                  куда приложение его сейчас ведёт, и совпадает ли это с занятием.
                  Кнопки «Играть» здесь нет — это чужой прогресс, играть за него нельзя. -->
+            <!-- Экзамены ученика. Экзамен открывает звёзды сам и сразу, но за спиной
+                 у репетитора этого происходить не должно: он видит каждую попытку. -->
+            <div class="config-section" data-fold="stats:exams" id="statsExamsSection" style="display:none;">
+                <div class="config-section-title">🎓 Экзамены</div>
+                <div id="statsExamsList"></div>
+            </div>
+
             <div class="config-section" data-fold="stats:tasks" id="statsTasksSection">
                 <div class="config-section-title">🎯 Задания ученика</div>
                 <div id="statsTasksList"></div>
@@ -1890,6 +1917,30 @@
                 <div class="config-section-title">Опасная зона</div>
                 <button class="menu-btn danger" onclick="confirmHardReset()">🗑️ <span>Сбросить прогресс (новая игра)</span></button>
                 <button class="menu-btn danger" style="margin-top:8px;" onclick="confirmDeleteOwnAccount()">⚠️ <span>Удалить профиль полностью</span></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Вводный экзамен. Свой экран, а не режим внутри игры: здесь не вызывается ни одна
+         функция записи, поэтому экзамен физически не может попасть в статистику. -->
+    <div class="modal-screen" id="examScreen" style="z-index:255; display:none;">
+        <button class="start-menu-btn" onclick="examClose()" aria-label="Назад">◀️</button>
+        <h1 class="start-title">🎓 Экзамен</h1>
+        <div class="config-container" style="max-width:460px;">
+            <div id="examBody">
+                <div class="exam-head">
+                    <span class="exam-step" id="examStep"></span>
+                    <span class="exam-time" id="examTime"></span>
+                </div>
+                <div class="exam-question" id="examQuestion"></div>
+                <div class="answers-grid" id="examAnswers"></div>
+                <div class="config-hint">Экзамен не идёт в статистику и не портит медали.</div>
+            </div>
+            <div id="examResult" hidden>
+                <div class="exam-result-cap" id="examResultCap"></div>
+                <div class="exam-result-text" id="examResultText"></div>
+                <div class="exam-result-note" id="examResultNote" style="display:none;"></div>
+                <button class="btn-config-continue ready" onclick="examClose()">Готово</button>
             </div>
         </div>
     </div>
@@ -2199,6 +2250,26 @@
             "мимо в единицах": "units off",
             "Сегодня %1 из %2": "Today %1 of %2",
             "🎯 Задания": "🎯 Tasks",
+            "🎓 Экзамен": "🎓 Exam",
+            "🎓 Экзамены": "🎓 Exams",
+            "%1 — открыто до %2★, %3": "%1 — opened up to %2★, %3",
+            "%1 — не сдал, %2": "%1 — not passed, %2",
+            "Экзамен не идёт в статистику и не портит медали.": "The exam is not recorded and cannot spoil your medals.",
+            "%1★ · пример %2 из %3": "%1★ · problem %2 of %3",
+            "%1★ пока закрыта": "%1★ is still closed",
+            "Или пройди экзамен по действию «%1»: %2 примеров, по %3 секунд на каждый. ": "Or take the exam on %1: %2 problems, %3 seconds each. ",
+            "Сдашь — звёзды откроются сразу.": "Pass it and the stars open right away.",
+            "Пройти экзамен": "Take the exam",
+            "Не сейчас": "Not now",
+            "🔓 Открыто до %1★": "🔓 Opened up to %1★",
+            "Пока начнём с первой звезды": "For now we start at the first star",
+            "Справился на %1★. Клетки до неё открыты — их можно пройти когда захочешь, ради пазлов и задач.": "You passed at %1★. The cells below it are open — you can go through them whenever you like, for the puzzles and the tasks.",
+            "Ничего страшного: начнём с самого начала, а экзамен можно пересдать завтра.": "No problem: we start from the beginning, and you can retake the exam tomorrow.",
+            "Нет связи — результат не сохранён.": "No connection — the result was not saved.",
+            "Сегодня экзамен уже был. Приходи завтра.": "You already took the exam today. Come back tomorrow.",
+            "Такое действие сервер не принял.": "The server did not accept that operation.",
+            "Такой результат сервер не принял.": "The server did not accept that result.",
+            "Не удалось сохранить результат. Запусти supabase/exam.sql.": "Could not save the result. Run supabase/exam.sql.",
             "Идут технические работы": "Maintenance in progress",
             "Приходи примерно через %1 %2": "Come back in about %1 %2",
             "Загляни попозже": "Look in a bit later",
@@ -2724,6 +2795,26 @@
             "мимо в единицах": "unités",
             "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
             "🎯 Задания": "🎯 Objectifs",
+            "🎓 Экзамен": "🎓 Examen",
+            "🎓 Экзамены": "🎓 Examens",
+            "%1 — открыто до %2★, %3": "%1 — ouvert jusqu’à %2★, %3",
+            "%1 — не сдал, %2": "%1 — échoué, %2",
+            "Экзамен не идёт в статистику и не портит медали.": "L’examen n’entre pas dans les statistiques et ne gâche pas tes médailles.",
+            "%1★ · пример %2 из %3": "%1★ · calcul %2 sur %3",
+            "%1★ пока закрыта": "%1★ est encore fermée",
+            "Или пройди экзамен по действию «%1»: %2 примеров, по %3 секунд на каждый. ": "Ou passe l’examen sur %1 : %2 calculs, %3 secondes chacun. ",
+            "Сдашь — звёзды откроются сразу.": "Si tu réussis, les étoiles s’ouvrent tout de suite.",
+            "Пройти экзамен": "Passer l’examen",
+            "Не сейчас": "Pas maintenant",
+            "🔓 Открыто до %1★": "🔓 Ouvert jusqu’à %1★",
+            "Пока начнём с первой звезды": "Pour l’instant, on commence à la première étoile",
+            "Справился на %1★. Клетки до неё открыты — их можно пройти когда захочешь, ради пазлов и задач.": "Réussi à %1★. Les cases en dessous sont ouvertes — tu peux les faire quand tu veux, pour les puzzles et les défis.",
+            "Ничего страшного: начнём с самого начала, а экзамен можно пересдать завтра.": "Pas grave : on commence au début, et tu pourras repasser l’examen demain.",
+            "Нет связи — результат не сохранён.": "Pas de connexion — le résultat n’a pas été enregistré.",
+            "Сегодня экзамен уже был. Приходи завтра.": "Tu as déjà passé l’examen aujourd’hui. Reviens demain.",
+            "Такое действие сервер не принял.": "Le serveur n’a pas accepté cette opération.",
+            "Такой результат сервер не принял.": "Le serveur n’a pas accepté ce résultat.",
+            "Не удалось сохранить результат. Запусти supabase/exam.sql.": "Impossible d’enregistrer le résultat. Lance supabase/exam.sql.",
             "Идут технические работы": "Maintenance en cours",
             "Приходи примерно через %1 %2": "Reviens dans environ %1 %2",
             "Загляни попозже": "Repasse un peu plus tard",
@@ -3243,6 +3334,26 @@
             "мимо в единицах": "Einer daneben",
             "Сегодня %1 из %2": "Heute %1 von %2",
             "🎯 Задания": "🎯 Aufgaben",
+            "🎓 Экзамен": "🎓 Prüfung",
+            "🎓 Экзамены": "🎓 Prüfungen",
+            "%1 — открыто до %2★, %3": "%1 — frei bis %2★, %3",
+            "%1 — не сдал, %2": "%1 — nicht bestanden, %2",
+            "Экзамен не идёт в статистику и не портит медали.": "Die Prüfung zählt nicht für die Statistik und verdirbt keine Abzeichen.",
+            "%1★ · пример %2 из %3": "%1★ · Aufgabe %2 von %3",
+            "%1★ пока закрыта": "%1★ ist noch zu",
+            "Или пройди экзамен по действию «%1»: %2 примеров, по %3 секунд на каждый. ": "Oder mach die Prüfung zu %1: %2 Aufgaben, je %3 Sekunden. ",
+            "Сдашь — звёзды откроются сразу.": "Bestehst du, öffnen sich die Sterne sofort.",
+            "Пройти экзамен": "Prüfung machen",
+            "Не сейчас": "Jetzt nicht",
+            "🔓 Открыто до %1★": "🔓 Frei bis %1★",
+            "Пока начнём с первой звезды": "Wir fangen erst mal beim ersten Stern an",
+            "Справился на %1★. Клетки до неё открыты — их можно пройти когда захочешь, ради пазлов и задач.": "Bestanden auf %1★. Die Felder darunter sind offen — du kannst sie machen, wann du willst, für die Puzzles und die Aufgaben.",
+            "Ничего страшного: начнём с самого начала, а экзамен можно пересдать завтра.": "Kein Problem: wir fangen vorn an, und morgen kannst du die Prüfung wiederholen.",
+            "Нет связи — результат не сохранён.": "Keine Verbindung — das Ergebnis wurde nicht gespeichert.",
+            "Сегодня экзамен уже был. Приходи завтра.": "Die Prüfung war heute schon. Komm morgen wieder.",
+            "Такое действие сервер не принял.": "Der Server hat diese Rechenart nicht angenommen.",
+            "Такой результат сервер не принял.": "Der Server hat dieses Ergebnis nicht angenommen.",
+            "Не удалось сохранить результат. Запусти supabase/exam.sql.": "Ergebnis konnte nicht gespeichert werden. Führe supabase/exam.sql aus.",
             "Идут технические работы": "Wartungsarbeiten laufen",
             "Приходи примерно через %1 %2": "Komm in etwa %1 %2 wieder",
             "Загляни попозже": "Schau etwas später vorbei",
@@ -4063,9 +4174,12 @@
                     // куда расти. Причина написана в подсказке — их две, и они разные:
                     // «код не открывал» и «не взято золото на предыдущей звезде».
                     if (!isLevelOpen(secKey, op, lvl)) {
+                        // Закрытая звезда теперь нажимается: она объясняет причину и, если
+                        // дело в воротах, предлагает экзамен. Раньше кнопка была мёртвой,
+                        // и «хочу дальше» упиралось в молчание.
                         starBtn.classList.add('locked');
-                        starBtn.disabled = true;
                         starBtn.title = levelLockReason(secKey, op, lvl);
+                        starBtn.addEventListener('click', () => openLockedStar(secKey, op, lvl));
                         starsWrap.appendChild(starBtn);
                         continue;
                     }
@@ -11217,6 +11331,7 @@
                                            foreignState ? (st.playerCode || '') : Progress.getCode(), false);
             document.getElementById('statsTasksSection').style.display = tasksShown ? '' : 'none';
 
+            renderExamLog(foreignState ? (st.playerCode || '') : null);
             renderEpochCards(st);
             // Только теперь известно, какие разделы вообще показаны: половина из них
             // только для репетитора, и до отрисовки «первый видимый» не определить.
@@ -12066,6 +12181,225 @@
                 });
             });
             renderHeroDetail(ctx);
+        }
+
+        // Панель закрытой звезды: почему закрыта и что с этим делать. Экзамен предлагаем
+        // только когда дело в ВОРОТАХ — то есть звезда закрыта по счёту, а не потому,
+        // что репетитор её не выдавал. Во втором случае экзамен ничего не решает: это
+        // решение репетитора, а не вопрос умения.
+        async function openLockedStar(secKey, op, level) {
+            const gated = levelAllowedByAccess(secKey, op, level);
+            const canExam = gated && secKey === EXAM_SECTION && levelGateApplies();
+            const opName = (OP_LABELS[op] || op).replace(/^\S+\s/, '').toLowerCase();
+
+            if (!canExam) {
+                await showNotice({
+                    title: tf('%1★ пока закрыта', level),
+                    text: levelLockReason(secKey, op, level)
+                });
+                return;
+            }
+            const go = await askConfirm({
+                title: tf('%1★ пока закрыта', level),
+                text: levelLockReason(secKey, op, level) + '\n\n'
+                    + tf('Или пройди экзамен по действию «%1»: %2 примеров, по %3 секунд на каждый. ', opName, EXAM_QUESTIONS, EXAM_SECONDS)
+                    + t('Сдашь — звёзды откроются сразу.'),
+                okText: t('Пройти экзамен'),
+                cancelText: t('Не сейчас')
+            });
+            if (go) examOpen(op);
+        }
+
+        // Список попыток экзамена — только на чужом экране, у репетитора. Ученику он
+        // не нужен: свой результат он только что видел, а история попыток — это отчёт.
+        async function renderExamLog(studentCode) {
+            const sec = document.getElementById('statsExamsSection');
+            const wrap = document.getElementById('statsExamsList');
+            if (!sec || !wrap) return;
+            if (!studentCode || !supabaseClient) { sec.style.display = 'none'; return; }
+            const res = await callAuthed('session_student_exams', { p_student_code: studentCode },
+                                         'student_exams', { p_student_code: studentCode });
+            const list = (!res.error && res.data && res.data.ok && res.data.exams) || [];
+            if (!list.length) { sec.style.display = 'none'; return; }
+            sec.style.display = '';
+            wrap.innerHTML = '';
+            list.forEach(row => {
+                const el = document.createElement('div');
+                el.className = 'exam-log-row';
+                const name = (OP_LABELS[row.op] || row.op).replace(/^\S+\s/, '');
+                el.innerText = row.passed
+                    ? tf('%1 — открыто до %2★, %3', name, row.level, formatDayKeyHuman((row.takenAt || '').slice(0, 10)))
+                    : tf('%1 — не сдал, %2', name, formatDayKeyHuman((row.takenAt || '').slice(0, 10)));
+                wrap.appendChild(el);
+            });
+            setFoldSum('statsExamsSection', tf('%1 из %2', list.filter(x => x.passed).length, list.length));
+        }
+
+        // ===================== ВВОДНЫЙ ЭКЗАМЕН =====================
+        // Ученик, который уже умеет считать, не должен набивать золото на первой звезде,
+        // чтобы добраться до четвёртой. Короткий экзамен по ОДНОМУ действию показывает,
+        // с какой звезды ему начинать, и открывает всё до неё включительно.
+        //
+        // Экзамен живёт своим экраном и своим обработчиком ответа, а не режимом внутри
+        // игры. Это сделано нарочно: игровой ответ тянет за собой запись в журнал,
+        // лесенки, пазлы, подсказки и серию, и продевать сквозь всё это флаг «сейчас
+        // экзамен» значило бы трогать самую дорогую часть кода ради временного экрана.
+        // Здесь не вызывается НИ ОДНА функция записи — поэтому экзамен физически не
+        // может попасть в статистику.
+        //
+        // Только положительные целые. В остальных разделах доступ ограничивает ещё и
+        // само разрешение раздела, а его выдаёт репетитор: это его решение, а не вопрос
+        // умения. См. шапку supabase/exam.sql.
+        const EXAM_SECTION = 'integer+';
+        const EXAM_QUESTIONS = 6;      // примеров в одном заходе
+        const EXAM_PASS = 5;           // сколько нужно верных, чтобы шагнуть вверх
+        const EXAM_FAIL = 3;           // столько и меньше — шаг вниз
+        const EXAM_START_LEVEL = 2;    // с какой звезды начинаем нащупывать
+        // Четыре захода, а не три: начиная со второй звезды, до пятой иначе не дотянуться
+        // (2→3→4→5), а пятая — как раз то, ради чего экзамен затевался. Четвёртый заход
+        // получает только тот, кто безошибочно прошёл три предыдущих.
+        const EXAM_ROUNDS = 4;
+        const EXAM_SECONDS = 30;       // на пример; вышло время — считается ошибкой
+
+        let exam = null;
+
+        function examOpen(op) {
+            exam = { op, level: EXAM_START_LEVEL, round: 0, asked: 0, right: 0,
+                     best: 0, low: 1, high: 5, problem: null, answer: null,
+                     timer: null, left: EXAM_SECONDS, done: false };
+            document.getElementById('examScreen').style.display = 'flex';
+            document.getElementById('examResult').hidden = true;
+            document.getElementById('examBody').hidden = false;
+            examNextRound();
+        }
+
+        function examClose() {
+            examStopTimer();
+            exam = null;
+            document.getElementById('examScreen').style.display = 'none';
+        }
+
+        function examNextRound() {
+            exam.round++;
+            exam.asked = 0;
+            exam.right = 0;
+            examNextQuestion();
+        }
+
+        function examStopTimer() {
+            if (exam && exam.timer) { clearInterval(exam.timer); exam.timer = null; }
+        }
+
+        function examNextQuestion() {
+            if (exam.asked >= EXAM_QUESTIONS) { examRoundOver(); return; }
+            exam.asked++;
+            const problem = generateProblem(exam.op, exam.level, false);
+            exam.problem = problem;
+            exam.answer = problem.answer;
+
+            document.getElementById('examStep').innerText =
+                tf('%1★ · пример %2 из %3', exam.level, exam.asked, EXAM_QUESTIONS);
+            document.getElementById('examQuestion').innerText = problem.text + ' = ?';
+
+            const grid = document.getElementById('examAnswers');
+            grid.innerHTML = '';
+            const wrong = buildDistractors(exam.op, problem.a, problem.b, problem.answer, false, 3, exam.level);
+            const options = wrong.concat([problem.answer]);
+            // Перемешиваем, иначе верный ответ всегда стоял бы последним.
+            for (let i = options.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const tmp = options[i]; options[i] = options[j]; options[j] = tmp;
+            }
+            options.forEach(value => {
+                const btn = document.createElement('button');
+                btn.className = 'btn-answer';
+                btn.innerText = String(value);
+                btn.addEventListener('click', () => examAnswer(value === problem.answer));
+                grid.appendChild(btn);
+            });
+
+            examStartTimer();
+        }
+
+        function examStartTimer() {
+            examStopTimer();
+            exam.left = EXAM_SECONDS;
+            examShowTime();
+            exam.timer = setInterval(() => {
+                exam.left--;
+                examShowTime();
+                // Время вышло — это ошибка. Без ограничения экзамен сдавался бы счётом
+                // на пальцах, и ученик уезжал бы на звезду, где пороги скорости втрое
+                // жёстче и медалей ему не видать.
+                if (exam.left <= 0) examAnswer(false);
+            }, 1000);
+        }
+        function examShowTime() {
+            const el = document.getElementById('examTime');
+            el.innerText = tf('%1 с', Math.max(0, exam.left));
+            el.className = 'exam-time' + (exam.left <= 5 ? ' low' : '');
+        }
+
+        function examAnswer(isRight) {
+            if (!exam || exam.done) return;
+            examStopTimer();
+            if (isRight) exam.right++;
+            examNextQuestion();
+        }
+
+        // Ход вверх-вниз. Сдал заход — запоминаем звезду и пробуем следующую;
+        // провалил — спускаемся. Границы сужаются, поэтому третий заход всегда последний.
+        function examRoundOver() {
+            const passed = exam.right >= EXAM_PASS;
+            const failed = exam.right <= EXAM_FAIL;
+            if (passed) { exam.best = Math.max(exam.best, exam.level); exam.low = exam.level + 1; }
+            else if (failed) { exam.high = exam.level - 1; }
+            else { examFinish(); return; }   // серединка: ни вверх, ни вниз — на этом и стоим
+
+            if (exam.round >= EXAM_ROUNDS || exam.low > exam.high || exam.low > 5) { examFinish(); return; }
+            exam.level = passed ? exam.low : Math.max(1, exam.high);
+            examNextRound();
+        }
+
+        async function examFinish() {
+            exam.done = true;
+            examStopTimer();
+            document.getElementById('examBody').hidden = true;
+            document.getElementById('examResult').hidden = false;
+            const level = exam.best;
+
+            document.getElementById('examResultCap').innerText = level
+                ? tf('🔓 Открыто до %1★', level)
+                : t('Пока начнём с первой звезды');
+            document.getElementById('examResultText').innerText = level
+                ? tf('Справился на %1★. Клетки до неё открыты — их можно пройти когда захочешь, ради пазлов и задач.', level)
+                : t('Ничего страшного: начнём с самого начала, а экзамен можно пересдать завтра.');
+
+            const saved = await examSave(level);
+            const note = document.getElementById('examResultNote');
+            note.innerText = saved.error ? saved.error : '';
+            note.style.display = saved.error ? '' : 'none';
+            refreshSectionLocks();
+        }
+
+        // Сохранение и открытие звёзд — на сервере: локальный слепок доступа
+        // перезаписывается ответом сервера при каждом запуске, и записанное только
+        // на устройстве стёрлось бы первой же синхронизацией.
+        async function examSave(level) {
+            if (!supabaseClient) return { error: t('Нет связи — результат не сохранён.') };
+            const res = await callAuthed('session_take_exam', { p_op: exam.op, p_level: level },
+                                         'take_exam', { p_op: exam.op, p_level: level });
+            if (res.error || !res.data || !res.data.ok) {
+                const messages = {
+                    already_today: t('Сегодня экзамен уже был. Приходи завтра.'),
+                    bad_op: t('Такое действие сервер не принял.'),
+                    bad_level: t('Такой результат сервер не принял.')
+                };
+                return { error: messages[res.data && res.data.error]
+                                || t('Не удалось сохранить результат. Запусти supabase/exam.sql.') };
+            }
+            await refreshAccess();
+            return {};
         }
 
         // ===================== ТЕХНИЧЕСКИЕ РАБОТЫ =====================

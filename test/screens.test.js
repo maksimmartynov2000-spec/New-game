@@ -61,6 +61,8 @@ const SCREENS = [
     { name: 'достижения',     open: `renderAchievementsScreen(); document.getElementById('achievementsScreen').style.display='flex';`, must: '#ladderList' },
     { name: 'профиль',        open: `renderProfileScreen(); document.getElementById('profileScreen').style.display='flex';`, must: '#profileList' },
     { name: 'коллекция',      open: `openCollectionModal();`, must: '#collectionGrid, #collectionModal' },
+    { name: 'экзамен',        open: `examOpen('add');`, must: '#examQuestion' },
+    { name: 'экзамен: итог',  open: `examOpen('add'); exam.best = 3; examFinish();`, must: '#examResultCap' },
     { name: 'окно открытой звезды', open: `pendingStarUnlock = { key: 'integer+:add:2', level: 3 }; advanceMissionReveals();`, must: '#starUnlock' },
     { name: 'серия и заморозки', open: `document.querySelector('.daily-streak').click();`, must: '.dlg-card' }
 ];
