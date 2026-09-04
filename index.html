@@ -1138,25 +1138,6 @@
             font-size: 0.74rem; color: #94a3b8; margin-bottom: 12px;
             padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.04);
         }
-        .code-big {
-            font-family: monospace; font-size: 2rem; font-weight: bold; letter-spacing: 6px;
-            color: var(--gold); text-align: center; padding: 16px 8px; border-radius: 12px;
-            background: rgba(255,215,0,0.08); border: 1px solid rgba(255,215,0,0.30);
-            margin-bottom: 12px; user-select: all;
-        }
-        .code-row {
-            display: flex; align-items: center; gap: 8px; padding: 9px 10px; margin-bottom: 7px;
-            border-radius: 9px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
-        }
-        .code-row.used { opacity: 0.55; }
-        .code-row.revoked { opacity: 0.45; border-style: dashed; }
-        .code-row-main { flex: 1; min-width: 0; }
-        .code-row-code { font-family: monospace; font-size: 0.95rem; font-weight: bold; letter-spacing: 2px; color: var(--gold); }
-        .code-row-sub { font-size: 0.68rem; color: #94a3b8; margin-top: 2px; }
-        .code-row-state { font-size: 0.64rem; font-weight: bold; }
-        .code-row-state.wait { color: #fbbf24; }
-        .code-row-state.done { color: #34d399; }
-        .code-row-state.off { color: #f87171; }
 
         /* --- Разбор по типам примеров на экране статистики --- */
         .cls-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
@@ -1509,12 +1490,6 @@
             <div class="config-section">
                 <p style="color:#cbd5e1; font-size:0.9rem; line-height:1.5; margin:0;" id="lockedText"></p>
             </div>
-            <div class="config-section">
-                <div class="config-hint" id="lockedCodeHint">
-                    Код открывает раздел насовсем и действует только на твой логин.
-                </div>
-                <button class="btn-config-continue ready" onclick="askAccessCode()">🔑 У меня есть код</button>
-            </div>
         </div>
     </div>
 
@@ -1783,8 +1758,6 @@
                        style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
                               background:rgba(255,255,255,0.06); color:white; box-sizing:border-box; text-align:center; font-size:0.95rem;">
                 <button class="menu-btn" style="margin-top:8px;" onclick="saveProfileLabel()">💾 <span>Сохранить имя</span></button>
-                <button class="menu-btn" id="btnAccessCode" style="margin-top:8px; display:none;"
-                        onclick="askAccessCode()">🔑 <span>Ввести код от репетитора</span></button>
                 <div id="accessSummary" class="config-hint" style="margin-top:8px;"></div>
             </div>
 
@@ -2115,7 +2088,6 @@
             "Да": "Yes",
             "Подтверждение": "Confirm",
             "Показать": "Show",
-            "Открыть": "Open",
             "Назад": "Back",
             "◀️ назад": "◀️ back",
             "🏠 На главную": "🏠 Home",
@@ -2166,7 +2138,6 @@
             "Сменить миссию?": "Switch mission?",
             "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.": "Your puzzle and all saved progress stay put. Only this mission's counters reset.",
             "Выбрать другую": "Pick another one",
-            "Открой выбор миссии.": "Open the mission picker.",
             "Этот режим больше не открыт — выбери другой.": "That mode isn't open anymore — pick another one.",
             "Загрузка...": "Loading…",
             "Верно!": "Correct!",
@@ -2295,7 +2266,6 @@
             "%1 мин": "%1 min",
             "%1 ч %2 мин": "%1 h %2 min",
             "0 мин": "0 min",
-            "0м": "0m",
             "%1 с": "%1 s",
             " с": " s",
             "%1 с → %2 s": "%1 s → %2 s",
@@ -2442,19 +2412,6 @@
             "ошибся на одну долю": "off by one part",
             "Раздел закрыт": "Section locked",
             "Этот раздел пока закрыт. Его открывает репетитор.": "This section is closed for now. Your tutor opens it.",
-            "🔑 У меня есть код": "🔑 I have a code",
-            "Код от репетитора": "Code from your tutor",
-            "Введи код, который тебе прислали. Он откроет раздел насовсем.": "Enter the code you were given. It opens the section for good.",
-            "Код открывает раздел насовсем и действует только на твой логин.": "The code opens the section for good and works only for your username.",
-            "Ввести код от репетитора": "Enter a tutor code",
-            "например, ГМ4КР7": "e.g. GM4KR7",
-            "Код короче, чем бывает.": "That code is too short.",
-            "Такого кода нет — проверь, правильно ли переписал.": "No such code — check that you typed it right.",
-            "Этот код уже использован.": "That code has already been used.",
-            "Этот код отозвал репетитор.": "Your tutor revoked that code.",
-            "Не удалось открыть по этому коду.": "Couldn't open anything with that code.",
-            "Открыто!": "Unlocked!",
-            "Раздел «%1» теперь доступен.\n": "Section “%1” is now open.\n",
             "В этом разделе тебе открыто: %1. Остальное открывает репетитор.": "In this section you have: %1. Your tutor opens the rest.",
             "Кроме целых положительных пока ничего не открыто.": "Nothing beyond positive whole numbers is open yet.",
             "Открыто кодами: ": "Opened with codes: ",
@@ -2531,19 +2488,9 @@
             "Пароль изменён": "Password changed",
             "Не удалось сменить пароль.": "Couldn't change the password.",
             "Этот код уже занят, придумай другой.": "That username is taken — pick another one.",
-            "Не вышло — перепиши": "Didn't work — try again",
             "Пропадёт всё: прогресс, пазл, коллекция, достижения и сам логин «%1». Восстановить будет нельзя.": "Everything goes: progress, puzzle, collection, achievements and the username “%1” itself. There's no getting it back.",
-            "Ничего не выбрано.": "Nothing selected.",
             "Ничего не изменилось.": "Nothing changed.",
-            "Код готов": "Code ready",
-            "Код %1 отозван — раздел закрылся.": "Code %1 revoked — the section is locked again.",
-            "Откроется: %1 — %2.": "Opens: %1 — %2.",
-            "Отметь хотя бы одну клетку.": "Check at least one cell.",
-            "Отозвать": "Revoke",
             "Доступ обновлён: %1.": "Access updated: %1.",
-            "Не удалось выдать код.": "Couldn't issue the code.",
-            "Не удалось отозвать.": "Couldn't revoke it.",
-            "Не удалось получить список кодов.": "Couldn't load the list of codes.",
             "Не удалось изменить «%1».": "Couldn't change “%1”.",
             "Такой набор режимов сервер не принял.": "The server didn't accept that set of modes.",
             "Этот раздел так не открывается.": "That section doesn't open this way.",
@@ -2622,7 +2569,6 @@
             "Да": "Oui",
             "Подтверждение": "Confirmation",
             "Показать": "Afficher",
-            "Открыть": "Ouvrir",
             "Назад": "Retour",
             "◀️ назад": "◀️ retour",
             "🏠 На главную": "🏠 Accueil",
@@ -2673,7 +2619,6 @@
             "Сменить миссию?": "Changer de mission ?",
             "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.": "Le puzzle et toute la progression enregistrée restent en place. Seuls les compteurs de la mission en cours repartent à zéro.",
             "Выбрать другую": "En choisir une autre",
-            "Открой выбор миссии.": "Ouvre le choix des missions.",
             "Этот режим больше не открыт — выбери другой.": "Ce mode n'est plus ouvert — choisis-en un autre.",
             "Загрузка...": "Chargement…",
             "Верно!": "Correct !",
@@ -2802,7 +2747,6 @@
             "%1 мин": "%1 min",
             "%1 ч %2 мин": "%1 h %2 min",
             "0 мин": "0 min",
-            "0м": "0min",
             "%1 с": "%1 s",
             " с": " s",
             "%1 с → %2 s": "%1 s → %2 s",
@@ -2949,19 +2893,6 @@
             "ошибся на одну долю": "à une part près",
             "Раздел закрыт": "Section verrouillée",
             "Этот раздел пока закрыт. Его открывает репетитор.": "Cette section est encore fermée. C’est ton professeur qui l’ouvre.",
-            "🔑 У меня есть код": "🔑 J'ai un code",
-            "Код от репетитора": "Code du professeur",
-            "Введи код, который тебе прислали. Он откроет раздел насовсем.": "Saisis le code qu'on t'a envoyé. Il ouvre la section pour de bon.",
-            "Код открывает раздел насовсем и действует только на твой логин.": "Le code ouvre la section pour de bon et ne vaut que pour ton identifiant.",
-            "Ввести код от репетитора": "Saisir un code du professeur",
-            "например, ГМ4КР7": "par exemple, GM4KR7",
-            "Код короче, чем бывает.": "Ce code est plus court que prévu.",
-            "Такого кода нет — проверь, правильно ли переписал.": "Ce code n'existe pas — vérifie que tu l'as bien recopié.",
-            "Этот код уже использован.": "Ce code a déjà été utilisé.",
-            "Этот код отозвал репетитор.": "Ton professeur a retiré ce code.",
-            "Не удалось открыть по этому коду.": "Impossible d'ouvrir quoi que ce soit avec ce code.",
-            "Открыто!": "Ouvert !",
-            "Раздел «%1» теперь доступен.\n": "La section « %1 » est maintenant accessible.\n",
             "В этом разделе тебе открыто: %1. Остальное открывает репетитор.": "Dans cette section, tu as accès à : %1. Ton professeur ouvre le reste.",
             "Кроме целых положительных пока ничего не открыто.": "À part les entiers positifs, rien n'est encore ouvert.",
             "Открыто кодами: ": "Ouvert par code : ",
@@ -3038,19 +2969,9 @@
             "Пароль изменён": "Mot de passe modifié",
             "Не удалось сменить пароль.": "Impossible de changer le mot de passe.",
             "Этот код уже занят, придумай другой.": "Cet identifiant est déjà pris, choisis-en un autre.",
-            "Не вышло — перепиши": "Ça n'a pas marché — réessaie",
             "Пропадёт всё: прогресс, пазл, коллекция, достижения и сам логин «%1». Восстановить будет нельзя.": "Tout disparaîtra : la progression, le puzzle, la collection, les récompenses et l'identifiant « %1 » lui-même. Impossible de revenir en arrière.",
-            "Ничего не выбрано.": "Rien n'est sélectionné.",
             "Ничего не изменилось.": "Rien n'a changé.",
-            "Код готов": "Code prêt",
-            "Код %1 отозван — раздел закрылся.": "Code %1 retiré — la section s'est refermée.",
-            "Откроется: %1 — %2.": "Ouvrira : %1 — %2.",
-            "Отметь хотя бы одну клетку.": "Coche au moins une case.",
-            "Отозвать": "Retirer",
             "Доступ обновлён: %1.": "Accès mis à jour : %1.",
-            "Не удалось выдать код.": "Impossible de générer le code.",
-            "Не удалось отозвать.": "Impossible de retirer le code.",
-            "Не удалось получить список кодов.": "Impossible de récupérer la liste des codes.",
             "Не удалось изменить «%1».": "Impossible de modifier « %1 ».",
             "Такой набор режимов сервер не принял.": "Le serveur n'a pas accepté cet ensemble de modes.",
             "Этот раздел так не открывается.": "Cette section ne s'ouvre pas de cette façon.",
@@ -3123,7 +3044,6 @@
             "Да": "Ja",
             "Подтверждение": "Bestätigung",
             "Показать": "Anzeigen",
-            "Открыть": "Öffnen",
             "Назад": "Zurück",
             "◀️ назад": "◀️ zurück",
             "🏠 На главную": "🏠 Startseite",
@@ -3174,7 +3094,6 @@
             "Сменить миссию?": "Mission wechseln?",
             "Пазл и весь накопленный прогресс останутся на месте. Обнулятся только счётчики текущей миссии.": "Puzzle und der gesamte gespeicherte Fortschritt bleiben erhalten. Nur die Zähler dieser Mission starten neu.",
             "Выбрать другую": "Andere wählen",
-            "Открой выбор миссии.": "Öffne die Missionsauswahl.",
             "Этот режим больше не открыт — выбери другой.": "Dieser Modus ist nicht mehr offen — wähl einen anderen.",
             "Загрузка...": "Lädt…",
             "Верно!": "Richtig!",
@@ -3303,7 +3222,6 @@
             "%1 мин": "%1 Min.",
             "%1 ч %2 мин": "%1 Std. %2 Min.",
             "0 мин": "0 Min.",
-            "0м": "0Min",
             "%1 с": "%1 s",
             " с": " s",
             "%1 с → %2 s": "%1 s → %2 s",
@@ -3450,19 +3368,6 @@
             "ошибся на одну долю": "um einen Teil",
             "Раздел закрыт": "Bereich gesperrt",
             "Этот раздел пока закрыт. Его открывает репетитор.": "Dieser Bereich ist noch zu. Dein Lehrer öffnet ihn.",
-            "🔑 У меня есть код": "🔑 Ich habe einen Code",
-            "Код от репетитора": "Code vom Lehrer",
-            "Введи код, который тебе прислали. Он откроет раздел насовсем.": "Gib den Code ein, den du bekommen hast. Er öffnet den Bereich dauerhaft.",
-            "Код открывает раздел насовсем и действует только на твой логин.": "Der Code öffnet den Bereich dauerhaft und gilt nur für deinen Benutzernamen.",
-            "Ввести код от репетитора": "Code vom Lehrer eingeben",
-            "например, ГМ4КР7": "zum Beispiel GM4KR7",
-            "Код короче, чем бывает.": "Dieser Code ist zu kurz.",
-            "Такого кода нет — проверь, правильно ли переписал.": "Diesen Code gibt es nicht — prüfe, ob du ihn richtig abgeschrieben hast.",
-            "Этот код уже использован.": "Dieser Code wurde schon benutzt.",
-            "Этот код отозвал репетитор.": "Dein Lehrer hat diesen Code zurückgezogen.",
-            "Не удалось открыть по этому коду.": "Mit diesem Code lässt sich nichts öffnen.",
-            "Открыто!": "Freigeschaltet!",
-            "Раздел «%1» теперь доступен.\n": "Der Bereich „%1“ ist jetzt offen.\n",
             "В этом разделе тебе открыто: %1. Остальное открывает репетитор.": "In diesem Bereich hast du: %1. Den Rest öffnet dein Lehrer.",
             "Кроме целых положительных пока ничего не открыто.": "Außer den positiven ganzen Zahlen ist noch nichts offen.",
             "Открыто кодами: ": "Per Code geöffnet: ",
@@ -3539,19 +3444,9 @@
             "Пароль изменён": "Passwort geändert",
             "Не удалось сменить пароль.": "Das Passwort konnte nicht geändert werden.",
             "Этот код уже занят, придумай другой.": "Dieser Benutzername ist schon vergeben, nimm einen anderen.",
-            "Не вышло — перепиши": "Hat nicht geklappt — noch einmal",
             "Пропадёт всё: прогресс, пазл, коллекция, достижения и сам логин «%1». Восстановить будет нельзя.": "Alles verschwindet: Fortschritt, Puzzle, Sammlung, Erfolge und der Benutzername „%1“ selbst. Wiederherstellen geht nicht.",
-            "Ничего не выбрано.": "Nichts ausgewählt.",
             "Ничего не изменилось.": "Nichts hat sich geändert.",
-            "Код готов": "Code fertig",
-            "Код %1 отозван — раздел закрылся.": "Code %1 zurückgezogen — der Bereich ist wieder gesperrt.",
-            "Откроется: %1 — %2.": "Öffnet: %1 — %2.",
-            "Отметь хотя бы одну клетку.": "Kreuze mindestens ein Feld an.",
-            "Отозвать": "Zurückziehen",
             "Доступ обновлён: %1.": "Zugang aktualisiert: %1.",
-            "Не удалось выдать код.": "Der Code konnte nicht erstellt werden.",
-            "Не удалось отозвать.": "Zurückziehen nicht möglich.",
-            "Не удалось получить список кодов.": "Die Liste der Codes konnte nicht geladen werden.",
             "Не удалось изменить «%1».": "„%1“ konnte nicht geändert werden.",
             "Такой набор режимов сервер не принял.": "Der Server hat diese Modus-Auswahl nicht angenommen.",
             "Этот раздел так не открывается.": "Dieser Bereich lässt sich so nicht öffnen.",
@@ -9076,53 +8971,6 @@
             document.getElementById('lockedScreen').style.display = 'none';
         }
 
-        // Ввод кода учеником. Живёт в двух местах: на панели закрытого раздела
-        // (куда он попадает, ткнув в замок) и в профиле — на случай, если код
-        // пришёл заранее и до закрытого раздела он ещё не дошёл.
-        async function askAccessCode() {
-            const values = await askForm({
-                title: t('Код от репетитора'),
-                text: t('Введи код, который тебе прислали. Он откроет раздел насовсем.'),
-                fields: [{ key: 'code', label: t('Код'), placeholder: t('например, ГМ4КР7') }],
-                okText: t('Открыть'),
-                validate: (v) => v.code.length >= 4 ? null : t('Код короче, чем бывает.')
-            });
-            if (values === null) return;
-            if (!supabaseClient) { showToast(t('Нет соединения с сервером.'), 'error'); return; }
-
-            const code = Progress.getCode();
-            const auth = Progress.authFor(code);
-            if (!code || !auth) { showToast(t('Сначала войди под своим логином.'), 'error'); return; }
-
-            const typed = values.code.trim().toUpperCase();
-            try {
-                const { data, error } = auth.token
-                    ? await supabaseClient.rpc('session_redeem_access_code', { p_token: auth.token, p_code: typed })
-                    : await supabaseClient.rpc('redeem_access_code',
-                        { p_code_owner: code, p_password: auth.password, p_code: typed });
-                if (error) throw error;
-                if (!data || !data.ok) {
-                    const messages = {
-                        bad_code: t('Такого кода нет — проверь, правильно ли переписал.'),
-                        already_used: t('Этот код уже использован.'),
-                        revoked: t('Этот код отозвал репетитор.')
-                    };
-                    showToast(messages[data && data.error] || t('Не удалось открыть по этому коду.'), 'error');
-                    return;
-                }
-                await refreshAccess();
-                refreshSectionLocks();
-                closeLockedPanel();
-                await showNotice({
-                    title: t('Открыто!'),
-                    text: tf('Раздел «%1» теперь доступен.\n', SECTION_TITLES[data.section] || data.section)
-                        + tf('Открой выбор миссии.')
-                });
-                resetConfigScreen();
-            } catch (e) {
-                showToast(t('Не удалось подключиться. Проверь интернет.'), 'error');
-            }
-        }
 
         // =====================================================================
         //  ВЫДАЧА КОДОВ: ЭКРАН РЕПЕТИТОРА
@@ -9296,45 +9144,6 @@
             redraw();
         }
 
-        async function openIssueCode(studentCode, studentLabel) {
-            const state = { secIdx: 0, picks: {} };
-
-            const values = await askForm({
-                title: t('Код на раздел'),
-                text: tf('Ученик: %1. Код сработает только на этот логин, один раз.', studentLabel || studentCode),
-                fields: [],
-                okText: t('Выдать код'),
-                // Проверка и одновременно источник результата: askForm отдаёт значения
-                // полей, а полей тут нет — разрешение живёт в state.picks.
-                validate: () => grantFromPicks(GRANT_SECTIONS[state.secIdx],
-                                               state.picks[GRANT_SECTIONS[state.secIdx].key] || {})
-                                ? null : t('Отметь хотя бы одну клетку.'),
-                build: (card) => buildGrantGrid(card, state, {
-                    summary: (sec, g) => g
-                        ? tf('Откроется: %1 — %2.', sec.title.replace(/^\S+\s/, ''), grantHuman(sec, g))
-                        : t('Ничего не выбрано.')
-                })
-            });
-            if (values === null) return;
-
-            const sec = GRANT_SECTIONS[state.secIdx];
-            const grant = grantFromPicks(sec, state.picks[sec.key] || {});
-            const { data, error } = await callAuthed(
-                'session_issue_access_code', { p_student_code: studentCode, p_section: sec.key, p_grant: grant },
-                'issue_access_code', { p_student_code: studentCode, p_section: sec.key, p_grant: grant });
-            if (error || !data || !data.ok) {
-                const messages = {
-                    not_your_student: t('Это не твой ученик.'),
-                    bad_grant: t('Такой набор режимов сервер не принял.'),
-                    bad_section: t('Этот раздел кодом не открывается. Запусти supabase/student-access.sql.')
-                };
-                showToast(messages[data && data.error] || t('Не удалось выдать код.'), 'error');
-                return;
-            }
-
-            await showCodeResult(data.code, studentLabel || studentCode, sec, grant);
-            renderStudentsList();
-        }
 
         // Прямое открытие, без кода. Код никуда не девается: он работает, когда вас нет
         // рядом — продиктовал, ученик ввёл. Это для занятия, где три шага и пауза лишние.
@@ -9407,112 +9216,9 @@
 
         // Код показывается крупно и не исчезает сам: его надо успеть переписать
         // или скопировать, а исчезающая через три секунды всплывашка для этого не годится.
-        function showCodeResult(code, who, sec, grant) {
-            return openAppDialog(undefined, (card, submit) => {
-                dlgHead(card, t('Код готов'), tf('Для ученика %1.\nОткроет: %2 — %3.', who, sec.title.replace(/^\S+\s/, ''), grantHuman(sec, grant)));
-
-                const big = document.createElement('div');
-                big.className = 'code-big';
-                big.innerText = code;
-                card.appendChild(big);
-
-                const hint = document.createElement('div');
-                hint.className = 'dlg-hint';
-                hint.style.marginBottom = '12px';
-                hint.innerText = t('Отправь его ученику. Код сработает один раз и только на его логин.');
-                card.appendChild(hint);
-
-                const row = document.createElement('div');
-                row.className = 'dlg-actions';
-                const copy = document.createElement('button');
-                copy.className = 'dlg-btn';
-                copy.type = 'button';
-                copy.innerText = t('Скопировать');
-                copy.addEventListener('click', () => {
-                    try {
-                        navigator.clipboard.writeText(code);
-                        copy.innerText = t('Скопировано');
-                    } catch (e) {
-                        copy.innerText = t('Не вышло — перепиши');
-                    }
-                });
-                const ok = document.createElement('button');
-                ok.className = 'dlg-btn primary';
-                ok.type = 'button';
-                ok.innerText = t('Готово');
-                ok.addEventListener('click', () => submit(undefined));
-                row.appendChild(copy);
-                row.appendChild(ok);
-                card.appendChild(row);
-            });
-        }
 
         // Список выданных кодов по ученику: что открыто, что ещё не погашено,
         // что отозвано. Без него репетитор не помнит, кому что отправлял.
-        async function openStudentCodes(studentCode, studentLabel) {
-            const { data, error } = await callAuthed(
-                'session_list_access_codes', { p_student_code: studentCode },
-                'list_access_codes', { p_student_code: studentCode });
-            if (error || !data || !data.ok) { showToast(t('Не удалось получить список кодов.'), 'error'); return; }
-            const codes = data.codes || [];
-
-            await openAppDialog(undefined, (card, submit) => {
-                dlgHead(card, t('Выданные коды'), tf('Ученик: %1', studentLabel || studentCode));
-                if (!codes.length) {
-                    const empty = document.createElement('div');
-                    empty.className = 'dlg-text';
-                    empty.innerText = t('Этому ученику коды ещё не выдавались.');
-                    card.appendChild(empty);
-                }
-                codes.forEach(c => {
-                    const state = c.revokedAt ? 'off' : (c.redeemedAt ? 'done' : 'wait');
-                    const row = document.createElement('div');
-                    row.className = 'code-row ' + (c.revokedAt ? 'revoked' : (c.redeemedAt ? 'used' : ''));
-                    row.innerHTML = `<div class="code-row-main">
-                            <div class="code-row-code"></div>
-                            <div class="code-row-sub"></div>
-                        </div>
-                        <span class="code-row-state ${state}"></span>`;
-                    row.querySelector('.code-row-code').innerText = c.code;
-                    const secDef = GRANT_SECTIONS.find(x => x.key === c.section) || { title: c.section };
-                    row.querySelector('.code-row-sub').innerText =
-                        `${SECTION_TITLES[c.section] || c.section} — ${grantHuman(secDef, c.grant)}`;
-                    row.querySelector('.code-row-state').innerText =
-                        c.revokedAt ? t('отозван') : (c.redeemedAt ? t('использован') : t('ждёт'));
-
-                    if (!c.revokedAt) {
-                        const btn = document.createElement('button');
-                        btn.className = 'list-row-btn';
-                        btn.type = 'button';
-                        btn.innerText = t('Отозвать');
-                        btn.addEventListener('click', async () => {
-                            btn.disabled = true;
-                            const res = await callAuthed('session_revoke_access_code', { p_code: c.code },
-                                                         'revoke_access_code', { p_code: c.code });
-                            if (res.error || !res.data || !res.data.ok) {
-                                showToast(t('Не удалось отозвать.'), 'error');
-                                btn.disabled = false;
-                                return;
-                            }
-                            submit(undefined);
-                            showToast(tf('Код %1 отозван — раздел закрылся.', c.code), 'ok');
-                        });
-                        row.appendChild(btn);
-                    }
-                    card.appendChild(row);
-                });
-
-                const row = document.createElement('div');
-                row.className = 'dlg-actions';
-                const ok = document.createElement('button');
-                ok.className = 'dlg-btn primary';
-                ok.type = 'button';
-                ok.innerText = t('Закрыть');
-                ok.addEventListener('click', () => submit(undefined));
-                row.appendChild(ok);
-                card.appendChild(row);
-            });
-        }
 
         const SECTION_TITLES = {
             'integer-': t('Отрицательные'),
@@ -13205,7 +12911,6 @@
 
             // Ввод кода — только ученику: репетитору открыто всё и без кодов.
             // Заодно показываем, что уже открыто, чтобы не гадать.
-            document.getElementById('btnAccessCode').style.display = type === 'linked' ? '' : 'none';
             const sum = document.getElementById('accessSummary');
             if (type !== 'linked') {
                 sum.innerText = '';
@@ -13469,7 +13174,7 @@
                 row.className = 'list-row'
                     + (days === null || days >= SILENT_DAYS ? ' silent'
                        : days >= QUIET_DAYS ? ' quiet' : '');
-                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    <button class="list-row-btn" data-act="view">Смотреть</button>\n                    <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>\n                    <button class="list-row-btn" data-act="access" title="Что открыто">⭐</button>\n                    <button class="list-row-btn" data-act="grant" title="Код на раздел">🔓</button>\n                    <button class="list-row-btn" data-act="codes" title="Выданные коды">📋</button>\n                    <button class="list-row-btn" data-act="group" title="Папка">📁</button>\n                    <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>\n                    <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>\n                ');
+                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    <button class="list-row-btn" data-act="view">Смотреть</button>\n                    <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>\n                    <button class="list-row-btn" data-act="access" title="Что открыто">⭐</button>\n                    <button class="list-row-btn" data-act="group" title="Папка">📁</button>\n                    <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>\n                    <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>\n                ');
                 row.querySelector('.list-row-name').innerText = s.label || s.code;
                 row.querySelector('.list-row-sub').innerText =
                     `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}${seen ? ' · ' + seen : ''}`;
@@ -13488,8 +13193,6 @@
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));
                 row.querySelector('[data-act="report"]').addEventListener('click', () => openReportFor(s.code, s));
                 row.querySelector('[data-act="access"]').addEventListener('click', () => openStudentAccess(s.code, s.label));
-                row.querySelector('[data-act="grant"]').addEventListener('click', () => openIssueCode(s.code, s.label));
-                row.querySelector('[data-act="codes"]').addEventListener('click', () => openStudentCodes(s.code, s.label));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
                 row.querySelector('[data-act="group"]').addEventListener('click', () => editStudentGroup(s.code, s.label));
                 row.querySelector('[data-act="del"]').addEventListener('click', () => deleteStudentAccount(s.code));
