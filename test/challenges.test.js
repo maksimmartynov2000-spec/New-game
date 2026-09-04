@@ -40,6 +40,7 @@ function makeDoc() {
         classList: { list: [], add(c) { this.list.push(c); }, remove(c) { this.list = this.list.filter(x => x !== c); },
                      contains(c) { return this.list.includes(c); } } });
     ['challengeReveal', 'challengeCap', 'challengeTopic', 'challengeTask', 'challengeAnswer',
+     'challengeAnswerCap', 'challengeAnswerValue', 'challengeAnswerWhy',
      'challengeTap', 'winScreen'].forEach(el);
     return { doc: { getElementById: (id) => byId[id] || null }, byId };
 }
@@ -106,12 +107,24 @@ test('у каждой клетки две задачи: за алмаз и за 
     });
 });
 
-test('условие короткое, ответ с разбором', () => {
+test('условие короткое, ответ отдельно от разбора', () => {
+    // Ответ ученик ищет глазами, и он не должен тонуть в объяснении.
     CELLS.forEach(key => ['diamond', 'legend'].forEach(tier => {
         const item = RU[key][tier];
         assert(item.task.length <= 200, `${key} ${tier}: условие ${item.task.length} знаков — длинновато`);
-        assert(item.answer.length >= 40, `${key} ${tier}: ответ без разбора`);
+        assert(item.answer.length <= 40, `${key} ${tier}: ответ ${item.answer.length} знаков — это уже разбор`);
+        assert(item.why && item.why.length >= 40, `${key} ${tier}: разбор пустой или слишком короткий`);
         assert(item.answer !== item.task, `${key} ${tier}: ответ повторяет условие`);
+        assert(!/\.$/.test(item.answer), `${key} ${tier}: у короткого ответа точки в конце быть не должно`);
+    }));
+});
+
+test('у каждой задачи три части: условие, ответ, разбор', () => {
+    CELLS.forEach(key => ['diamond', 'legend'].forEach(tier => {
+        const item = RU[key][tier];
+        ['task', 'answer', 'why'].forEach(f => {
+            assert(typeof item[f] === 'string' && item[f].trim(), `${key} ${tier}: пусто поле ${f}`);
+        });
     }));
 });
 
@@ -119,6 +132,15 @@ test('условие спрашивает', () => {
     CELLS.forEach(key => ['diamond', 'legend'].forEach(tier => {
         assert(/[?]/.test(RU[key][tier].task), `${key} ${tier}: условие ничего не спрашивает`);
     }));
+});
+
+test('ответ отделён от разбора и в карточке достижений', () => {
+    // Два места показа не должны разъехаться: и там, и там сначала «Ответ», потом число.
+    const from = SCRIPT.indexOf('earnedChallenges(unlocks, key).forEach');
+    const body = SCRIPT.slice(from, SCRIPT.indexOf('return card;', from));
+    assert(/ladder-challenge-answer-value/.test(body), 'нет отдельной строки ответа');
+    assert(/ladder-challenge-answer-why/.test(body), 'нет отдельной строки разбора');
+    assert(/item\.why/.test(body), 'разбор не берётся из задачи');
 });
 
 test('задачи не повторяются', () => {
@@ -170,6 +192,8 @@ test('карточка показывается с условием и без о
     eq(box.R.showNextChallengeReveal(), true);
     eq(box.dom.byId.challengeReveal.hidden, false, 'окно должно открыться');
     eq(box.dom.byId.challengeTask.innerText, RU['integer+:mul:3'].diamond.task);
+    eq(box.dom.byId.challengeAnswerValue.innerText, RU['integer+:mul:3'].diamond.answer);
+    eq(box.dom.byId.challengeAnswerWhy.innerText, RU['integer+:mul:3'].diamond.why);
     eq(box.dom.byId.challengeAnswer.hidden, true, 'ответ закрыт до тапа');
 });
 

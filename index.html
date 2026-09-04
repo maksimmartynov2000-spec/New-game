@@ -922,10 +922,19 @@
         }
         .challenge-topic { font-size: 0.68rem; color: #64748b; margin-bottom: 11px; }
         .challenge-task { font-size: 1rem; line-height: 1.5; color: #f1f5f9; }
+        /* Ответ и разбор разделены намеренно: число ученик ищет глазами, и оно не
+           должно тонуть в объяснении. */
         .challenge-answer {
-            margin-top: 12px; padding-top: 12px; font-size: 0.92rem; line-height: 1.5; color: #cbd5e1;
+            margin-top: 12px; padding-top: 12px;
             border-top: 1px solid rgba(196, 181, 253, 0.2);
         }
+        .challenge-answer-cap {
+            font-size: 0.66rem; color: #c4b5fd; letter-spacing: 0.06em; text-transform: uppercase;
+        }
+        .challenge-answer-value {
+            font-size: 1.35rem; font-weight: bold; color: #f8fafc; line-height: 1.2; margin-top: 3px;
+        }
+        .challenge-answer-why { font-size: 0.88rem; line-height: 1.5; color: #cbd5e1; margin-top: 9px; }
         .challenge-tap { margin-top: 13px; font-size: 0.7rem; color: #64748b; }
 
         /* Та же задача в карточке достижений — чтобы можно было перечитать. */
@@ -935,7 +944,12 @@
         }
         .ladder-challenge-cap { font-size: 0.66rem; color: #c4b5fd; letter-spacing: 0.03em; }
         .ladder-challenge-task { font-size: 0.82rem; line-height: 1.45; color: #e2e8f0; margin-top: 5px; }
-        .ladder-challenge-answer { font-size: 0.8rem; line-height: 1.45; color: #94a3b8; margin-top: 7px; }
+        .ladder-challenge-answer { margin-top: 8px; }
+        .ladder-challenge-answer-cap {
+            font-size: 0.6rem; color: #c4b5fd; letter-spacing: 0.06em; text-transform: uppercase;
+        }
+        .ladder-challenge-answer-value { font-size: 1rem; font-weight: bold; color: #f1f5f9; margin-top: 2px; }
+        .ladder-challenge-answer-why { font-size: 0.8rem; line-height: 1.45; color: #94a3b8; margin-top: 6px; }
         .ladder-challenge-tap { font-size: 0.64rem; color: #64748b; margin-top: 6px; }
 
         /* --- Подсказка с заморозкой времени --- */
@@ -2005,7 +2019,11 @@
             <div class="challenge-cap" id="challengeCap"></div>
             <div class="challenge-topic" id="challengeTopic"></div>
             <div class="challenge-task" id="challengeTask"></div>
-            <div class="challenge-answer" id="challengeAnswer" hidden></div>
+            <div class="challenge-answer" id="challengeAnswer" hidden>
+                <div class="challenge-answer-cap" id="challengeAnswerCap">Ответ</div>
+                <div class="challenge-answer-value" id="challengeAnswerValue"></div>
+                <div class="challenge-answer-why" id="challengeAnswerWhy"></div>
+            </div>
             <div class="challenge-tap" id="challengeTap"></div>
         </div>
     </div>
@@ -2045,6 +2063,7 @@
         // русской. Коды ошибок ('не сократил' и прочие) сюда НЕ входят намеренно:
         // они уходят в базу как идентификаторы, и перевод разорвал бы статистику.
         const TR_EN = {
+            "Ответ": "Answer",
             "%1 Задача за мастерство": "%1 Mastery problem",
             "%1 Задача за легенду": "%1 Legend problem",
             "Остальные — %1/%2": "Others — %1/%2",
@@ -2553,6 +2572,7 @@
         // порядке: расхождение ключей означало бы, что часть интерфейса молча
         // проваливается в русский, — на это есть отдельная проверка в тестах.
         const TR_FR = {
+            "Ответ": "Réponse",
             "%1 Задача за мастерство": "%1 Défi de maîtrise",
             "%1 Задача за легенду": "%1 Défi de légende",
             "Остальные — %1/%2": "Autres — %1/%2",
@@ -3055,6 +3075,7 @@
 
         // Немецкий. См. примечание к TR_FR.
         const TR_DE = {
+            "Ответ": "Antwort",
             "%1 Задача за мастерство": "%1 Meister-Aufgabe",
             "%1 Задача за легенду": "%1 Legenden-Aufgabe",
             "Остальные — %1/%2": "Weitere — %1/%2",
@@ -12366,7 +12387,9 @@
             document.getElementById('challengeTopic').innerText = topicLabelWithLevel(next.key);
             document.getElementById('challengeTask').innerText = item.task;
             const ans = document.getElementById('challengeAnswer');
-            ans.innerText = item.answer;
+            document.getElementById('challengeAnswerCap').innerText = t('Ответ');
+            document.getElementById('challengeAnswerValue').innerText = item.answer;
+            document.getElementById('challengeAnswerWhy').innerText = item.why || '';
             ans.hidden = true;
             challengeAnswerShown = false;
             document.getElementById('challengeTap').innerText = t('Нажми, чтобы увидеть ответ');
@@ -13125,7 +13148,18 @@
                 box.appendChild(tap);
                 const ans = document.createElement('div');
                 ans.className = 'ladder-challenge-answer';
-                ans.innerText = item.answer;
+                const ansCap = document.createElement('div');
+                ansCap.className = 'ladder-challenge-answer-cap';
+                ansCap.innerText = t('Ответ');
+                ans.appendChild(ansCap);
+                const ansVal = document.createElement('div');
+                ansVal.className = 'ladder-challenge-answer-value';
+                ansVal.innerText = item.answer;
+                ans.appendChild(ansVal);
+                const ansWhy = document.createElement('div');
+                ansWhy.className = 'ladder-challenge-answer-why';
+                ansWhy.innerText = item.why || '';
+                ans.appendChild(ansWhy);
                 ans.hidden = true;
                 box.appendChild(ans);
                 box.addEventListener('click', () => {
