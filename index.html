@@ -1147,6 +1147,21 @@
         .trend-svg { width: 100%; height: 42px; display: block; }
         .trend-empty { font-size: 0.68rem; color: #64748b; text-align: center; padding: 12px 0; }
 
+        /* --- Технические работы --- */
+        .maintenance-screen {
+            position: fixed; inset: 0; z-index: 9000;
+            background: radial-gradient(circle at center, #111324 0%, #030408 100%);
+            display: flex; align-items: center; justify-content: center; padding: 24px;
+        }
+        .maintenance-card { max-width: 360px; text-align: center; }
+        .maintenance-icon { font-size: 3rem; line-height: 1; margin-bottom: 14px; }
+        .maintenance-title {
+            color: var(--gold); font-size: clamp(1.05rem, 5vw, 1.4rem); font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .maintenance-wait { color: #cbd5e1; font-size: 0.95rem; line-height: 1.5; }
+        .maintenance-note { color: #94a3b8; font-size: 0.82rem; line-height: 1.5; margin-top: 12px; }
+
         /* --- Задания дня и недели --- */
         .task-row {
             display: flex; align-items: center; gap: 10px;
@@ -1468,6 +1483,10 @@
     <!-- Задачи за мастерство. Внешний файл: не доехал — мастерство просто не даёт
          карточку, всё остальное работает (см. resolveChallenges). -->
     <script src="content/challenges.js"></script>
+    <!-- Технические работы. Отдельный файл, чтобы включать их одной правкой одной строки.
+         Не доехал — работы считаются выключенными: запереть игру из-за оборвавшейся
+         сети хуже, чем пустить играть во время работ. -->
+    <script src="content/maintenance.js"></script>
 </head>
 <body>
 
@@ -1875,6 +1894,17 @@
         </div>
     </div>
 
+    <!-- Технические работы. Слой выше всего остального: он и должен закрывать собой
+         любой экран, на котором ученика застали. -->
+    <div class="maintenance-screen" id="maintenanceScreen" style="display:none;">
+        <div class="maintenance-card">
+            <div class="maintenance-icon">🔧</div>
+            <div class="maintenance-title">Идут технические работы</div>
+            <div class="maintenance-wait" id="maintenanceWait"></div>
+            <div class="maintenance-note" id="maintenanceNote"></div>
+        </div>
+    </div>
+
     <!-- Экран выбора миссии: раздел, действие, звезда -->
     <div class="modal-screen" id="configScreen">
         <!-- Одна кнопка в углу на оба шага: на первом это меню, на втором — «назад».
@@ -2169,6 +2199,12 @@
             "мимо в единицах": "units off",
             "Сегодня %1 из %2": "Today %1 of %2",
             "🎯 Задания": "🎯 Tasks",
+            "Идут технические работы": "Maintenance in progress",
+            "Приходи примерно через %1 %2": "Come back in about %1 %2",
+            "Загляни попозже": "Look in a bit later",
+            "минуту": "minute",
+            "минуты": "minutes",
+            "минут": "minutes",
             "🎯 Задания ученика": "🎯 Student’s tasks",
             "На неделю": "For the week",
             "Играть": "Play",
@@ -2688,6 +2724,12 @@
             "мимо в единицах": "unités",
             "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
             "🎯 Задания": "🎯 Objectifs",
+            "Идут технические работы": "Maintenance en cours",
+            "Приходи примерно через %1 %2": "Reviens dans environ %1 %2",
+            "Загляни попозже": "Repasse un peu plus tard",
+            "минуту": "minute",
+            "минуты": "minutes",
+            "минут": "minutes",
             "🎯 Задания ученика": "🎯 Objectifs de l’élève",
             "На неделю": "Pour la semaine",
             "Играть": "Jouer",
@@ -3201,6 +3243,12 @@
             "мимо в единицах": "Einer daneben",
             "Сегодня %1 из %2": "Heute %1 von %2",
             "🎯 Задания": "🎯 Aufgaben",
+            "Идут технические работы": "Wartungsarbeiten laufen",
+            "Приходи примерно через %1 %2": "Komm in etwa %1 %2 wieder",
+            "Загляни попозже": "Schau etwas später vorbei",
+            "минуту": "Minute",
+            "минуты": "Minuten",
+            "минут": "Minuten",
             "🎯 Задания ученика": "🎯 Aufgaben des Schülers",
             "На неделю": "Für die Woche",
             "Играть": "Spielen",
@@ -12020,6 +12068,67 @@
             renderHeroDetail(ctx);
         }
 
+        // ===================== ТЕХНИЧЕСКИЕ РАБОТЫ =====================
+        // Заглушка на время обновлений: играть нельзя, экран объясняет почему и когда
+        // приходить. Включается одной строкой в content/maintenance.js — там стоит время
+        // ОКОНЧАНИЯ работ, а не выключатель: забытый выключатель запер бы учеников
+        // насовсем, а прошедшее время снимает заглушку само.
+        //
+        // Все спорные случаи решаются в пользу игры: файла нет, время не разобралось,
+        // часы устройства врут — работы считаются выключенными. Остаться без игры
+        // из-за оборвавшейся сети хуже, чем поиграть во время работ.
+        const MAINTENANCE_POLL_MS = 30000;
+
+        function maintenanceLeftMs(now) {
+            const m = (typeof window !== 'undefined' && window.MAINTENANCE) || {};
+            if (!m.until) return 0;
+            const until = Date.parse(m.until);
+            if (!isFinite(until)) return 0;
+            return Math.max(0, until - (now || Date.now()));
+        }
+        function maintenanceActive(now) { return maintenanceLeftMs(now) > 0; }
+
+        // «Примерно через 20 минут» — округляем вверх до пяти минут. Обещать «через
+        // 3 минуты» нельзя: ученик вернётся ровно через три и упрётся в ту же заглушку.
+        function maintenanceWaitText(leftMs) {
+            const mins = Math.max(1, Math.ceil(leftMs / 60000));
+            if (mins > 90) return t('Загляни попозже');
+            const rounded = mins <= 5 ? 5 : Math.ceil(mins / 5) * 5;
+            return tf('Приходи примерно через %1 %2', rounded, pluralMinutes(rounded));
+        }
+        function pluralMinutes(n) {
+            const d100 = n % 100, d10 = n % 10;
+            if (d100 >= 11 && d100 <= 14) return t('минут');
+            if (d10 === 1) return t('минуту');
+            if (d10 >= 2 && d10 <= 4) return t('минуты');
+            return t('минут');
+        }
+
+        function renderMaintenance() {
+            const box = document.getElementById('maintenanceScreen');
+            if (!box) return false;
+            const left = maintenanceLeftMs();
+            // Начатую миссию не рвём: выкинуть ребёнка с половины примеров — ровно та
+            // неприятная ситуация, ради которой заглушка и делается. Заглушка дождётся
+            // конца миссии, а новую начать уже не даст.
+            if (!left || (typeof gameActive !== 'undefined' && gameActive)) {
+                box.style.display = 'none';
+                return false;
+            }
+            const note = (window.MAINTENANCE || {}).note || '';
+            document.getElementById('maintenanceWait').innerText = maintenanceWaitText(left);
+            const noteEl = document.getElementById('maintenanceNote');
+            noteEl.innerText = note;
+            noteEl.style.display = note ? '' : 'none';
+            box.style.display = 'flex';
+            return true;
+        }
+
+        function startMaintenanceWatch() {
+            renderMaintenance();
+            setInterval(renderMaintenance, MAINTENANCE_POLL_MS);
+        }
+
         // ===================== ЗАДАНИЯ ДНЯ И НЕДЕЛИ =====================
         // Дневная цель отвечает «сколько», но не «что именно». Задания дают направление:
         // конкретную клетку и конкретное число, и кнопку, которая уводит прямо туда.
@@ -12984,6 +13093,8 @@
             if (showNextChallengeReveal()) return;
             if (showStarUnlock()) return;
             document.getElementById('winScreen').classList.add('active');
+            // Во время миссии заглушку придерживали — теперь самое время.
+            renderMaintenance();
         }
 
         // Показывает плашку о новом достижении прямо в игре.
@@ -14745,6 +14856,10 @@
             });
         }
         function startGame() {
+            // Единственная точка входа в миссию — здесь и не пускаем. Караулить каждое
+            // из мест, откуда её запускают (выбор миссии, окно звезды, задания), значило
+            // бы однажды забыть одно.
+            if (maintenanceActive()) { renderMaintenance(); return; }
             gameActive = true;
             sessionMistakes = []; // новая миссия — разбор начинается с чистого листа
             // Отложенные пазлы тоже: показывать прошлый выигрыш вместе со статистикой
@@ -15405,6 +15520,7 @@
         refreshSectionLocks();
         renderDailyBar();
         renderConfigTasks();
+        startMaintenanceWatch();
         applyStaticI18n();       // статическая разметка — один раз при загрузке
         refreshLangButtons();
         document.documentElement.setAttribute('lang', LANG);
