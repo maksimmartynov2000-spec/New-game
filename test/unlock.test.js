@@ -193,5 +193,122 @@ test('у каждой кнопки в карточке ученика есть �
         `кнопки без обработчика: [${dead}]; обработчики без кнопок: [${lost}]`);
 });
 
+
+group('Окно открытой звезды');
+
+// Золото, открытая звезда и следующая миссия жили порознь: о звезде сообщала плашка
+// посреди примеров, она пролетала за три секунды, и связь «набрал золото → открылось
+// следующее» не складывалась. Теперь после миссии показывается окно с переходом.
+//
+// Опасных мест два. Первое: окно должно идти ПОСЛЕДНИМ в очереди наград — из него
+// уходят играть, и всё, что показалось бы после, ученик просто не увидит. Второе:
+// пока миссию доигрывали, доступ мог измениться, и обещать звезду, которой больше
+// нет, нельзя.
+function starBox(opts) {
+    const o = opts || {};
+    const vm = require('vm');
+    const nodes = {};
+    const el = () => ({ hidden: true, innerText: '', onclick: null, style: {},
+                        classList: { add() {}, remove() {} } });
+    ['starUnlock', 'starUnlockCap', 'starUnlockTopic', 'starUnlockText',
+     'starUnlockNext', 'starUnlockStay', 'starUnlockMenu', 'winScreen',
+     'mistakesScreen', 'configScreen'].forEach(id => (nodes[id] = el()));
+    const box = {
+        console, Math, Number, Object, Array, String, JSON,
+        t: (x) => x,
+        tf: function (x) {
+            let out = x;
+            for (let i = 1; i < arguments.length; i++) out = out.split('%' + i).join(String(arguments[i]));
+            return out;
+        },
+        document: { getElementById: (id) => nodes[id] || null },
+        isLevelOpen: () => (o.open === undefined ? true : o.open),
+        topicLabelWithLevel: (k) => k,
+        startGame: () => (box.started = true),
+        resetSessionCounters() {}, resetConfigScreen() {}, refreshSectionLocks() {},
+        renderDailyBar() {}, showToast: (m) => (box.toast = m),
+        Progress: { flush() {}, setConfig: (c) => (box.config = JSON.parse(JSON.stringify(c))) },
+        exampleConfig: { category: 'integer', numberType: 'positive', operations: {} },
+        sessionMistakes: [],
+        showNextPuzzleReveal: () => !!o.puzzle,
+        showNextChallengeReveal: () => !!o.challenge
+    };
+    box.globalThis = box;
+    vm.createContext(box);
+    vm.runInContext(
+        slice('function parseTopicKey(key) {', '// Ключ для ОТОБРАЖЕНИЯ', 'разбор ключа')
+        + slice('// ===================== ОТКРЫЛАСЬ ЗВЕЗДА', '\n        // Очередь наград после миссии', 'окно звезды')
+        + slice('        function advanceMissionReveals() {', '\n\n', 'очередь наград')
+        + '\n;globalThis.S = { showStarUnlock, advanceMissionReveals,'
+        + ' set pending(v) { pendingStarUnlock = v; }, get pending() { return pendingStarUnlock; } };',
+        box, { filename: 'index.html<окно звезды>' });
+    return { box, nodes, S: box.S };
+}
+
+test('после золота окно показывается и называет обе звезды', () => {
+    const w = starBox();
+    w.S.pending = { key: 'integer+:add:3', level: 4 };
+    assert(w.S.showStarUnlock(), 'окно должно показаться');
+    assert(!w.nodes.starUnlock.hidden, 'окно осталось скрытым');
+    eq(w.nodes.starUnlockCap.innerText, '🔓 Открыта 4★!', 'заголовок');
+    eq(w.nodes.starUnlockNext.innerText, '🚀 Играть на 4★', 'кнопка вверх');
+    eq(w.nodes.starUnlockStay.innerText, '↩️ Ещё раз на 3★', 'кнопка остаться');
+});
+
+test('нечего показывать — окна нет', () => {
+    const w = starBox();
+    eq(w.S.showStarUnlock(), false, 'без открытой звезды окна быть не должно');
+});
+
+test('окно показывается один раз, а не при каждом заходе', () => {
+    const w = starBox();
+    w.S.pending = { key: 'integer+:add:3', level: 4 };
+    w.S.showStarUnlock();
+    eq(w.S.showStarUnlock(), false, 'окно повторилось');
+});
+
+test('доступ отозвали, пока доигрывали, — звезду не обещаем', () => {
+    const w = starBox({ open: false });
+    w.S.pending = { key: 'integer+:add:3', level: 4 };
+    eq(w.S.showStarUnlock(), false, 'пообещали звезду, которой больше нет');
+    assert(w.nodes.starUnlock.hidden, 'окно всё-таки показалось');
+});
+
+test('на пятой звезде подниматься некуда — кнопки вверх нет', () => {
+    const w = starBox();
+    w.S.pending = { key: 'integer+:add:5', level: 6 };
+    w.S.showStarUnlock();
+    assert(w.nodes.starUnlockNext.hidden, 'предложили шестую звезду');
+});
+
+test('«Играть на N★» уходит в миссию ровно с одной звездой', () => {
+    const w = starBox();
+    w.S.pending = { key: 'integer+:add:3', level: 4 };
+    w.S.showStarUnlock();
+    w.nodes.starUnlockNext.onclick();
+    assert(w.box.started, 'миссия не началась');
+    eq(JSON.stringify(w.box.config.operations), '{"add":4}', 'настройки миссии');
+});
+
+test('«Ещё раз» возвращает на ту же звезду, а не на новую', () => {
+    const w = starBox();
+    w.S.pending = { key: 'integer+:add:3', level: 4 };
+    w.S.showStarUnlock();
+    w.nodes.starUnlockStay.onclick();
+    eq(JSON.stringify(w.box.config.operations), '{"add":3}', 'настройки миссии');
+});
+
+test('звезда идёт после пазлов и задач, а не вместо них', () => {
+    // Из окна звезды уходят играть — всё, что показалось бы после, ученик не увидит.
+    const w = starBox({ puzzle: true });
+    w.S.pending = { key: 'integer+:add:3', level: 4 };
+    w.S.advanceMissionReveals();
+    assert(w.nodes.starUnlock.hidden, 'звезда перебила пазл');
+    const w2 = starBox({ challenge: true });
+    w2.S.pending = { key: 'integer+:add:3', level: 4 };
+    w2.S.advanceMissionReveals();
+    assert(w2.nodes.starUnlock.hidden, 'звезда перебила задачу за мастерство');
+});
+
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
 if (failed) { failures.forEach(f => console.log(`  ✗ ${f.name}: ${f.message}`)); process.exit(1); }
