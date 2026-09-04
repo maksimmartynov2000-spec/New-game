@@ -1522,7 +1522,6 @@
     <div class="modal-screen" id="statsScreen" style="z-index:230; display:none;">
         <button class="start-menu-btn" onclick="closeStatsScreen()" aria-label="Назад">◀️</button>
         <h1 class="start-title">📊 Статистика</h1>
-        <p class="start-subtitle" id="statsSubtitle">Прогресс ученика</p>
         <div class="config-container">
             <div class="config-section">
                 <div class="period-row" id="statsPeriodRow">
@@ -1562,7 +1561,7 @@
                 </div>
                 <div class="stat-side">
                     <span>📅 дней: <b id="statsDaysVal">0</b></span>
-                    <span>⏱️ время: <b id="statsTimeVal">0м</b></span>
+                    <span>⏱️ время: <b id="statsTimeVal">0 мин</b></span>
                     <span id="statsStreakCell">🔥 подряд: <b id="statsStreakVal">0</b></span>
                     <span id="statsWrongCell">❌ ошибок: <b id="statsWrongVal">0</b></span>
                     <span id="statsPuzzlesCell">🧩 пазлов: <b id="statsPuzzlesVal">0</b></span>
@@ -1724,7 +1723,7 @@
                 <div class="report-block-title">Занятия</div>
                 <div class="report-grid">
                     <div class="report-cell"><b id="repDays">0</b><span>дней занимался</span></div>
-                    <div class="report-cell"><b id="repTime">0 м</b><span>всего времени</span></div>
+                    <div class="report-cell"><b id="repTime">0 мин</b><span>всего времени</span></div>
                     <div class="report-cell"><b id="repStreak">0</b><span>дней подряд</span></div>
                     <div class="report-cell"><b id="repSolved">0</b><span>примеров решено</span></div>
                 </div>
@@ -2075,7 +2074,6 @@
             "Десятки верные, ошибка в единицах": "Tens right, units wrong",
             "мимо в единицах": "units off",
             "Сегодня %1 из %2": "Today %1 of %2",
-            "Сегодня готово: %1": "Today done: %1",
             "%1 подряд": "%1 in a row",
             "Проверь: ": "Try it: ",
             "Нажми, чтобы увидеть ответ": "Tap to see the answer",
@@ -2102,6 +2100,7 @@
             "Текущий аккаунт": "Current account",
             "Личный аккаунт": "Personal account",
             "🎓 Личный аккаунт": "🎓 Personal account",
+            "📚 Ученик": "📚 Student",
             "Мой код": "My username",
             "🔑 Мой код": "🔑 My username",
             "Код": "Username",
@@ -2219,7 +2218,6 @@
             "🏅 Достижения": "🏅 Achievements",
             "Достижения": "Achievements",
             "Прогресс": "Progress",
-            "Прогресс ученика": "Your progress",
             "✅ Решено всего": "✅ Solved in total",
             "🎯 Точность": "🎯 Accuracy",
             "Точность по темам": "Accuracy by topic",
@@ -2294,9 +2292,9 @@
             "▼ показать": "▼ show",
             "▲ скрыть": "▲ hide",
             "Мало данных<br>для кривой": "Not enough data<br>for a chart",
-            "%1 м": "%1 m",
-            "%1 ч %2 м": "%1 h %2 m",
-            "0 м": "0 m",
+            "%1 мин": "%1 min",
+            "%1 ч %2 мин": "%1 h %2 min",
+            "0 мин": "0 min",
             "0м": "0m",
             "%1 с": "%1 s",
             " с": " s",
@@ -2549,7 +2547,7 @@
             "Не удалось изменить «%1».": "Couldn't change “%1”.",
             "Такой набор режимов сервер не принял.": "The server didn't accept that set of modes.",
             "Этот раздел так не открывается.": "That section doesn't open this way.",
-            "<1 м": "<1 m",
+            "<1 мин": "<1 min",
             "🔊 <span>Звук включён</span>": "🔊 <span>Sound on</span>",
             "🌐 <span>Язык: Русский</span>": "🌐 <span>Language: English</span>",
             "отозван": "revoked",
@@ -2583,7 +2581,6 @@
             "Десятки верные, ошибка в единицах": "Dizaines justes, unités fausses",
             "мимо в единицах": "unités",
             "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
-            "Сегодня готово: %1": "Aujourd’hui terminé : %1",
             "%1 подряд": "%1 d’affilée",
             "Проверь: ": "Vérifie : ",
             "Нажми, чтобы увидеть ответ": "Touche pour voir la réponse",
@@ -2610,6 +2607,7 @@
             "Текущий аккаунт": "Compte actuel",
             "Личный аккаунт": "Compte personnel",
             "🎓 Личный аккаунт": "🎓 Compte personnel",
+            "📚 Ученик": "📚 Élève",
             "Мой код": "Mon identifiant",
             "🔑 Мой код": "🔑 Mon identifiant",
             "Код": "Identifiant",
@@ -2727,7 +2725,6 @@
             "🏅 Достижения": "🏅 Récompenses",
             "Достижения": "Récompenses",
             "Прогресс": "Progression",
-            "Прогресс ученика": "Ta progression",
             "✅ Решено всего": "✅ Résolus en tout",
             "🎯 Точность": "🎯 Précision",
             "Точность по темам": "Précision par thème",
@@ -2802,9 +2799,9 @@
             "▼ показать": "▼ afficher",
             "▲ скрыть": "▲ masquer",
             "Мало данных<br>для кривой": "Trop peu de données<br>pour la courbe",
-            "%1 м": "%1 min",
-            "%1 ч %2 м": "%1 h %2 min",
-            "0 м": "0 min",
+            "%1 мин": "%1 min",
+            "%1 ч %2 мин": "%1 h %2 min",
+            "0 мин": "0 min",
             "0м": "0min",
             "%1 с": "%1 s",
             " с": " s",
@@ -3057,7 +3054,7 @@
             "Не удалось изменить «%1».": "Impossible de modifier « %1 ».",
             "Такой набор режимов сервер не принял.": "Le serveur n'a pas accepté cet ensemble de modes.",
             "Этот раздел так не открывается.": "Cette section ne s'ouvre pas de cette façon.",
-            "<1 м": "<1 min",
+            "<1 мин": "<1 min",
             "🔊 <span>Звук включён</span>": "🔊 <span>Son activé</span>",
             "🌐 <span>Язык: Русский</span>": "🌐 <span>Langue : Français</span>",
             "отозван": "retiré",
@@ -3085,7 +3082,6 @@
             "Десятки верные, ошибка в единицах": "Zehner richtig, Einer falsch",
             "мимо в единицах": "Einer daneben",
             "Сегодня %1 из %2": "Heute %1 von %2",
-            "Сегодня готово: %1": "Heute geschafft: %1",
             "%1 подряд": "%1 in Folge",
             "Проверь: ": "Probier es: ",
             "Нажми, чтобы увидеть ответ": "Tippen, um die Antwort zu sehen",
@@ -3112,6 +3108,7 @@
             "Текущий аккаунт": "Aktuelles Konto",
             "Личный аккаунт": "Eigenes Konto",
             "🎓 Личный аккаунт": "🎓 Eigenes Konto",
+            "📚 Ученик": "📚 Schüler",
             "Мой код": "Mein Benutzername",
             "🔑 Мой код": "🔑 Mein Benutzername",
             "Код": "Benutzername",
@@ -3229,7 +3226,6 @@
             "🏅 Достижения": "🏅 Erfolge",
             "Достижения": "Erfolge",
             "Прогресс": "Fortschritt",
-            "Прогресс ученика": "Dein Fortschritt",
             "✅ Решено всего": "✅ Insgesamt gelöst",
             "🎯 Точность": "🎯 Genauigkeit",
             "Точность по темам": "Genauigkeit nach Thema",
@@ -3304,9 +3300,9 @@
             "▼ показать": "▼ anzeigen",
             "▲ скрыть": "▲ ausblenden",
             "Мало данных<br>для кривой": "Zu wenig Daten<br>für die Kurve",
-            "%1 м": "%1 Min",
-            "%1 ч %2 м": "%1 Std %2 Min",
-            "0 м": "0 Min",
+            "%1 мин": "%1 Min.",
+            "%1 ч %2 мин": "%1 Std. %2 Min.",
+            "0 мин": "0 Min.",
             "0м": "0Min",
             "%1 с": "%1 s",
             " с": " s",
@@ -3559,7 +3555,7 @@
             "Не удалось изменить «%1».": "„%1“ konnte nicht geändert werden.",
             "Такой набор режимов сервер не принял.": "Der Server hat diese Modus-Auswahl nicht angenommen.",
             "Этот раздел так не открывается.": "Dieser Bereich lässt sich so nicht öffnen.",
-            "<1 м": "<1 Min",
+            "<1 мин": "<1 Min.",
             "🔊 <span>Звук включён</span>": "🔊 <span>Ton an</span>",
             "🌐 <span>Язык: Русский</span>": "🌐 <span>Sprache: Deutsch</span>",
             "отозван": "zurückgezogen",
@@ -10741,7 +10737,10 @@
         const DAILY_GOAL = 20;
 
         // С какой серии режим считается ударным и огонёк загорается.
-        const STREAK_FIRE_AT = 5;
+        // Огонь принадлежит СЕГОДНЯШНЕМУ дню, а не длине серии. Длинная серия и так
+        // видна числом рядом; а вот «цель на сегодня закрыта» — это то, ради чего
+        // на полоску вообще смотрят, и гореть должно именно оно. Порога в пять дней
+        // здесь больше нет: он гасил огонь у того, кто сегодня всё сделал.
 
         // Сколько дней подряд занимался, считая назад от сегодня. Если сегодня ещё не
         // начинал — серия НЕ обрывается: день не кончился. Иначе цифра падала бы в ноль
@@ -10783,9 +10782,9 @@
             goal.className = 'daily-goal';
             const text = document.createElement('div');
             text.className = 'daily-goal-text';
-            text.innerText = p.complete
-                ? tf('Сегодня готово: %1', p.done)
-                : tf('Сегодня %1 из %2', p.done, p.goal);
+            // Одна и та же форма до и после цели. Раньше при перевыполнении оставалось
+            // «Сегодня готово: 27» — цель пропадала из виду, и 27 не с чем было сравнить.
+            text.innerText = tf('Сегодня %1 из %2', p.done, p.goal);
             goal.appendChild(text);
             const track = document.createElement('div');
             track.className = 'daily-goal-track';
@@ -10799,7 +10798,7 @@
             // Нулевую серию не показываем: «0 подряд» — это не факт, а укор.
             if (streak > 0) {
                 const chip = document.createElement('div');
-                chip.className = 'daily-streak' + (streak >= STREAK_FIRE_AT ? ' fire' : '');
+                chip.className = 'daily-streak' + (p.complete ? ' fire' : '');
                 const flame = document.createElement('span');
                 flame.className = 'flame';
                 flame.innerText = '🔥';
@@ -10818,9 +10817,9 @@
             const total = Math.max(0, Math.round(seconds || 0));
             const h = Math.floor(total / 3600);
             const m = Math.round((total % 3600) / 60);
-            if (h > 0) return tf('%1 ч %2 м', h, m);
-            if (m > 0) return tf('%1 м', m);
-            return total > 0 ? t('<1 м') : t('0 м');
+            if (h > 0) return tf('%1 ч %2 мин', h, m);
+            if (m > 0) return tf('%1 мин', m);
+            return total > 0 ? t('<1 мин') : t('0 мин');
         }
         function formatDayKeyHuman(key) {
             if (!key) return '';
@@ -13179,7 +13178,7 @@
         }
 
         // ===================== ПРОФИЛЬ =====================
-        const ACCOUNT_TYPE_LABELS = { self: t('🎓 Личный аккаунт'), linked: t('📚 Ученик по коду репетитора') };
+        const ACCOUNT_TYPE_LABELS = { self: t('🎓 Личный аккаунт'), linked: t('📚 Ученик') };
 
         function startMenuGoProfile() {
             closeStartMenu();

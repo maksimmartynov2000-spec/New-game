@@ -55,7 +55,7 @@ function load(state) {
         slice('function shiftDayKey(key, deltaDays)', 'function isActiveDay', 'даты'),
         slice('function isActiveDay(d)', 'function aggregateDaily', 'активный день'),
         slice('// ===================== ДНЕВНАЯ ЦЕЛЬ', 'function earliestDayKey', 'дневная цель'),
-        ';globalThis.R = { currentStreak, dailyProgress, renderDailyBar, DAILY_GOAL, STREAK_FIRE_AT };'
+        ';globalThis.R = { currentStreak, dailyProgress, renderDailyBar, DAILY_GOAL };'
     ].join('\n');
     // shiftDayKey форматирует дату через Progress.dayKey — подменяем той же реализацией.
     box.Progress.dayKey = (d) => {
@@ -173,9 +173,11 @@ test('до цели видно, сколько сделано и сколько 
     eq(v.text().innerText, 'Сегодня 12 из 20');
 });
 
-test('после цели строка меняется, а не исчезает', () => {
+test('после цели цель не пропадает из строки', () => {
+    // Раньше здесь было «Сегодня готово: 24» — 24 не с чем было сравнить,
+    // и вопрос «а сколько надо было?» оставался без ответа.
     const v = render(days({ [TODAY]: 24 }));
-    eq(v.text().innerText, 'Сегодня готово: 24');
+    eq(v.text().innerText, 'Сегодня 24 из 20');
     assert(/done/.test(v.bar.className), 'выполненная цель должна быть помечена');
 });
 
@@ -185,21 +187,24 @@ test('нулевую серию не показываем', () => {
     assert(!v.streak(), 'серии быть не должно');
 });
 
-test('серия меньше ударной — без огня', () => {
-    const v = render(days({ '2026-09-08': 5, '2026-09-09': 5, '2026-09-10': 5 }));
-    const chip = v.streak();
-    assert(chip, 'серия должна показываться');
-    assert(!/fire/.test(chip.className), `серия 3 не ударная: ${chip.className}`);
-});
-
-test('с пятого дня загорается огонёк', () => {
+// Огонь принадлежит сегодняшнему дню, а не длине серии. Прежнее правило (пять дней
+// подряд) гасило огонёк у того, кто СЕГОДНЯ выполнил цель полностью, — и полоска
+// «20 из 20» соседствовала с бледным значком.
+test('цель не выполнена — огня нет, даже при длинной серии', () => {
     const d = days({ '2026-09-06': 5, '2026-09-07': 5, '2026-09-08': 5, '2026-09-09': 5, '2026-09-10': 5 });
     const chip = render(d).streak();
-    assert(chip && /fire/.test(chip.className), 'ударный режим должен зажигать огонёк');
+    assert(chip, 'серия должна показываться');
+    assert(!/fire/.test(chip.className), `серия длинная, но сегодня 5 из 20: ${chip.className}`);
 });
 
-test('порог ударного режима — пятый день', () => {
-    eq(R.STREAK_FIRE_AT, 5, 'порог');
+test('цель выполнена — огонь горит в тот же день', () => {
+    const chip = render(days({ '2026-09-09': 5, [TODAY]: 20 })).streak();
+    assert(chip && /fire/.test(chip.className), 'выполненная цель должна зажигать огонёк');
+});
+
+test('перевыполнил — огонь не гаснет', () => {
+    const chip = render(days({ '2026-09-09': 5, [TODAY]: 33 })).streak();
+    assert(chip && /fire/.test(chip.className), 'сверх цели огонь тем более горит');
 });
 
 test('полоска показывает долю, а не что попало', () => {
