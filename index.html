@@ -865,6 +865,16 @@
         .stat-hero-delta { display: block; font-size: 0.66rem; margin-top: 3px; font-weight: bold; }
         .stat-hero-delta.up { color: #34d399; }
         .stat-hero-delta.down { color: #f87171; }
+        /* Карточка раскрывается по нажатию: три числа отвечают «сколько», но не
+           «сколько надо». Открытая помечается рамкой — иначе непонятно, чьи это
+           подробности появились ниже. */
+        .stat-hero-card { cursor: pointer; }
+        .stat-hero-card.open { border-color: rgba(6, 182, 212, 0.55); background: rgba(6, 182, 212, 0.07); }
+        .stat-hero-detail {
+            margin-top: 8px; padding: 10px 12px; border-radius: 10px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        }
+        .stat-hero-line { font-size: 0.74rem; color: #cbd5e1; line-height: 1.5; }
         /* Второстепенные числа — одной строкой, а не такими же карточками:
            у дней, времени и пазлов другой вес, и спорить с главными тремя им незачем. */
         .stat-side {
@@ -1074,6 +1084,13 @@
         .map-legend-items { display: flex; flex-direction: column; gap: 3px; }
         .map-legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.68rem; color: #94a3b8; }
         .map-legend-mark { font-size: 0.72rem; line-height: 1.35; }
+        /* Числа в клетке подписаны так же, как значки: тем же столбцом и тем же
+           кеглем, чтобы читалось одним списком, а не двумя разными легендами. */
+        .map-legend-nums { display: flex; flex-direction: column; gap: 3px; margin-top: 6px; }
+        .map-legend-num {
+            font-size: 0.68rem; font-weight: bold; color: #e2e8f0;
+            min-width: 30px; flex: 0 0 auto;
+        }
         .map-hint { font-size: 0.68rem; color: #64748b; margin-top: 8px; }
 
         /* Отчёт родителям — светлый лист (его печатают и пересылают), поэтому те же
@@ -1519,6 +1536,10 @@
     <div class="modal-screen" id="statsScreen" style="z-index:230; display:none;">
         <button class="start-menu-btn" onclick="closeStatsScreen()" aria-label="Назад">◀️</button>
         <h1 class="start-title">📊 Статистика</h1>
+        <!-- У ученика подзаголовок пуст: «Прогресс ученика» он читал про себя и в третьем
+             лице. У репетитора здесь имя ученика, чью статистику он открыл, — без него
+             в ростере из трёх человек не понять, на чей экран смотришь. -->
+        <p class="start-subtitle" id="statsSubtitle" style="display:none;"></p>
         <div class="config-container">
             <div class="config-section">
                 <div class="period-row" id="statsPeriodRow">
@@ -1556,6 +1577,7 @@
                         <div class="stat-hero-label"><span id="statsSpeedName">Скорость</span><span class="stat-hero-delta" id="statsSpeedDelta"></span></div>
                     </div>
                 </div>
+                <div class="stat-hero-detail" id="statsHeroDetail" style="display:none;"></div>
                 <div class="stat-side">
                     <span>📅 дней: <b id="statsDaysVal">0</b></span>
                     <span>⏱️ время: <b id="statsTimeVal">0 мин</b></span>
@@ -2069,7 +2091,10 @@
             "Проверь: ": "Try it: ",
             "Нажми, чтобы увидеть ответ": "Tap to see the answer",
             "Скрыть ответ": "Hide the answer",
-            "Значки: скорость и точность — по последним %1 примерам, количество — за всё время.": "The icons: speed and accuracy come from the last %1 problems, count is all-time.",
+            "Значки считаются иначе: скорость и точность — по последним %1 примерам, количество — за всё время.": "Marks are counted differently: speed and accuracy over the last %1 problems, count over all time.",
+            "доля верных за выбранный период": "share correct over the chosen period",
+            "сколько примеров решено за тот же период": "how many problems were solved in that period",
+            " Пока примеров меньше %1, вместо доли стоит их число: считать рано.": " Until there are %1 problems, their number is shown instead of a share: it is too early to judge.",
             "звёзд %1 из %2": "%1 of %2 stars",
             "раздел закрыт": "section locked",
             "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "A cell is one operation at one difficulty. Colour follows accuracy: green from %1%, amber from %2%, red below. While fewer than %3 problems are solved, the cell shows their number and no colour.",
@@ -2454,6 +2479,15 @@
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Not enough data to compare the two halves — these are the averages for the whole range.",
             "Где именно ошибается": "Where exactly the mistakes are",
             "Дней подряд": "Days in a row",
+            "За выбранный период: %1": "Over the chosen period: %1",
+            "За всё время: %1": "All time: %1",
+            "В среднем за день занятий: %1": "Average per day of practice: %1",
+            "Сегодня: %1 из %2": "Today: %1 of %2",
+            "Цель — %1 примеров в день": "The goal is %1 problems a day",
+            "Верно %1 из %2 за период": "%1 of %2 correct over the period",
+            "%1 на пример за период": "%1 per problem over the period",
+            "Это примерно %1 в минуту": "That is about %1 a minute",
+            "Ближайшая цель — %1 %2: %3, сейчас %4": "Nearest goal — %1 in %2: %3, now %4",
             "%1 — решено %2": "%1 — %2 solved",
             "Пазлов": "Puzzles",
             "Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.\n                    Отвечает на вопрос, которого не задать общему списку, — ошибается\n                    вразнобой или дыра в одном конкретном месте.": "The same mistakes, broken down by cell: section, operation, star. It answers what the list above cannot \u2014 whether the mistakes are scattered or there is a hole in one specific place.",
@@ -2551,7 +2585,10 @@
             "Проверь: ": "Vérifie : ",
             "Нажми, чтобы увидеть ответ": "Touche pour voir la réponse",
             "Скрыть ответ": "Masquer la réponse",
-            "Значки: скорость и точность — по последним %1 примерам, количество — за всё время.": "Les icônes : la vitesse et la précision portent sur les %1 derniers calculs, la quantité sur tout l'historique.",
+            "Значки считаются иначе: скорость и точность — по последним %1 примерам, количество — за всё время.": "Les médailles se comptent autrement : vitesse et précision sur les %1 derniers calculs, quantité depuis le début.",
+            "доля верных за выбранный период": "part de bonnes réponses sur la période choisie",
+            "сколько примеров решено за тот же период": "combien de calculs ont été faits sur cette période",
+            " Пока примеров меньше %1, вместо доли стоит их число: считать рано.": " Tant qu’il y a moins de %1 calculs, c’est leur nombre qui s’affiche : il est trop tôt pour juger.",
             "звёзд %1 из %2": "%1 étoiles sur %2",
             "раздел закрыт": "section fermée",
             "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "Une case, c'est une opération à une difficulté donnée. La couleur suit la précision : vert à partir de %1 %, orange à partir de %2 %, rouge en dessous. Tant que moins de %3 calculs sont résolus, la case affiche leur nombre et reste sans couleur.",
@@ -2936,6 +2973,15 @@
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Trop peu de données pour comparer les deux moitiés de la période — voici les moyennes sur l'ensemble.",
             "Где именно ошибается": "Où exactement se trouvent les erreurs",
             "Дней подряд": "Jours d'affilée",
+            "За выбранный период: %1": "Sur la période choisie : %1",
+            "За всё время: %1": "Depuis le début : %1",
+            "В среднем за день занятий: %1": "En moyenne par jour d’entraînement : %1",
+            "Сегодня: %1 из %2": "Aujourd’hui : %1 sur %2",
+            "Цель — %1 примеров в день": "L’objectif, c’est %1 calculs par jour",
+            "Верно %1 из %2 за период": "%1 sur %2 justes sur la période",
+            "%1 на пример за период": "%1 par calcul sur la période",
+            "Это примерно %1 в минуту": "C’est environ %1 par minute",
+            "Ближайшая цель — %1 %2: %3, сейчас %4": "Objectif le plus proche — %1 en %2 : %3, actuellement %4",
             "%1 — решено %2": "%1 — %2 résolus",
             "Пазлов": "Puzzles",
             "Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.\n                    Отвечает на вопрос, которого не задать общему списку, — ошибается\n                    вразнобой или дыра в одном конкретном месте.": "Les mêmes erreurs, mais réparties par case : section, opération, étoile. Cela répond à une question que la liste ci-dessus ne pose pas — les erreurs sont-elles dispersées ou y a-t-il un trou à un endroit précis.",
@@ -3027,7 +3073,10 @@
             "Проверь: ": "Probier es: ",
             "Нажми, чтобы увидеть ответ": "Tippen, um die Antwort zu sehen",
             "Скрыть ответ": "Antwort ausblenden",
-            "Значки: скорость и точность — по последним %1 примерам, количество — за всё время.": "Die Symbole: Tempo und Genauigkeit zählen die letzten %1 Aufgaben, die Menge zählt alles.",
+            "Значки считаются иначе: скорость и точность — по последним %1 примерам, количество — за всё время.": "Die Abzeichen zählen anders: Tempo und Genauigkeit über die letzten %1 Aufgaben, Menge über die gesamte Zeit.",
+            "доля верных за выбранный период": "Anteil richtiger Antworten im gewählten Zeitraum",
+            "сколько примеров решено за тот же период": "wie viele Aufgaben in diesem Zeitraum gelöst wurden",
+            " Пока примеров меньше %1, вместо доли стоит их число: считать рано.": " Solange es weniger als %1 Aufgaben sind, steht dort ihre Anzahl statt eines Anteils: zum Werten ist es zu früh.",
             "звёзд %1 из %2": "%1 von %2 Sternen",
             "раздел закрыт": "Bereich gesperrt",
             "Клетка — действие на своей сложности. Цвет по точности: зелёный от %1%, жёлтый от %2%, красный ниже. Пока решено меньше %3 примеров, в клетке стоит их число, а цвета нет.": "Ein Feld ist eine Rechenart auf einer Schwierigkeit. Die Farbe folgt der Genauigkeit: Grün ab %1 %, Gelb ab %2 %, darunter Rot. Solange weniger als %3 Aufgaben gelöst sind, steht im Feld ihre Anzahl und es bleibt farblos.",
@@ -3412,6 +3461,15 @@
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Zu wenig Daten, um beide Hälften des Zeitraums zu vergleichen — hier die Mittelwerte über den ganzen Zeitraum.",
             "Где именно ошибается": "Wo genau die Fehler sitzen",
             "Дней подряд": "Tage in Folge",
+            "За выбранный период: %1": "Im gewählten Zeitraum: %1",
+            "За всё время: %1": "Insgesamt: %1",
+            "В среднем за день занятий: %1": "Im Schnitt pro Übungstag: %1",
+            "Сегодня: %1 из %2": "Heute: %1 von %2",
+            "Цель — %1 примеров в день": "Das Ziel sind %1 Aufgaben pro Tag",
+            "Верно %1 из %2 за период": "%1 von %2 richtig im Zeitraum",
+            "%1 на пример за период": "%1 pro Aufgabe im Zeitraum",
+            "Это примерно %1 в минуту": "Das sind etwa %1 pro Minute",
+            "Ближайшая цель — %1 %2: %3, сейчас %4": "Nächstes Ziel — %1 in %2: %3, aktuell %4",
             "%1 — решено %2": "%1 — %2 gelöst",
             "Пазлов": "Puzzles",
             "Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.\n                    Отвечает на вопрос, которого не задать общему списку, — ошибается\n                    вразнобой или дыра в одном конкретном месте.": "Dieselben Fehler, aber nach Feldern aufgeschlüsselt: Bereich, Rechenart, Stern. Das beantwortet die Frage, die die Liste oben nicht stellt — sind die Fehler verstreut oder sitzt an einer bestimmten Stelle eine Lücke.",
@@ -10660,9 +10718,9 @@
 
             const st = foreignState || Progress.get();
             const daily = st.daily || {};
-            document.getElementById('statsSubtitle').innerText = foreignState
-                ? tf('Ученик: %1', foreignLabel || st.playerCode || '—')
-                : t('Прогресс ученика');
+            const subtitle = document.getElementById('statsSubtitle');
+            subtitle.innerText = foreignState ? tf('Ученик: %1', foreignLabel || st.playerCode || '—') : '';
+            subtitle.style.display = foreignState ? '' : 'none';
 
             document.querySelectorAll('#statsPeriodRow .btn-period').forEach(b => {
                 const raw = b.getAttribute('data-period');
@@ -10751,6 +10809,15 @@
                 document.getElementById('statsAccuracyName').innerText = t('Точность');
                 document.getElementById('statsSpeedName').innerText = t('Скорость');
             }
+            // Подробности по нажатию на карточку. Лесенки берём из своего профиля или
+            // из чужого состояния — того же, из которого посчитаны сами карточки.
+            wireHeroCards({
+                st, unlocks: (st && st.unlocks) || {}, forTutor,
+                solved, wrong, accuracy, avgSec, days: cur.days,
+                lifetime: ((st.totals && st.totals.correct) || 0) + ((st.totals && st.totals.wrong) || 0),
+                doneToday: dailyProgress(daily, today).done, dailyGoal: DAILY_GOAL
+            });
+
             // Нижняя строка: у ребёнка остаются только дни и время — «подряд» и «пазлов»
             // переехали в карточки, а счётчик ошибок это оценка.
             ['statsStreakCell', 'statsWrongCell', 'statsPuzzlesCell'].forEach(id => {
@@ -11414,13 +11481,35 @@
             row.appendChild(items);
             wrap.appendChild(row);
 
+            // Два числа в клетке до сих пор не были подписаны нигде: значки объяснялись,
+            // а «92%» и «120» ученик читал как «моя точность вообще». Это разные вещи —
+            // числа считаются за ВЫБРАННЫЙ ПЕРИОД, а значки за последнюю сотню.
+            const nums = document.createElement('div');
+            nums.className = 'map-legend-nums';
+            [[MAP_LEGEND_SAMPLE.pct + '%', t('доля верных за выбранный период')],
+             [String(MAP_LEGEND_SAMPLE.n), t('сколько примеров решено за тот же период')]
+            ].forEach(([val, text]) => {
+                const line = document.createElement('div');
+                line.className = 'map-legend-item';
+                const b = document.createElement('span');
+                b.className = 'map-legend-num';
+                b.innerText = val;
+                line.appendChild(b);
+                const name = document.createElement('span');
+                name.innerText = text;
+                line.appendChild(name);
+                nums.appendChild(line);
+            });
+            wrap.appendChild(nums);
+
             // Окна у трёх лесенок разные, и с процентом в клетке они не совпадают:
             // тот считается за выбранный период. Не сказать — значит дать прочитать
             // «100% за последние сто» там, где написано «100% за сегодня».
             const note = document.createElement('div');
             note.className = 'map-legend-note';
-            note.innerText = tf('Значки: скорость и точность — по последним %1 примерам, количество — за всё время.',
-                LADDER_WINDOW);
+            note.innerText = tf('Значки считаются иначе: скорость и точность — по последним %1 примерам, количество — за всё время.',
+                LADDER_WINDOW)
+                + tf(' Пока примеров меньше %1, вместо доли стоит их число: считать рано.', MAP_PCT_MIN);
             wrap.appendChild(note);
         }
 
@@ -11566,6 +11655,131 @@
             });
             wrap.innerHTML = '';
             wrap.appendChild(table);
+        }
+
+        // ===================== БЛИЖАЙШАЯ ЦЕЛЬ =====================
+        // Карточки итогов наверху статистики показывают ПЕРИОД: «за 30 дней — 92%».
+        // Лесенки считают иначе: точность и скорость по последним ста примерам,
+        // количество за всё время, и обе живут по клеткам, а не по приложению целиком.
+        // Из-за этого «92%» читалось как «до золота осталось два процента», хотя золото
+        // выдаётся вовсе не за это. Раскрытая карточка называет ближайшую цель поимённо:
+        // в какой клетке она и сколько до неё осталось.
+        //
+        // Ближайшая — по величине недобора внутри одной лесенки, поэтому единицы всегда
+        // сравнимы между собой: ответы с ответами, проценты с процентами, секунды с секундами.
+        function nearestLadderGoal(st, unlocks, ladderId) {
+            let best = null;
+            Object.keys((st && st.byTopic) || {}).forEach(key => {
+                const p = parseTopicKey(key);
+                if (!p.hasLevel) return;
+                const m = topicMetrics(st, key);
+                const earned = ladderTierEarned(unlocks || {}, key, ladderId);
+                if (earned >= 5) return;                  // выше короны ступеней нет
+                const tier = earned + 1;
+                let gap = null, nowText = '', needText = '';
+
+                if (ladderId === 'c') {
+                    if (m.count <= 0) return;
+                    gap = COUNT_TIERS[tier - 1] - m.count;
+                    nowText = String(m.count);
+                    needText = String(COUNT_TIERS[tier - 1]);
+                } else {
+                    // Точность и скорость выдаются только по достаточной выборке. Пока её
+                    // нет, «до золота два процента» — враньё: ступень не дадут ни при
+                    // каком проценте, и звать это целью нельзя.
+                    if (m.count < LADDER_MIN_SAMPLE[tier - 1]) return;
+                    if (ladderId === 'a') {
+                        if (m.accuracy === null) return;
+                        gap = ACCURACY_TIERS[tier - 1] - m.accuracy;
+                        nowText = m.accuracy + '%';
+                        needText = ACCURACY_TIERS[tier - 1] + '%';
+                    } else {
+                        if (m.speedSec === null) return;
+                        const need = speedTiersFor(p.level, p.category)[tier - 1];
+                        gap = m.speedSec - need;          // у скорости меньше — лучше
+                        nowText = m.speedSec.toFixed(1) + t(' с');
+                        needText = need + t(' с');
+                    }
+                }
+                // Недобора нет — ступень выдастся сама на следующем ответе, и целью
+                // она уже не является.
+                if (gap === null || gap <= 0) return;
+                if (!best || gap < best.gap) best = { key, tier, gap, nowText, needText };
+            });
+            return best;
+        }
+
+        function nearestGoalText(st, unlocks, ladderId) {
+            const g = nearestLadderGoal(st, unlocks, ladderId);
+            if (!g) return null;
+            return tf('Ближайшая цель — %1 %2: %3, сейчас %4',
+                      TIER_NAMES[g.tier], topicLabelWithLevel(g.key), g.needText, g.nowText);
+        }
+
+        // Раскрытие карточки итогов. Три числа наверху отвечают «сколько», но не
+        // отвечают «а сколько надо» — и не говорят, что считаются они за период, а не
+        // по лесенкам. По нажатию карточка договаривает: подробности периода и
+        // ближайшая ступень, названная поимённо.
+        let openHeroCard = -1;
+        function heroDetailLines(idx, ctx) {
+            const lines = [];
+            const goal = (ladderId) => {
+                const text = nearestGoalText(ctx.st, ctx.unlocks, ladderId);
+                if (text) lines.push(text);
+            };
+            if (idx === 0) {
+                lines.push(tf('За выбранный период: %1', ctx.solved));
+                lines.push(tf('За всё время: %1', ctx.lifetime));
+                if (ctx.days > 0) lines.push(tf('В среднем за день занятий: %1',
+                                               Math.round(ctx.solved / ctx.days)));
+                goal('c');
+            } else if (idx === 1 && !ctx.forTutor) {
+                lines.push(tf('Сегодня: %1 из %2', ctx.doneToday, ctx.dailyGoal));
+                lines.push(tf('Цель — %1 примеров в день', ctx.dailyGoal));
+            } else if (idx === 2 && !ctx.forTutor) {
+                lines.push(tf('Верно %1 из %2 за период', ctx.solved - ctx.wrong, ctx.solved));
+                goal('a');
+            } else if (idx === 1) {
+                lines.push(tf('Верно %1 из %2 за период', ctx.solved - ctx.wrong, ctx.solved));
+                goal('a');
+            } else {
+                if (ctx.avgSec !== null) {
+                    lines.push(tf('%1 на пример за период', ctx.avgSec.toFixed(1) + t(' с')));
+                    lines.push(tf('Это примерно %1 в минуту', Math.round(60 / ctx.avgSec)));
+                }
+                goal('s');
+            }
+            return lines;
+        }
+
+        function renderHeroDetail(ctx) {
+            const box = document.getElementById('statsHeroDetail');
+            if (!box) return;
+            box.innerHTML = '';
+            if (openHeroCard < 0) { box.style.display = 'none'; return; }
+            box.style.display = 'block';
+            heroDetailLines(openHeroCard, ctx).forEach(text => {
+                const line = document.createElement('div');
+                line.className = 'stat-hero-line';
+                line.innerText = text;
+                box.appendChild(line);
+            });
+        }
+
+        function wireHeroCards(ctx) {
+            const cards = [...document.querySelectorAll('.stat-hero-card')];
+            cards.forEach((card, i) => {
+                card.classList.toggle('open', i === openHeroCard);
+                if (card.dataset && card.dataset.wired) return;
+                if (card.dataset) card.dataset.wired = '1';
+                card.addEventListener('click', () => {
+                    // Повторное нажатие закрывает: иначе подробности некуда деть.
+                    openHeroCard = openHeroCard === i ? -1 : i;
+                    cards.forEach((c, k) => c.classList.toggle('open', k === openHeroCard));
+                    renderHeroDetail(ctx);
+                });
+            });
+            renderHeroDetail(ctx);
         }
 
         // ===================== СВОРАЧИВАЕМЫЕ РАЗДЕЛЫ =====================
