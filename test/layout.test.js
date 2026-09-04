@@ -39,6 +39,7 @@ function test(name, fn) {
 }
 function assert(cond, msg) { if (!cond) throw new Error(msg || 'не выполнилось'); }
 function group(name) { console.log(`\n${name}`); }
+function eq(a, b, msg) { if (a !== b) throw new Error(`${msg || 'не совпало'}: получили ${JSON.stringify(a)}, ждали ${JSON.stringify(b)}`); }
 
 // Границы каждого блока @media внутри стилей.
 function mediaBlocks() {
@@ -205,6 +206,69 @@ test('на самом низком экране шапка с пазлом уб�
     assert(b, 'нет правила для экрана ниже 500 px');
     assert(/header\s*\{[^}]*display:\s*none/.test(b.body),
         'на самом низком экране шапка должна убираться: иначе примерам не остаётся места');
+});
+
+
+group('Выбор миссии: угловая кнопка и раскладка');
+
+// Раньше «назад» была текстовой строкой внутри содержимого — единственная такая
+// кнопка в приложении. В углу при этом стояла ☰, то есть на втором шаге на экране
+// было две разные кнопки ухода, в разных местах и разного вида. Теперь угловая
+// кнопка одна и меняет роль вместе с шагом. Проверяется именно СМЕНА РОЛИ: забыть
+// её — значит получить «назад», открывающее меню, и наоборот.
+function configSteps() {
+    const vm = require('vm');
+    const from = SCRIPT.indexOf('function showConfigStep(step) {');
+    const to = SCRIPT.indexOf('\n        }', from) + '\n        }'.length;
+    if (from < 0) throw new Error('не найдена showConfigStep');
+    const nodes = {
+        categoryStepScreen: { style: { display: 'flex' } },
+        restStepScreen: { style: { display: 'none' } },
+        btnConfigCorner: { innerText: '☰', attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } }
+    };
+    const box = { console, t: (x) => x, document: { getElementById: (id) => nodes[id] || null } };
+    box.globalThis = box;
+    vm.createContext(box);
+    vm.runInContext(SCRIPT.slice(from, to) + '\n;globalThis.showConfigStep = showConfigStep;',
+                    box, { filename: 'index.html<шаги выбора>' });
+    return { nodes, go: box.showConfigStep };
+}
+
+test('на первом шаге в углу меню, на втором — «назад»', () => {
+    const c = configSteps();
+    c.go(1);
+    eq(c.nodes.btnConfigCorner.innerText, '☰', 'первый шаг');
+    c.go(2);
+    eq(c.nodes.btnConfigCorner.innerText, '◀️', 'второй шаг');
+});
+
+test('шаги не показываются одновременно', () => {
+    const c = configSteps();
+    c.go(2);
+    eq(c.nodes.categoryStepScreen.style.display, 'none', 'выбор раздела должен скрыться');
+    eq(c.nodes.restStepScreen.style.display, 'flex', 'второй шаг должен показаться');
+    c.go(1);
+    eq(c.nodes.restStepScreen.style.display, 'none', 'второй шаг должен скрыться');
+});
+
+test('у кнопки меняется и подпись для озвучки, а не только значок', () => {
+    const c = configSteps();
+    c.go(2);
+    eq(c.nodes.btnConfigCorner.attrs['aria-label'], 'Назад', 'подпись на втором шаге');
+    c.go(1);
+    eq(c.nodes.btnConfigCorner.attrs['aria-label'], 'Меню', 'подпись на первом шаге');
+});
+
+test('второй кнопки «назад» внутри содержимого не осталось', () => {
+    assert(HTML.indexOf('btnBackToCategory') < 0,
+        'текстовая кнопка «назад» вернулась — снова два разных ухода на одном экране');
+});
+
+test('содержимое выбора миссии прижато к верху, а не висит по центру', () => {
+    // По центру заголовок оказывался примерно на середине экрана: сверху пустота
+    // на треть высоты и столько же снизу. На айпаде это видно сильнее всего.
+    assert(/#configScreen\s*\{[^}]*justify-content:\s*flex-start/.test(STYLE),
+        'выбор миссии снова центрируется по вертикали');
 });
 
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
