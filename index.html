@@ -222,7 +222,7 @@
         /* Галочка одна и та же в обоих состояниях, свёрнутая — повёрнута. Подмена символа
            дёргает строку, поворот спокойнее. Место под неё фиксированное по той же причине. */
         .ach-section-chevron {
-            font-size: 0.82rem; color: #94a3b8; width: 14px; flex: 0 0 14px;
+            font-size: 1rem; color: var(--cyan); width: 18px; flex: 0 0 18px;
             display: inline-block; text-align: center;
             transition: transform 0.15s ease;
         }
@@ -1107,11 +1107,29 @@
         .trend-empty { font-size: 0.68rem; color: #64748b; text-align: center; padding: 12px 0; }
 
         /* --- Сворачиваемый раздел --- */
-        .fold-head {
-            display: flex; align-items: center; justify-content: space-between;
+        /* Один механизм на все экраны: статистика, профиль, достижения. Треугольник
+           везде значит одно и то же, и «свернул» переживает уход с экрана.
+           Раньше здесь жили три разные механики: аккордеон достижений, «▼ показать»
+           у двух разделов статистики и ничего у остальных — из-за чего большие
+           разделы вываливались все разом. */
+        .config-section[data-fold] > .config-section-title {
+            display: flex; align-items: center; gap: 8px;
             cursor: pointer; user-select: none;
         }
-        .fold-arrow { font-size: 0.7rem; color: #64748b; }
+        /* Прячем ВСЁ, что идёт после заголовка: раздел сам не знает, из чего состоит. */
+        .config-section.folded > .config-section-title ~ * { display: none !important; }
+        .config-section.folded > .config-section-title { margin-bottom: 0; }
+        .fold-chevron {
+            font-size: 1rem; color: var(--cyan); width: 18px; flex: 0 0 18px;
+            display: inline-block; text-align: center; line-height: 1;
+            transition: transform 0.15s ease;
+        }
+        .config-section.folded .fold-chevron { transform: rotate(-90deg); }
+        /* Сводка справа: свёрнутый заголовок без неё — пустая дверь. */
+        .fold-sum {
+            margin-left: auto; font-size: 0.66rem; color: #94a3b8;
+            letter-spacing: 0; text-transform: none; white-space: nowrap; font-weight: normal;
+        }
 
         /* --- Выдача кода: сетка «режим × уровень» --- */
         .grant-sections { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
@@ -1547,13 +1565,13 @@
             <!-- Дни занятий. Только для репетитора: ученику ритм показан лучше — счётчиком
                  «дней подряд» в карточках наверху. Тот говорит «продолжай серию», сетка
                  пропусков — «вот где ты не занимался»; ребёнку работает первое. -->
-            <div class="config-section" id="statsStripSection">
+            <div class="config-section" data-fold="stats:days" id="statsStripSection">
                 <div class="config-section-title" id="statsDaysTitle">Занятия по дням</div>
                 <div id="statsDayCal"></div>
                 <div class="day-summary" id="statsDaySummary"></div>
             </div>
 
-            <div class="config-section" id="statsTrendSection">
+            <div class="config-section" data-fold="stats:trend" id="statsTrendSection">
                 <div class="config-section-title">Как меняется</div>
                 <div class="trend-row">
                     <div class="trend-card">
@@ -1567,19 +1585,19 @@
                 </div>
             </div>
 
-            <div class="config-section" id="statsMapSection">
+            <div class="config-section" data-fold="stats:map" id="statsMapSection">
                 <div class="config-section-title" id="statsMapTitle">Карта разделов</div>
                 <div id="statsMap"></div>
                 <div class="map-legend" id="statsMapLegend"></div>
                 <div class="map-hint" id="statsMapHint"></div>
             </div>
 
-            <div class="config-section" id="statsTopicSection">
+            <div class="config-section" data-fold="stats:topics" id="statsTopicSection">
                 <div class="config-section-title" id="statsTopicTitle">По темам за период</div>
                 <div id="statsTopicList"></div>
             </div>
 
-            <div class="config-section" id="statsMistakesSection" style="display:none;">
+            <div class="config-section" data-fold="stats:mistakes" id="statsMistakesSection" style="display:none;">
                 <div class="config-section-title">Над чем работать</div>
                 <div class="config-hint" style="margin-bottom:8px;">
                     Ошибки за период, разобранные по причине.
@@ -1589,7 +1607,7 @@
 
             <!-- Только для репетитора: на экране ученика этого блока нет. Ребёнку он
                  ничего не даёт, а раздел и так перегружен. -->
-            <div class="config-section" id="statsCellMistakesSection" style="display:none;">
+            <div class="config-section" data-fold="stats:cells" id="statsCellMistakesSection" style="display:none;">
                 <div class="config-section-title">Где именно ошибается</div>
                 <div class="config-hint" style="margin-bottom:8px;">
                     Те же ошибки, но разложенные по клеткам: раздел, действие, звезда.
@@ -1606,12 +1624,9 @@
                 </div>
             </div>
 
-            <div class="config-section" id="statsClassSection" style="display:none;">
-                <div class="config-section-title fold-head" onclick="toggleClassBreakdown()">
-                    <span>Разбор по типам примеров</span>
-                    <span class="fold-arrow" id="statsClassArrow">▼ показать</span>
-                </div>
-                <div id="statsClassBody" style="display:none;">
+            <div class="config-section" data-fold="stats:classes" id="statsClassSection" style="display:none;">
+                <div class="config-section-title">Разбор по типам примеров</div>
+                <div id="statsClassBody">
                     <div class="config-hint" style="margin:8px 0;">
                         Только положительные, сложение и вычитание. Три класса не пересекаются
                         и в сумме дают всю клетку. «Через сотню» — подмножество, а не четвёртый
@@ -1623,12 +1638,9 @@
                 </div>
             </div>
 
-            <div class="config-section" id="statsEpochsSection" style="display:none;">
-                <div class="config-section-title fold-head" onclick="toggleEpochs()">
-                    <span>Прошедшие эпохи</span>
-                    <span class="fold-arrow" id="statsEpochsArrow">▼ показать</span>
-                </div>
-                <div id="statsEpochsBody" style="display:none;">
+            <div class="config-section" data-fold="stats:epochs" id="statsEpochsSection" style="display:none;">
+                <div class="config-section-title">Прошедшие эпохи</div>
+                <div id="statsEpochsBody">
                     <div class="config-hint" style="margin:8px 0;">
                         Каждые 180 дней занятия сворачиваются в карточку — подробности за те дни
                         уже не хранятся, а итоги остаются навсегда.
@@ -1748,7 +1760,7 @@
         <h1 class="start-title">👤 Профиль</h1>
         <p class="start-subtitle" id="profileSubtitle">—</p>
         <div class="config-container">
-            <div class="config-section">
+            <div class="config-section" data-fold="profile:account" id="accountSection">
                 <div class="config-section-title">Текущий аккаунт</div>
                 <div class="menu-stat-card" style="text-align:center;">
                     <div class="menu-code-line" id="profileCodeVal">—</div>
@@ -1761,20 +1773,20 @@
                 <div id="accessSummary" class="config-hint" style="margin-top:8px;"></div>
             </div>
 
-            <div class="config-section">
+            <div class="config-section" data-fold="profile:devices" id="devicesSection">
                 <div class="config-section-title">Профили на этом устройстве</div>
                 <div id="profileList"></div>
                 <button class="menu-btn" onclick="profileAddExisting()">🔑 <span>Добавить по логину</span></button>
             </div>
 
-            <div class="config-section" id="studentsSection">
+            <div class="config-section" data-fold="profile:students" id="studentsSection">
                 <div class="config-section-title">Мои ученики</div>
                 <div id="studentsBanner"></div>
                 <div id="studentsList"></div>
                 <button class="menu-btn" onclick="addStudent()">➕ <span>Добавить ученика</span></button>
             </div>
 
-            <div class="config-section">
+            <div class="config-section" data-fold="profile:danger" id="dangerSection">
                 <div class="config-section-title">Опасная зона</div>
                 <button class="menu-btn danger" onclick="confirmHardReset()">🗑️ <span>Сбросить прогресс (новая игра)</span></button>
                 <button class="menu-btn danger" style="margin-top:8px;" onclick="confirmDeleteOwnAccount()">⚠️ <span>Удалить профиль полностью</span></button>
@@ -2104,6 +2116,7 @@
             "Сменить": "Change",
             "Управление аккаунтом": "Account",
             "Опасная зона": "Danger zone",
+            "пока никого": "nobody yet",
             "Сбросить": "Reset",
             "Удалить": "Delete",
             "Сбросить прогресс (новая игра)": "Reset progress (start over)",
@@ -2585,6 +2598,7 @@
             "Сменить": "Modifier",
             "Управление аккаунтом": "Gestion du compte",
             "Опасная зона": "Zone sensible",
+            "пока никого": "personne pour l’instant",
             "Сбросить": "Réinitialiser",
             "Удалить": "Supprimer",
             "Сбросить прогресс (новая игра)": "Réinitialiser la progression (tout recommencer)",
@@ -3060,6 +3074,7 @@
             "Сменить": "Ändern",
             "Управление аккаунтом": "Konto",
             "Опасная зона": "Gefahrenzone",
+            "пока никого": "noch niemand",
             "Сбросить": "Zurücksetzen",
             "Удалить": "Löschen",
             "Сбросить прогресс (новая игра)": "Fortschritt zurücksetzen (neu anfangen)",
@@ -10836,6 +10851,9 @@
             if (statsSectionAllowed('statsClassSection', forTutor)) renderClassBreakdown(st);
             else document.getElementById('statsClassSection').style.display = 'none';
             renderEpochCards(st);
+            // Только теперь известно, какие разделы вообще показаны: половина из них
+            // только для репетитора, и до отрисовки «первый видимый» не определить.
+            setupFolds('statsScreen');
         }
 
         // Ошибки по клеткам. Клетка — это раздел, действие и звезда сразу: разница между
@@ -11536,13 +11554,73 @@
             wrap.appendChild(table);
         }
 
-        function toggleClassBreakdown() {
-            const body = document.getElementById('statsClassBody');
-            const arrow = document.getElementById('statsClassArrow');
-            const open = body.style.display !== 'none';
-            body.style.display = open ? 'none' : 'block';
-            arrow.innerText = open ? t('▼ показать') : t('▲ скрыть');
+        // ===================== СВОРАЧИВАЕМЫЕ РАЗДЕЛЫ =====================
+        // Большие экраны — статистика и профиль — вываливали все разделы сразу: восемь
+        // блоков подряд, и до нужного надо было пролистать остальные. Теперь у раздела
+        // есть дверь. Механизм общий и живёт на разметке: разделу ставится data-fold
+        // с именем, всё остальное делает setupFolds.
+        //
+        // Что открыто по умолчанию: ПЕРВЫЙ ВИДИМЫЙ раздел экрана, остальные свёрнуты.
+        // Именно видимый, а не первый в разметке: половина разделов статистики
+        // показывается только репетитору, и «первый по разметке» оставил бы ученику
+        // экран, свёрнутый целиком.
+        const FOLD_KEY = 'mathCitadelFolds_v1';
+        function loadFolds() {
+            try { return JSON.parse(localStorage.getItem(FOLD_KEY)) || {}; }
+            catch (e) { return {}; }
         }
+        function saveFolds(state) {
+            try { localStorage.setItem(FOLD_KEY, JSON.stringify(state)); } catch (e) {}
+        }
+        function foldVisible(sec) {
+            // Разделы прячут через style.display у себя же — этого достаточно.
+            return sec.style.display !== 'none';
+        }
+        function setupFolds(rootId) {
+            const root = document.getElementById(rootId);
+            if (!root) return;
+            const state = loadFolds();
+            const secs = [...root.querySelectorAll('.config-section[data-fold]')];
+            const firstVisible = secs.filter(foldVisible)[0];
+            secs.forEach(sec => {
+                const key = sec.getAttribute('data-fold');
+                const title = sec.querySelector('.config-section-title');
+                if (!title) return;
+                if (!title.querySelector('.fold-chevron')) {
+                    const chevron = document.createElement('span');
+                    chevron.className = 'fold-chevron';
+                    chevron.innerText = '▾';
+                    title.insertBefore(chevron, title.firstChild);
+                    title.addEventListener('click', () => {
+                        const folded = sec.classList.toggle('folded');
+                        const now = loadFolds();
+                        now[key] = !folded;
+                        saveFolds(now);
+                    });
+                }
+                // Решение ученика важнее умолчания, поэтому сохранённое состояние
+                // проверяется первым. Ключа нет — открыт только первый видимый.
+                const open = Object.prototype.hasOwnProperty.call(state, key)
+                    ? !!state[key]
+                    : sec === firstVisible;
+                sec.classList.toggle('folded', !open);
+            });
+        }
+        // Подпись справа от заголовка свёрнутого раздела: сколько там внутри.
+        function setFoldSum(secId, text) {
+            const sec = document.getElementById(secId);
+            if (!sec) return;
+            const title = sec.querySelector('.config-section-title');
+            if (!title) return;
+            let el = title.querySelector('.fold-sum');
+            if (!el) {
+                el = document.createElement('span');
+                el.className = 'fold-sum';
+                title.appendChild(el);
+            }
+            el.innerText = text || '';
+        }
+
 
         // Текст для отправки — колонки через табуляцию, чтобы вставлялось таблицей.
         function classAsText(st) {
@@ -11617,13 +11695,6 @@
             }
         }
 
-        function toggleEpochs() {
-            const body = document.getElementById('statsEpochsBody');
-            const arrow = document.getElementById('statsEpochsArrow');
-            const open = body.style.display !== 'none';
-            body.style.display = open ? 'none' : 'block';
-            arrow.innerText = open ? t('▼ показать') : t('▲ скрыть');
-        }
 
         // Карточки прошедших эпох. Это замороженные снимки: их числа НЕ складываются
         // с текущими и вообще ни в каких расчётах периода не участвуют — только показ.
@@ -12934,6 +13005,7 @@
                 document.getElementById('studentsBanner').innerHTML = '';
                 renderStudentsList();
             }
+            setupFolds('profileScreen');
         }
 
         function saveProfileLabel() {
@@ -13125,6 +13197,7 @@
             const students = await fetchMyStudents();
             if (!students.length) {
                 wrap.innerHTML = t('<div class="menu-empty">Пока нет учеников.<br>Добавь первого кнопкой ниже.</div>');
+                setFoldSum('studentsSection', t('пока никого'));
                 return;
             }
             wrap.innerHTML = '';
@@ -13210,6 +13283,9 @@
                 }
                 rows.forEach(renderRow);
             });
+            // Свёрнутый раздел без сводки — пустая дверь: сколько там учеников,
+            // должно быть видно, не открывая.
+            setFoldSum('studentsSection', `${students.length} ${pluralStudents(students.length)}`);
         }
 
         // Папку задаём текстом, но существующие названия предлагаем нажатием: если
