@@ -1147,6 +1147,32 @@
         .trend-svg { width: 100%; height: 42px; display: block; }
         .trend-empty { font-size: 0.68rem; color: #64748b; text-align: center; padding: 12px 0; }
 
+        /* --- Задания дня и недели --- */
+        .task-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .task-row:last-child { border-bottom: none; }
+        /* Выполненное гасим, а не вычёркиваем: зачёркнутый текст на маленьком экране
+           читается хуже, чем просто приглушённый. */
+        .task-row.done { opacity: 0.5; }
+        .task-mark { flex: 0 0 auto; font-size: 0.9rem; line-height: 1; }
+        .task-body { flex: 1 1 auto; min-width: 0; }
+        .task-text { font-size: 0.8rem; color: #e2e8f0; line-height: 1.35; }
+        .task-sub { font-size: 0.68rem; color: #94a3b8; margin-top: 2px; }
+        .task-go {
+            flex: 0 0 auto; padding: 7px 12px; border-radius: 9px; cursor: pointer;
+            font-family: inherit; font-size: 0.74rem; font-weight: bold;
+            color: var(--cyan); background: rgba(6, 182, 212, 0.10);
+            border: 1px solid rgba(6, 182, 212, 0.35);
+        }
+        .task-go:active { transform: scale(0.96); }
+        .task-week-cap {
+            margin-top: 10px; padding-top: 8px; font-size: 0.66rem; color: #64748b;
+            text-transform: uppercase; letter-spacing: 0.04em;
+            border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
         /* --- Сворачиваемый раздел --- */
         /* Один механизм на все экраны: статистика, профиль, достижения. Треугольник
            везде значит одно и то же, и «свернул» переживает уход с экрана.
@@ -1612,6 +1638,14 @@
             <!-- Дни занятий. Только для репетитора: ученику ритм показан лучше — счётчиком
                  «дней подряд» в карточках наверху. Тот говорит «продолжай серию», сетка
                  пропусков — «вот где ты не занимался»; ребёнку работает первое. -->
+            <!-- Задания ученика. Репетитору они нужны не меньше, чем ему: по ним видно,
+                 куда приложение его сейчас ведёт, и совпадает ли это с занятием.
+                 Кнопки «Играть» здесь нет — это чужой прогресс, играть за него нельзя. -->
+            <div class="config-section" data-fold="stats:tasks" id="statsTasksSection">
+                <div class="config-section-title">🎯 Задания ученика</div>
+                <div id="statsTasksList"></div>
+            </div>
+
             <div class="config-section" data-fold="stats:days" id="statsStripSection">
                 <div class="config-section-title" id="statsDaysTitle">Занятия по дням</div>
                 <div id="statsDayCal"></div>
@@ -1852,6 +1886,15 @@
              в игре не было вовсе: серия дней считалась, но жила в статистике, куда
              ученик заходит редко. -->
         <div class="daily-bar" id="dailyBar"></div>
+
+        <!-- Задания дня и недели. Раздел сворачивается общим механизмом: кому они не
+             нужны, тот закроет один раз, и выбор запомнится. -->
+        <div class="config-container" id="tasksWrap" style="display:none;">
+            <div class="config-section" data-fold="tasks" id="tasksSection">
+                <div class="config-section-title">🎯 Задания</div>
+                <div id="tasksList"></div>
+            </div>
+        </div>
 
         <!-- ШАГ 1: только выбор категории -->
         <div id="categoryStepScreen" style="width:100%; display:flex; flex-direction:column; align-items:center;">
@@ -2125,6 +2168,19 @@
             "Десятки верные, ошибка в единицах": "Tens right, units wrong",
             "мимо в единицах": "units off",
             "Сегодня %1 из %2": "Today %1 of %2",
+            "🎯 Задания": "🎯 Tasks",
+            "🎯 Задания ученика": "🎯 Student’s tasks",
+            "На неделю": "For the week",
+            "Играть": "Play",
+            "Реши %1 примеров": "Solve %1 problems",
+            "Реши верно %1 примеров": "Get %1 problems right",
+            "Добери до ступени «%1» — ещё %2 верных": "Reach %1 — %2 more correct",
+            "Набери %1% точности": "Reach %1% accuracy",
+            "Реши %1 примеров без единой ошибки": "Solve %1 problems with no mistakes",
+            "Позанимайся в %1 разных клетках": "Practise in %1 different cells",
+            "Позанимайся %1 дней за неделю": "Practise on %1 days this week",
+            "нужно хотя бы %1 ответов, чтобы засчитать": "at least %1 answers are needed to count",
+            "%1 из %2": "%1 of %2",
             "%1 подряд": "%1 in a row",
             "❄️ Вчера сработала заморозка — серия цела": "❄️ A freeze was used yesterday — your streak is safe",
             "🔥 Серия и заморозки": "🔥 Streak and freezes",
@@ -2631,6 +2687,19 @@
             "Десятки верные, ошибка в единицах": "Dizaines justes, unités fausses",
             "мимо в единицах": "unités",
             "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
+            "🎯 Задания": "🎯 Objectifs",
+            "🎯 Задания ученика": "🎯 Objectifs de l’élève",
+            "На неделю": "Pour la semaine",
+            "Играть": "Jouer",
+            "Реши %1 примеров": "Fais %1 calculs",
+            "Реши верно %1 примеров": "Réussis %1 calculs",
+            "Добери до ступени «%1» — ещё %2 верных": "Atteins %1 — encore %2 justes",
+            "Набери %1% точности": "Atteins %1% de précision",
+            "Реши %1 примеров без единой ошибки": "Fais %1 calculs sans une seule erreur",
+            "Позанимайся в %1 разных клетках": "Entraîne-toi dans %1 cases différentes",
+            "Позанимайся %1 дней за неделю": "Entraîne-toi %1 jours cette semaine",
+            "нужно хотя бы %1 ответов, чтобы засчитать": "il faut au moins %1 réponses pour compter",
+            "%1 из %2": "%1 sur %2",
             "%1 подряд": "%1 d’affilée",
             "❄️ Вчера сработала заморозка — серия цела": "❄️ Une protection a servi hier — ta série est sauve",
             "🔥 Серия и заморозки": "🔥 Série et protections",
@@ -3131,6 +3200,19 @@
             "Десятки верные, ошибка в единицах": "Zehner richtig, Einer falsch",
             "мимо в единицах": "Einer daneben",
             "Сегодня %1 из %2": "Heute %1 von %2",
+            "🎯 Задания": "🎯 Aufgaben",
+            "🎯 Задания ученика": "🎯 Aufgaben des Schülers",
+            "На неделю": "Für die Woche",
+            "Играть": "Spielen",
+            "Реши %1 примеров": "Löse %1 Aufgaben",
+            "Реши верно %1 примеров": "Löse %1 Aufgaben richtig",
+            "Добери до ступени «%1» — ещё %2 верных": "Erreiche %1 — noch %2 richtige",
+            "Набери %1% точности": "Erreiche %1% Genauigkeit",
+            "Реши %1 примеров без единой ошибки": "Löse %1 Aufgaben ohne einen Fehler",
+            "Позанимайся в %1 разных клетках": "Übe in %1 verschiedenen Feldern",
+            "Позанимайся %1 дней за неделю": "Übe an %1 Tagen in dieser Woche",
+            "нужно хотя бы %1 ответов, чтобы засчитать": "mindestens %1 Antworten nötig, damit es zählt",
+            "%1 из %2": "%1 von %2",
             "%1 подряд": "%1 in Folge",
             "❄️ Вчера сработала заморозка — серия цела": "❄️ Gestern hat ein Frost gewirkt — deine Serie hält",
             "🔥 Серия и заморозки": "🔥 Serie und Frost",
@@ -10942,6 +11024,7 @@
             // подписью «Дней подряд» на двух экранах не может стоять два разных числа:
             // на стартовом теперь горит текущая серия, и статистика обязана говорить
             // о том же. Самая длинная череда периода осталась у репетитора ниже.
+            const streak = currentStreak(daily, today);
             if (!forTutor) {
                 // Счётчик пазлов отсюда убран: он почти всегда 0 или 1 и на видном месте
                 // выглядит поломкой, а сами пазлы куда лучше показаны в коллекции —
@@ -11080,6 +11163,12 @@
             // Карточки эпох остаются: это память о пройденном пути, а не оценка.
             if (statsSectionAllowed('statsClassSection', forTutor)) renderClassBreakdown(st);
             else document.getElementById('statsClassSection').style.display = 'none';
+            // Задания считаются на СЕГОДНЯ и на текущую неделю, а не за выбранный период:
+            // это то, что ученику предстоит, а не то, что он сделал в июле.
+            const tasksShown = renderTasks('statsTasksList', st, today,
+                                           foreignState ? (st.playerCode || '') : Progress.getCode(), false);
+            document.getElementById('statsTasksSection').style.display = tasksShown ? '' : 'none';
+
             renderEpochCards(st);
             // Только теперь известно, какие разделы вообще показаны: половина из них
             // только для репетитора, и до отрисовки «первый видимый» не определить.
@@ -11931,6 +12020,260 @@
             renderHeroDetail(ctx);
         }
 
+        // ===================== ЗАДАНИЯ ДНЯ И НЕДЕЛИ =====================
+        // Дневная цель отвечает «сколько», но не «что именно». Задания дают направление:
+        // конкретную клетку и конкретное число, и кнопку, которая уводит прямо туда.
+        //
+        // Заданий нигде не хранится. Они ВЫВОДЯТСЯ из даты и логина: одна и та же дата
+        // даёт одному и тому же ученику одни и те же задания, а выполнены они или нет —
+        // видно из журнала. Ноль новых полей в сохранении.
+        //
+        // Плата за это честная: задание не подстраивается под то, что ученик сделал
+        // утром. Выдалось на день — таким и осталось.
+        const DAILY_TASK_COUNT = 3;
+        const TASK_CELL_WINDOW = 14;   // из каких клеток берём задания: где занимался недавно
+        const TASK_MIN_SAMPLE = 10;    // меньше этого о точности за день говорить нельзя
+
+        function taskSeed(str) {
+            let h = 2166136261;
+            for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 16777619) >>> 0;
+            return h;
+        }
+
+        // Понедельник той недели, в которую попал день. Неделя календарная, как и просили.
+        function weekStartKey(dayKey) {
+            const [y, m, d] = dayKey.split('-').map(Number);
+            const dt = new Date(y, m - 1, d);
+            const shift = (dt.getDay() + 6) % 7;   // 0 — понедельник
+            return shiftDayKey(dayKey, -shift);
+        }
+
+        // Клетки, где ученик реально занимался за последние дни, — по убыванию попыток.
+        // Задание про клетку, которую он не открывал месяц, отправило бы его с нуля.
+        function recentCells(daily, todayKey, windowDays) {
+            const counts = {};
+            for (let i = 0; i < windowDays; i++) {
+                const day = (daily || {})[shiftDayKey(todayKey, -i)];
+                Object.keys((day && day.t) || {}).forEach(key => {
+                    if (!parseTopicKey(key).hasLevel) return;   // старый формат без звезды
+                    const v = day.t[key] || [];
+                    counts[key] = (counts[key] || 0) + (v[0] || 0) + (v[1] || 0);
+                });
+            }
+            return Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+        }
+
+        // Свод по диапазону дней: сколько верно, сколько мимо, сколько дней занимался
+        // и сколько разных клеток трогал. На этом же своде проверяются все задания.
+        function taskAggregate(daily, fromKey, toKey, cellKey) {
+            const out = { correct: 0, wrong: 0, days: 0, cells: 0 };
+            const seen = {};
+            let key = fromKey;
+            for (let guard = 0; guard < 400; guard++) {
+                const day = (daily || {})[key];
+                if (day) {
+                    if (isActiveDay(day)) out.days++;
+                    Object.keys(day.t || {}).forEach(k => {
+                        const v = day.t[k] || [];
+                        if ((v[0] || 0) + (v[1] || 0) > 0) seen[k] = true;
+                    });
+                    if (cellKey) {
+                        const v = (day.t || {})[cellKey];
+                        if (v) { out.correct += v[0] || 0; out.wrong += v[1] || 0; }
+                    } else {
+                        out.correct += day.c || 0;
+                        out.wrong += day.w || 0;
+                    }
+                }
+                if (key === toKey) break;
+                key = shiftDayKey(key, 1);
+            }
+            out.cells = Object.keys(seen).length;
+            return out;
+        }
+
+        function evalTask(task, agg) {
+            const attempts = agg.correct + agg.wrong;
+            if (task.kind === 'count')    return { have: attempts, need: task.need, done: attempts >= task.need };
+            if (task.kind === 'correct')  return { have: agg.correct, need: task.need, done: agg.correct >= task.need };
+            if (task.kind === 'cells')    return { have: agg.cells, need: task.need, done: agg.cells >= task.need };
+            if (task.kind === 'days')     return { have: agg.days, need: task.need, done: agg.days >= task.need };
+            if (task.kind === 'clean') {
+                // «Без ошибок» имеет смысл только на длинной серии ответов: ноль из нуля
+                // не подвиг. Поэтому засчитывается и число решённых, и отсутствие промахов.
+                return { have: agg.correct, need: task.need, done: agg.correct >= task.need && agg.wrong === 0 };
+            }
+            if (task.kind === 'accuracy') {
+                const pct = attempts > 0 ? Math.round(agg.correct / attempts * 100) : 0;
+                return { have: attempts >= TASK_MIN_SAMPLE ? pct : null, need: task.need,
+                         done: attempts >= TASK_MIN_SAMPLE && pct >= task.need };
+            }
+            return { have: 0, need: task.need, done: false };
+        }
+
+        // Текст говорит ЧТО сделать, а где — уходит в подпись под ним. Вместе они не
+        // помещались: «Реши 10 примеров без единой ошибки: Положительные · Сложение · 2★»
+        // занимало три строки на телефоне, и действие тонуло в адресе.
+        function taskText(task) {
+            if (task.kind === 'count')    return tf('Реши %1 примеров', task.need);
+            if (task.kind === 'correct')  return task.tier
+                ? tf('Добери до ступени «%1» — ещё %2 верных', TIER_NAMES[task.tier], task.need)
+                : tf('Реши верно %1 примеров', task.need);
+            if (task.kind === 'accuracy') return tf('Набери %1% точности', task.need);
+            if (task.kind === 'clean')    return tf('Реши %1 примеров без единой ошибки', task.need);
+            if (task.kind === 'cells')    return tf('Позанимайся в %1 разных клетках', task.need);
+            if (task.kind === 'days')     return tf('Позанимайся %1 дней за неделю', task.need);
+            return '';
+        }
+
+        // Детерминированный выбор: одна и та же дата и логин дают один и тот же набор.
+        //
+        // Задания про КОНКРЕТНУЮ клетку берутся первыми, общие только добивают остаток.
+        // Иначе жребий легко выдаёт три общих («реши 25 примеров»), а у них нет кнопки
+        // «Играть» — и задание перестаёт быть тем, ради чего затевалось: указанием,
+        // куда идти, в один тап.
+        function pickTasks(primary, filler, seed, count) {
+            const out = [];
+            let s = seed;
+            const drain = (pool) => {
+                const left = pool.slice();
+                while (out.length < count && left.length) {
+                    s = Math.imul(s ^ (s >>> 15), 2246822507) >>> 0;
+                    out.push(left.splice(s % left.length, 1)[0]);
+                }
+            };
+            drain(primary);
+            drain(filler);
+            return out;
+        }
+
+        function dailyTasks(st, todayKey, code) {
+            const daily = (st && st.daily) || {};
+            const cells = recentCells(daily, todayKey, TASK_CELL_WINDOW);
+            const primary = [];
+            if (cells[0]) {
+                primary.push({ kind: 'count', cell: cells[0], need: 15 });
+                primary.push({ kind: 'clean', cell: cells[0], need: 10 });
+                primary.push({ kind: 'accuracy', cell: cells[0], need: 90 });
+            }
+            if (cells[1]) {
+                primary.push({ kind: 'count', cell: cells[1], need: 10 });
+                primary.push({ kind: 'accuracy', cell: cells[1], need: 90 });
+            }
+            const filler = [];
+            if (cells.length >= 2) filler.push({ kind: 'cells', need: 2 });
+            filler.push({ kind: 'count', need: 25 });
+
+            return pickTasks(primary, filler, taskSeed(todayKey + '|' + (code || '')), DAILY_TASK_COUNT)
+                .map(task => decorate(task, daily, todayKey, todayKey));
+        }
+
+        function weeklyTask(st, todayKey, code) {
+            const daily = (st && st.daily) || {};
+            const from = weekStartKey(todayKey);
+            const cells = recentCells(daily, todayKey, TASK_CELL_WINDOW);
+            const primary = [];
+            if (cells[0]) {
+                // Если до следующей ступени количества осталось столько, сколько реально
+                // взять за неделю, — так и говорим. Иначе обещать ступень нельзя.
+                const have = ((st.byTopic || {})[cells[0]] || {}).correct || 0;
+                let tier = 0, gap = 0;
+                COUNT_TIERS.forEach((v, i) => { if (!tier && have < v) { tier = i + 1; gap = v - have; } });
+                if (tier && gap >= 20 && gap <= 80) primary.push({ kind: 'correct', cell: cells[0], need: gap, tier });
+                else primary.push({ kind: 'correct', cell: cells[0], need: 60 });
+            }
+            const filler = [{ kind: 'days', need: 5 }, { kind: 'correct', need: 120 }];
+
+            const task = pickTasks(primary, filler, taskSeed(from + '|w|' + (code || '')), 1)[0];
+            return task ? decorate(task, daily, from, todayKey) : null;
+        }
+
+        function decorate(task, daily, fromKey, toKey) {
+            const agg = taskAggregate(daily, fromKey, toKey, task.cell);
+            const res = evalTask(task, agg);
+            const parsed = task.cell ? parseTopicKey(task.cell) : null;
+            return Object.assign({}, task, res, {
+                text: taskText(task),
+                where: task.cell ? topicLabelWithLevel(task.cell) : '',
+                // Кнопка «Играть» есть только у заданий про конкретную клетку — остальные
+                // не знают, куда вести, и кнопка была бы обманом.
+                go: parsed ? { op: parsed.op, level: parsed.level,
+                               secKey: `${parsed.category}${parsed.sign || ''}` } : null
+            });
+        }
+
+        // Отрисовка заданий. Живёт на экране выбора миссии — там, где ученик решает,
+        // чем заняться, а не в статистике, куда он заходит редко.
+        function renderTasks(containerId, st, todayKey, code, withButtons) {
+            const wrap = document.getElementById(containerId);
+            if (!wrap) return false;
+            wrap.innerHTML = '';
+            const list = dailyTasks(st, todayKey, code);
+            const week = weeklyTask(st, todayKey, code);
+            if (!list.length && !week) return false;
+
+            const row = (task, isWeek) => {
+                const el = document.createElement('div');
+                el.className = 'task-row' + (task.done ? ' done' : '');
+                const mark = document.createElement('span');
+                mark.className = 'task-mark';
+                mark.innerText = task.done ? '✅' : (isWeek ? '📅' : '▫️');
+                el.appendChild(mark);
+
+                const body = document.createElement('div');
+                body.className = 'task-body';
+                const text = document.createElement('div');
+                text.className = 'task-text';
+                text.innerText = task.text;
+                body.appendChild(text);
+                // Числом показываем ровно то, что проверяется: иначе «почти получилось»
+                // читается как «получилось».
+                const sub = document.createElement('div');
+                sub.className = 'task-sub';
+                const count = task.have === null
+                    ? tf('нужно хотя бы %1 ответов, чтобы засчитать', TASK_MIN_SAMPLE)
+                    : tf('%1 из %2', task.have, task.need);
+                sub.innerText = task.where ? `${task.where} · ${count}` : count;
+                body.appendChild(sub);
+                el.appendChild(body);
+
+                if (withButtons && task.go && !task.done) {
+                    const btn = document.createElement('button');
+                    btn.className = 'task-go';
+                    btn.type = 'button';
+                    btn.innerText = t('Играть');
+                    btn.addEventListener('click', () => startMissionAt(task.go.op, task.go.level, task.go.secKey));
+                    el.appendChild(btn);
+                }
+                return el;
+            };
+
+            list.forEach(task => wrap.appendChild(row(task, false)));
+            if (week) {
+                const cap = document.createElement('div');
+                cap.className = 'task-week-cap';
+                cap.innerText = t('На неделю');
+                wrap.appendChild(cap);
+                wrap.appendChild(row(week, true));
+            }
+            return true;
+        }
+
+        function renderConfigTasks() {
+            const wrap = document.getElementById('tasksWrap');
+            if (!wrap) return;
+            const st = (typeof Progress !== 'undefined' && Progress.get) ? Progress.get() : null;
+            if (!st) { wrap.style.display = 'none'; return; }
+            const shown = renderTasks('tasksList', st, Progress.dayKey(), Progress.getCode(), true);
+            wrap.style.display = shown ? '' : 'none';
+            // Сколько закрыто — видно, не открывая раздел.
+            const rows = [...document.getElementById('tasksList').children]
+                .filter(x => x.className.indexOf('task-row') === 0);
+            const done = rows.filter(x => x.className.indexOf('done') >= 0).length;
+            setFoldSum('tasksSection', tf('%1 из %2', done, rows.length));
+            setupFolds('configScreen');
+        }
+
         // ===================== СВОРАЧИВАЕМЫЕ РАЗДЕЛЫ =====================
         // Большие экраны — статистика и профиль — вываливали все разделы сразу: восемь
         // блоков подряд, и до нужного надо было пролистать остальные. Теперь у раздела
@@ -12620,6 +12963,7 @@
                 resetConfigScreen();
                 refreshSectionLocks();
                 renderDailyBar();
+                renderConfigTasks();
                 document.getElementById('configScreen').style.display = 'flex';
                 showToast(t('Этот режим больше не открыт — выбери другой.'), 'error');
                 return;
@@ -13991,6 +14335,7 @@
             Progress.flush();
             refreshSectionLocks();
             renderDailyBar();
+            renderConfigTasks();
             document.getElementById('configScreen').style.display = 'flex';
         }
 
@@ -14006,6 +14351,7 @@
             Progress.flush();
             refreshSectionLocks();
             renderDailyBar();
+            renderConfigTasks();
             document.getElementById('configScreen').style.display = 'flex';
         }
         function winGoHome() { winLeaveToConfig(); }
@@ -15058,6 +15404,7 @@
         // в state — это часть схемы синхронизации, но на экран он больше не влияет).
         refreshSectionLocks();
         renderDailyBar();
+        renderConfigTasks();
         applyStaticI18n();       // статическая разметка — один раз при загрузке
         refreshLangButtons();
         document.documentElement.setAttribute('lang', LANG);
