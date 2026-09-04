@@ -58,6 +58,9 @@ function load(windowObj, opts) {
         topicMasteryTier: (unlocks, key) => (unlocks && unlocks[key]) || 0,
         topicLabelWithLevel: (key) => key,
         showNextPuzzleReveal: () => !!o.puzzleFirst && !(box.puzzleShown = true),
+        // Экран итогов теперь заодно проверяет, не начались ли технические работы.
+        showStarUnlock: () => false,
+        renderMaintenance: () => false,
         document: dom.doc
     };
     const src = slice('// ===================== ЗАДАЧИ ЗА МАСТЕРСТВО',
