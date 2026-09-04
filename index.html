@@ -1014,7 +1014,7 @@
 
         /* --- Дневная цель на экране выбора миссии --- */
         .daily-bar {
-            display: flex; align-items: center; gap: 12px;
+            display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
             width: min(94vw, 520px); margin: 0 auto 12px;
             padding: 9px 12px; border-radius: 12px;
             border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04);
@@ -1034,6 +1034,17 @@
         .daily-streak { flex: 0 0 auto; font-size: 0.82rem; color: #64748b; white-space: nowrap; }
         .daily-streak.fire { color: var(--gold); text-shadow: 0 0 10px rgba(255,215,0,0.35); }
         .daily-streak .flame { opacity: 0.45; }
+        /* Строка серии стала кнопкой: по ней открывается объяснение заморозок.
+           Кнопочных признаков ей при этом не даём — она читается как подпись. */
+        .daily-streak { background: none; border: none; font-family: inherit; cursor: pointer; padding: 0; }
+        .daily-streak:active { opacity: 0.7; }
+        .daily-ice { color: #7dd3fc; font-weight: bold; }
+        /* Сообщение о сработавшей заморозке — во всю ширину под полоской: без него
+           непонятно, почему серия пережила пропуск. */
+        .daily-frozen-note {
+            flex: 0 0 100%; width: 100%; margin-top: 2px;
+            font-size: 0.72rem; color: #7dd3fc; line-height: 1.35;
+        }
         .daily-streak.fire .flame { opacity: 1; }
 
         /* --- Карта раздела --- */
@@ -1591,6 +1602,7 @@
                     <span>📅 дней: <b id="statsDaysVal">0</b></span>
                     <span>⏱️ время: <b id="statsTimeVal">0 мин</b></span>
                     <span id="statsStreakCell">🔥 подряд: <b id="statsStreakVal">0</b></span>
+                    <span id="statsFreezeCell">❄️ заморозки: <b id="statsFreezeVal">0</b></span>
                     <span id="statsWrongCell">❌ ошибок: <b id="statsWrongVal">0</b></span>
                     <span id="statsPuzzlesCell">🧩 пазлов: <b id="statsPuzzlesVal">0</b></span>
                 </div>
@@ -2114,6 +2126,12 @@
             "мимо в единицах": "units off",
             "Сегодня %1 из %2": "Today %1 of %2",
             "%1 подряд": "%1 in a row",
+            "❄️ Вчера сработала заморозка — серия цела": "❄️ A freeze was used yesterday — your streak is safe",
+            "🔥 Серия и заморозки": "🔥 Streak and freezes",
+            "Серия: %1 %2.\n": "Streak: %1 %2.\n",
+            "Заморозки: %1 из %2.\n\n": "Freezes: %1 of %2.\n\n",
+            "Заморозка тратится сама, если ты пропустил день, — серия не обрывается.\n": "A freeze is spent by itself if you miss a day — the streak holds.\n",
+            "Новая даётся за каждые %1 дней с выполненной целью.": "A new one comes for every %1 days with the goal met.",
             "Проверь: ": "Try it: ",
             "Нажми, чтобы увидеть ответ": "Tap to see the answer",
             "Скрыть ответ": "Hide the answer",
@@ -2321,6 +2339,7 @@
             "📅 дней:": "📅 days:",
             "⏱️ время:": "⏱️ time:",
             "🔥 подряд:": "🔥 streak:",
+            "❄️ заморозки:": "❄️ freezes:",
             "❌ ошибок:": "❌ wrong:",
             "🏅 достижений получено: %1": "🏅 achievements earned: %1",
             "примеров решено": "problems solved",
@@ -2613,6 +2632,12 @@
             "мимо в единицах": "unités",
             "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
             "%1 подряд": "%1 d’affilée",
+            "❄️ Вчера сработала заморозка — серия цела": "❄️ Une protection a servi hier — ta série est sauve",
+            "🔥 Серия и заморозки": "🔥 Série et protections",
+            "Серия: %1 %2.\n": "Série : %1 %2.\n",
+            "Заморозки: %1 из %2.\n\n": "Protections : %1 sur %2.\n\n",
+            "Заморозка тратится сама, если ты пропустил день, — серия не обрывается.\n": "Une protection se dépense toute seule si tu sautes un jour — la série tient.\n",
+            "Новая даётся за каждые %1 дней с выполненной целью.": "Une nouvelle arrive tous les %1 jours où l’objectif est atteint.",
             "Проверь: ": "Vérifie : ",
             "Нажми, чтобы увидеть ответ": "Touche pour voir la réponse",
             "Скрыть ответ": "Masquer la réponse",
@@ -2820,6 +2845,7 @@
             "📅 дней:": "📅 jours :",
             "⏱️ время:": "⏱️ temps :",
             "🔥 подряд:": "🔥 d'affilée :",
+            "❄️ заморозки:": "❄️ protections :",
             "❌ ошибок:": "❌ erreurs :",
             "🏅 достижений получено: %1": "🏅 récompenses obtenues : %1",
             "примеров решено": "calculs résolus",
@@ -3106,6 +3132,12 @@
             "мимо в единицах": "Einer daneben",
             "Сегодня %1 из %2": "Heute %1 von %2",
             "%1 подряд": "%1 in Folge",
+            "❄️ Вчера сработала заморозка — серия цела": "❄️ Gestern hat ein Frost gewirkt — deine Serie hält",
+            "🔥 Серия и заморозки": "🔥 Serie und Frost",
+            "Серия: %1 %2.\n": "Serie: %1 %2.\n",
+            "Заморозки: %1 из %2.\n\n": "Frost: %1 von %2.\n\n",
+            "Заморозка тратится сама, если ты пропустил день, — серия не обрывается.\n": "Ein Frost wird von selbst verbraucht, wenn du einen Tag auslässt — die Serie hält.\n",
+            "Новая даётся за каждые %1 дней с выполненной целью.": "Eine neue gibt es für je %1 Tage mit erfülltem Ziel.",
             "Проверь: ": "Probier es: ",
             "Нажми, чтобы увидеть ответ": "Tippen, um die Antwort zu sehen",
             "Скрыть ответ": "Antwort ausblenden",
@@ -3313,6 +3345,7 @@
             "📅 дней:": "📅 Tage:",
             "⏱️ время:": "⏱️ Zeit:",
             "🔥 подряд:": "🔥 in Folge:",
+            "❄️ заморозки:": "❄️ Frost:",
             "❌ ошибок:": "❌ Fehler:",
             "🏅 достижений получено: %1": "🏅 erhaltene Erfolge: %1",
             "примеров решено": "gelöste Aufgaben",
@@ -10576,18 +10609,59 @@
         // на полоску вообще смотрят, и гореть должно именно оно. Порога в пять дней
         // здесь больше нет: он гасил огонь у того, кто сегодня всё сделал.
 
-        // Сколько дней подряд занимался, считая назад от сегодня. Если сегодня ещё не
-        // начинал — серия НЕ обрывается: день не кончился. Иначе цифра падала бы в ноль
-        // каждое утро и возвращалась к вечеру, а это не серия, а издевательство.
-        function currentStreak(daily, todayKey) {
+        // ===================== СЕРИЯ И ЗАМОРОЗКИ =====================
+        // Заморозка спасает серию за пропущенный день. Зарабатывается работой, а не
+        // деньгами: одна за каждые пять дней с ВЫПОЛНЕННОЙ целью. Просто зайти на пять
+        // минут — серию продлит, но заморозку не даст: страховка должна доставаться
+        // за настоящую работу.
+        const FREEZE_EVERY = 5;   // дней с выполненной целью за одну заморозку
+        const FREEZE_MAX = 2;     // больше в запасе не копится
+
+        // Считаем ВПЕРЁД, от первого дня к сегодняшнему, а не назад. Заморозка тратится
+        // на пропуск, а зарабатывается днями ДО него — при обратном обходе в момент
+        // дырки ещё неизвестно, есть ли чем платить.
+        //
+        // Идём по записям журнала, а не по календарю: журнал хранит две сотни записей,
+        // и у того, кто занимается через раз, они могут растянуться на годы — по дням
+        // такой обход был бы в тысячи шагов.
+        function streakState(daily, todayKey, goal) {
             const d = daily || {};
-            let key = todayKey;
-            if (!isActiveDay(d[key])) key = shiftDayKey(key, -1);
-            let n = 0;
-            // Ограничитель — на случай битого журнала: в норме цикл упирается в дырку.
-            while (n < 500 && isActiveDay(d[key])) { n++; key = shiftDayKey(key, -1); }
-            return n;
+            const target = goal || DAILY_GOAL;
+            const out = { streak: 0, freezes: 0, spent: 0, lastFrozen: null };
+            const keys = Object.keys(d).filter(k => k <= todayKey && isActiveDay(d[k])).sort();
+            if (!keys.length) return out;
+
+            // Гасим пропуск с first по last включительно. Не хватило заморозок — серия рвётся.
+            const cover = (first, last) => {
+                let n = daysBetweenKeys(first, last) + 1;
+                while (n > 0 && out.freezes > 0) { out.freezes--; out.spent++; n--; }
+                if (n > 0) { out.streak = 0; out.lastFrozen = null; return; }
+                out.lastFrozen = last;   // замороженный день серию НЕ удлиняет, только хранит
+            };
+
+            let goalDays = 0, prev = null;
+            keys.forEach(k => {
+                if (prev && daysBetweenKeys(prev, k) > 1) {
+                    cover(shiftDayKey(prev, 1), shiftDayKey(k, -1));
+                }
+                out.streak++;
+                // Заморозка начисляется на пятый, десятый и так далее день с целью.
+                if ((d[k].c || 0) >= target && ++goalDays % FREEZE_EVERY === 0
+                    && out.freezes < FREEZE_MAX) out.freezes++;
+                prev = k;
+            });
+
+            // Хвост до сегодня. Сегодняшний день пропуском не считается, даже если пуст:
+            // он ещё не кончился, и обрывать серию с утра нельзя.
+            if (daysBetweenKeys(prev, todayKey) > 1) {
+                cover(shiftDayKey(prev, 1), shiftDayKey(todayKey, -1));
+            }
+            return out;
         }
+
+        // Прежнее имя оставлено: серия нужна в трёх местах, и всем им нужна только длина.
+        function currentStreak(daily, todayKey) { return streakState(daily, todayKey).streak; }
+
 
         // Сегодняшний счёт считаем по верным ответам — тем же числом, что двигает
         // лесенку количества и цель миссии. Иначе «сделано» на трёх экранах означало бы
@@ -10606,7 +10680,6 @@
             const daily = (Progress.get() || {}).daily || {};
             const today = Progress.dayKey();
             const p = dailyProgress(daily, today);
-            const streak = currentStreak(daily, today);
 
             bar.hidden = false;
             bar.className = 'daily-bar' + (p.complete ? ' done' : '');
@@ -10630,16 +10703,49 @@
             bar.appendChild(goal);
 
             // Нулевую серию не показываем: «0 подряд» — это не факт, а укор.
-            if (streak > 0) {
-                const chip = document.createElement('div');
+            // Серия и заморозки — одной нажимаемой строкой. Отдельная кнопка «что это
+            // такое» тут была бы лишним предметом на маленьком экране, а без объяснения
+            // снежинка непонятна: ребёнок увидит, что серия не оборвалась, и решит, что
+            // приложение считает неправильно.
+            const s = streakState(daily, today);
+            if (s.streak > 0 || s.freezes > 0) {
+                const chip = document.createElement('button');
                 chip.className = 'daily-streak' + (p.complete ? ' fire' : '');
+                chip.type = 'button';
                 const flame = document.createElement('span');
                 flame.className = 'flame';
                 flame.innerText = '🔥';
                 chip.appendChild(flame);
-                chip.appendChild(document.createTextNode(' ' + tf('%1 подряд', streak)));
+                chip.appendChild(document.createTextNode(' ' + tf('%1 подряд', s.streak)));
+                if (s.freezes > 0) {
+                    const ice = document.createElement('span');
+                    ice.className = 'daily-ice';
+                    ice.innerText = ' ❄️ ' + s.freezes;
+                    chip.appendChild(ice);
+                }
+                chip.addEventListener('click', () => showStreakInfo(s, today));
                 bar.appendChild(chip);
             }
+
+            // Заморозка сработала вчера — говорим об этом прямо. Иначе ребёнок видит, что
+            // серия пережила пропуск, и перестаёт верить числу.
+            if (s.lastFrozen && s.lastFrozen === shiftDayKey(today, -1)) {
+                const note = document.createElement('div');
+                note.className = 'daily-frozen-note';
+                note.innerText = t('❄️ Вчера сработала заморозка — серия цела');
+                bar.appendChild(note);
+            }
+        }
+
+        // Короткое объяснение: четыре строки, без обучающего тона.
+        function showStreakInfo(s, todayKey) {
+            showNotice({
+                title: t('🔥 Серия и заморозки'),
+                text: tf('Серия: %1 %2.\n', s.streak, pluralDaysWord(s.streak))
+                    + tf('Заморозки: %1 из %2.\n\n', s.freezes, FREEZE_MAX)
+                    + t('Заморозка тратится сама, если ты пропустил день, — серия не обрывается.\n')
+                    + tf('Новая даётся за каждые %1 дней с выполненной целью.', FREEZE_EVERY)
+            });
         }
 
         function earliestDayKey(daily) {
@@ -10798,6 +10904,9 @@
             document.getElementById('statsDaysVal').innerText = cur.days;
             document.getElementById('statsTimeVal').innerText = formatDuration(cur.s);
             document.getElementById('statsStreakVal').innerText = longestStreak(daily, fromKey, toKey);
+            // Запас заморозок — величина «на сейчас», а не за период: он показывает,
+            // сколько у ученика осталось страховки, а не сколько её было в июле.
+            document.getElementById('statsFreezeVal').innerText = streakState(daily, today).freezes;
 
             // --- Результат ---
             // В режиме "всё время" берём пожизненные totals/byTopic, а не журнал: журнал
@@ -10833,7 +10942,6 @@
             // подписью «Дней подряд» на двух экранах не может стоять два разных числа:
             // на стартовом теперь горит текущая серия, и статистика обязана говорить
             // о том же. Самая длинная череда периода осталась у репетитора ниже.
-            const streak = currentStreak(daily, today);
             if (!forTutor) {
                 // Счётчик пазлов отсюда убран: он почти всегда 0 или 1 и на видном месте
                 // выглядит поломкой, а сами пазлы куда лучше показаны в коллекции —
@@ -10861,7 +10969,7 @@
 
             // Нижняя строка: у ребёнка остаются только дни и время — «подряд» и «пазлов»
             // переехали в карточки, а счётчик ошибок это оценка.
-            ['statsStreakCell', 'statsWrongCell', 'statsPuzzlesCell'].forEach(id => {
+            ['statsStreakCell', 'statsFreezeCell', 'statsWrongCell', 'statsPuzzlesCell'].forEach(id => {
                 document.getElementById(id).style.display = forTutor ? '' : 'none';
             });
 
