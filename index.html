@@ -1845,7 +1845,6 @@
                         <button class="btn-op" data-op="mul">✖️ Умножение</button>
                         <button class="btn-op" data-op="div">➗ Деление</button>
                     </div>
-                    <div class="config-hint">Можно выбрать один или несколько режимов</div>
 
                     <div class="frac-special-block" id="fracSpecialBlock" style="display:none;">
                         <div class="frac-special-label">✨ Особые режимы дробей — только положительные числа</div>
@@ -1861,7 +1860,6 @@
                 <div class="config-section" id="difficultyContainer" style="display:none;">
                     <div class="config-section-title">2️⃣ Сложность</div>
                     <div id="difficultyList"></div>
-                    <div class="config-hint">Одна миссия — один вид примеров на одной звезде</div>
                 </div>
             </div>
             <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">🚀 Начать миссию</button>
@@ -2148,8 +2146,6 @@
             "Выбор миссии": "Choose a mission",
             "1️⃣ Что тренируем": "1️⃣ What to practice",
             "2️⃣ Сложность": "2️⃣ Difficulty",
-            "Можно выбрать один или несколько режимов": "Pick one mode",
-            "Одна миссия — один вид примеров на одной звезде": "One mission — one kind of problem on one star",
             "🚀 Начать миссию": "🚀 Start the mission",
             "Целые": "Whole numbers",
             "Дроби": "Fractions",
@@ -2237,7 +2233,7 @@
             "Нажми на собранную картинку — узнаешь, что это за парадокс": "Tap a finished picture to read about its paradox",
             "Парадокс": "Paradox",
             "🏆 Парадоксы математики:": "🏆 Paradoxes of mathematics:",
-            "🔒 Заблокировано": "🔒 Locked",
+            "🔒 Откроет репетитор": "🔒 Your tutor opens this",
             "Занятия": "Sessions",
             "Занятия по дням": "Sessions by day",
             "Занятия по неделям": "Sessions by week",
@@ -2447,7 +2443,7 @@
             "нашёл только одну долю": "only one part",
             "ошибся на одну долю": "off by one part",
             "Раздел закрыт": "Section locked",
-            "Этот раздел пока закрыт. Открыть его может только репетитор — попроси у него код.": "This section is locked. Only your tutor can open it — ask them for a code.",
+            "Этот раздел пока закрыт. Его открывает репетитор.": "This section is closed for now. Your tutor opens it.",
             "🔑 У меня есть код": "🔑 I have a code",
             "Код от репетитора": "Code from your tutor",
             "Введи код, который тебе прислали. Он откроет раздел насовсем.": "Enter the code you were given. It opens the section for good.",
@@ -2461,12 +2457,13 @@
             "Не удалось открыть по этому коду.": "Couldn't open anything with that code.",
             "Открыто!": "Unlocked!",
             "Раздел «%1» теперь доступен.\n": "Section “%1” is now open.\n",
-            "В этом разделе тебе открыто: %1. Остальное — по коду от репетитора.": "In this section you have: %1. The rest needs a code from your tutor.",
+            "В этом разделе тебе открыто: %1. Остальное открывает репетитор.": "In this section you have: %1. Your tutor opens the rest.",
             "Кроме целых положительных пока ничего не открыто.": "Nothing beyond positive whole numbers is open yet.",
             "Открыто кодами: ": "Opened with codes: ",
             "весь раздел": "the whole section",
             "открыт полностью": "fully open",
-            "Этой звезды нет в коде от репетитора": "This star isn't in your tutor's code",
+            "Эту звезду репетитор ещё не открыл": "Your tutor hasn't opened this star yet",
+            "%1★ откроет репетитор": "%1★ is opened by your tutor",
             "всё": "all",
             "<div class=\"menu-empty\">Загружаю…</div>": "<div class=\"menu-empty\">Loading…</div>",
             "<div class=\"menu-empty\">Ни одной ошибки за миссию.<br>Так держать!</div>": "<div class=\"menu-empty\">Not a single mistake this mission.<br>Keep it up!</div>",
@@ -2657,8 +2654,6 @@
             "Выбор миссии": "Choisir une mission",
             "1️⃣ Что тренируем": "1️⃣ Ce qu'on travaille",
             "2️⃣ Сложность": "2️⃣ Difficulté",
-            "Можно выбрать один или несколько режимов": "Tu peux choisir un mode ou plusieurs",
-            "Одна миссия — один вид примеров на одной звезде": "Une mission — un type de calcul sur une seule étoile",
             "🚀 Начать миссию": "🚀 Commencer la mission",
             "Целые": "Nombres entiers",
             "Дроби": "Fractions",
@@ -2746,7 +2741,7 @@
             "Нажми на собранную картинку — узнаешь, что это за парадокс": "Touche une image terminée pour découvrir son paradoxe",
             "Парадокс": "Paradoxe",
             "🏆 Парадоксы математики:": "🏆 Paradoxes des mathématiques :",
-            "🔒 Заблокировано": "🔒 Verrouillé",
+            "🔒 Откроет репетитор": "🔒 Ton prof l’ouvrira",
             "Занятия": "Séances",
             "Занятия по дням": "Séances par jour",
             "Занятия по неделям": "Séances par semaine",
@@ -2956,7 +2951,7 @@
             "нашёл только одну долю": "une seule part",
             "ошибся на одну долю": "à une part près",
             "Раздел закрыт": "Section verrouillée",
-            "Этот раздел пока закрыт. Открыть его может только репетитор — попроси у него код.": "Cette section est encore fermée. Seul ton professeur peut l'ouvrir — demande-lui un code.",
+            "Этот раздел пока закрыт. Его открывает репетитор.": "Cette section est encore fermée. C’est ton professeur qui l’ouvre.",
             "🔑 У меня есть код": "🔑 J'ai un code",
             "Код от репетитора": "Code du professeur",
             "Введи код, который тебе прислали. Он откроет раздел насовсем.": "Saisis le code qu'on t'a envoyé. Il ouvre la section pour de bon.",
@@ -2970,12 +2965,13 @@
             "Не удалось открыть по этому коду.": "Impossible d'ouvrir quoi que ce soit avec ce code.",
             "Открыто!": "Ouvert !",
             "Раздел «%1» теперь доступен.\n": "La section « %1 » est maintenant accessible.\n",
-            "В этом разделе тебе открыто: %1. Остальное — по коду от репетитора.": "Dans cette section, tu as accès à : %1. Le reste s'ouvre avec un code du professeur.",
+            "В этом разделе тебе открыто: %1. Остальное открывает репетитор.": "Dans cette section, tu as accès à : %1. Ton professeur ouvre le reste.",
             "Кроме целых положительных пока ничего не открыто.": "À part les entiers positifs, rien n'est encore ouvert.",
             "Открыто кодами: ": "Ouvert par code : ",
             "весь раздел": "toute la section",
             "открыт полностью": "entièrement ouvert",
-            "Этой звезды нет в коде от репетитора": "Cette étoile n'est pas dans le code du professeur",
+            "Эту звезду репетитор ещё не открыл": "Ton professeur n’a pas encore ouvert cette étoile",
+            "%1★ откроет репетитор": "%1★ sera ouverte par ton professeur",
             "всё": "tout",
             "<div class=\"menu-empty\">Загружаю…</div>": "<div class=\"menu-empty\">Chargement…</div>",
             "<div class=\"menu-empty\">Ни одной ошибки за миссию.<br>Так держать!</div>": "<div class=\"menu-empty\">Pas une seule erreur sur cette mission.<br>Continue comme ça !</div>",
@@ -3160,8 +3156,6 @@
             "Выбор миссии": "Mission wählen",
             "1️⃣ Что тренируем": "1️⃣ Was geübt wird",
             "2️⃣ Сложность": "2️⃣ Schwierigkeit",
-            "Можно выбрать один или несколько режимов": "Du kannst einen oder mehrere Modi wählen",
-            "Одна миссия — один вид примеров на одной звезде": "Eine Mission — eine Aufgabenart auf einem Stern",
             "🚀 Начать миссию": "🚀 Mission starten",
             "Целые": "Ganze Zahlen",
             "Дроби": "Brüche",
@@ -3249,7 +3243,7 @@
             "Нажми на собранную картинку — узнаешь, что это за парадокс": "Tippe auf ein fertiges Bild und lies das Paradoxon dazu",
             "Парадокс": "Paradoxon",
             "🏆 Парадоксы математики:": "🏆 Paradoxien der Mathematik:",
-            "🔒 Заблокировано": "🔒 Gesperrt",
+            "🔒 Откроет репетитор": "🔒 Öffnet dein Lehrer",
             "Занятия": "Übungen",
             "Занятия по дням": "Übungen nach Tagen",
             "Занятия по неделям": "Übungen nach Wochen",
@@ -3459,7 +3453,7 @@
             "нашёл только одну долю": "nur ein Teil",
             "ошибся на одну долю": "um einen Teil",
             "Раздел закрыт": "Bereich gesperrt",
-            "Этот раздел пока закрыт. Открыть его может только репетитор — попроси у него код.": "Dieser Bereich ist noch gesperrt. Nur dein Lehrer kann ihn öffnen — frag ihn nach einem Code.",
+            "Этот раздел пока закрыт. Его открывает репетитор.": "Dieser Bereich ist noch zu. Dein Lehrer öffnet ihn.",
             "🔑 У меня есть код": "🔑 Ich habe einen Code",
             "Код от репетитора": "Code vom Lehrer",
             "Введи код, который тебе прислали. Он откроет раздел насовсем.": "Gib den Code ein, den du bekommen hast. Er öffnet den Bereich dauerhaft.",
@@ -3473,12 +3467,13 @@
             "Не удалось открыть по этому коду.": "Mit diesem Code lässt sich nichts öffnen.",
             "Открыто!": "Freigeschaltet!",
             "Раздел «%1» теперь доступен.\n": "Der Bereich „%1“ ist jetzt offen.\n",
-            "В этом разделе тебе открыто: %1. Остальное — по коду от репетитора.": "In diesem Bereich hast du: %1. Der Rest geht nur mit einem Code vom Lehrer.",
+            "В этом разделе тебе открыто: %1. Остальное открывает репетитор.": "In diesem Bereich hast du: %1. Den Rest öffnet dein Lehrer.",
             "Кроме целых положительных пока ничего не открыто.": "Außer den positiven ganzen Zahlen ist noch nichts offen.",
             "Открыто кодами: ": "Per Code geöffnet: ",
             "весь раздел": "der ganze Bereich",
             "открыт полностью": "vollständig offen",
-            "Этой звезды нет в коде от репетитора": "Dieser Stern steht nicht im Code des Lehrers",
+            "Эту звезду репетитор ещё не открыл": "Dein Lehrer hat diesen Stern noch nicht geöffnet",
+            "%1★ откроет репетитор": "%1★ öffnet dein Lehrer",
             "всё": "alles",
             "<div class=\"menu-empty\">Загружаю…</div>": "<div class=\"menu-empty\">Lädt…</div>",
             "<div class=\"menu-empty\">Ни одной ошибки за миссию.<br>Так держать!</div>": "<div class=\"menu-empty\">Kein einziger Fehler in dieser Mission.<br>Weiter so!</div>",
@@ -8994,7 +8989,7 @@
 
         // Почему звезда закрыта — человеческим языком, для подсказки на кнопке.
         function levelLockReason(secKey, op, level) {
-            if (!levelAllowedByAccess(secKey, op, level)) return t('Этой звезды нет в коде от репетитора');
+            if (!levelAllowedByAccess(secKey, op, level)) return t('Эту звезду репетитор ещё не открыл');
             const lvl = Number(level) || 1;
             return tf('Нужно золото на %1★: точность %2%', lvl - 1, ACCURACY_TIERS[LEVEL_GATE_TIER - 1])
                  + tf(' и %1 верных ответов', COUNT_TIERS[LEVEL_GATE_TIER - 1]);
@@ -9062,7 +9057,7 @@
                 if (!open && !badge) {
                     badge = document.createElement('span');
                     badge.className = 'cat-lock';
-                    badge.innerText = t('🔒 Заблокировано');
+                    badge.innerText = t('🔒 Откроет репетитор');
                     btn.appendChild(badge);
                 } else if (open && badge) {
                     badge.remove();
@@ -9076,8 +9071,8 @@
             const partial = grantSummary(secKey);
             document.getElementById('lockedTitle').innerText = label;
             document.getElementById('lockedText').innerText = partial
-                ? tf('В этом разделе тебе открыто: %1. Остальное — по коду от репетитора.', partial)
-                : t('Этот раздел пока закрыт. Открыть его может только репетитор — попроси у него код.');
+                ? tf('В этом разделе тебе открыто: %1. Остальное открывает репетитор.', partial)
+                : t('Этот раздел пока закрыт. Его открывает репетитор.');
             document.getElementById('lockedScreen').style.display = 'flex';
         }
 
@@ -12245,7 +12240,14 @@
 
             const unlocks = Progress.getUnlocks();
             const masteryBefore = topicMasteryTier(unlocks, topicKey);
-            const gateBefore = levelGatePassed(unlocks, topicKey);
+            // Ворота — лишь ОДНА из трёх причин, по которым звезда закрыта, и объявлять
+            // открытие по ним одним значило врать трижды: у репетитора ворот нет вовсе
+            // (у него всё открыто с самого начала), ученику звезду могли открыть руками,
+            // а звезду, которой нет в доступе, золото не откроет вообще никогда.
+            // Поэтому спрашиваем прямо то, что и хотим сказать: была закрыта — стала открыта.
+            const nextLevel = (p.level || 1) + 1;
+            const secKeyOfTopic = `${p.category}${p.sign || ''}`;
+            const nextOpenBefore = nextLevel <= 5 && isLevelOpen(secKeyOfTopic, p.op, nextLevel);
             const m = topicMetrics(st, topicKey);
             const fresh = [];
 
@@ -12307,11 +12309,11 @@
                 const after = Progress.getUnlocks();
                 // Открылась следующая звезда — самое важное событие из всех, поэтому идёт
                 // отдельной строкой и человеческим языком, а не значком лесенки.
-                if (!gateBefore && levelGatePassed(after, topicKey) && (p.level || 1) < 5) {
+                if (nextLevel <= 5 && !nextOpenBefore && isLevelOpen(secKeyOfTopic, p.op, nextLevel)) {
                     fresh.push({
                         id: `${topicKey}:gate`,
                         icon: '🔓',
-                        title: tf('Открыта %1★!', (p.level || 1) + 1)
+                        title: tf('Открыта %1★!', nextLevel)
                     });
                 }
                 // Мастерство: минимум из трёх. Сообщаем только про алмаз и легенду —
@@ -13118,7 +13120,11 @@
                     : t('Последняя звезда — дальше только мастерство');
                 if (gate) foot.classList.add('in');
             } else if (gate) {
-                foot.innerText = tf('🔓 %1★ открыта', lvl + 1);
+                // Золото взято — но открылась ли звезда, решает ещё и доступ. Ученику,
+                // которому репетитор дал только 1–3★, «4★ открыта» обещает замок.
+                foot.innerText = isLevelOpen(`${p.category}${p.sign || ''}`, p.op, lvl + 1)
+                    ? tf('🔓 %1★ открыта', lvl + 1)
+                    : tf('%1★ откроет репетитор', lvl + 1);
                 foot.classList.add('in');
             } else {
                 const need = [];
