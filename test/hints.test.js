@@ -16,15 +16,29 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const ROOT = path.join(__dirname, '..');
+const { ROOT, appScript } = require('./app-source');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const SCRIPT = HTML.match(/<script>([\s\S]*)<\/script>/)[1];
+// Разбор ошибок и подсказки уехали в js/mistakes.js — метки ищем по всему коду сразу.
+const SCRIPT = appScript(HTML);
 
 function slice(startMark, endMark, what) {
     const from = SCRIPT.indexOf(startMark);
     const to = SCRIPT.indexOf(endMark, from + 1);
     if (from < 0 || to < 0) throw new Error(`не найдены границы среза: ${what}`);
     return SCRIPT.slice(from, to);
+}
+
+// Подсказки и разбор ошибок целиком лежат в js/mistakes.js, и их срезы упираются
+// в конец этого файла, а не в следующий раздел index.html. Режем прямо по нему:
+// прежней меткой конца («ПАЗЛ: ГЕНЕРАЦИЯ КУСОЧКОВ») пользоваться больше нельзя —
+// она теперь в другом файле, и срез утащил бы за собой пол-приложения.
+const MISTAKES = fs.readFileSync(path.join(ROOT, 'js', 'mistakes.js'), 'utf8');
+function sliceM(startMark, endMark, what) {
+    const from = MISTAKES.indexOf(startMark);
+    if (from < 0) throw new Error(`не найдено начало среза: ${what}`);
+    const to = endMark === null ? MISTAKES.length : MISTAKES.indexOf(endMark, from + 1);
+    if (to < 0) throw new Error(`не найден конец среза: ${what}`);
+    return MISTAKES.slice(from, to);
 }
 
 function loadContent() {
@@ -59,8 +73,7 @@ function loadHints(windowObj) {
     const dom = makeDoc();
     box.document = dom.doc;
     const src = 'var gameActive = true;\n'
-        + slice('// ===================== ПОДСКАЗКИ ПО ОШИБКАМ',
-                '// ===================== ПАЗЛ: ГЕНЕРАЦИЯ КУСОЧКОВ', 'подсказки')
+        + sliceM('// ===================== ПОДСКАЗКИ ПО ОШИБКАМ', null, 'подсказки')
         + ';globalThis.R = { hintText, hintEntry, hintArgs, mulFactUsed, shouldShowHint,'
         + ' showHintFreeze, resetSessionHints, HINT_REPEAT_AT, HINT_MAX_PER_SESSION, HINT_NEVER,'
         + ' hintProblemLine, hintChosenLine,'
@@ -84,8 +97,8 @@ function loadFullClassifier() {
                        '// «Дробь от числа»', 'разрядные модели')
         + '\n' + slice('function classifyZeroInExample(opKey, problem, chosen)',
                        '// «Дробь от числа»', 'ноль в примере')
-        + '\n' + slice('function classifyMistake(meta, problem, correct, chosen)',
-                       '// ===================== ПАЗЛ', 'classifyMistake')
+        + '\n' + sliceM('function classifyMistake(meta, problem, correct, chosen)',
+                        '// ===================== ПОДСКАЗКИ ПО ОШИБКАМ', 'classifyMistake')
         + ';globalThis.CM = classifyMistake;';
     vm.createContext(box);
     vm.runInContext(src, box, { filename: 'index.html<classifyMistake>' });

@@ -20,14 +20,20 @@ const ROOT = path.join(__dirname, '..');
 // не нужно и незачем: генераторы примеров — чистые функции. Поэтому вырезаем только
 // объявления функций и констант и выполняем их в песочнице с минимальными заглушками.
 function loadGenerators() {
+    // Генераторы уехали в js/generator.js, разбор ошибок — в js/mistakes.js, ядро
+    // переводов — в js/i18n.js. Раньше здесь резался кусок index.html до метки пазла;
+    // теперь резать нечего — берём файлы целиком, в порядке подключения. Обрыв по
+    // метке всё равно нужен: во встроенном скрипте index.html ниже неё начинается
+    // работа с DOM и canvas, а всё нужное проверкам объявлено выше.
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
-
-    // Обрываем там, где начинается работа с DOM и canvas: всё нужное объявлено выше.
+    const inline = html.match(/<script>([\s\S]*)<\/script>/)[1];
     const MARKER = '// ===================== ПАЗЛ: ГЕНЕРАЦИЯ КУСОЧКОВ (jigsaw)';
-    const cut = script.indexOf(MARKER);
+    const cut = inline.indexOf(MARKER);
     if (cut < 0) throw new Error('не найдена метка конца генераторов: ' + MARKER);
-    const head = script.slice(0, cut);
+    const code = ['js/i18n.js', 'js/generator.js', 'js/mistakes.js']
+        .map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n';
+    const script = code + inline;
+    const head = code + inline.slice(0, cut);
 
     // Заглушка элемента: код верхнего уровня навешивает обработчики и трогает стили.
     // К генераторам это отношения не имеет, но без заглушек выполнение упадёт.
@@ -2163,6 +2169,95 @@ test('ни один вариант ответа не отрицателен', ()
         }
     });
     assert(bad.length === 0, `отрицательный вариант ответа: ${bad.slice(0, 3).join('; ')}`);
+});
+
+group('Ответ действительно верен');
+// Этой проверки не было вовсе, и это самая крупная дыра, какая может быть у генератора:
+// подсадка «в одном проценте случаев возвращать неверный ответ» проходила все прежние
+// проверки насквозь. Они стерегли разнообразие, границы уровней и варианты ответа —
+// но не арифметику. Ученик увидел бы «2 + 2 = 7» и получил бы за верный ответ ошибку.
+test('целые: ответ сходится с примером на всех уровнях и в обоих знаках', () => {
+    const bad = [];
+    [false, true].forEach(neg => ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 300; i++) {
+                const p = G.generateProblem(op, lvl, neg);
+                if (p.noSolution) continue;             // деление на ноль — ответа нет по замыслу
+                if (p.factors) {                        // тройка множителей на 5★
+                    const prod = p.factors.reduce((acc, x) => acc * x, 1);
+                    if (prod !== p.answer) bad.push(`${p.text} → ${p.answer}, а надо ${prod}`);
+                    continue;
+                }
+                const must = op === 'add' ? p.a + p.b
+                    : op === 'sub' ? p.a - p.b
+                    : op === 'mul' ? p.a * p.b
+                    : p.a / p.b;
+                if (must !== p.answer) bad.push(`${p.text} → ${p.answer}, а надо ${must}`);
+            }
+        }
+    }));
+    assert(bad.length === 0, `неверный ответ: ${bad.slice(0, 3).join('; ')}`);
+});
+
+test('дроби: ответ сходится с примером', () => {
+    const bad = [];
+    const val = (f) => f.num / f.den;
+    [false, true].forEach(neg => ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 300; i++) {
+                const p = G.generateFractionProblem(op, lvl, neg);
+                const v1 = val(p.f1), v2 = val(p.f2);
+                const must = op === 'add' ? v1 + v2 : op === 'sub' ? v1 - v2
+                    : op === 'mul' ? v1 * v2 : v1 / v2;
+                if (Math.abs(val(p.answer) - must) > 1e-9) {
+                    bad.push(`${p.f1.num}/${p.f1.den} ${op} ${p.f2.num}/${p.f2.den} → ${p.answer.num}/${p.answer.den}`);
+                }
+            }
+        }
+    }));
+    assert(bad.length === 0, `неверный ответ: ${bad.slice(0, 3).join('; ')}`);
+});
+
+test('десятичные: ответ сходится с примером', () => {
+    const bad = [];
+    const val = (d) => d.intVal / Math.pow(10, d.dp);
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 300; i++) {
+                const p = G.generateDecimalProblem(op, lvl);
+                const v1 = val(p.d1), v2 = val(p.d2);
+                const must = op === 'add' ? v1 + v2 : op === 'sub' ? v1 - v2
+                    : op === 'mul' ? v1 * v2 : v1 / v2;
+                if (Math.abs(val(p.answer) - must) > 1e-9) {
+                    bad.push(`${G.decToString(p.d1, false)} ${op} ${G.decToString(p.d2, false)} → ${G.decToString(p.answer, false)}`);
+                }
+            }
+        }
+    });
+    assert(bad.length === 0, `неверный ответ: ${bad.slice(0, 3).join('; ')}`);
+});
+
+test('сокращение и переводы: ответ равен исходному числу', () => {
+    const bad = [];
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 300; i++) {
+            const sp = G.generateSimplifyProblem(lvl);
+            if (Math.abs(sp.given.num / sp.given.den - sp.answer.num / sp.answer.den) > 1e-9) {
+                bad.push(`сокращение ${sp.given.num}/${sp.given.den} → ${sp.answer.num}/${sp.answer.den}`);
+            }
+            const tm = G.generateToMixedProblem(lvl);
+            const tmVal = (tm.answer.whole || 0) + (tm.answer.num || 0) / (tm.answer.den || 1);
+            if (Math.abs(tm.given.num / tm.given.den - tmVal) > 1e-9) {
+                bad.push(`в смешанное ${tm.given.num}/${tm.given.den}`);
+            }
+            const ti = G.generateToImproperProblem(lvl);
+            const tiGiven = (ti.given.whole || 0) + (ti.given.num || 0) / (ti.given.den || 1);
+            if (Math.abs(tiGiven - ti.answer.num / ti.answer.den) > 1e-9) {
+                bad.push(`в неправильную ${ti.given.whole} ${ti.given.num}/${ti.given.den}`);
+            }
+        }
+    }
+    assert(bad.length === 0, `перевод меняет величину: ${bad.slice(0, 3).join('; ')}`);
 });
 
 // ---------- итог ----------

@@ -12,7 +12,7 @@
 // синхронизацию прогресса нельзя ни в каком виде — отдать старый ответ здесь означало бы
 // показать ученику вчерашние цифры и, хуже того, слить их обратно на сервер.
 
-const VERSION = 'kluch-v2';
+const VERSION = 'kluch-v3';
 const SHELL_CACHE = `${VERSION}-shell`;
 const IMAGE_CACHE = `${VERSION}-img`;
 
@@ -25,6 +25,9 @@ const SHELL_ASSETS = [
     './index.html',
     './manifest.json',
     './vendor/supabase.js',
+    './js/i18n.js',
+    './js/generator.js',
+    './js/mistakes.js',
     './js/progress.js',
     './content/paradoxes.js',
     './content/hints.js',
