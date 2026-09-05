@@ -324,5 +324,76 @@ test('задания на точность и на количество не в�
     eq(texts.length, new Set(texts).size, `тексты повторяются: ${texts.join(' | ')}`);
 });
 
+
+group('«Загляни сюда» зовёт в ближайшее, а не в случайное');
+
+// Раньше роль брала клетку с самым большим простоем — и у того, кто недавно прошёлся
+// по всем положительным, укатывалась в следующий раздел по списку: со сложения
+// положительных приглашение уводило в отрицательное умножение. Это не шаг в сторону,
+// а прыжок через полкурса, и выглядело оно случайным.
+const ALL_OPEN = [];
+['integer+', 'integer-'].forEach(sec => ['add', 'sub', 'mul', 'div'].forEach(op => {
+    for (let l = 1; l <= 5; l++) ALL_OPEN.push(`${sec}:${op}:${l}`);
+}));
+function wide() { return load({ open: ALL_OPEN }); }
+
+test('зовёт на соседнюю звезду того же действия, и вниз, а не вверх', () => {
+    // Вверх толкает роль «продвинуться». Эта — про пропущенное, а пропущенное почти
+    // всегда осталось внизу: например, после экзамена, который открыл звёзды сразу
+    // и оставил нижние клетки пустыми.
+    const w = wide();
+    const daily = journal({ 0: day(20, 2, { 'integer+:add:4': [20, 2] }) });
+    const t = w.roleExplore(daily, TODAY, ALL_OPEN, 'integer+:add:4');
+    eq(t.cell, 'integer+:add:3', 'ждали ближайшую непройденную звезду того же действия');
+});
+
+test('в другое действие зовёт с низкой звезды, а не с той же', () => {
+    // Сила в сложении ничего не говорит о делении: начинать там надо с начала.
+    const w = wide();
+    const fresh = {};
+    for (let l = 1; l <= 5; l++) fresh[`integer+:add:${l}`] = [10, 1];
+    const daily = journal({ 0: day(50, 5, fresh), 1: day(50, 5, fresh) });
+    const t = w.roleExplore(daily, TODAY, ALL_OPEN, 'integer+:add:4');
+    assert(t.cell.indexOf('integer+:') === 0, `ушли из раздела: ${t.cell}`);
+    assert(t.cell.indexOf(':add:') < 0, `остались в том же действии: ${t.cell}`);
+    assert(t.cell.slice(-1) === '1', `в новом действии зовут не с первой звезды: ${t.cell}`);
+});
+
+test('в другой раздел — только когда в своём везде побывал', () => {
+    const w = wide();
+    const fresh = {};
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let l = 1; l <= 5; l++) fresh[`integer+:${op}:${l}`] = [4, 0];
+    });
+    const daily = journal({ 0: day(80, 0, fresh), 1: day(80, 0, fresh) });
+    const t = w.roleExplore(daily, TODAY, ALL_OPEN, 'integer+:add:4');
+    assert(t && t.cell.indexOf('integer-') === 0, `остались в исхоженном разделе: ${t && t.cell}`);
+});
+
+test('простой решает только среди одинаково близких', () => {
+    // Клетка с огромным простоем в чужом разделе не должна перебивать соседнюю звезду
+    // своего действия — именно это и делало приглашение случайным.
+    const w = wide();
+    const daily = journal({ 0: day(20, 2, { 'integer+:add:4': [20, 2] }),
+                            13: day(5, 0, { 'integer-:mul:1': [5, 0] }) });
+    const t = w.roleExplore(daily, TODAY, ALL_OPEN, 'integer+:add:4');
+    eq(t.cell, 'integer+:add:3', 'дальняя клетка с большим простоем перебила ближнюю');
+});
+
+test('без истории зовём в самое начало карты', () => {
+    const w = wide();
+    const t = w.roleExplore({}, TODAY, ALL_OPEN, null);
+    eq(t.cell, 'integer+:add:1', 'новичка позвали не с первой клетки');
+});
+
+
+test('перевыполненное задание не показывает больше цели', () => {
+    // «13 из 10» формально верно, но читается как сбой счётчика: цель одна, а число
+    // рядом другое. Выполненное показываем ровно как цель.
+    const body = slice('const row = (task, isWeek) =>', 'list.forEach', 'строка задания');
+    assert(/task\.done \? task\.need/.test(body),
+        'счётчик выполненного задания снова показывает набранное, а не цель');
+});
+
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
 if (failed) { failures.forEach(f => console.log(`  ✗ ${f.name}: ${f.message}`)); process.exit(1); }
