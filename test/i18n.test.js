@@ -18,18 +18,18 @@ function loadDicts() {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
 
-    const dict = (name) => {
-        const head = 'const ' + name + ' = {';
-        const from = script.indexOf(head);
-        if (from < 0) throw new Error('не найден словарь ' + name);
-        const to = script.indexOf('\n        };', from);
-        if (to < 0) throw new Error('не найден конец словаря ' + name);
-        const src = script.slice(from, to + '\n        };'.length)
-            + '\n;globalThis.__d = ' + name + ';';
-        const sandbox = {};
-        vm.createContext(sandbox);
-        vm.runInContext(src, sandbox, { filename: 'index.html<' + name + '>' });
-        return sandbox.__d;
+    // Словари переехали из index.html в отдельный файл: полторы тысячи строк чистых
+    // данных посреди логики читать было нечем. Берём их оттуда, где они теперь живут,
+    // и ровно так же, как их берёт само приложение — через window.
+    const box = { window: {} };
+    vm.createContext(box);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'content', 'i18n.js'), 'utf8'),
+                    box, { filename: 'content/i18n.js' });
+    const TR = box.window.TRANSLATIONS || {};
+    const dict = (code) => {
+        const d = TR[code];
+        if (!d) throw new Error('не найден словарь ' + code + ' в content/i18n.js');
+        return d;
     };
 
     // Список языков: коды и то, ставит ли язык запятую в дробях.
@@ -40,7 +40,7 @@ function loadDicts() {
     vm.createContext(lb);
     vm.runInContext(langsSrc, lb, { filename: 'index.html<LANGS>' });
 
-    return { en: dict('TR_EN'), fr: dict('TR_FR'), de: dict('TR_DE'), langs: lb.__l, script };
+    return { en: dict('en'), fr: dict('fr'), de: dict('de'), all: TR, langs: lb.__l, script };
 }
 
 let passed = 0, failed = 0;
@@ -212,14 +212,23 @@ test('каждый язык кроме русского ПОДКЛЮЧЁН к с
     // Мало того, чтобы словарь существовал: t() берёт его из TRANSLATIONS, и язык,
     // забытый в этой карте, даёт полностью русский интерфейс при живом словаре рядом.
     // Первая версия теста проверяла только существование и такую мутацию пропускала.
-    const from = D.script.indexOf('const TRANSLATIONS = {');
-    assert(from >= 0, 'карта TRANSLATIONS не найдена');
-    const map = D.script.slice(from, D.script.indexOf('};', from));
     D.langs.forEach(l => {
         if (l.code === 'ru') return;
-        assert(new RegExp('\\b' + l.code + '\\s*:').test(map),
+        const dict = D.all[l.code];
+        assert(dict && Object.keys(dict).length > 0,
             `язык ${l.code} не подключён в TRANSLATIONS — интерфейс будет весь русский`);
     });
+});
+
+test('приложение действительно берёт словари из отдельного файла', () => {
+    // Переезд словарей опасен ровно одним: файл подключить забыли, а t() молча отдаёт
+    // ключи — интерфейс становится русским для всех, и ни одна проверка выше этого
+    // не заметит, потому что сам файл на месте и полон.
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    assert(/<script src="content\/i18n\.js"><\/script>/.test(html),
+        'content/i18n.js не подключён в index.html');
+    assert(/window\.TRANSLATIONS/.test(D.script),
+        'код больше не читает словари из window — переводы никуда не доедут');
 });
 
 test('коды и подписи языков не повторяются', () => {
