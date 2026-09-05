@@ -7,8 +7,8 @@
 // один из них не поймал бы ни один существующий тест.
 //
 // Как запускать:  node test/storage.test.js
-// Браузер не нужен: модуль Progress вырезается из index.html и исполняется в песочнице
-// с поддельным localStorage. Ничего не устанавливается.
+// Браузер не нужен: модуль Progress лежит отдельным файлом (js/progress.js) и
+// исполняется в песочнице с поддельным localStorage. Ничего не устанавливается.
 
 const fs = require('fs');
 const path = require('path');
@@ -18,17 +18,13 @@ const ROOT = path.join(__dirname, '..');
 
 // ---------- запуск модуля хранилища без браузера ----------
 // Progress — самостоятельный модуль: снаружи он зовёт только встроенные функции.
-// Поэтому его можно вырезать по границам и исполнить отдельно от всего остального.
+// Поэтому его можно исполнить отдельно от всего остального, просто прочитав файл.
 function loadProgress() {
-    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
-
-    const START = 'const Progress = (() => {';
-    const END = 'Progress.init();';
-    const from = script.indexOf(START);
-    const to = script.indexOf(END);
-    if (from < 0 || to < 0) throw new Error('не найдены границы модуля Progress');
-    const moduleSrc = script.slice(from, to);
+    // Модуль живёт отдельным файлом — вырезать из index.html больше нечего.
+    const moduleSrc = fs.readFileSync(path.join(ROOT, 'js', 'progress.js'), 'utf8');
+    if (moduleSrc.indexOf('const Progress = (() => {') < 0) {
+        throw new Error('js/progress.js не похож на модуль Progress');
+    }
 
     // Поддельное хранилище: обычный объект. Даёт заодно возможность заглянуть внутрь
     // и проверить, что именно уходит на диск, а не только что читается обратно.
