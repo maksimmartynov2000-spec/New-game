@@ -80,6 +80,23 @@ const SCREENS = [
 
     await page.goto(FILE);
     await page.waitForTimeout(1200);
+
+    // Сама загрузка страницы — отдельная проверка, и она первая. Раньше ошибки при
+    // загрузке никто не смотрел: список errors очищался перед первым же экраном, и
+    // сломанный файл всплывал позже, приписанный чужому тесту («статистика на fr»).
+    // Так и случилось при выносе js/topics.js: в него затесалась строка, которая при
+    // загрузке лезет в DOM, а index.html подключает эти файлы в <head>, где <body>
+    // ещё нет. Ошибка была на всех языках, а названы были два.
+    console.log('\nЗагрузка страницы');
+    record('приложение загружается без ошибок', errors.length ? errors.join(' | ') : null);
+    record('вынесенные файлы объявлены', await page.evaluate(`
+        [['t', typeof t], ['OP_ORDER', typeof OP_ORDER], ['generateProblem', typeof generateProblem],
+         ['classifyMistake', typeof classifyMistake], ['renderMasteryMap', typeof renderMasteryMap],
+         ['Progress', typeof Progress], ['parseTopicKey', typeof parseTopicKey],
+         ['shiftDayKey', typeof shiftDayKey]]
+            .filter(([, kind]) => kind === 'undefined').map(([name]) => name).join(', ') || null`));
+
+    errors.length = 0;
     await page.evaluate(SEED);
 
     console.log('\nЭкраны открываются без ошибок');
