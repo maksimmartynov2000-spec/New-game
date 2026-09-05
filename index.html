@@ -8605,7 +8605,78 @@
                 if (typeof s.profileLabel !== 'string') s.profileLabel = '';
                 if (s.accountType !== 'linked') s.accountType = 'self';
                 if (typeof s.ownerCode !== 'string') s.ownerCode = null;
+                rescueNullSection(s);
                 return s;
+            }
+
+            // Разовый перенос: клетка «null+» → «integer+».
+            //
+            // Кнопки «Играть» у задания и «Играть на 4★» четыре мержа подряд запускали
+            // миссию, не восстановив раздел: exampleConfig обнуляется при возврате на
+            // экран выбора, а имя раздела туда никто не возвращал. Ответы записывались
+            // под именем «null+», и приложение переставало их видеть — ни карта, ни
+            // лесенки, ни медали, ни пазл. Занимался ученик по-настоящему, а по
+            // приложению — нет.
+            //
+            // Кладём в положительные целые: сломанные кнопки вели только туда, где
+            // ученик уже занимался, а других разделов у наших учеников и нет.
+            // Складываем, а не заменяем: в правильной клетке уже могло что-то лежать.
+            //
+            // Ступени лесенок с фантомной клетки НЕ переносим, а выбрасываем: они выданы
+            // за клетку, которой не существует. Ответы вернулись в настоящую, и там
+            // ступени начислятся заново на следующем же ответе — по честному счёту.
+            function rescueNullSection(s) {
+                const BAD = 'null+:', GOOD = 'integer+:';
+                const isBad = (k) => k.indexOf(BAD) === 0;
+                const fix = (k) => GOOD + k.slice(BAD.length);
+                let moved = 0;
+
+                Object.keys(s.byTopic || {}).filter(isBad).forEach(k => {
+                    const from = s.byTopic[k], to = s.byTopic[fix(k)] || { correct: 0, wrong: 0 };
+                    to.correct += from.correct || 0;
+                    to.wrong += from.wrong || 0;
+                    s.byTopic[fix(k)] = to;
+                    delete s.byTopic[k];
+                    moved++;
+                });
+
+                Object.keys(s.daily || {}).forEach(day => {
+                    const d = s.daily[day];
+                    Object.keys(d.t || {}).filter(isBad).forEach(k => {
+                        const from = d.t[k] || [], to = d.t[fix(k)] || [0, 0, 0, 0, 0];
+                        for (let i = 0; i < 5; i++) to[i] = (to[i] || 0) + (from[i] || 0);
+                        d.t[fix(k)] = to;
+                        delete d.t[k];
+                        moved++;
+                    });
+                    Object.keys(d.te || {}).filter(isBad).forEach(k => {
+                        const from = d.te[k] || {}, to = d.te[fix(k)] || {};
+                        Object.keys(from).forEach(kind => { to[kind] = (to[kind] || 0) + (from[kind] || 0); });
+                        d.te[fix(k)] = to;
+                        delete d.te[k];
+                    });
+                });
+
+                Object.keys(s.errorKinds || {}).filter(isBad).forEach(k => {
+                    const from = s.errorKinds[k] || {}, to = s.errorKinds[fix(k)] || {};
+                    Object.keys(from).forEach(kind => { to[kind] = (to[kind] || 0) + (from[kind] || 0); });
+                    s.errorKinds[fix(k)] = to;
+                    delete s.errorKinds[k];
+                });
+
+                Object.keys(s.byClass || {}).filter(isBad).forEach(k => {
+                    const from = s.byClass[k] || {}, to = s.byClass[fix(k)] || {};
+                    Object.keys(from).forEach(cls => {
+                        const p = from[cls] || [], q = to[cls] || [0, 0, 0, 0];
+                        to[cls] = [ (q[0] || 0) + (p[0] || 0), (q[1] || 0) + (p[1] || 0),
+                                    (q[2] || 0) + (p[2] || 0), (q[3] || 0) + (p[3] || 0) ];
+                    });
+                    s.byClass[fix(k)] = to;
+                    delete s.byClass[k];
+                });
+
+                Object.keys(s.unlocks || {}).filter(isBad).forEach(k => { delete s.unlocks[k]; });
+                return moved;
             }
 
             function migrateFromV2() {
