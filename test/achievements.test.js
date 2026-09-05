@@ -19,7 +19,9 @@ const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const SCRIPT = HTML.match(/<script>([\s\S]*)<\/script>/)[1];
+// index.html разрезан на файлы: метки срезов ищем по всему коду приложения,
+// а не только во встроенном скрипте (см. test/app-source.js).
+const SCRIPT = require('./app-source').appScript(HTML);
 
 function slice(startMark, endMark, what) {
     const from = SCRIPT.indexOf(startMark);
@@ -85,7 +87,9 @@ function loadScreen(opts) {
     const sandboxRef = sandbox;
     const src = [
         SCRIPT.slice(SCRIPT.indexOf('const OP_ORDER = '), SCRIPT.indexOf('\n', SCRIPT.indexOf('const OP_ORDER = '))),
-        slice('const MAP_SECTIONS = [', '\n        const OP_SHORT', 'разделы'),
+        // MAP_SECTIONS уехала в js/charts.js, где отступа в восемь пробелов уже нет —
+        // поэтому метка конца без него.
+        slice('const MAP_SECTIONS = [', '\nconst OP_SHORT', 'разделы'),
         slice('let openLadderKey = null;', 'function ladderGoalText(', 'экран достижений'),
         ';globalThis.R = { renderTopicLadders, sectionSummary, sectionSummaryText,'
             + ' activeSectionKey, toggleAchSection, MAP_SECTIONS,'

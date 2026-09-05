@@ -30,7 +30,7 @@ function loadGenerators() {
     const MARKER = '// ===================== ПАЗЛ: ГЕНЕРАЦИЯ КУСОЧКОВ (jigsaw)';
     const cut = inline.indexOf(MARKER);
     if (cut < 0) throw new Error('не найдена метка конца генераторов: ' + MARKER);
-    const code = ['js/i18n.js', 'js/generator.js', 'js/mistakes.js']
+    const code = ['js/i18n.js', 'js/topics.js', 'js/generator.js', 'js/mistakes.js']
         .map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n';
     const script = code + inline;
     const head = code + inline.slice(0, cut);

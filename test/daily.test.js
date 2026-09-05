@@ -16,7 +16,9 @@ const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-const SCRIPT = HTML.match(/<script>([\s\S]*)<\/script>/)[1];
+// index.html разрезан на файлы: метки срезов ищем по всему коду приложения,
+// а не только во встроенном скрипте (см. test/app-source.js).
+const SCRIPT = require('./app-source').appScript(HTML);
 
 function slice(startMark, endMark, what) {
     const from = SCRIPT.indexOf(startMark);

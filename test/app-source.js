@@ -15,7 +15,8 @@ const ROOT = path.join(__dirname, '..');
 
 // Совпадает со списком <script src="js/..."> в index.html. Если разойдётся —
 // тесты начнут не находить метки, и это заметно сразу.
-const CODE_FILES = ['js/i18n.js', 'js/generator.js', 'js/mistakes.js', 'js/progress.js'];
+const CODE_FILES = ['js/i18n.js', 'js/topics.js', 'js/generator.js', 'js/mistakes.js',
+                    'js/charts.js', 'js/progress.js'];
 
 // Только встроенный скрипт index.html, без вынесенных файлов.
 function inlineScript(html) {

@@ -22,7 +22,12 @@ const ROOT = path.join(__dirname, '..');
 // Оба среза самодостаточны: наружу зовут только встроенные функции и t()/tf().
 function loadReport() {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
+    // Метки ищем по всему коду приложения — index.html разрезан на файлы. Отдельно
+    // держим встроенный скрипт: срезы, у которых начало и конец лежат в index.html,
+    // иначе протянулись бы через вынесенные файлы целиком.
+    const { appScript, inlineScript: inlineOf } = require('./app-source');
+    const script = appScript(html);
+    const inlineScript = inlineOf(html);
     // LADDER_ID_RE переехал в модуль хранилища вместе с ним — он объявлен ради него.
     const progressSrc = fs.readFileSync(path.join(ROOT, 'js', 'progress.js'), 'utf8');
 
@@ -34,11 +39,14 @@ function loadReport() {
     };
     const slice = (startMark, endMark, what) => sliceOf(script, startMark, endMark, what);
 
-    // Один большой срез: от работы с датами до конца абзаца для родителей. В него
-    // целиком попадают shiftDayKey, isActiveDay, aggregateDaily, avgLevelOf,
-    // compareHalves и parentSummaryLines — они и составляют считающую часть отчёта.
-    const core = slice('function shiftDayKey(key, deltaDays)',
-                       '// Самая длинная череда дней подряд', 'ядро отчёта');
+    // Считающая часть отчёта теперь лежит в двух местах, и одним срезом её не взять:
+    // работа с журналом по дням (shiftDayKey, isActiveDay, aggregateDaily, avgLevelOf,
+    // compareHalves) уехала в js/topics.js, а абзац для родителей остался в index.html.
+    // Резать насквозь нельзя: между ними по дороге оказались генератор и хранилище.
+    const topicsSrc = fs.readFileSync(path.join(ROOT, 'js', 'topics.js'), 'utf8');
+    const core = topicsSrc.slice(topicsSrc.indexOf('function shiftDayKey(key, deltaDays)'))
+        + '\n' + sliceOf(inlineScript, '// ===================== АБЗАЦ ДЛЯ РОДИТЕЛЕЙ',
+                          '// Самая длинная череда дней подряд', 'абзац для родителей');
     // Дни занятий: счёт по дням, итоги и порог перехода на недели.
     const days = slice('// Сколько примеров решено в каждый день периода',
                        '// Календарь по неделям', 'дни занятий');
@@ -533,7 +541,8 @@ test('насыщенность клетки считается от медиан
 });
 
 test('порог перехода на недели — около полутора месяцев', () => {
-    const src = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    // Порог живёт в js/charts.js — вместе с самим календарём.
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'charts.js'), 'utf8');
     const limit = Number((src.match(/const DAY_CALENDAR_MAX_DAYS = (\d+);/) || [])[1]);
     assert(limit, 'порог DAY_CALENDAR_MAX_DAYS не найден');
     // Календарь по дням дальше не читается, но и переключаться на недели раньше месяца
