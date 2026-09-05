@@ -818,6 +818,91 @@ test('мусор вместо доступа читается как «не зн
     eq(Progress.getAccess(), null, 'undefined');
 });
 
+group('Спасение прогресса из несуществующей клетки');
+
+// Четыре мержа подряд кнопки «Играть» и «Играть на 4★» запускали миссию, не восстановив
+// раздел, и ответы уходили под именем «null+». Приложение переставало их видеть: ни
+// карта, ни лесенки, ни медали, ни пазл. Занимался ученик по-настоящему, а по
+// приложению — нет. Перенос возвращает эти ответы в положительные целые.
+//
+// Опасность здесь одна и понятная: перенос обязан СКЛАДЫВАТЬ. Если он заменит, ученик
+// потеряет то, что уже было в правильной клетке, — то есть починка отнимет больше,
+// чем вернёт.
+// Кладём готовое состояние в тот же вид, в каком его пишет само приложение:
+// угадывать форму хранилища в тесте — верный способ проверять не то.
+function seed(env, state) {
+    env.store['mathCitadelState_v3'] = JSON.stringify({
+        activeCode: 'ЯР7', profiles: { 'ЯР7': state }, passwords: {}, tokens: {}, access: null
+    });
+    env.Progress.init();
+}
+
+function withNull(extra) {
+    return Object.assign({
+        byTopic: { 'null+:add:2': { correct: 30, wrong: 4 } },
+        daily: { '2026-09-01': { c: 30, w: 4, a: 0, s: 60, p: 0, ms: 9000, mc: 30,
+                                 t: { 'null+:add:2': [30, 4, 0, 9000, 30] },
+                                 e: {}, te: { 'null+:add:2': { 'ошибка в десятках': 3 } } } },
+        errorKinds: { 'null+:add:2': { 'ошибка в десятках': 3 } },
+        byClass: { 'null+:add:2': { '1': [10, 2, 0, 3000] } },
+        unlocks: { 'null+:add:2:c2': '2026-09-01' }
+    }, extra || {});
+}
+
+test('ответы возвращаются в положительные целые', () => {
+    const env = loadProgress();
+    seed(env, withNull());
+    const st = env.Progress.get();
+    eq((st.byTopic['integer+:add:2'] || {}).correct, 30, 'верные вернулись');
+    eq(st.byTopic['null+:add:2'], undefined, 'фантомная клетка убрана');
+});
+
+test('перенос складывает, а не затирает уже накопленное', () => {
+    const env = loadProgress();
+    seed(env, withNull({
+        byTopic: { 'null+:add:2': { correct: 30, wrong: 4 },
+                   'integer+:add:2': { correct: 100, wrong: 9 } }
+    }));
+    const st = env.Progress.get();
+    eq(st.byTopic['integer+:add:2'].correct, 130, 'верные сложились');
+    eq(st.byTopic['integer+:add:2'].wrong, 13, 'ошибки сложились');
+});
+
+test('день занятий тоже переезжает по клеткам', () => {
+    const env = loadProgress();
+    seed(env, withNull());
+    const day = env.Progress.get().daily['2026-09-01'];
+    eq(JSON.stringify(day.t['integer+:add:2']), JSON.stringify([30, 4, 0, 9000, 30]), 'счётчики дня');
+    assert(!day.t['null+:add:2'], 'фантом остался в журнале дня');
+    eq(day.te['integer+:add:2']['ошибка в десятках'], 3, 'виды ошибок по клетке');
+});
+
+test('виды ошибок и разбор по типам переезжают вместе с ответами', () => {
+    const env = loadProgress();
+    seed(env, withNull());
+    const st = env.Progress.get();
+    eq(st.errorKinds['integer+:add:2']['ошибка в десятках'], 3, 'виды ошибок');
+    eq(JSON.stringify(st.byClass['integer+:add:2']['1']), JSON.stringify([10, 2, 0, 3000]), 'разбор по типам');
+});
+
+test('ступени с фантомной клетки выбрасываются, а не переносятся', () => {
+    // Они выданы за клетку, которой не существует. Ответы вернулись в настоящую —
+    // там ступени начислятся заново, по честному счёту.
+    const env = loadProgress();
+    seed(env, withNull());
+    const u = env.Progress.getUnlocks();
+    assert(!u['null+:add:2:c2'], 'фантомная ступень осталась');
+    assert(!u['integer+:add:2:c2'], 'фантомная ступень переехала как заслуженная');
+});
+
+test('у кого фантомных клеток нет — не меняется ничего', () => {
+    const env = loadProgress();
+    seed(env, { byTopic: { 'integer+:add:2': { correct: 40, wrong: 5 } } });
+    const st = env.Progress.get();
+    eq(st.byTopic['integer+:add:2'].correct, 40);
+    eq(Object.keys(st.byTopic).length, 1, 'лишних клеток не появилось');
+});
+
 // ---------- итог ----------
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
