@@ -12,11 +12,13 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const ROOT = path.join(__dirname, '..');
+const { ROOT, appScript } = require('./app-source');
 
 function loadDicts() {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-    const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
+    // LANGS и t() уехали в js/i18n.js — берём весь код приложения, а не только
+    // встроенный скрипт, иначе метки перестают находиться после каждого выноса.
+    const script = appScript(html);
 
     // Словари переехали из index.html в отдельный файл: полторы тысячи строк чистых
     // данных посреди логики читать было нечем. Берём их оттуда, где они теперь живут,
