@@ -12798,16 +12798,55 @@
 
         // Роль «попробовать»: открытая клетка, куда он давно не заходил или не заходил
         // вовсе. Именно она вытаскивает того, кто месяц решает одно сложение на 1★.
-        function roleExplore(daily, todayKey, cells) {
-            let pick = null, pickAge = -1;
+        //
+        // Зовём в БЛИЖАЙШУЮ, а не в первую попавшуюся. Раньше роль просто брала клетку
+        // с самым большим простоем — и у того, кто недавно прошёлся по всем положительным,
+        // укатывалась в следующий раздел по списку: со сложения положительных на 4★
+        // приглашение уводило в отрицательное умножение. Это не шаг в сторону, а прыжок
+        // через полкурса.
+        //
+        // Порядок близости:
+        //   1. то же действие, соседняя звезда — самый естественный следующий шаг;
+        //   2. другое действие того же раздела — и начинать там с НИЗКОЙ звезды: сила
+        //      в сложении ничего не говорит о делении;
+        //   3. другой раздел — только когда в своём уже везде побывал.
+        // Сравнение по порядку важности: первое несовпавшее число и решает.
+        function rankLess(a, b) {
+            for (let i = 0; i < a.length; i++) {
+                if (a[i] !== b[i]) return a[i] < b[i];
+            }
+            return false;
+        }
+
+        function roleExplore(daily, todayKey, cells, homeKey) {
+            const home = homeKey ? parseTopicKey(homeKey) : null;
+            const homeSec = home ? `${home.category}${home.sign || ''}` : null;
+            let best = null;
             cells.forEach(key => {
                 const f = cellForm(daily, todayKey, key, TASK_CELL_WINDOW);
                 const age = f.lastDay === null ? 999 : f.lastDay;
                 if (age < TASK_STALE_DAYS) return;
-                if (age > pickAge) { pick = key; pickAge = age; }
+                const p = parseTopicKey(key);
+                if (!p.hasLevel) return;
+                const sec = `${p.category}${p.sign || ''}`;
+                let distance, near;
+                if (home && sec === homeSec && p.op === home.op) {
+                    distance = 1; near = Math.abs(p.level - (home.level || 1));
+                } else if (home && sec === homeSec) {
+                    distance = 2; near = p.level;
+                } else {
+                    distance = 3; near = p.level;
+                }
+                // При равной близости выбираем звезду ПОНИЖЕ. Наверх толкает роль
+                // «продвинуться»; эта — про пропущенное, а пропущенное почти всегда
+                // осталось внизу (например, после экзамена, который открыл звёзды сразу).
+                // Простой — последний по важности: он решает, куда идти среди одинаково
+                // близких, а не вместо близости.
+                const rank = [distance, near, p.level, -age];
+                if (!best || rankLess(rank, best.rank)) best = { key, rank };
             });
-            if (!pick) return null;
-            return { kind: 'count', cell: pick, need: 10, role: 'explore' };
+            if (!best) return null;
+            return { kind: 'count', cell: best.key, need: 10, role: 'explore' };
         }
 
         // Детерминированный выбор: одна и та же дата и логин дают один и тот же набор.
@@ -12837,8 +12876,11 @@
             // Роли берём по порядку важности и НЕ перемешиваем: продвинуться важнее, чем
             // подтянуть, а подтянуть важнее, чем попробовать новое. Жребий здесь только
             // добивает остаток — иначе он мог бы вытеснить главное задание дня.
+            // Откуда мерить близость: клетка, где ученик занимается больше всего.
+            // Нет истории — меряем от самого начала карты, туда же и позовём.
+            const home = seen[0] || null;
             const roles = [roleAdvance(st, open), roleFix(daily, todayKey, seen),
-                           roleExplore(daily, todayKey, open)].filter(Boolean);
+                           roleExplore(daily, todayKey, open, home)].filter(Boolean);
 
             // Две роли могут указать на одну клетку — тогда второе задание про неё же
             // выглядит как повтор. Оставляем первое, оно важнее.
@@ -12926,9 +12968,12 @@
                 const sub = document.createElement('div');
                 sub.className = 'task-sub';
                 const unit = task.kind === 'accuracy' ? '%' : '';
+                // Перевыполненное показываем ровно как цель: «13 из 10» формально верно,
+                // но читается как сбой счётчика.
+                const shown = task.done ? task.need : task.have;
                 const count = task.have === null
                     ? tf('нужно хотя бы %1 ответов, чтобы засчитать', TASK_MIN_SAMPLE)
-                    : tf('%1 из %2', task.have + unit, task.need + unit);
+                    : tf('%1 из %2', shown + unit, task.need + unit);
                 sub.innerText = task.where ? `${task.where} · ${count}` : count;
                 body.appendChild(sub);
                 el.appendChild(body);
