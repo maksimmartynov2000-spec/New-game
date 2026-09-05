@@ -1384,6 +1384,9 @@
             background: rgba(0,0,0,0.28); color: #e2e8f0;
             resize: vertical; white-space: pre;
         }
+        /* Заявленная звезда выше выданной. Честный экзамен такого не даёт никогда,
+           поэтому строка должна бросаться в глаза, а не теряться в списке. */
+        .exam-log-warn { color: #fbbf24; font-weight: 600; }
         .dlg-actions { display: flex; gap: 10px; margin-top: 4px; }
         .dlg-btn {
             flex: 1; padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.18);
@@ -5393,7 +5396,7 @@
                 title: tf('%1★ пока закрыта', level),
                 text: levelLockReason(secKey, op, level) + '\n\n'
                     + tf('Или пройди экзамен по действию «%1»: %2 примеров, по %3 секунд на каждый. ', opName, EXAM_QUESTIONS, EXAM_SECONDS)
-                    + t('Сдашь — звёзды откроются сразу.'),
+                    + tf('Сдашь — откроются звёзды до %1★. Дальше открывает репетитор.', EXAM_MAX_GRANT),
                 okText: t('Пройти экзамен'),
                 cancelText: t('Не сейчас')
             });
@@ -5420,6 +5423,17 @@
                 el.innerText = row.passed
                     ? tf('%1 — открыто до %2★, %3', name, row.level, formatDayKeyHuman((row.takenAt || '').slice(0, 10)))
                     : tf('%1 — не сдал, %2', name, formatDayKeyHuman((row.takenAt || '').slice(0, 10)));
+                // Экзамен считается в браузере, а серверу сообщается готовое число.
+                // Сервер срезает всё, что выше потолка, но САМ ФАКТ заявки выше потолка
+                // честный экзамен дать не может: он туда просто не поднимается.
+                // Значит, такая строка — это либо правка приложения, либо отладчик,
+                // и репетитор должен её видеть, а не узнавать о ней из логов.
+                if (row.claimed && row.level && row.claimed > row.level) {
+                    const warn = document.createElement('span');
+                    warn.className = 'exam-log-warn';
+                    warn.innerText = tf(' · заявлено %1★', row.claimed);
+                    el.appendChild(warn);
+                }
                 wrap.appendChild(el);
             });
             setFoldSum('statsExamsSection', tf('%1 из %2', list.filter(x => x.passed).length, list.length));
@@ -5449,6 +5463,16 @@
         // (2→3→4→5), а пятая — как раз то, ради чего экзамен затевался. Четвёртый заход
         // получает только тот, кто безошибочно прошёл три предыдущих.
         const EXAM_ROUNDS = 4;
+        // Потолок выдачи. Экзамен считается здесь, в браузере, а серверу сообщается
+        // готовое число — то есть подделать его можно из отладчика. По-настоящему это
+        // чинится только выдачей примеров с сервера, а это вторая копия правил
+        // сложности в SQL; для дыры ценой в звёздочку такой размен не окупается.
+        //
+        // Поэтому: выше трёх звёзд экзамен не открывает, четвёртую и пятую открывает
+        // только репетитор. То же число стоит на сервере (supabase/exam-cap.sql) и
+        // срезает всё, что пришло сверх него, — здесь оно не защита, а честность:
+        // честный экзамен просто не поднимается выше и не заявляет лишнего.
+        const EXAM_MAX_GRANT = 3;
         const EXAM_SECONDS = 30;       // на пример; вышло время — считается ошибкой
 
         let exam = null;
@@ -5456,7 +5480,7 @@
         function examOpen(op) {
             if (maintenanceActive()) { renderMaintenance(); return; }
             exam = { op, level: EXAM_START_LEVEL, round: 0, asked: 0, right: 0,
-                     best: 0, low: 1, high: 5, problem: null, answer: null,
+                     best: 0, low: 1, high: EXAM_MAX_GRANT, problem: null, answer: null,
                      timer: null, left: EXAM_SECONDS, done: false };
             document.getElementById('examScreen').style.display = 'flex';
             document.getElementById('examResult').hidden = true;
@@ -5553,7 +5577,8 @@
             else if (failed) { exam.high = exam.level - 1; }
             else { examFinish(); return; }   // серединка: ни вверх, ни вниз — на этом и стоим
 
-            if (exam.round >= EXAM_ROUNDS || exam.low > exam.high || exam.low > 5) { examFinish(); return; }
+            if (exam.round >= EXAM_ROUNDS || exam.low > exam.high
+                || exam.low > EXAM_MAX_GRANT) { examFinish(); return; }
             exam.level = passed ? exam.low : Math.max(1, exam.high);
             examNextRound();
         }
@@ -5563,7 +5588,9 @@
             examStopTimer();
             document.getElementById('examBody').hidden = true;
             document.getElementById('examResult').hidden = false;
-            const level = exam.best;
+            // Подстраховка на случай будущей правки хода экзамена: сервер всё равно
+            // срежет, но показывать ученику одно, а открывать другое — нельзя.
+            const level = Math.min(exam.best, EXAM_MAX_GRANT);
 
             document.getElementById('examResultCap').innerText = level
                 ? tf('🔓 Открыто до %1★', level)
