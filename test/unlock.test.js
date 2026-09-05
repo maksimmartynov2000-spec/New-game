@@ -237,6 +237,7 @@ function starBox(opts) {
     vm.createContext(box);
     vm.runInContext(
         slice('function parseTopicKey(key) {', '// Ключ для ОТОБРАЖЕНИЯ', 'разбор ключа')
+        + slice('function parseSectionKey(secKey) {', '\n\n', 'разбор ключа раздела')
         + slice('// ===================== ОТКРЫЛАСЬ ЗВЕЗДА', '\n        // Очередь наград после миссии', 'окно звезды')
         + slice('        function advanceMissionReveals() {', '\n\n', 'очередь наград')
         + '\n;globalThis.S = { showStarUnlock, advanceMissionReveals,'
@@ -308,6 +309,47 @@ test('звезда идёт после пазлов и задач, а не вм�
     w2.S.pending = { key: 'integer+:add:3', level: 4 };
     w2.S.advanceMissionReveals();
     assert(w2.nodes.starUnlock.hidden, 'звезда перебила задачу за мастерство');
+});
+
+
+group('Кнопка «Играть» и раздел');
+
+// Это была настоящая поломка, прожившая четыре мержа. Кнопке передавали ключ раздела,
+// но разобрать его было нечем: startMissionAt задавал действие и звезду, а раздел —
+// нет. Возврат на экран выбора миссии обнуляет exampleConfig, поэтому миссия уходила
+// в клетку «null+»: мимо задания, мимо карты, мимо лесенок, мимо медалей и пазла.
+// Со стороны всё выглядело нормально — примеры-то шли обычные.
+test('ключ раздела разбирается обратно', () => {
+    const w = starBox();
+    eq(JSON.stringify(w.box.parseSectionKey('integer+')),
+       JSON.stringify({ category: 'integer', numberType: 'positive' }), 'положительные целые');
+    eq(JSON.stringify(w.box.parseSectionKey('integer-')),
+       JSON.stringify({ category: 'integer', numberType: 'negative' }), 'отрицательные');
+    eq(JSON.stringify(w.box.parseSectionKey('fraction+')),
+       JSON.stringify({ category: 'fraction', numberType: 'positive' }), 'дроби');
+});
+
+test('запуск миссии восстанавливает раздел, а не только действие', () => {
+    const w = starBox();
+    w.box.exampleConfig.category = null;      // так выглядит возврат на экран выбора
+    w.box.exampleConfig.numberType = null;
+    w.S.pending = { key: 'integer+:add:3', level: 4 };
+    w.S.showStarUnlock();
+    w.nodes.starUnlockNext.onclick();
+    eq(w.box.config.category, 'integer', 'раздел');
+    eq(w.box.config.numberType, 'positive', 'знак');
+});
+
+test('раздел берётся из ключа, а не из того, что осталось на экране', () => {
+    // Иначе ученик, до этого выбиравший дроби, ушёл бы решать дроби вместо целых.
+    const w = starBox();
+    w.box.exampleConfig.category = 'fraction';
+    w.box.exampleConfig.numberType = 'positive';
+    w.S.pending = { key: 'integer-:mul:2', level: 3 };
+    w.S.showStarUnlock();
+    w.nodes.starUnlockNext.onclick();
+    eq(w.box.config.category, 'integer', 'раздел');
+    eq(w.box.config.numberType, 'negative', 'знак');
 });
 
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);

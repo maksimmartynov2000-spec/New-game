@@ -1182,6 +1182,19 @@
         .maintenance-wait { color: #cbd5e1; font-size: 0.95rem; line-height: 1.5; }
         .maintenance-note { color: #94a3b8; font-size: 0.82rem; line-height: 1.5; margin-top: 12px; }
 
+        /* --- Задание во время миссии --- */
+        .mission-task {
+            display: flex; align-items: center; gap: 8px; margin-top: 8px;
+            padding: 6px 10px; border-radius: 9px;
+            background: rgba(6, 182, 212, 0.08); border: 1px solid rgba(6, 182, 212, 0.25);
+            font-size: 0.72rem; color: #cbd5e1;
+        }
+        .mission-task-text { flex: 1 1 auto; min-width: 0; }
+        .mission-task-count { flex: 0 0 auto; font-weight: bold; color: var(--cyan); white-space: nowrap; }
+        /* Выполнено — зелёным и один раз: дальше строка не мозолит глаза. */
+        .mission-task.done { background: rgba(16, 185, 129, 0.10); border-color: rgba(16, 185, 129, 0.35); }
+        .mission-task.done .mission-task-count { color: #6ee7b7; }
+
         /* --- Задания дня и недели --- */
         .task-row {
             display: flex; align-items: center; gap: 10px;
@@ -2062,6 +2075,12 @@
                 <div>⚡ <span id="live-speed">—</span></div>
                 <div class="live-sep" id="live-goal-wrap"><span id="live-goal">—</span></div>
             </div>
+            <!-- Задание, с которого ученик сюда пришёл. Без него он уходил играть и не
+                 видел, зачем: сколько осталось, было известно только на экране выбора. -->
+            <div class="mission-task" id="missionTask" style="display:none;">
+                <span class="mission-task-text" id="missionTaskText"></span>
+                <span class="mission-task-count" id="missionTaskCount"></span>
+            </div>
             <div class="badge-container">
                 <!-- Раньше здесь стояли «Серия x1.4» и «Молния +43%». Оба числа выглядели
                      как механика и обещали награду, которой не существовало: ни очков, ни
@@ -2250,6 +2269,8 @@
             "мимо в единицах": "units off",
             "Сегодня %1 из %2": "Today %1 of %2",
             "🎯 Задания": "🎯 Tasks",
+            "готово ✅": "done ✅",
+            "нужно %1": "need %1",
             "🎓 Экзамен": "🎓 Exam",
             "🎓 Экзамены": "🎓 Exams",
             "%1 — открыто до %2★, %3": "%1 — opened up to %2★, %3",
@@ -2795,6 +2816,8 @@
             "мимо в единицах": "unités",
             "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
             "🎯 Задания": "🎯 Objectifs",
+            "готово ✅": "fait ✅",
+            "нужно %1": "il faut %1",
             "🎓 Экзамен": "🎓 Examen",
             "🎓 Экзамены": "🎓 Examens",
             "%1 — открыто до %2★, %3": "%1 — ouvert jusqu’à %2★, %3",
@@ -3334,6 +3357,8 @@
             "мимо в единицах": "Einer daneben",
             "Сегодня %1 из %2": "Heute %1 von %2",
             "🎯 Задания": "🎯 Aufgaben",
+            "готово ✅": "fertig ✅",
+            "нужно %1": "nötig: %1",
             "🎓 Экзамен": "🎓 Prüfung",
             "🎓 Экзамены": "🎓 Prüfungen",
             "%1 — открыто до %2★, %3": "%1 — frei bis %2★, %3",
@@ -9215,6 +9240,19 @@
             return `${category}${sign === 'negative' ? '-' : '+'}`;
         }
 
+        // Обратное преобразование. Его не было, и именно поэтому кнопки «Играть» у задания
+        // и «Играть на 4★» в окне открытой звезды запускали миссию БЕЗ РАЗДЕЛА: ключ им
+        // передавали, но разобрать было нечем. Ответы уходили в клетку «null+», то есть
+        // мимо карты, лесенок, медалей и пазла.
+        function parseSectionKey(secKey) {
+            const key = String(secKey || '');
+            const sign = key.slice(-1);
+            return {
+                category: (sign === '+' || sign === '-') ? key.slice(0, -1) : key,
+                numberType: sign === '-' ? 'negative' : 'positive'
+            };
+        }
+
         // Полный доступ: репетитор, а также любой, про кого мы ещё ничего не знаем.
         function hasFullAccess() {
             if (Progress.getAccountType() !== 'linked') return true;
@@ -12636,6 +12674,7 @@
             const res = evalTask(task, agg);
             const parsed = task.cell ? parseTopicKey(task.cell) : null;
             return Object.assign({}, task, res, {
+                id: `${task.kind}|${task.cell || ''}|${task.need}`,
                 text: taskText(task),
                 where: task.cell ? topicLabelWithLevel(task.cell) : '',
                 // Кнопка «Играть» есть только у заданий про конкретную клетку — остальные
@@ -12685,7 +12724,8 @@
                     btn.className = 'task-go';
                     btn.type = 'button';
                     btn.innerText = t('Играть');
-                    btn.addEventListener('click', () => startMissionAt(task.go.op, task.go.level, task.go.secKey));
+                    btn.addEventListener('click', () =>
+                        startMissionAt(task.go.op, task.go.level, task.go.secKey, task.id));
                     el.appendChild(btn);
                 }
                 return el;
@@ -13395,7 +13435,7 @@
 
         // Запуск миссии прямо из окна: тот же путь, что и с экрана выбора, но без
         // самого экрана. Ровно один режим и ровно одна звезда — как везде в приложении.
-        function startMissionAt(op, level, secKey) {
+        function startMissionAt(op, level, secKey, taskId) {
             document.getElementById('starUnlock').hidden = true;
             document.getElementById('winScreen').classList.remove('active');
             document.getElementById('mistakesScreen').style.display = 'none';
@@ -13411,9 +13451,15 @@
                 showToast(t('Этот режим больше не открыт — выбери другой.'), 'error');
                 return;
             }
+            // Раздел ОБЯЗАТЕЛЬНО берём из ключа: возврат на экран выбора миссии обнуляет
+            // exampleConfig, и без этой строки миссия уходила в несуществующую клетку.
+            const sec = parseSectionKey(secKey);
+            exampleConfig.category = sec.category;
+            exampleConfig.numberType = sec.numberType;
             exampleConfig.operations = {};
             exampleConfig.operations[op] = level;
             Progress.setConfig(exampleConfig);
+            missionTaskId = taskId || null;
             document.getElementById('configScreen').style.display = 'none';
             startGame();
         }
@@ -14745,6 +14791,7 @@
             resetSessionHints();
             pendingChallengeReveals = [];
             pendingStarUnlock = null;
+            missionTaskId = null;
             document.getElementById('challengeReveal').hidden = true;
             document.getElementById('starUnlock').hidden = true;
         }
@@ -14896,6 +14943,29 @@
             document.getElementById('live-goal').innerText = goal
                 ? tf('%1 ещё %2', TIER_ICONS[goal.tier], goal.left)
                 : `${TIER_ICONS[5]} ${((Progress.get().byTopic || {})[key] || {}).correct || 0}`;
+            renderMissionTask();
+        }
+
+        // Какое задание ученик открыл кнопкой «Играть». Пересчитывается из журнала, как и
+        // всё остальное: своего состояния у заданий нет, поэтому строка не может разойтись
+        // с тем, что показано на экране выбора миссии.
+        let missionTaskId = null;
+        function renderMissionTask() {
+            const row = document.getElementById('missionTask');
+            if (!row) return;
+            const st = (typeof Progress !== 'undefined' && Progress.get) ? Progress.get() : null;
+            if (!missionTaskId || !st) { row.style.display = 'none'; return; }
+            const today = Progress.dayKey();
+            const code = Progress.getCode();
+            const all = dailyTasks(st, today, code).concat([weeklyTask(st, today, code)].filter(Boolean));
+            const task = all.filter(x => x.id === missionTaskId)[0];
+            if (!task) { row.style.display = 'none'; return; }
+            row.style.display = '';
+            row.className = 'mission-task' + (task.done ? ' done' : '');
+            document.getElementById('missionTaskText').innerText = task.text;
+            document.getElementById('missionTaskCount').innerText = task.done
+                ? t('готово ✅')
+                : (task.have === null ? tf('нужно %1', task.need) : tf('%1 из %2', task.have, task.need));
         }
 
         // Серия — честный счётчик верных ответов подряд. Множителя у неё нет: он ни на
