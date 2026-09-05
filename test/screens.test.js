@@ -116,6 +116,53 @@ const SCREENS = [
         record(s.name, problem);
     }
 
+    // Что видит УЧЕНИК, а не репетитор. Экран профиля один на обоих, и разделы в нём
+    // прячутся кодом, а не разметкой. «Опасная зона» пряталась не всегда: ученику
+    // показывались сброс всего прогресса и удаление профиля — необратимые оба, а пароль
+    // при удалении не преграда, ученик его знает. Проверяем и то, что раздел скрыт, и то,
+    // что сами действия отказываются работать в обход кнопки.
+    console.log('\nПрофиль ученика');
+    {
+        errors.length = 0;
+        const r = await page.evaluate(`(async () => {
+            Progress.setAccountType('linked', 'TUTOR');
+            // Обе функции выходят раньше защиты, если нет логина и нечем подтвердить
+            // личность. Без этих двух строк проверки ниже проходили бы всегда — я на этом
+            // и попался: подсадка «убрать защиту» их не роняла.
+            Progress.setToken('TEST01', 'x'.repeat(64));
+            Progress.get().playerCode = 'TEST01';
+            document.querySelectorAll('.modal-screen').forEach(x => x.style.display = 'none');
+            renderProfileScreen();
+            const vis = (id) => getComputedStyle(document.getElementById(id)).display !== 'none';
+            const zone = vis('dangerSection');
+            const students = vis('studentsSection');
+            // Предыдущий экран («серия и заморозки») оставил окно открытым — закрываем,
+            // иначе замер ниже поймает чужое окно и проверка станет ложной.
+            closeAppDialog(null);
+            await new Promise(r => setTimeout(r, 60));
+            confirmHardReset();
+            await new Promise(r => setTimeout(r, 120));
+            const dlgAfterReset = document.getElementById('appDialog').classList.contains('open');
+            closeAppDialog(null);
+            await new Promise(r => setTimeout(r, 60));
+            confirmDeleteOwnAccount();
+            await new Promise(r => setTimeout(r, 120));
+            const dlgAfterDelete = document.getElementById('appDialog').classList.contains('open');
+            closeAppDialog(null);
+            Progress.get().playerCode = null;
+            return { zone, students, dlgAfterReset, dlgAfterDelete };
+        })()`);
+        record('«Опасная зона» ученику не показывается', r.zone ? 'раздел виден' : null);
+        record('«Мои ученики» ученику не показывается', r.students ? 'раздел виден' : null);
+        record('сброс прогресса не срабатывает в обход кнопки',
+               r.dlgAfterReset ? 'открылось окно подтверждения' : null);
+        record('удаление профиля не срабатывает в обход кнопки',
+               r.dlgAfterDelete ? 'открылось окно подтверждения' : null);
+
+        // Возвращаем как было — дальше идут языки, им нужен обычный аккаунт.
+        await page.evaluate(`Progress.setAccountType('self', null); renderProfileScreen();`);
+    }
+
     // Языки: перевод не должен ронять отрисовку — в словарях легко потерять подстановку.
     console.log('\nТо же самое на других языках');
     for (const lang of ['en', 'fr', 'de']) {
