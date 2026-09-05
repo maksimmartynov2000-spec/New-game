@@ -1182,6 +1182,12 @@
         .maintenance-wait { color: #cbd5e1; font-size: 0.95rem; line-height: 1.5; }
         .maintenance-note { color: #94a3b8; font-size: 0.82rem; line-height: 1.5; margin-top: 12px; }
 
+        /* Блок заданий и блок разделов стояли впритык и читались как один список:
+           одинаковые карточки, одинаковые края, никакой паузы между ними. Разводим
+           воздухом, а разделам даём собственный заголовок — чтобы у карточек были
+           разные шапки, а не одна сплошная лента. */
+        .tasks-wrap { margin-bottom: 18px; }
+
         /* --- Задание во время миссии --- */
         .mission-task {
             display: flex; align-items: center; gap: 8px; margin-top: 8px;
@@ -1679,7 +1685,7 @@
                 <div class="stat-side">
                     <span>📅 дней: <b id="statsDaysVal">0</b></span>
                     <span>⏱️ время: <b id="statsTimeVal">0 мин</b></span>
-                    <span id="statsStreakCell">🔥 подряд: <b id="statsStreakVal">0</b></span>
+                    <span id="statsStreakCell">🔥 ударный режим: <b id="statsStreakVal">0</b></span>
                     <span id="statsFreezeCell">❄️ заморозки: <b id="statsFreezeVal">0</b></span>
                     <span id="statsWrongCell">❌ ошибок: <b id="statsWrongVal">0</b></span>
                     <span id="statsPuzzlesCell">🧩 пазлов: <b id="statsPuzzlesVal">0</b></span>
@@ -1983,7 +1989,7 @@
 
         <!-- Задания дня и недели. Раздел сворачивается общим механизмом: кому они не
              нужны, тот закроет один раз, и выбор запомнится. -->
-        <div class="config-container" id="tasksWrap" style="display:none;">
+        <div class="config-container tasks-wrap" id="tasksWrap" style="display:none;">
             <div class="config-section" data-fold="tasks" id="tasksSection">
                 <div class="config-section-title">🎯 Задания</div>
                 <div id="tasksList"></div>
@@ -1994,6 +2000,7 @@
         <div id="categoryStepScreen" style="width:100%; display:flex; flex-direction:column; align-items:center;">
             <div class="config-container">
                 <div class="config-section">
+                    <div class="config-section-title">Что тренируем</div>
                     <div class="category-select-row" id="categorySelectRow">
                         <button class="btn-category" data-value="integer" data-sign="positive" data-title="Положительные">🔵 Положительные</button>
                         <button class="btn-category" data-value="integer" data-sign="negative" data-title="Отрицательные">🔴 Отрицательные</button>
@@ -2269,6 +2276,8 @@
             "мимо в единицах": "units off",
             "Сегодня %1 из %2": "Today %1 of %2",
             "🎯 Задания": "🎯 Tasks",
+            "Что тренируем": "What we practise",
+            "%1 %2": "%1 %2",
             "готово ✅": "done ✅",
             "нужно %1": "need %1",
             "🎓 Экзамен": "🎓 Exam",
@@ -2309,10 +2318,9 @@
             "Позанимайся %1 дней за неделю": "Practise on %1 days this week",
             "нужно хотя бы %1 ответов, чтобы засчитать": "at least %1 answers are needed to count",
             "%1 из %2": "%1 of %2",
-            "%1 подряд": "%1 in a row",
             "❄️ Вчера сработала заморозка — серия цела": "❄️ A freeze was used yesterday — your streak is safe",
-            "🔥 Серия и заморозки": "🔥 Streak and freezes",
-            "Серия: %1 %2.\n": "Streak: %1 %2.\n",
+            "🔥 Ударный режим": "🔥 Streak",
+            "Ударный режим: %1 %2.\n": "Streak: %1 %2.\n",
             "Заморозки: %1 из %2.\n\n": "Freezes: %1 of %2.\n\n",
             "Заморозка тратится сама, если ты пропустил день, — серия не обрывается.\n": "A freeze is spent by itself if you miss a day — the streak holds.\n",
             "Новая даётся за каждые %1 дней с выполненной целью.": "A new one comes for every %1 days with the goal met.",
@@ -2522,7 +2530,7 @@
             "«Почти» (посчитал верно, но забыл сократить): %1": "Almost (right value, not simplified): %1",
             "📅 дней:": "📅 days:",
             "⏱️ время:": "⏱️ time:",
-            "🔥 подряд:": "🔥 streak:",
+            "🔥 ударный режим:": "🔥 streak:",
             "❄️ заморозки:": "❄️ freezes:",
             "❌ ошибок:": "❌ wrong:",
             "🏅 достижений получено: %1": "🏅 achievements earned: %1",
@@ -2712,7 +2720,7 @@
             "За один день сравнивать не с чем — здесь средние за этот день.": "One day has nothing to compare against — these are the averages for that day.",
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Not enough data to compare the two halves — these are the averages for the whole range.",
             "Где именно ошибается": "Where exactly the mistakes are",
-            "Дней подряд": "Days in a row",
+            "Ударный режим": "Streak",
             "За выбранный период: %1": "Over the chosen period: %1",
             "За всё время: %1": "All time: %1",
             "В среднем за день занятий: %1": "Average per day of practice: %1",
@@ -2816,6 +2824,8 @@
             "мимо в единицах": "unités",
             "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
             "🎯 Задания": "🎯 Objectifs",
+            "Что тренируем": "Ce qu’on travaille",
+            "%1 %2": "%1 %2",
             "готово ✅": "fait ✅",
             "нужно %1": "il faut %1",
             "🎓 Экзамен": "🎓 Examen",
@@ -2856,10 +2866,9 @@
             "Позанимайся %1 дней за неделю": "Entraîne-toi %1 jours cette semaine",
             "нужно хотя бы %1 ответов, чтобы засчитать": "il faut au moins %1 réponses pour compter",
             "%1 из %2": "%1 sur %2",
-            "%1 подряд": "%1 d’affilée",
             "❄️ Вчера сработала заморозка — серия цела": "❄️ Une protection a servi hier — ta série est sauve",
-            "🔥 Серия и заморозки": "🔥 Série et protections",
-            "Серия: %1 %2.\n": "Série : %1 %2.\n",
+            "🔥 Ударный режим": "🔥 Série",
+            "Ударный режим: %1 %2.\n": "Série : %1 %2.\n",
             "Заморозки: %1 из %2.\n\n": "Protections : %1 sur %2.\n\n",
             "Заморозка тратится сама, если ты пропустил день, — серия не обрывается.\n": "Une protection se dépense toute seule si tu sautes un jour — la série tient.\n",
             "Новая даётся за каждые %1 дней с выполненной целью.": "Une nouvelle arrive tous les %1 jours où l’objectif est atteint.",
@@ -3069,7 +3078,7 @@
             "«Почти» (посчитал верно, но забыл сократить): %1": "« Presque » (bon résultat, mais pas simplifié) : %1",
             "📅 дней:": "📅 jours :",
             "⏱️ время:": "⏱️ temps :",
-            "🔥 подряд:": "🔥 d'affilée :",
+            "🔥 ударный режим:": "🔥 série :",
             "❄️ заморозки:": "❄️ protections :",
             "❌ ошибок:": "❌ erreurs :",
             "🏅 достижений получено: %1": "🏅 récompenses obtenues : %1",
@@ -3259,7 +3268,7 @@
             "За один день сравнивать не с чем — здесь средние за этот день.": "Sur un seul jour il n'y a rien à comparer — voici les moyennes de ce jour.",
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Trop peu de données pour comparer les deux moitiés de la période — voici les moyennes sur l'ensemble.",
             "Где именно ошибается": "Où exactement se trouvent les erreurs",
-            "Дней подряд": "Jours d'affilée",
+            "Ударный режим": "Série",
             "За выбранный период: %1": "Sur la période choisie : %1",
             "За всё время: %1": "Depuis le début : %1",
             "В среднем за день занятий: %1": "En moyenne par jour d’entraînement : %1",
@@ -3357,6 +3366,8 @@
             "мимо в единицах": "Einer daneben",
             "Сегодня %1 из %2": "Heute %1 von %2",
             "🎯 Задания": "🎯 Aufgaben",
+            "Что тренируем": "Was wir üben",
+            "%1 %2": "%1 %2",
             "готово ✅": "fertig ✅",
             "нужно %1": "nötig: %1",
             "🎓 Экзамен": "🎓 Prüfung",
@@ -3397,10 +3408,9 @@
             "Позанимайся %1 дней за неделю": "Übe an %1 Tagen in dieser Woche",
             "нужно хотя бы %1 ответов, чтобы засчитать": "mindestens %1 Antworten nötig, damit es zählt",
             "%1 из %2": "%1 von %2",
-            "%1 подряд": "%1 in Folge",
             "❄️ Вчера сработала заморозка — серия цела": "❄️ Gestern hat ein Frost gewirkt — deine Serie hält",
-            "🔥 Серия и заморозки": "🔥 Serie und Frost",
-            "Серия: %1 %2.\n": "Serie: %1 %2.\n",
+            "🔥 Ударный режим": "🔥 Serie",
+            "Ударный режим: %1 %2.\n": "Serie: %1 %2.\n",
             "Заморозки: %1 из %2.\n\n": "Frost: %1 von %2.\n\n",
             "Заморозка тратится сама, если ты пропустил день, — серия не обрывается.\n": "Ein Frost wird von selbst verbraucht, wenn du einen Tag auslässt — die Serie hält.\n",
             "Новая даётся за каждые %1 дней с выполненной целью.": "Eine neue gibt es für je %1 Tage mit erfülltem Ziel.",
@@ -3610,7 +3620,7 @@
             "«Почти» (посчитал верно, но забыл сократить): %1": "„Fast“ (richtig gerechnet, aber nicht gekürzt): %1",
             "📅 дней:": "📅 Tage:",
             "⏱️ время:": "⏱️ Zeit:",
-            "🔥 подряд:": "🔥 in Folge:",
+            "🔥 ударный режим:": "🔥 Serie:",
             "❄️ заморозки:": "❄️ Frost:",
             "❌ ошибок:": "❌ Fehler:",
             "🏅 достижений получено: %1": "🏅 erhaltene Erfolge: %1",
@@ -3800,7 +3810,7 @@
             "За один день сравнивать не с чем — здесь средние за этот день.": "Bei einem einzigen Tag gibt es nichts zu vergleichen — hier die Mittelwerte dieses Tages.",
             "Для сравнения половин периода данных пока мало — здесь показаны средние за весь период.": "Zu wenig Daten, um beide Hälften des Zeitraums zu vergleichen — hier die Mittelwerte über den ganzen Zeitraum.",
             "Где именно ошибается": "Wo genau die Fehler sitzen",
-            "Дней подряд": "Tage in Folge",
+            "Ударный режим": "Serie",
             "За выбранный период: %1": "Im gewählten Zeitraum: %1",
             "За всё время: %1": "Insgesamt: %1",
             "В среднем за день занятий: %1": "Im Schnitt pro Übungstag: %1",
@@ -11069,7 +11079,7 @@
                 flame.className = 'flame';
                 flame.innerText = '🔥';
                 chip.appendChild(flame);
-                chip.appendChild(document.createTextNode(' ' + tf('%1 подряд', s.streak)));
+                chip.appendChild(document.createTextNode(' ' + tf('%1 %2', s.streak, pluralDaysWord(s.streak))));
                 if (s.freezes > 0) {
                     const ice = document.createElement('span');
                     ice.className = 'daily-ice';
@@ -11093,8 +11103,8 @@
         // Короткое объяснение: четыре строки, без обучающего тона.
         function showStreakInfo(s, todayKey) {
             showNotice({
-                title: t('🔥 Серия и заморозки'),
-                text: tf('Серия: %1 %2.\n', s.streak, pluralDaysWord(s.streak))
+                title: t('🔥 Ударный режим'),
+                text: tf('Ударный режим: %1 %2.\n', s.streak, pluralDaysWord(s.streak))
                     + tf('Заморозки: %1 из %2.\n\n', s.freezes, FREEZE_MAX)
                     + t('Заморозка тратится сама, если ты пропустил день, — серия не обрывается.\n')
                     + tf('Новая даётся за каждые %1 дней с выполненной целью.', FREEZE_EVERY)
@@ -11304,7 +11314,7 @@
                 // Точность у ребёнка — ЧИСЛОМ, без стрелки. Приговор выносит стрелка
                 // («−5 к прошлому периоду»), а не сама доля попаданий: её ребёнок
                 // прицельно исправить не может, а тревожиться о ней — вполне.
-                document.getElementById('statsAccuracyName').innerText = t('Дней подряд');
+                document.getElementById('statsAccuracyName').innerText = t('Ударный режим');
                 document.getElementById('statsAccuracyVal').innerText = streak;
                 document.getElementById('statsSpeedName').innerText = t('Точность');
                 document.getElementById('statsSpeedVal').innerText = accuracy === null ? '—' : accuracy + '%';

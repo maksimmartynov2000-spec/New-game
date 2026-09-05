@@ -55,6 +55,7 @@ function load(state) {
     const src = [
         slice('function shiftDayKey(key, deltaDays)', 'function isActiveDay', 'даты'),
         slice('function daysBetweenKeys(fromKey, toKey)', '\n\n', 'расстояние между днями'),
+        slice('function pluralDaysWord(n)', '\n\n', 'склонение дней'),
         slice('function isActiveDay(d)', 'function aggregateDaily', 'активный день'),
         slice('// ===================== ДНЕВНАЯ ЦЕЛЬ', 'function earliestDayKey', 'дневная цель'),
         ';globalThis.R = { currentStreak, streakState, dailyProgress, renderDailyBar,'
