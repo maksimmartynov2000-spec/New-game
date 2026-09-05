@@ -167,19 +167,9 @@
         .btn-period.selected { background: rgba(6,182,212,0.15); border-color: var(--cyan); color: var(--cyan); }
         /* Стрелка динамики рядом с подписью показателя. Пишется только когда данных
            реально хватает на сравнение — иначе поле остаётся пустым. */
-        .stat-delta { font-size: 0.72rem; font-weight: bold; margin-left: 5px; white-space: nowrap; }
-        .stat-delta.up { color: #10b981; }
-        .stat-delta.down { color: #ef4444; }
 
         /* Достижения */
-        .ach-row {
-            display: flex; align-items: center; gap: 11px;
-            padding: 10px 11px; border-radius: 11px; margin-bottom: 7px;
-            background: rgba(255, 215, 0, 0.07); border: 1px solid rgba(255, 215, 0, 0.22);
-        }
-        .ach-row.locked { background: rgba(255,255,255,0.03); border-color: rgba(255,255,255,0.08); opacity: 0.55; }
         .ach-icon { font-size: 1.5rem; line-height: 1; flex-shrink: 0; }
-        .ach-main { display: flex; flex-direction: column; min-width: 0; }
         .ach-title { font-size: 0.88rem; font-weight: bold; color: #f1f5f9; }
         .ach-sub { font-size: 0.72rem; color: #94a3b8; margin-top: 2px; }
 
@@ -337,7 +327,6 @@
         .report-sub-head { font-size: 0.74rem; font-weight: 700; color: #64748b; margin: 8px 0 2px; }
         .report-ach { font-size: 0.85rem; color: #334155; padding: 4px 0; }
         .report-note { font-size: 0.72rem; color: #94a3b8; margin-top: 8px; }
-        .report-comment { font-size: 0.88rem; color: #334155; white-space: pre-wrap; }
         /* Карточка «Родителям»: намеренно светлая и с рамкой — по ней видно, что именно
            обрезать на скриншоте. Ширина та же, что у листа отчёта, чтобы на телефоне
            карточка и лист не разъезжались. */
@@ -556,13 +545,6 @@
             padding-right: calc(8px + env(safe-area-inset-right));
             width: 100%;
         }
-        .resource-card {
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 8px 24px; border-radius: 10px; background: rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255,255,255,0.05); min-width: 0;
-        }
-        .res-label { font-size: 0.75rem; color: #94a3b8; white-space: nowrap; }
-        .res-val { font-size: clamp(1rem, 4vw, 1.4rem); font-weight: bold; margin-top: 2px; white-space: nowrap; }
 
         /* ===== Мини-превью пазла в шапке — крупное, как в образце ===== */
         .puzzle-mini { cursor: pointer; padding: 2px; }
@@ -1665,7 +1647,7 @@
 
             <div class="config-section">
                 <!-- Две правые карточки меняют содержимое в зависимости от того, кто смотрит:
-                     ученику вместо точности и скорости показываются «подряд» и «пазлов».
+                     репетитору — точность и скорость, ученику — ударный режим и точность.
                      Раскладка при этом остаётся та же — три карточки, а не одна с дырами. -->
                 <div class="stat-hero">
                     <div class="stat-hero-card">
@@ -2371,7 +2353,6 @@
             "Подтверждение": "Confirm",
             "Показать": "Show",
             "Назад": "Back",
-            "◀️ назад": "◀️ back",
             "🏠 На главную": "🏠 Home",
             "▶️ Продолжить игру": "▶️ Keep playing",
             "Нет соединения с сервером.": "No connection to the server.",
@@ -2545,14 +2526,12 @@
             "Прошедшие эпохи": "Past eras",
             "Эпоха %1": "Era %1",
             "▼ показать": "▼ show",
-            "▲ скрыть": "▲ hide",
             "Мало данных<br>для кривой": "Not enough data<br>for a chart",
             "%1 мин": "%1 min",
             "%1 ч %2 мин": "%1 h %2 min",
             "0 мин": "0 min",
             "%1 с": "%1 s",
             " с": " s",
-            "%1 с → %2 s": "%1 s → %2 s",
             "%1 с → %2 с": "%1 s → %2 s",
             "сегодня": "today",
             "вчера": "yesterday",
@@ -2922,7 +2901,6 @@
             "Подтверждение": "Confirmation",
             "Показать": "Afficher",
             "Назад": "Retour",
-            "◀️ назад": "◀️ retour",
             "🏠 На главную": "🏠 Accueil",
             "▶️ Продолжить игру": "▶️ Continuer à jouer",
             "Нет соединения с сервером.": "Pas de connexion au serveur.",
@@ -3096,14 +3074,12 @@
             "Прошедшие эпохи": "Ères passées",
             "Эпоха %1": "Ère %1",
             "▼ показать": "▼ afficher",
-            "▲ скрыть": "▲ masquer",
             "Мало данных<br>для кривой": "Trop peu de données<br>pour la courbe",
             "%1 мин": "%1 min",
             "%1 ч %2 мин": "%1 h %2 min",
             "0 мин": "0 min",
             "%1 с": "%1 s",
             " с": " s",
-            "%1 с → %2 s": "%1 s → %2 s",
             "%1 с → %2 с": "%1 s → %2 s",
             "сегодня": "aujourd'hui",
             "вчера": "hier",
@@ -3467,7 +3443,6 @@
             "Подтверждение": "Bestätigung",
             "Показать": "Anzeigen",
             "Назад": "Zurück",
-            "◀️ назад": "◀️ zurück",
             "🏠 На главную": "🏠 Startseite",
             "▶️ Продолжить игру": "▶️ Weiterspielen",
             "Нет соединения с сервером.": "Keine Verbindung zum Server.",
@@ -3641,14 +3616,12 @@
             "Прошедшие эпохи": "Vergangene Epochen",
             "Эпоха %1": "Epoche %1",
             "▼ показать": "▼ anzeigen",
-            "▲ скрыть": "▲ ausblenden",
             "Мало данных<br>для кривой": "Zu wenig Daten<br>für die Kurve",
             "%1 мин": "%1 Min.",
             "%1 ч %2 мин": "%1 Std. %2 Min.",
             "0 мин": "0 Min.",
             "%1 с": "%1 s",
             " с": " s",
-            "%1 с → %2 s": "%1 s → %2 s",
             "%1 с → %2 с": "%1 s → %2 s",
             "сегодня": "heute",
             "вчера": "gestern",
@@ -12392,6 +12365,7 @@
         let exam = null;
 
         function examOpen(op) {
+            if (maintenanceActive()) { renderMaintenance(); return; }
             exam = { op, level: EXAM_START_LEVEL, round: 0, asked: 0, right: 0,
                      best: 0, low: 1, high: 5, problem: null, answer: null,
                      timer: null, left: EXAM_SECONDS, done: false };
@@ -12454,6 +12428,12 @@
             exam.left = EXAM_SECONDS;
             examShowTime();
             exam.timer = setInterval(() => {
+                // Во время технических работ заглушка накрывает экран, а часы под ней
+                // продолжали идти: ученик не видел вопроса, не мог ответить, каждые
+                // тридцать секунд получал ошибку и в итоге терял попытку дня.
+                // Запрет на игру стоял в startGame — единственной точке входа в миссию;
+                // экзамен идёт мимо неё, и про него забыли.
+                if (maintenanceActive()) return;
                 exam.left--;
                 examShowTime();
                 // Время вышло — это ошибка. Без ограничения экзамен сдавался бы счётом
@@ -12918,9 +12898,16 @@
                 if (tier && gap >= 20 && gap <= 80) primary.push({ kind: 'correct', cell: advance.cell, need: gap, tier });
                 else primary.push({ kind: 'correct', cell: advance.cell, need: 60 });
             }
-            const filler = [{ kind: 'days', need: 5 }, { kind: 'correct', need: 120 }];
-
-            const task = pickTasks(primary, filler, taskSeed(from + '|w|' + (code || '')), 1)[0];
+            // «Позанимайся 5 дней» лежало в добивке и не выпадало НИКОГДА: у недельного
+            // задания одно место, а основное есть у любого, кто решил хоть что-нибудь.
+            // Мёртвая ветка, притом обидная — регулярность как раз стоит иногда просить.
+            //
+            // Здесь жребий нужен по-настоящему, в отличие от дневных: у недели одно
+            // задание, и порядок ролей выбирать не из чего. Поэтому выбираем прямо,
+            // а не через pickTasks — тот основные не перемешивает намеренно.
+            const pool = primary.concat([{ kind: 'days', need: 5 }, { kind: 'correct', need: 120 }]);
+            const seed = taskSeed(from + '|w|' + (code || ''));
+            const task = pool.length ? pool[seed % pool.length] : null;
             return task ? decorate(task, daily, from, todayKey) : null;
         }
 
@@ -14705,13 +14692,6 @@
         // Через t() эти слова НЕ проходят намеренно: предложения вокруг них («молчит %1 %2»,
         // «не выходил%3 на связь») в словаре не лежат — экран репетитора остаётся русским.
         // Переводить в нём одно только существительное значило бы выдавать «молчит 24 days».
-        function pluralDays(n) {
-            const d100 = n % 100, d10 = n % 10;
-            if (d100 >= 11 && d100 <= 14) return 'дней';
-            if (d10 === 1) return 'день';
-            if (d10 >= 2 && d10 <= 4) return 'дня';
-            return 'дней';
-        }
         function pluralStudents(n) {
             const d100 = n % 100, d10 = n % 10;
             if (d100 >= 11 && d100 <= 14) return 'учеников';
@@ -14800,8 +14780,8 @@
                     warn.className = 'list-row-warn';
                     warn.innerText = days === null
                         ? t('⚠️ ни разу не выходил на связь')
-                        : (days >= SILENT_DAYS ? tf('⚠️ молчит %1 %2', days, pluralDays(days))
-                                               : tf('⏳ не было %1 %2', days, pluralDays(days)));
+                        : (days >= SILENT_DAYS ? tf('⚠️ молчит %1 %2', days, pluralDaysWord(days))
+                                               : tf('⏳ не было %1 %2', days, pluralDaysWord(days)));
                     row.querySelector('.list-row-main').appendChild(warn);
                 }
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));

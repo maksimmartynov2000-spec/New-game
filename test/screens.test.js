@@ -37,6 +37,10 @@ function record(name, err) {
 
 // Прогресс, на котором есть что рисовать: клетки, ступени, серия, ошибки.
 const SEED = `(() => {
+    // Перерыв в репозитории может быть включён прямо сейчас — тогда экраны
+    // закрыты заглушкой, и прогон проверял бы не их, а её. У заглушки свой файл
+    // проверок; здесь она только мешает.
+    window.MAINTENANCE = { until: null };
     const st = Progress.get();
     const key = (o) => { const d = new Date(); d.setDate(d.getDate() - o); return Progress.dayKey(d); };
     const cell = (c, w) => [c, w, 0, c * 3000, c];
