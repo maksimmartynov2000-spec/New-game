@@ -7,7 +7,7 @@
 // Два дефекта, которые тесты ниже закрывают и которые не поймал бы никто:
 //   1. отчёт называл спадом рост: ученик перешёл на звезду выше, точность на новых
 //      примерах закономерно просела, и в отчёт ушла красная стрелка вниз;
-//   2. pluralDays и pluralStudents объявляли локальное `const t = n % 100`, затирая
+//   2. склонения объявляли локальное `const t = n % 100`, затирая
 //      функцию перевода, и падали на ЛЮБОМ аргументе — а вместе с ними падал весь
 //      список учеников, стоило одному ученику замолчать.
 //
@@ -40,7 +40,8 @@ function loadReport() {
     const days = slice('// Сколько примеров решено в каждый день периода',
                        '// Календарь по неделям', 'дни занятий');
     // Остальное лежит по файлу врозь и подтягивается по кусочку.
-    const plur = slice('function pluralDays(n)', 'function lastSeenText(iso)', 'склонения');
+    const plur = slice('function pluralStudents(n)', 'function lastSeenText(iso)', 'склонения')
+               + slice('function pluralDaysWord(n)', '\n\n', 'склонение дней');
     const parse = slice('function parseTopicKey(key)', '// Ключ для ОТОБРАЖЕНИЯ', 'parseTopicKey');
     const acc = slice('function accuracyPct(correct, wrong, minAttempts)',
                       '// ===================== ЭКРАН СТАТИСТИКИ', 'accuracyPct');
@@ -73,7 +74,7 @@ function loadReport() {
         + '\n;globalThis.LEVEL_SHIFT_MIN = LEVEL_SHIFT_MIN;'
         + '\n;globalThis.PARENT_ACC_MIN_DELTA = PARENT_ACC_MIN_DELTA;'
         + '\n;globalThis.PARENT_SILENCE_MIN = PARENT_SILENCE_MIN;'
-        + '\n;globalThis.pluralDays = pluralDays;'
+        + '\n;globalThis.pluralDays = pluralDaysWord;'
         + '\n;globalThis.pluralStudents = pluralStudents;',
         sandbox, { filename: 'index.html<report>' });
     return sandbox;
@@ -600,7 +601,7 @@ test('каждый детский период есть среди кнопок 
 
 group('Подписи в списке учеников');
 
-test('pluralDays не падает и склоняет верно', () => {
+test('склонение дней не падает и склоняет верно', () => {
     // Здесь стояло `const t = n % 100`, затиравшее функцию перевода: любой вызов
     // бросал TypeError и уносил с собой весь список учеников.
     eq(R.pluralDays(1), 'день', '1');

@@ -59,6 +59,10 @@ function load(opts) {
         showNotice: async () => undefined,
         askConfirm: async () => !!o.confirm,
         refreshSectionLocks: () => {},
+        // Экзамен теперь останавливается на время технических работ: часы под
+        // заглушкой шли, а ученик не видел вопроса и терял попытку дня.
+        maintenanceActive: () => !!(box.maintenance || o.maintenance),
+        renderMaintenance: () => { box.maintenanceShown = true; },
         refreshAccess: async () => { box.refreshed = true; },
         supabaseClient: o.offline ? null : {},
         callAuthed: async (fn, args) => { box.sent = { fn, args }; return o.serverFail
@@ -190,6 +194,32 @@ test('ответ останавливает часы, а не идёт пове�
     w.E.examAnswer(true);
     // Новый пример завёл свои часы; старые не должны продолжать тикать в фоне.
     assert(typeof w.box.tick === 'function', 'часы нового примера не запустились');
+});
+
+group('Экзамен и технические работы');
+
+// Заглушка накрывает экран, но экзамен идёт своим экраном и мимо startGame, где стоял
+// единственный запрет на игру. Часы под заглушкой продолжали идти: ученик не видел
+// вопроса, не мог ответить, каждые тридцать секунд получал ошибку — и терял попытку дня.
+test('во время работ экзамен не начинается', () => {
+    const w = load({ maintenance: true });
+    w.E.examOpen('add');
+    eq(w.E.exam, null, 'экзамен запустился во время технических работ');
+    assert(w.box.maintenanceShown, 'заглушку даже не показали');
+});
+
+test('начавшийся экзамен замирает, а не сгорает', () => {
+    // Работы начались посреди экзамена — часы обязаны встать, иначе ученик проиграет
+    // экран, которого не видит.
+    const w = load();
+    w.E.examOpen('add');
+    const before = w.E.exam.left;
+    w.box.tick(); w.box.tick();
+    assert(w.E.exam.left < before, 'часы не идут и в обычное время — проверка бессмысленна');
+    const paused = w.E.exam.left;
+    w.box.maintenance = true;
+    for (let i = 0; i < 5; i++) w.box.tick();
+    eq(w.E.exam.left, paused, 'часы шли под заглушкой');
 });
 
 group('Что уходит на сервер');
