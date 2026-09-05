@@ -4808,65 +4808,16 @@
             return (wrapNegative && isNeg) ? `(${signedStr})` : signedStr;
         }
 
-        function randDecimalMagnitude(dp, maxWhole) {
-            const whole = randInt(0, maxWhole);
-            const frac = randInt(0, Math.pow(10, dp) - 1);
-            return { intVal: whole * Math.pow(10, dp) + frac, dp };
-        }
-        // Для умножения/деления множитель/частное/делитель, случайно оказавшийся ровно нулём
-        // (целая часть 0 и все дробные цифры 0), даёт тривиальный "0 × x = 0" — бесполезно для
-        // тренировки. Эта версия гарантирует ненулевое значение.
-        function randDecimalMagnitudeNonZero(dp, maxWhole) {
-            let d, guard = 0;
-            do {
-                d = randDecimalMagnitude(dp, maxWhole);
-                guard++;
-            } while (d.intVal === 0 && guard < 10);
-            if (d.intVal === 0) d.intVal = 1; // гарантированный фолбэк
-            return d;
-        }
-        // Число с ГАРАНТИРОВАННО ненулевой дробной частью (после устранения лишних нулей это
-        // число не может выродиться в целое). Используется, чтобы не допустить пример вроде
-        // "12.0 - 6.0" — где оба числа на самом деле просто целые.
-        function randDecimalMagnitudeTrueDecimal(dp, maxWhole) {
-            if (dp === 0) return randDecimalMagnitude(0, maxWhole);
-            const whole = randInt(0, maxWhole);
-            const frac = randInt(1, Math.pow(10, dp) - 1); // гарантированно не 0
-            return { intVal: whole * Math.pow(10, dp) + frac, dp };
-        }
-        // Гарантирует, что хотя бы одно из двух чисел ПОСЛЕ устранения лишних нулей остаётся
-        // настоящей десятичной дробью — иначе "раздел десятичных дробей" мог выдать пример,
-        // где оба числа на самом деле целые (напр. 12.0 и 6.0 после сокращения — это просто 12 и 6).
-        // Вызывается ДО применения знака/перестановки, чтобы не нарушить остальную логику генерации.
-        function ensureAtLeastOneDecimalMagnitude(d1, d2, dp1, dp2, maxWhole1, maxWhole2) {
-            const s1 = stripTrailingZeros(d1);
-            const s2 = stripTrailingZeros(d2);
-            if (s1.dp > 0 || s2.dp > 0) return [d1, d2]; // всё в порядке
-            if (dp1 >= 1) return [randDecimalMagnitudeTrueDecimal(dp1, maxWhole1), d2];
-            if (dp2 >= 1) return [d1, randDecimalMagnitudeTrueDecimal(dp2, maxWhole2)];
-            return [d1, d2]; // оба изначально целые по замыслу уровня — не должно происходить
-        }
-
-        // Взвешенный выбор комбинации знаков для отрицательного режима десятичных дробей —
-        // "оба положительных" (++) редкость, не больше 5% (иначе в режиме "отрицательные числа"
-        // пятая часть примеров выглядела бы как случайно попавшие туда простые положительные).
-        function pickDecimalSignCombo() {
-            const r = Math.random();
-            if (r < 0.05) return '++';
-            if (r < 0.3667) return '+-';
-            if (r < 0.6834) return '-+';
-            return '--';
-        }
-
-        // Пулы по уровням: для +/− иногда специально разное число знаков после запятой (часть сложности)
-        // Сложение/вычитание — сложность растёт плавно: сначала величина целой части,
-        // потом количество знаков после запятой, и только на старших уровнях — их сочетание.
+        // Пулы по уровням: величина целой части для сложения/вычитания.
+        // Сложность растёт плавно: сначала величина целой части, потом количество знаков
+        // после запятой, и только на старших уровнях — их сочетание. Само количество знаков
+        // задают ветки genDecAddSub (см. ниже), поэтому здесь только maxWhole.
         const ADD_SUB_DECIMAL_POOLS = {
-            1: { dpOptions: [[1, 1]], maxWhole: 4 },
-            2: { dpOptions: [[1, 1]], maxWhole: 9 },
-            3: { dpOptions: [[2, 2]], maxWhole: 1 },
-            4: { dpOptions: [[1, 2], [2, 1]], maxWhole: 30 },
-            5: { dpOptions: [[1, 2], [2, 1]], maxWhole: 18 }
+            1: { maxWhole: 4 },
+            2: { maxWhole: 9 },
+            3: { maxWhole: 1 },
+            4: { maxWhole: 30 },
+            5: { maxWhole: 18 }
         };
 
         // Умножение и деление — числа строятся по принципу "цифра + сдвиг запятой": сама
@@ -4949,7 +4900,7 @@
                 : [{ intVal: oneDigit, dp: dpNarrow }, { intVal: twoDigit, dp: dpWide }];
         }
 
-        function genDecMul(level, isNegative) {
+        function genDecMul(level) {
             if (Math.random() < DEC_ZERO_VALUE_CHANCE) {
                 // Редкий (~0.5%) случай: один множитель — 0, ответ тоже 0.
                 // Вторая сторона ГАРАНТИРОВАННО десятичная (dp>=1), но не глубже, чем позволяет
@@ -4957,22 +4908,12 @@
                 const otherMaxDp = level === 1 ? 1 : 2;
                 const other = { intVal: randInt(1, 9), dp: randInt(1, otherMaxDp) };
                 const zeroFirst = Math.random() < 0.5;
-                let d1 = zeroFirst ? { intVal: 0, dp: 0 } : other;
-                let d2 = zeroFirst ? other : { intVal: 0, dp: 0 };
-                if (isNegative) {
-                    const [s1, s2] = comboToSigns(pickDecimalSignCombo());
-                    d1 = { intVal: d1.intVal * s1, dp: d1.dp };
-                    d2 = { intVal: d2.intVal * s2, dp: d2.dp };
-                }
+                const d1 = zeroFirst ? { intVal: 0, dp: 0 } : other;
+                const d2 = zeroFirst ? other : { intVal: 0, dp: 0 };
                 return { isDecimal: true, opKey: 'mul', level, d1, d2, answer: { intVal: 0, dp: 0 } };
             }
 
             let [d1, d2] = pickDecMulMagnitudes(level);
-            if (isNegative) {
-                const [s1, s2] = comboToSigns(pickDecimalSignCombo());
-                d1 = { intVal: d1.intVal * s1, dp: d1.dp };
-                d2 = { intVal: d2.intVal * s2, dp: d2.dp };
-            }
             d1 = stripTrailingZeros(d1);
             d2 = stripTrailingZeros(d2);
             const answer = decMul(d1, d2);
@@ -5068,17 +5009,13 @@
                 : buildDivisionPair(b, a, dpDividend, dpDivisor);
         }
 
-        function genDecDiv(level, isNegative) {
+        function genDecDiv(level) {
             if (Math.random() < DEC_ZERO_VALUE_CHANCE) {
                 // Редкий (~0.5%) случай: делимое = 0 (частное тоже 0), делитель — обычное число,
                 // ГАРАНТИРОВАННО десятичное (dp>=1), но не глубже, чем позволяет сам уровень.
                 // НЕ "деление НА 0" (это было бы неопределено) — а "0 разделить на число".
                 const otherMaxDp = level === 1 ? 1 : 2;
                 let divisor = { intVal: randInt(1, 9), dp: randInt(1, otherMaxDp) };
-                if (isNegative) {
-                    const [s1] = comboToSigns(pickDecimalSignCombo());
-                    divisor = { intVal: divisor.intVal * s1, dp: divisor.dp };
-                }
                 divisor = stripTrailingZeros(divisor);
                 return { isDecimal: true, opKey: 'div', level, d1: { intVal: 0, dp: 0 }, d2: divisor, answer: { intVal: 0, dp: 0 } };
             }
@@ -5091,13 +5028,6 @@
                 quotient = picked.quotient;
 
                 if (divisor.intVal === 0) divisor = { intVal: 1, dp: divisor.dp };
-
-                if (isNegative) {
-                    const [s1, s2] = comboToSigns(pickDecimalSignCombo()); // s1 — знак делителя, s2 — знак делимого
-                    divisor = { intVal: divisor.intVal * s1, dp: divisor.dp };
-                    dividend = { intVal: dividend.intVal * s2, dp: dividend.dp };
-                    quotient = { intVal: quotient.intVal * s1 * s2, dp: quotient.dp };
-                }
 
                 divisor = stripTrailingZeros(divisor);
                 dividend = stripTrailingZeros(dividend);
@@ -5236,7 +5166,7 @@
             return [{ intVal: intVal1, dp: dp1 }, { intVal: intVal2, dp: dp2 }];
         }
 
-        function genDecAddSub(opKey, level, isNegative) {
+        function genDecAddSub(opKey, level) {
             let d1, d2;
             if (level === 1) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 1, ADD_SUB_DECIMAL_POOLS[1].maxWhole);
             else if (level === 2) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 1, ADD_SUB_DECIMAL_POOLS[2].maxWhole);
@@ -5244,14 +5174,9 @@
             else if (level === 4) [d1, d2] = genDecAddSub45(opKey, ADD_SUB_DECIMAL_POOLS[4].maxWhole, 0.62);
             else [d1, d2] = genDecAddSub45(opKey, ADD_SUB_DECIMAL_POOLS[5].maxWhole, 0.32);
 
-            if (isNegative) {
-                const [s1, s2] = comboToSigns(pickDecimalSignCombo());
-                d1 = { intVal: d1.intVal * s1, dp: d1.dp };
-                d2 = { intVal: d2.intVal * s2, dp: d2.dp };
-            }
-            // Во всех ветках выше (1-5★) неотрицательный результат для позитивного режима уже
-            // гарантирован самой конструкцией (уменьшаемое >= вычитаемого по построению) —
-            // отдельная перестановка операндов больше не требуется ни на одном уровне.
+            // Во всех ветках выше (1-5★) неотрицательный результат гарантирован самой
+            // конструкцией (уменьшаемое >= вычитаемого по построению) — отдельная перестановка
+            // операндов не требуется ни на одном уровне.
 
             d1 = stripTrailingZeros(d1);
             d2 = stripTrailingZeros(d2);
@@ -5259,10 +5184,13 @@
             return { isDecimal: true, opKey, level, d1, d2, answer };
         }
 
-        function generateDecimalProblem(opKey, level, isNegative) {
-            if (opKey === 'add' || opKey === 'sub') return genDecAddSub(opKey, level, isNegative);
-            if (opKey === 'mul') return genDecMul(level, isNegative);
-            return genDecDiv(level, isNegative);
+        // Десятичные дроби в приложении только положительные: раздел «Десятичные» один
+        // (MAP_SECTIONS), и кнопка выбора несёт data-sign="positive" намертво. Поэтому знака
+        // здесь нет — параметр isNegative был, но никогда не приходил равным true.
+        function generateDecimalProblem(opKey, level) {
+            if (opKey === 'add' || opKey === 'sub') return genDecAddSub(opKey, level);
+            if (opKey === 'mul') return genDecMul(level);
+            return genDecDiv(level);
         }
 
         function buildDecimalQuestionText(d1, d2, opKey) {
@@ -5275,12 +5203,12 @@
             return `${decToString(d1, false)} ${OP_SYMBOL[opKey]} ${decToString(d2, true)}`;
         }
 
-        function pushDec(arr, cand, correctAnswer, used, isNegative) {
+        function pushDec(arr, cand, correctAnswer, used) {
             if (!cand) return;
             const stripped = stripTrailingZeros(cand);
             let { intVal, dp } = stripped;
             if (!Number.isFinite(intVal) || !Number.isFinite(dp) || dp < 0 || dp > 6) return;
-            if (!isNegative && intVal < 0) return;
+            if (intVal < 0) return;   // десятичные только положительные — см. generateDecimalProblem
             if (intVal === correctAnswer.intVal && dp === correctAnswer.dp) return;
             const key = decKey({ intVal, dp });
             if (used.has(key)) return;
@@ -5288,20 +5216,17 @@
             arr.push({ intVal, dp });
         }
 
-        function buildDecimalDistractors(opKey, d1, d2, correctAnswer, isNegative, count) {
+        function buildDecimalDistractors(opKey, d1, d2, correctAnswer, count) {
             const used = new Set([decKey(correctAnswer)]);
 
             // ===== ПРИОРИТЕТ 1: самые частые реальные ошибки =====
             let priority = [];
-            if (isNegative && correctAnswer.intVal !== 0) {
-                pushDec(priority, { intVal: -correctAnswer.intVal, dp: correctAnswer.dp }, correctAnswer, used, isNegative);
-            }
             // "Сдвинули запятую" — умножили/поделили на 10 по ошибке (очень частая ошибка).
             // Берём только ОДНО направление за раз (не оба сразу) — иначе среди 3 вариантов
             // сразу два оказываются "гигантский"/"крошечный" по сравнению с ответом, и набор
             // выглядит как случайный разброс чисел совсем разного масштаба, а не правдоподобные ошибки.
             const shiftDir = correctAnswer.dp === 0 ? 1 : (Math.random() < 0.5 ? -1 : 1);
-            pushDec(priority, { intVal: correctAnswer.intVal, dp: correctAnswer.dp + shiftDir }, correctAnswer, used, isNegative);
+            pushDec(priority, { intVal: correctAnswer.intVal, dp: correctAnswer.dp + shiftDir }, correctAnswer, used);
             priority = shuffleArray(priority).slice(0, 2);
 
             // ===== ПРИОРИТЕТ 2: типовые структурные ошибки по операциям =====
@@ -5310,28 +5235,28 @@
                 if (d1.dp !== d2.dp) {
                     // "Забыли выровнять запятую" — сложили/вычли сырые intVal без масштабирования
                     const rawCombined = opKey === 'add' ? d1.intVal + d2.intVal : d1.intVal - d2.intVal;
-                    pushDec(structural, { intVal: rawCombined, dp: Math.max(d1.dp, d2.dp) }, correctAnswer, used, isNegative);
+                    pushDec(structural, { intVal: rawCombined, dp: Math.max(d1.dp, d2.dp) }, correctAnswer, used);
                 }
                 // "Перепутали операцию" (сложили вместо вычли и наоборот)
                 const commonDp = Math.max(d1.dp, d2.dp);
                 const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
                 const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
                 const wrongOp = opKey === 'add' ? (v1 - v2) : (v1 + v2);
-                pushDec(structural, { intVal: wrongOp, dp: commonDp }, correctAnswer, used, isNegative);
+                pushDec(structural, { intVal: wrongOp, dp: commonDp }, correctAnswer, used);
             } else if (opKey === 'mul') {
                 // "Неверное количество знаков после запятой" — сырой продукт, но не тот dp.
                 // Тоже только ОДНО направление за раз — по той же причине, что и выше.
                 const rawProduct = d1.intVal * d2.intVal;
                 const mulShiftDir = Math.random() < 0.5 ? -1 : 1;
-                pushDec(structural, { intVal: rawProduct, dp: d1.dp + d2.dp + mulShiftDir }, correctAnswer, used, isNegative);
+                pushDec(structural, { intVal: rawProduct, dp: d1.dp + d2.dp + mulShiftDir }, correctAnswer, used);
                 // "Сложили вместо того чтобы умножить"
                 const commonDp = Math.max(d1.dp, d2.dp);
                 const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
                 const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
-                pushDec(structural, { intVal: v1 + v2, dp: commonDp }, correctAnswer, used, isNegative);
+                pushDec(structural, { intVal: v1 + v2, dp: commonDp }, correctAnswer, used);
             } else if (opKey === 'div') {
                 // "Перемножили вместо того чтобы разделить"
-                pushDec(structural, { intVal: d1.intVal * d2.intVal, dp: d1.dp + d2.dp }, correctAnswer, used, isNegative);
+                pushDec(structural, { intVal: d1.intVal * d2.intVal, dp: d1.dp + d2.dp }, correctAnswer, used);
             }
 
             const result = [];
@@ -5347,14 +5272,13 @@
                 let delta = randInt(-deltaMax, deltaMax);
                 if (delta === 0) delta = 1;
                 const val = correctAnswer.intVal + delta;
-                if (!isNegative && val < 0) continue;
-                pushDec(result, { intVal: val, dp }, correctAnswer, used, isNegative);
+                if (val < 0) continue;
+                pushDec(result, { intVal: val, dp }, correctAnswer, used);
             }
             let widen = 1;
             while (result.length < count) {
                 widen++;
-                const sign = (isNegative && Math.random() < 0.5) ? -1 : 1;
-                pushDec(result, { intVal: correctAnswer.intVal + sign * widen, dp: correctAnswer.dp }, correctAnswer, used, isNegative);
+                pushDec(result, { intVal: correctAnswer.intVal + widen, dp: correctAnswer.dp }, correctAnswer, used);
             }
 
             return result;
@@ -14063,13 +13987,13 @@
             // ===== ДЕСЯТИЧНЫЕ ДРОБИ: простой текстовый рендер (как у целых чисел) =====
             if (exampleConfig.category === 'decimal') {
                 const problem = generateUniqueProblem(
-                    () => generateDecimalProblem(opKey, level, isNegative),
+                    () => generateDecimalProblem(opKey, level),
                     (p) => `dec|${opKey}|${p.d1.intVal}_${p.d1.dp}|${p.d2.intVal}_${p.d2.dp}`
                 );
                 correctAnswer = problem.answer;
                 questionEl.innerText = buildDecimalQuestionText(problem.d1, problem.d2, opKey);
 
-                const fakeDecs = buildDecimalDistractors(opKey, problem.d1, problem.d2, correctAnswer, isNegative, 3);
+                const fakeDecs = buildDecimalDistractors(opKey, problem.d1, problem.d2, correctAnswer, 3);
                 const options = shuffleArray([correctAnswer, ...fakeDecs]);
                 options.forEach(opt => {
                     const btn = document.createElement('button');
