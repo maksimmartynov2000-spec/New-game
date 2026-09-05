@@ -2244,21 +2244,23 @@ function buildNoCarryMultiDigit(maxDigit, numDigits) {
 // ===== УМНОЖЕНИЕ: подбор величин по уровням (без учёта знака) =====
 function pickDecMulMagnitudes(level) {
     if (level === 1) {
-        // Строго таблица умножения (2-9), у каждого числа 0-1 знак после запятой,
-        // "оба 0 знаков" — редкость (<5%)
+        // Строго таблица умножения (2-9), у каждого числа 0-1 знак после запятой.
+        // "Оба 0 знаков" не допускается вовсе: такой пример — обычное "6 × 3", и в
+        // разделе десятичных дробей ему делать нечего. Раньше он пропускался в 5%
+        // случаев, что давало 1.7% примеров без единой запятой на этой клетке.
         const a = randInt(2, 9), b = randInt(2, 9);
         let dpA, dpB, guard = 0;
         do { dpA = randInt(0, 1); dpB = randInt(0, 1); guard++; }
-        while (dpA === 0 && dpB === 0 && Math.random() < 0.95 && guard < 30);
+        while (dpA === 0 && dpB === 0 && guard < 30);
         return [{ intVal: a, dp: dpA }, { intVal: b, dp: dpB }];
     }
     if (level === 2) {
-        // Та же таблица, один 0-1 знак, другой 0-2 знака (роль случайна),
-        // "оба 0" — большая редкость (<2%)
+        // Та же таблица, один 0-1 знак, другой 0-2 знака (роль случайна).
+        // "Оба 0" не допускается — по той же причине, что и на 1★.
         const a = randInt(2, 9), b = randInt(2, 9);
         let dpNarrow, dpWide, guard = 0;
         do { dpNarrow = randInt(0, 1); dpWide = randInt(0, 2); guard++; }
-        while (dpNarrow === 0 && dpWide === 0 && Math.random() < 0.98 && guard < 30);
+        while (dpNarrow === 0 && dpWide === 0 && guard < 30);
         return Math.random() < 0.5
             ? [{ intVal: a, dp: dpNarrow }, { intVal: b, dp: dpWide }]
             : [{ intVal: a, dp: dpWide }, { intVal: b, dp: dpNarrow }];
@@ -2345,7 +2347,7 @@ function pickDecDivMagnitudes(level) {
         const f1 = randInt(2, 9), f2 = randInt(2, 9);
         let dpA, dpB, guard = 0;
         do { dpA = randInt(0, 1); dpB = randInt(0, 1); guard++; }
-        while (dpA === 0 && dpB === 0 && Math.random() < 0.95 && guard < 30);
+        while (dpA === 0 && dpB === 0 && guard < 30);
         // Частное >= 1 ВСЕГДА: делителю достаётся dp не меньше, чем делимому
         // (математически это единственное условие, гарантирующее делимое >= делителя)
         return buildDivisionPair(f1, f2, Math.min(dpA, dpB), Math.max(dpA, dpB));
@@ -2354,7 +2356,7 @@ function pickDecDivMagnitudes(level) {
         const f1 = randInt(2, 9), f2 = randInt(2, 9);
         let dpNarrow, dpWide, guard = 0;
         do { dpNarrow = randInt(0, 1); dpWide = randInt(0, 2); guard++; }
-        while (dpNarrow === 0 && dpWide === 0 && Math.random() < 0.98 && guard < 30);
+        while (dpNarrow === 0 && dpWide === 0 && guard < 30);
         return buildDivisionPair(f1, f2, Math.min(dpNarrow, dpWide), Math.max(dpNarrow, dpWide));
     }
     if (level === 3) {
@@ -2439,12 +2441,12 @@ function genDecDiv(level) {
         // ВАЖНО: проверяем "оба 0" ПОСЛЕ сокращения — сокращение лишних нулей может
         // незаметно обнулить задуманный dp (например, делимое 2×5=10 при dp=1 даёт "1.0",
         // что сокращается до "1"), поэтому проверять нужно именно итоговый результат.
+        // Пример без единой запятой не принимаем ни на одном уровне. Раньше на 1★ он
+        // пропускался в 5% случаев, на 2★ в 2%; теперь — никогда, а если за 30 попыток
+        // подобрать не вышло, цикл всё равно выходит по guard и пример остаётся: лучше
+        // редкий целый пример, чем зависшая игра.
         const bothZero = dividend.dp === 0 && divisor.dp === 0;
         if (!bothZero) break;
-        const acceptRareBothZero = level === 1 ? Math.random() < 0.05
-            : level === 2 ? Math.random() < 0.02
-            : false; // 3-5★ — "оба 0" не должно происходить вообще
-        if (acceptRareBothZero) break;
     } while (guard < 30);
 
     return { isDecimal: true, opKey: 'div', level, d1: dividend, d2: divisor, answer: quotient };
