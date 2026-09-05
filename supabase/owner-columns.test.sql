@@ -1,5 +1,8 @@
 -- Проверка миграции owner-columns.sql на настоящей базе.
 --
+-- Пароли здесь длиннее восьми символов не случайно: password-length.sql поднял
+-- минимум, и короткие пароли перестали приниматься при заведении ученика.
+--
 -- Запускать на ТЕСТОВОЙ копии, не на рабочей: скрипт заводит и удаляет
 -- аккаунты TUTOR / PUPIL / PUPIL2. Каждая строка выводит «ДА» или «НЕТ» —
 -- все должны быть «ДА».
@@ -16,12 +19,12 @@
 delete from citadel_progress where code in ('TUTOR', 'PUPIL', 'PUPIL2');
 
 insert into citadel_progress (code, password_hash, owner_code, account_type, state, updated_at)
-values ('TUTOR', crypt('tutorpw', gen_salt('bf')), null, 'self',
+values ('TUTOR', crypt('tutorpassword', gen_salt('bf')), null, 'self',
         jsonb_build_object('schema', 2, 'playerCode', 'TUTOR', 'updatedAt', 0,
                            'accountType', 'self', 'ownerCode', null), now());
 
-select case when (session_create_student((session_login('TUTOR','tutorpw'))->>'token',
-                  'PUPIL', 'pupilpw', 'Ученик'))->>'ok' = 'true'
+select case when (session_create_student((session_login('TUTOR','tutorpassword'))->>'token',
+                  'PUPIL', 'pupilpassword', 'Ученик'))->>'ok' = 'true'
             then 'ДА  ученик заводится' else 'НЕТ ученик не завёлся' end;
 
 select case when owner_code = 'TUTOR' and account_type = 'linked'
@@ -30,7 +33,7 @@ select case when owner_code = 'TUTOR' and account_type = 'linked'
   from citadel_progress where code = 'PUPIL';
 
 -- Атака по токену
-select session_save((session_login('PUPIL','pupilpw'))->>'token',
+select session_save((session_login('PUPIL','pupilpassword'))->>'token',
        jsonb_build_object('playerCode','PUPIL','updatedAt',999,
                           'accountType','self','ownerCode',null)) \gset attack1_
 select case when account_type = 'linked' and owner_code = 'TUTOR'
@@ -40,7 +43,7 @@ select case when account_type = 'linked' and owner_code = 'TUTOR'
   from citadel_progress where code = 'PUPIL';
 
 -- Атака по старому паролю
-select save_state('PUPIL','pupilpw',
+select save_state('PUPIL','pupilpassword',
        jsonb_build_object('playerCode','PUPIL','accountType','self','ownerCode',null)) \gset attack2_
 select case when account_type = 'linked' and owner_code = 'TUTOR'
             then 'ДА  отвязаться по паролю тоже не вышло'
@@ -48,7 +51,7 @@ select case when account_type = 'linked' and owner_code = 'TUTOR'
   from citadel_progress where code = 'PUPIL';
 
 -- Репетитор остаётся репетитором, что бы ни прислал
-select session_save((session_login('TUTOR','tutorpw'))->>'token',
+select session_save((session_login('TUTOR','tutorpassword'))->>'token',
        jsonb_build_object('playerCode','TUTOR','accountType','linked','ownerCode','ЧУЖОЙ')) \gset attack3_
 select case when account_type = 'self' and owner_code is null
                  and state->>'accountType' = 'self'
@@ -63,7 +66,7 @@ select case when jsonb_array_length((impl_list_students('TUTOR'))->'students') =
             else 'НЕТ репетитор потерял ученика' end;
 
 -- Обычный прогресс пишется как раньше
-select session_save((session_login('PUPIL','pupilpw'))->>'token',
+select session_save((session_login('PUPIL','pupilpassword'))->>'token',
        jsonb_build_object('playerCode','PUPIL',
                           'totals', jsonb_build_object('correct',42,'wrong',3))) \gset save_
 select case when state->'totals'->>'correct' = '42' and state->>'accountType' = 'linked'
@@ -72,8 +75,8 @@ select case when state->'totals'->>'correct' = '42' and state->>'accountType' = 
   from citadel_progress where code = 'PUPIL';
 
 -- Ученик не заводит своих учеников
-select case when (session_create_student((session_login('PUPIL','pupilpw'))->>'token',
-                  'PUPIL2','pw1234','x'))->>'error' = 'not_a_tutor'
+select case when (session_create_student((session_login('PUPIL','pupilpassword'))->>'token',
+                  'PUPIL2','pw12345678','x'))->>'error' = 'not_a_tutor'
             then 'ДА  ученик не может завести ученика'
             else 'НЕТ ученику дали завести ученика' end;
 

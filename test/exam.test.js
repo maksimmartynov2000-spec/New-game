@@ -73,6 +73,7 @@ function load(opts) {
     vm.runInContext(EXAM_SRC
         + '\n;globalThis.E = { examOpen, examClose, examAnswer, examRoundOver, examFinish,'
         + ' EXAM_QUESTIONS, EXAM_PASS, EXAM_FAIL, EXAM_SECONDS, EXAM_ROUNDS, EXAM_START_LEVEL,'
+        + ' EXAM_MAX_GRANT,'
         + ' get exam() { return exam; }, set exam(v) { exam = v; } };',
         box, { filename: 'index.html<экзамен>' });
     return { E: box.E, box, byId };
@@ -151,23 +152,50 @@ test('серединка никуда не двигает и заканчива�
     eq(w.E.exam.best, 0, 'серединка звезду не даёт');
 });
 
-test('дальше пятой звезды не поднимаемся', () => {
+// Потолок выдачи. Экзамен считается в браузере, а серверу сообщается готовое
+// число — подделать его можно из отладчика. По-настоящему это чинится только
+// выдачей примеров с сервера, то есть второй копией правил сложности в SQL;
+// для дыры ценой в звёздочку такой размен не окупается. Вместо этого экзамен
+// открывает не больше трёх звёзд, а четвёртую и пятую открывает репетитор.
+// Раньше эти же проверки требовали ровно обратного — что экзамен доходит до
+// пятой; правило изменено сознательно, и проверки переписаны под него.
+test('дальше потолка не поднимаемся', () => {
     const w = load();
     w.E.examOpen('add');
-    w.E.exam.level = 5; w.E.exam.low = 5;
+    w.E.exam.level = w.E.EXAM_MAX_GRANT; w.E.exam.low = w.E.EXAM_MAX_GRANT;
     answerRound(w.E, 6);
-    assert(w.E.exam.done, 'экзамен должен закончиться на пятой');
-    eq(w.E.exam.best, 5, 'подтверждена пятая');
+    assert(w.E.exam.done, 'экзамен должен закончиться на потолке');
+    eq(w.E.exam.best, w.E.EXAM_MAX_GRANT, 'подтверждён потолок');
 });
 
-test('безошибочный экзамен доходит до пятой звезды', () => {
-    // Начинаем со второй, значит до пятой нужно ровно четыре захода: 2→3→4→5.
-    // С тремя заходами пятая звезда была недостижима вовсе.
+test('безошибочный экзамен доходит ровно до потолка и не выше', () => {
     const w = load();
     w.E.examOpen('add');
     for (let r = 0; r < 4; r++) answerRound(w.E, 6);
     assert(w.E.exam.done, 'экзамен должен закончиться');
-    eq(w.E.exam.best, 5, 'пятая звезда недостижима');
+    eq(w.E.exam.best, w.E.EXAM_MAX_GRANT, 'безошибочный экзамен должен давать ровно потолок');
+});
+
+test('потолок — три звезды, и он один на клиенте и на сервере', () => {
+    const w = load();
+    eq(w.E.EXAM_MAX_GRANT, 3, 'потолок в приложении');
+    const cap = fs.readFileSync(path.join(ROOT, 'supabase', 'exam-cap.sql'), 'utf8');
+    const m = cap.match(/function exam_max_grant\(\)[\s\S]*?select\s+(\d+)/);
+    assert(m, 'в exam-cap.sql не найдена функция потолка');
+    eq(Number(m[1]), w.E.EXAM_MAX_GRANT, 'потолок на сервере разошёлся с потолком в приложении');
+});
+
+test('экзамен ни при каком ходе не заявляет выше потолка', () => {
+    // Перебираем все правдоподобные исходы заходов: 0-6 верных в каждом из четырёх.
+    const bad = [];
+    for (let a = 0; a <= 6; a++) for (let b = 0; b <= 6; b++)
+        for (let c = 0; c <= 6; c++) for (let d = 0; d <= 6; d++) {
+            const w = load();
+            w.E.examOpen('add');
+            for (const n of [a, b, c, d]) { if (w.E.exam.done) break; answerRound(w.E, n); }
+            if (w.E.exam.best > w.E.EXAM_MAX_GRANT) bad.push(`${a}${b}${c}${d} → ${w.E.exam.best}`);
+        }
+    assert(bad.length === 0, `заявка выше потолка: ${bad.slice(0, 3).join(', ')}`);
 });
 
 test('больше четырёх заходов не бывает', () => {
