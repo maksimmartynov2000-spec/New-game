@@ -31,7 +31,8 @@ function slice(startMark, endMark, what) {
 const TODAY = '2026-09-10';     // четверг
 const MONDAY = '2026-09-07';
 
-function load() {
+function load(opts) {
+    const o = opts || {};
     const box = {
         console, Math, Number, Object, Array, String, JSON, Date,
         t: (x) => x,
@@ -43,6 +44,10 @@ function load() {
         COUNT_TIERS: [25, 60, 100, 150, 250],
         TIER_NAMES: ['', 'Бронза', 'Серебро', 'Золото', 'Алмаз', 'Легенда'],
         topicLabelWithLevel: (k) => k,
+        // Открытые клетки задаёт сам тест: подбор заданий теперь смотрит не только на
+        // то, где ученик был, но и на то, куда ему вообще можно пойти.
+        MAP_SECTIONS: [{ cat: 'integer', sign: '+', label: '', ops: ['add', 'sub', 'mul', 'div'] }],
+        isLevelOpen: (secKey, op, lvl) => (o.open ? o.open.indexOf(`${secKey}:${op}:${lvl}`) >= 0 : lvl <= 2),
         Progress: { dayKey: (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
     };
     box.globalThis = box;
@@ -53,7 +58,8 @@ function load() {
         + slice('function parseTopicKey(key) {', '// Ключ для ОТОБРАЖЕНИЯ', 'разбор ключа')
         + slice('// ===================== ЗАДАНИЯ ДНЯ И НЕДЕЛИ', '        // Отрисовка заданий', 'задания')
         + '\n;globalThis.T = { dailyTasks, weeklyTask, weekStartKey, recentCells,'
-        + ' taskAggregate, evalTask, DAILY_TASK_COUNT, TASK_MIN_SAMPLE };',
+        + ' taskAggregate, evalTask, DAILY_TASK_COUNT, TASK_MIN_SAMPLE,'
+        + ' roleAdvance, roleFix, roleExplore, openCells, cellForm };',
         box, { filename: 'index.html<задания>' });
     return box.T;
 }
@@ -119,11 +125,14 @@ test('заданий ровно три', () => {
 
 group('Клетка важнее общего задания');
 
-test('когда есть где заниматься — все задания с кнопкой', () => {
+test('у адресных заданий всегда есть кнопка', () => {
     // Первый прогон на живых данных выдал три общих задания подряд, ни одной кнопки.
+    // Общее задание без клетки допустимо только как добивка, когда ролей не хватило.
     const list = T.dailyTasks(busy(), TODAY, 'ЯР7');
-    const without = list.filter(x => !x.go).map(x => x.text);
-    eq(without.join(', '), '', `задания без кнопки: ${without.join(', ')}`);
+    const roleTasks = list.filter(x => x.role);
+    assert(roleTasks.length >= 2, `ролевых заданий всего ${roleTasks.length}`);
+    const without = roleTasks.filter(x => !x.go).map(x => x.text);
+    eq(without.join(', '), '', `ролевое задание без кнопки: ${without.join(', ')}`);
 });
 
 test('кнопка ведёт в ту клетку, о которой задание', () => {
@@ -133,10 +142,19 @@ test('кнопка ведёт в ту клетку, о которой задан
     assert(task.go.level >= 1 && task.go.level <= 5, `неожиданная звезда: ${task.go.level}`);
 });
 
-test('новичку без истории задания всё равно есть, но без кнопки', () => {
-    const list = T.dailyTasks({ daily: {} }, TODAY, 'НОВ');
+test('совсем пустому аккаунту задания дают, но общие', () => {
+    // Вести некуда: открытых клеток нет, истории нет. Это нормальная первая неделя
+    // нового ученика, а не сбой — как появится история, задания станут адресными.
+    const w = load({ open: [] });
+    const list = w.dailyTasks({ daily: {} }, TODAY, 'НОВ');
     assert(list.length > 0, 'новичок остался без заданий');
-    assert(list.every(x => !x.go), 'кнопка ведёт неизвестно куда');
+    assert(list.every(x => !x.go), 'кнопка ведёт в клетку, которая ему не открыта');
+});
+
+test('новичку с открытыми клетками сразу показывают, куда пойти', () => {
+    const list = T.dailyTasks({ daily: {} }, TODAY, 'НОВ');
+    const explore = list.filter(x => x.role === 'explore')[0];
+    assert(explore && explore.go, 'некуда позвать, хотя открытые клетки есть');
 });
 
 test('клетки берутся только свежие', () => {
@@ -204,6 +222,106 @@ test('до ступени обещаем только когда она реал
 test('недельное считается с понедельника, а не за сегодня', () => {
     const w = T.weeklyTask(busy(), TODAY, 'ЯР7');
     assert(w.have > 5, `в недельный счёт попал только сегодняшний день: ${w.have}`);
+});
+
+
+group('Три роли: куда вести ученика');
+
+// Раньше подбор брал клетку, где ученик БОЛЬШЕ ВСЕГО занимался, — то есть вёл туда,
+// где он и так сидит. Теперь у каждого задания своя роль и свой вопрос:
+// продвинуться (ближе к ступени), подтянуть (где просела точность), попробовать
+// (открытая клетка, куда давно не заходил).
+
+test('«продвинуться» ведёт в клетку, где до ступени ближе всего', () => {
+    const st = { daily: journal({ 1: day(20, 0, { 'integer+:add:1': [20, 0], 'integer+:sub:1': [20, 0] }) }),
+                 byTopic: { 'integer+:add:1': { correct: 5, wrong: 0 },     // до бронзы 20
+                            'integer+:sub:1': { correct: 22, wrong: 0 } } };  // до бронзы 3
+    const t = T.dailyTasks(st, TODAY, 'ЯР7').filter(x => x.role === 'advance')[0];
+    assert(t, 'роли «продвинуться» нет');
+    eq(t.cell, 'integer+:sub:1', 'выбрана не самая близкая клетка');
+});
+
+test('«подтянуть» ведёт туда, где точность просела', () => {
+    // Клетки нарочно разные: «продвинуться» пойдёт в сложение (до бронзы три ответа),
+    // «подтянуть» — в вычитание, где точность 30%. Иначе обе роли указали бы на одну
+    // клетку и вторая была бы отброшена как повтор.
+    const st = { daily: journal({ 1: day(30, 10, { 'integer+:add:1': [27, 3], 'integer+:sub:1': [3, 7] }) }),
+                 byTopic: { 'integer+:add:1': { correct: 22, wrong: 3 }, 'integer+:sub:1': { correct: 3, wrong: 7 } } };
+    const t = T.dailyTasks(st, TODAY, 'ЯР7').filter(x => x.role === 'fix')[0];
+    assert(t, 'роли «подтянуть» нет');
+    eq(t.cell, 'integer+:sub:1', 'подтягиваем не ту клетку');
+});
+
+test('при совсем низкой точности просят примеры, а не проценты', () => {
+    // 30% — это не небрежность, а незнание клетки. Любая планка в процентах тут
+    // недостижима сегодня и висела бы невыполненной каждый день.
+    // Клетки нарочно разные: «продвинуться» пойдёт в сложение (до бронзы три ответа),
+    // «подтянуть» — в вычитание. Иначе обе роли указали бы на одну клетку.
+    const st = { daily: journal({ 1: day(30, 10, { 'integer+:add:1': [27, 3], 'integer+:sub:1': [3, 7] }) }),
+                 byTopic: { 'integer+:add:1': { correct: 22, wrong: 3 }, 'integer+:sub:1': { correct: 3, wrong: 7 } } };
+    const t = T.dailyTasks(st, TODAY, 'ЯР7').filter(x => x.role === 'fix')[0];
+    eq(t.kind, 'count', `при 30% точности требуют процент: ${t.text}`);
+    eq(t.cell, 'integer+:sub:1', 'тренируем не ту клетку');
+});
+
+test('цель по точности берётся от ученика, а не константой', () => {
+    // «Набери 90%» при нынешних 64% — заметно выше, чем берётся за день.
+    const st = { daily: journal({ 1: day(40, 12, { 'integer+:add:1': [22, 2], 'integer+:sub:1': [18, 10] }) }),
+                 byTopic: { 'integer+:add:1': { correct: 22, wrong: 2 }, 'integer+:sub:1': { correct: 18, wrong: 10 } } };
+    const t = T.dailyTasks(st, TODAY, 'ЯР7').filter(x => x.role === 'fix')[0];
+    eq(t.kind, 'accuracy', `при 64% ждали планку по точности, получили: ${t.text}`);
+    assert(t.need > 64 && t.need <= 75, `цель ${t.need}% не похожа на шаг от нынешних 64%`);
+});
+
+test('«попробовать» вытаскивает того, кто закопался в одной клетке', () => {
+    // Ровно случай «закончил сложение на одной звезде»: месяц одно и то же.
+    const st = { daily: journal({ 0: day(20, 2, { 'integer+:add:1': [20, 2] }),
+                                  1: day(20, 2, { 'integer+:add:1': [20, 2] }),
+                                  2: day(20, 2, { 'integer+:add:1': [20, 2] }) }),
+                 byTopic: { 'integer+:add:1': { correct: 60, wrong: 6 } } };
+    const t = T.dailyTasks(st, TODAY, 'ЯР7').filter(x => x.role === 'explore')[0];
+    assert(t, 'ученика не позвали никуда, кроме его клетки');
+    assert(t.cell !== 'integer+:add:1', `позвали в ту же клетку: ${t.cell}`);
+    assert(t.go, 'у приглашения нет кнопки');
+});
+
+test('когда везде побывал недавно — никуда не зовём', () => {
+    // Без этого «попробовать» выродилось бы в «сходи туда, где был вчера»: приглашение
+    // никуда, занимающее место настоящего задания. Спрашиваем саму роль, а не готовый
+    // список: в списке такое приглашение могло бы отсеяться заодно как повтор клетки,
+    // и проверка молча ничего бы не проверяла.
+    const all = {};
+    ['add', 'sub', 'mul', 'div'].forEach(op => { all[`integer+:${op}:1`] = [10, 1]; all[`integer+:${op}:2`] = [10, 1]; });
+    const daily = journal({ 0: day(80, 8, all), 1: day(80, 8, all) });
+    eq(T.roleExplore(daily, TODAY, T.openCells()), null, 'позвали туда, где ученик был вчера');
+});
+
+test('две роли не дают двух заданий про одну клетку', () => {
+    // Иначе второе читается как повтор первого.
+    const st = { daily: journal({ 1: day(20, 8, { 'integer+:add:1': [20, 8] }) }),
+                 byTopic: { 'integer+:add:1': { correct: 20, wrong: 8 } } };
+    const cells = T.dailyTasks(st, TODAY, 'ЯР7').filter(x => x.cell).map(x => x.cell);
+    eq(cells.length, new Set(cells).size, `клетки повторяются: ${cells.join(', ')}`);
+});
+
+test('порядок ролей не перемешивается жребием', () => {
+    // «Продвинуться» важнее, чем «попробовать новое», и это должно быть видно сверху.
+    const st = { daily: journal({ 1: day(20, 2, { 'integer+:add:1': [20, 2] }) }),
+                 byTopic: { 'integer+:add:1': { correct: 20, wrong: 2 } } };
+    const roles = T.dailyTasks(st, TODAY, 'ЯР7').map(x => x.role).filter(Boolean);
+    const order = ['advance', 'fix', 'explore'];
+    const sorted = roles.slice().sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    eq(roles.join(','), sorted.join(','), 'роли перетасовались');
+});
+
+test('задания на точность и на количество не выглядят одинаково', () => {
+    // Клетки нарочно разные: «продвинуться» пойдёт в сложение (до бронзы три ответа),
+    // «подтянуть» — в вычитание, где точность 30%. Иначе обе роли указали бы на одну
+    // клетку и вторая была бы отброшена как повтор.
+    const st = { daily: journal({ 1: day(30, 10, { 'integer+:add:1': [27, 3], 'integer+:sub:1': [3, 7] }) }),
+                 byTopic: { 'integer+:add:1': { correct: 22, wrong: 3 }, 'integer+:sub:1': { correct: 3, wrong: 7 } } };
+    const texts = T.dailyTasks(st, TODAY, 'ЯР7').map(x => x.text);
+    eq(texts.length, new Set(texts).size, `тексты повторяются: ${texts.join(' | ')}`);
 });
 
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);

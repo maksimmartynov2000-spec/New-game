@@ -2276,6 +2276,10 @@
             "мимо в единицах": "units off",
             "Сегодня %1 из %2": "Today %1 of %2",
             "🎯 Задания": "🎯 Tasks",
+            "Потренируй трудное: реши %1 примеров": "Practise the hard one: solve %1 problems",
+            "Загляни сюда: реши %1 примеров": "Look in here: solve %1 problems",
+            "Подтяни точность до %1%": "Pull accuracy up to %1%",
+            "Ближе к ступени: реши %1 примеров": "Closer to the next rank: solve %1 problems",
             "Что тренируем": "What we practise",
             "%1 %2": "%1 %2",
             "готово ✅": "done ✅",
@@ -2824,6 +2828,10 @@
             "мимо в единицах": "unités",
             "Сегодня %1 из %2": "Aujourd’hui %1 sur %2",
             "🎯 Задания": "🎯 Objectifs",
+            "Потренируй трудное: реши %1 примеров": "Travaille le difficile : fais %1 calculs",
+            "Загляни сюда: реши %1 примеров": "Passe par ici : fais %1 calculs",
+            "Подтяни точность до %1%": "Remonte la précision à %1%",
+            "Ближе к ступени: реши %1 примеров": "Plus près du palier : fais %1 calculs",
             "Что тренируем": "Ce qu’on travaille",
             "%1 %2": "%1 %2",
             "готово ✅": "fait ✅",
@@ -3366,6 +3374,10 @@
             "мимо в единицах": "Einer daneben",
             "Сегодня %1 из %2": "Heute %1 von %2",
             "🎯 Задания": "🎯 Aufgaben",
+            "Потренируй трудное: реши %1 примеров": "Übe das Schwere: löse %1 Aufgaben",
+            "Загляни сюда: реши %1 примеров": "Schau hier vorbei: löse %1 Aufgaben",
+            "Подтяни точность до %1%": "Zieh die Genauigkeit auf %1%",
+            "Ближе к ступени: реши %1 примеров": "Näher an die Stufe: löse %1 Aufgaben",
             "Что тренируем": "Was wir üben",
             "%1 %2": "%1 %2",
             "готово ✅": "fertig ✅",
@@ -12677,6 +12689,11 @@
         // помещались: «Реши 10 примеров без единой ошибки: Положительные · Сложение · 2★»
         // занимало три строки на телефоне, и действие тонуло в адресе.
         function taskText(task) {
+            if (task.role === 'explore')  return tf('Загляни сюда: реши %1 примеров', task.need);
+            if (task.role === 'fix' && task.kind === 'accuracy')
+                                          return tf('Подтяни точность до %1%', task.need);
+            if (task.role === 'fix')      return tf('Потренируй трудное: реши %1 примеров', task.need);
+            if (task.role === 'advance')  return tf('Ближе к ступени: реши %1 примеров', task.need);
             if (task.kind === 'count')    return tf('Реши %1 примеров', task.need);
             if (task.kind === 'correct')  return task.tier
                 ? tf('Добери до ступени «%1» — ещё %2 верных', TIER_NAMES[task.tier], task.need)
@@ -12688,6 +12705,114 @@
             return '';
         }
 
+        // --- Кого куда вести ---------------------------------------------------------
+        // Задания — единственное место, которое САМО решает, чем ученику заняться.
+        // Поэтому подбор устроен не как «возьми клетку, где он чаще сидел», а как три
+        // роли, каждая со своим вопросом:
+        //
+        //   ПРОДВИНУТЬСЯ — где он ближе всего к следующей ступени. Это лестница самого
+        //                  приложения, и вести по ней — самое честное «в нужную сторону».
+        //   ПОДТЯНУТЬ    — где точность просела сильнее всего. Тут задание чинит дыру.
+        //   ПОПРОБОВАТЬ  — открытая клетка, где он давно (или ни разу) не был. Иначе он
+        //                  закапывается в одном действии и не видит остального.
+        //
+        // Роли всегда три, но каждая умеет ВЫРОДИТЬСЯ, когда данных мало: на пустом
+        // аккаунте вести некуда, а с одной клеткой нечего сравнивать. Вырождение — не
+        // запасной случай, а обычная работа: у нового ученика так будет неделю.
+        const TASK_MIN_CELL = 8;      // меньше ответов в клетке — судить о ней рано
+        const TASK_STALE_DAYS = 5;    // столько не заходил в клетку — считаем забытой
+
+        // Все клетки, куда ученику вообще можно пойти: открытые и не старше пятой звезды.
+        function openCells() {
+            const out = [];
+            MAP_SECTIONS.forEach(sec => {
+                const secKey = `${sec.cat}${sec.sign}`;
+                sec.ops.forEach(op => {
+                    for (let lvl = 1; lvl <= 5; lvl++) {
+                        if (isLevelOpen(secKey, op, lvl)) out.push(`${secKey}:${op}:${lvl}`);
+                    }
+                });
+            });
+            return out;
+        }
+
+        // Сколько ответов и какая точность в клетке за последние дни.
+        function cellForm(daily, todayKey, cellKey, windowDays) {
+            let correct = 0, wrong = 0, lastDay = null;
+            for (let i = 0; i < windowDays; i++) {
+                const key = shiftDayKey(todayKey, -i);
+                const v = ((daily[key] || {}).t || {})[cellKey];
+                if (!v) continue;
+                const a = (v[0] || 0) + (v[1] || 0);
+                if (a > 0 && lastDay === null) lastDay = i;
+                correct += v[0] || 0;
+                wrong += v[1] || 0;
+            }
+            const attempts = correct + wrong;
+            return { attempts, correct, wrong, lastDay,
+                     accuracy: attempts > 0 ? Math.round(correct / attempts * 100) : null };
+        }
+
+        // Цель по точности считается ОТ УЧЕНИКА, а не константой. «Набери 90%» при
+        // нынешних 70% — задание, которое нельзя выполнить сегодня; оно будет висеть
+        // невыполненным каждый день и перестанет что-либо значить.
+        function reachableAccuracy(now) {
+            if (now === null) return 80;
+            const step = now >= 95 ? 2 : (now >= 85 ? 3 : 5);
+            return Math.min(98, Math.round((now + step) / 5) * 5);
+        }
+        // Ниже этого процент требовать бессмысленно: дело не в аккуратности, а в том,
+        // что клетка ещё не выучена. Такому ученику нужна практика, а не планка.
+        const TASK_ACCURACY_FLOOR = 60;
+
+        // Роль «продвинуться»: где ближе всего до следующей ступени количества.
+        function roleAdvance(st, cells) {
+            let best = null;
+            cells.forEach(key => {
+                const have = ((st.byTopic || {})[key] || {}).correct || 0;
+                if (have <= 0) return;
+                let gap = null;
+                COUNT_TIERS.forEach(v => { if (gap === null && have < v) gap = v - have; });
+                if (gap === null) return;                       // всё взято
+                if (!best || gap < best.gap) best = { key, gap };
+            });
+            if (!best) return null;
+            // За день реально добрать десяток-другой, а не всю ступень целиком.
+            return { kind: 'count', cell: best.key, need: Math.max(10, Math.min(20, best.gap)), role: 'advance' };
+        }
+
+        // Роль «подтянуть»: клетка с самой просевшей точностью среди тех, где он бывал.
+        function roleFix(daily, todayKey, cells) {
+            let worst = null;
+            cells.forEach(key => {
+                const f = cellForm(daily, todayKey, key, TASK_CELL_WINDOW);
+                if (f.attempts < TASK_MIN_CELL || f.accuracy === null) return;
+                if (!worst || f.accuracy < worst.accuracy) worst = { key, accuracy: f.accuracy };
+            });
+            if (!worst) return null;
+            // Уже отличная точность — чинить нечего, лучше решить набело.
+            if (worst.accuracy >= 95) return { kind: 'clean', cell: worst.key, need: 10, role: 'fix' };
+            // Совсем низкая точность — это не небрежность, а незнание. Требовать процент
+            // тут значит поставить цель, которой сегодня не достичь ни при каком старании;
+            // такому ученику нужны примеры, а не планка.
+            if (worst.accuracy < TASK_ACCURACY_FLOOR) return { kind: 'count', cell: worst.key, need: 12, role: 'fix' };
+            return { kind: 'accuracy', cell: worst.key, need: reachableAccuracy(worst.accuracy), role: 'fix' };
+        }
+
+        // Роль «попробовать»: открытая клетка, куда он давно не заходил или не заходил
+        // вовсе. Именно она вытаскивает того, кто месяц решает одно сложение на 1★.
+        function roleExplore(daily, todayKey, cells) {
+            let pick = null, pickAge = -1;
+            cells.forEach(key => {
+                const f = cellForm(daily, todayKey, key, TASK_CELL_WINDOW);
+                const age = f.lastDay === null ? 999 : f.lastDay;
+                if (age < TASK_STALE_DAYS) return;
+                if (age > pickAge) { pick = key; pickAge = age; }
+            });
+            if (!pick) return null;
+            return { kind: 'count', cell: pick, need: 10, role: 'explore' };
+        }
+
         // Детерминированный выбор: одна и та же дата и логин дают один и тот же набор.
         //
         // Задания про КОНКРЕТНУЮ клетку берутся первыми, общие только добивают остаток.
@@ -12695,54 +12820,64 @@
         // «Играть» — и задание перестаёт быть тем, ради чего затевалось: указанием,
         // куда идти, в один тап.
         function pickTasks(primary, filler, seed, count) {
-            const out = [];
+            // Главные задания идут КАК ЕСТЬ, в своём порядке: он несёт смысл (продвинуться
+            // важнее, чем попробовать новое), и перемешивать его нельзя. Жребий работает
+            // только на добивке — там порядок ничего не значит, а разнообразие полезно.
+            const out = primary.slice(0, count);
             let s = seed;
-            const drain = (pool) => {
-                const left = pool.slice();
-                while (out.length < count && left.length) {
-                    s = Math.imul(s ^ (s >>> 15), 2246822507) >>> 0;
-                    out.push(left.splice(s % left.length, 1)[0]);
-                }
-            };
-            drain(primary);
-            drain(filler);
+            const left = filler.slice();
+            while (out.length < count && left.length) {
+                s = Math.imul(s ^ (s >>> 15), 2246822507) >>> 0;
+                out.push(left.splice(s % left.length, 1)[0]);
+            }
             return out;
         }
 
         function dailyTasks(st, todayKey, code) {
             const daily = (st && st.daily) || {};
-            const cells = recentCells(daily, todayKey, TASK_CELL_WINDOW);
-            const primary = [];
-            if (cells[0]) {
-                primary.push({ kind: 'count', cell: cells[0], need: 15 });
-                primary.push({ kind: 'clean', cell: cells[0], need: 10 });
-                primary.push({ kind: 'accuracy', cell: cells[0], need: 90 });
-            }
-            if (cells[1]) {
-                primary.push({ kind: 'count', cell: cells[1], need: 10 });
-                primary.push({ kind: 'accuracy', cell: cells[1], need: 90 });
-            }
-            const filler = [];
-            if (cells.length >= 2) filler.push({ kind: 'cells', need: 2 });
-            filler.push({ kind: 'count', need: 25 });
+            const open = openCells();
+            const seen = recentCells(daily, todayKey, TASK_CELL_WINDOW);
+            // Роли берём по порядку важности и НЕ перемешиваем: продвинуться важнее, чем
+            // подтянуть, а подтянуть важнее, чем попробовать новое. Жребий здесь только
+            // добивает остаток — иначе он мог бы вытеснить главное задание дня.
+            const roles = [roleAdvance(st, open), roleFix(daily, todayKey, seen),
+                           roleExplore(daily, todayKey, open)].filter(Boolean);
 
-            return pickTasks(primary, filler, taskSeed(todayKey + '|' + (code || '')), DAILY_TASK_COUNT)
+            // Две роли могут указать на одну клетку — тогда второе задание про неё же
+            // выглядит как повтор. Оставляем первое, оно важнее.
+            const chosen = [];
+            roles.forEach(task => {
+                if (chosen.some(x => x.cell === task.cell)) return;
+                chosen.push(task);
+            });
+
+            // Не набралось трёх — добираем общими. У пустого аккаунта вести некуда, и
+            // это нормальная его неделя, а не сбой: как появится история, задания
+            // станут адресными сами.
+            const filler = [];
+            if (open.length >= 2) filler.push({ kind: 'cells', need: 2 });
+            filler.push({ kind: 'count', need: 25 });
+            filler.push({ kind: 'correct', need: 15 });
+
+            return pickTasks(chosen, filler, taskSeed(todayKey + '|' + (code || '')), DAILY_TASK_COUNT)
                 .map(task => decorate(task, daily, todayKey, todayKey));
         }
 
         function weeklyTask(st, todayKey, code) {
             const daily = (st && st.daily) || {};
             const from = weekStartKey(todayKey);
-            const cells = recentCells(daily, todayKey, TASK_CELL_WINDOW);
+            // Ту же клетку, что и роль «продвинуться»: неделя — это про дойти до ступени,
+            // а не про «где он чаще сидел».
+            const advance = roleAdvance(st, openCells());
             const primary = [];
-            if (cells[0]) {
+            if (advance) {
                 // Если до следующей ступени количества осталось столько, сколько реально
                 // взять за неделю, — так и говорим. Иначе обещать ступень нельзя.
-                const have = ((st.byTopic || {})[cells[0]] || {}).correct || 0;
+                const have = ((st.byTopic || {})[advance.cell] || {}).correct || 0;
                 let tier = 0, gap = 0;
                 COUNT_TIERS.forEach((v, i) => { if (!tier && have < v) { tier = i + 1; gap = v - have; } });
-                if (tier && gap >= 20 && gap <= 80) primary.push({ kind: 'correct', cell: cells[0], need: gap, tier });
-                else primary.push({ kind: 'correct', cell: cells[0], need: 60 });
+                if (tier && gap >= 20 && gap <= 80) primary.push({ kind: 'correct', cell: advance.cell, need: gap, tier });
+                else primary.push({ kind: 'correct', cell: advance.cell, need: 60 });
             }
             const filler = [{ kind: 'days', need: 5 }, { kind: 'correct', need: 120 }];
 
@@ -12793,9 +12928,10 @@
                 // читается как «получилось».
                 const sub = document.createElement('div');
                 sub.className = 'task-sub';
+                const unit = task.kind === 'accuracy' ? '%' : '';
                 const count = task.have === null
                     ? tf('нужно хотя бы %1 ответов, чтобы засчитать', TASK_MIN_SAMPLE)
-                    : tf('%1 из %2', task.have, task.need);
+                    : tf('%1 из %2', task.have + unit, task.need + unit);
                 sub.innerText = task.where ? `${task.where} · ${count}` : count;
                 body.appendChild(sub);
                 el.appendChild(body);
@@ -15044,9 +15180,11 @@
             row.style.display = '';
             row.className = 'mission-task' + (task.done ? ' done' : '');
             document.getElementById('missionTaskText').innerText = task.text;
+            const unit = task.kind === 'accuracy' ? '%' : '';
             document.getElementById('missionTaskCount').innerText = task.done
                 ? t('готово ✅')
-                : (task.have === null ? tf('нужно %1', task.need) : tf('%1 из %2', task.have, task.need));
+                : (task.have === null ? tf('нужно %1', task.need + unit)
+                                      : tf('%1 из %2', task.have + unit, task.need + unit));
         }
 
         // Серия — честный счётчик верных ответов подряд. Множителя у неё нет: он ни на
