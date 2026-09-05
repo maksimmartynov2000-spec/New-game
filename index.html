@@ -1372,6 +1372,18 @@
         }
         .dlg-pick.selected { background: rgba(6,182,212,0.15); border-color: var(--cyan); color: var(--cyan); }
         .dlg-err { color: #f87171; font-size: 0.84rem; margin-bottom: 12px; display: none; }
+        /* Текст резервной копии. Показывается всегда, а не только когда сработало
+           скачивание: с домашнего экрана iPhone скачивание может молча не случиться,
+           и тогда единственный способ забрать данные — выделить и скопировать. */
+        .backup-text {
+            width: 100%; height: 120px; margin: 10px 0 4px;
+            box-sizing: border-box; padding: 8px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 0.72rem; line-height: 1.35;
+            border-radius: 8px; border: 1px solid rgba(255,255,255,0.18);
+            background: rgba(0,0,0,0.28); color: #e2e8f0;
+            resize: vertical; white-space: pre;
+        }
         .dlg-actions { display: flex; gap: 10px; margin-top: 4px; }
         .dlg-btn {
             flex: 1; padding: 12px; border-radius: 10px; border: 1px solid rgba(255, 255, 255, 0.18);
@@ -1933,6 +1945,12 @@
                 <div id="studentsBanner"></div>
                 <div id="studentsList"></div>
                 <button class="menu-btn" onclick="addStudent()">➕ <span>Добавить ученика</span></button>
+            </div>
+
+            <div class="config-section" data-fold="profile:backup" id="backupSection">
+                <div class="config-section-title">Резервная копия</div>
+                <div class="config-hint" style="margin-bottom:8px;">Копия прогресса — твоего и всех учеников. Сервер один, и если с ним что-то случится, восстановить будет неоткуда. Сохраняй копию хотя бы иногда.</div>
+                <button class="menu-btn" onclick="exportAllProgress()">⬇️ <span>Выгрузить прогресс</span></button>
             </div>
 
             <div class="config-section" data-fold="profile:danger" id="dangerSection">
@@ -7624,6 +7642,10 @@
             // Сбросить прогресс ученику при необходимости может репетитор со своей стороны.
             document.getElementById('dangerSection').style.display = (type === 'linked') ? 'none' : '';
 
+            // Резервная копия — тоже работа репетитора: копию делает тот, кто сможет ею
+            // воспользоваться. Ученику эта кнопка ничего не даёт и только путает.
+            document.getElementById('backupSection').style.display = (type === 'linked') ? 'none' : '';
+
             setupFolds('profileScreen');
         }
 
@@ -7713,10 +7735,15 @@
         }
 
         // --- Мои ученики ---
-        async function fetchMyStudents() {
+        // status — необязательный объект-ответ: сюда кладётся, удалось ли вообще
+        // достучаться до сервера. Пустой список и «связи нет» выглядят снаружи
+        // одинаково, а разница важна: молча выгрузить копию без учеников и сказать,
+        // что всё в порядке, — худшее, что может сделать резервное копирование.
+        async function fetchMyStudents(status) {
+            const said = (ok) => { if (status) status.ok = ok; return ok; };
             const myCode = Progress.getCode();
             const auth = Progress.authFor(myCode);
-            if (!myCode || !auth || !supabaseClient) return [];
+            if (!myCode || !auth || !supabaseClient) { said(false); return []; }
 
             // Сначала пробуем лёгкий список (только имя + итоги + когда заходил).
             // Старый list_my_students тянет ПОЛНОЕ состояние каждого ученика вместе
@@ -7724,6 +7751,7 @@
             const light = await callAuthed('session_list_students', {},
                                            'list_my_students_summary', {});
             if (!light.error && light.data && light.data.ok) {
+                said(true);
                 return (light.data.students || []).map(s => ({
                     code: s.code,
                     label: s.label || '',
@@ -7734,11 +7762,12 @@
 
             // Откат на старый путь: функции ещё нет в базе (SQL не запущен) — приложение
             // должно продолжать работать, просто чуть тяжелее.
-            if (auth.token) return []; // по токену запасного пути нет — он и не нужен
+            if (auth.token) { said(false); return []; } // по токену запасного пути нет
             const full = await supabaseClient.rpc('list_my_students', {
                 p_tutor_code: myCode, p_tutor_password: auth.password
             });
-            if (full.error || !full.data || !full.data.ok) return [];
+            if (full.error || !full.data || !full.data.ok) { said(false); return []; }
+            said(true);
             return (full.data.students || []).map(s => ({
                 code: s.code,
                 label: (s.state && s.state.profileLabel) || '',
@@ -7789,6 +7818,15 @@
             if (d10 === 1) return 'ученик';
             if (d10 >= 2 && d10 <= 4) return 'ученика';
             return 'учеников';
+        }
+
+        // Экран репетитора остаётся русским — см. пояснение у pluralStudents.
+        function pluralProfiles(n) {
+            const d100 = n % 100, d10 = n % 10;
+            if (d100 >= 11 && d100 <= 14) return 'профилей';
+            if (d10 === 1) return 'профиль';
+            if (d10 >= 2 && d10 <= 4) return 'профиля';
+            return 'профилей';
         }
 
         function lastSeenText(iso) {
@@ -8076,6 +8114,149 @@
             if (!ok) return;
             await Progress.hardReset();
             location.reload();
+        }
+
+        // =====================================================================
+        //  РЕЗЕРВНАЯ КОПИЯ
+        // ---------------------------------------------------------------------
+        //  Единственный экземпляр всех данных лежит на одном сервере. Резервных копий
+        //  у него нет, отката нет, экспорта не было — то есть любая авария была
+        //  окончательной. Это и есть самая дорогая дыра во всей системе: прогресс троих
+        //  учеников копится месяцами, а исчезает мгновенно и без следа.
+        //
+        //  Выгрузка ничего не меняет и ничего не пишет — только читает. Поэтому она
+        //  безопасна настолько, насколько операция вообще может быть безопасной, и стоит
+        //  отдельно от «Опасной зоны».
+        //
+        //  Почему два способа отдать файл. Приложение запускают с домашнего экрана
+        //  iPhone, а там обычное скачивание работает как повезёт: ссылка с download
+        //  может молча не сработать. Поэтому текст ВСЕГДА показывается на экране и его
+        //  всегда можно скопировать, а скачивание — приятное дополнение, если сработает.
+        // =====================================================================
+
+        const BACKUP_FORMAT = 1;
+
+        // Собирает всё, до чего может дотянуться: свой профиль с устройства и состояния
+        // всех учеников с сервера. Если сети нет, отдаёт то, что есть локально, и честно
+        // об этом сообщает — половина копии лучше, чем ничего.
+        async function collectBackup() {
+            const mine = Progress.get();
+            const out = {
+                format: BACKUP_FORMAT,
+                exportedAt: new Date().toISOString(),
+                tutorCode: Progress.getCode(),
+                profiles: [{ code: Progress.getCode(), label: Progress.getProfileLabel(),
+                             source: 'device', state: mine }]
+            };
+            let failed = 0;
+            let students = [];
+            const status = {};
+            try {
+                students = await fetchMyStudents(status);
+            } catch (e) {
+                status.ok = false;
+            }
+            if (!status.ok) failed = -1; // до сервера не достучались
+            for (const st of students) {
+                let state = null;
+                try {
+                    state = await fetchStudentState(st.code, st.state || null);
+                } catch (e) { state = st.state || null; }
+                if (state) {
+                    out.profiles.push({ code: st.code, label: st.label || '', source: 'server', state });
+                } else {
+                    failed++;
+                }
+            }
+            return { data: out, students: students.length, failed };
+        }
+
+        async function exportAllProgress() {
+            if (Progress.getAccountType() === 'linked') return;
+            showToast('Собираю данные…');
+            let res;
+            try {
+                res = await collectBackup();
+            } catch (e) {
+                showNotice({ title: 'Не получилось',
+                             text: 'Не удалось собрать копию. Проверь интернет и попробуй ещё раз.' });
+                return;
+            }
+            const text = JSON.stringify(res.data, null, 1);
+            const count = res.data.profiles.length;
+            const name = `kluch-backup-${Progress.dayKey()}.json`;
+
+            let note = `В копии ${count} ${pluralProfiles(count)}.`;
+            if (res.failed === -1) {
+                note += ' До сервера достучаться не удалось, учеников в копии нет —'
+                     + ' проверь интернет и сделай копию ещё раз.';
+            } else if (res.failed > 0) {
+                note += ` Не удалось получить ещё ${res.failed} — попробуй позже.`;
+            }
+
+            openAppDialog(undefined, (card, submit) => {
+                dlgHead(card, 'Резервная копия', note);
+
+                const area = document.createElement('textarea');
+                area.className = 'backup-text';
+                area.readOnly = true;
+                area.value = text;
+                card.appendChild(area);
+
+                const row = document.createElement('div');
+                row.className = 'dlg-actions';
+
+                const copy = document.createElement('button');
+                copy.className = 'dlg-btn primary';
+                copy.type = 'button';
+                copy.innerText = 'Скопировать';
+                copy.addEventListener('click', async () => {
+                    // Выделяем в любом случае: если запись в буфер не разрешена
+                    // (не https, старый браузер), у человека остаётся выделенный текст.
+                    area.focus();
+                    area.select();
+                    let ok = false;
+                    try {
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            await navigator.clipboard.writeText(text);
+                            ok = true;
+                        }
+                    } catch (e) { ok = false; }
+                    showToast(ok ? 'Скопировано' : 'Текст выделен — скопируй его сам.',
+                              ok ? '' : 'error');
+                });
+
+                const save = document.createElement('button');
+                save.className = 'dlg-btn';
+                save.type = 'button';
+                save.innerText = 'Скачать файл';
+                save.addEventListener('click', () => {
+                    try {
+                        const blob = new Blob([text], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = name;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        setTimeout(() => URL.revokeObjectURL(url), 10000);
+                    } catch (e) {
+                        showToast('Скачать не вышло — скопируй текст.', 'error');
+                    }
+                });
+
+                const close = document.createElement('button');
+                close.className = 'dlg-btn';
+                close.type = 'button';
+                close.innerText = 'Закрыть';
+                close.addEventListener('click', () => submit(true));
+
+                row.appendChild(close);
+                row.appendChild(save);
+                row.appendChild(copy);
+                card.appendChild(row);
+            });
         }
 
         // Необратимо: удаляет саму запись на сервере, не только прогресс. Просит ввести

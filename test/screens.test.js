@@ -136,6 +136,7 @@ const SCREENS = [
             const vis = (id) => getComputedStyle(document.getElementById(id)).display !== 'none';
             const zone = vis('dangerSection');
             const students = vis('studentsSection');
+            const backup = vis('backupSection');
             // Предыдущий экран («серия и заморозки») оставил окно открытым — закрываем,
             // иначе замер ниже поймает чужое окно и проверка станет ложной.
             closeAppDialog(null);
@@ -150,10 +151,11 @@ const SCREENS = [
             const dlgAfterDelete = document.getElementById('appDialog').classList.contains('open');
             closeAppDialog(null);
             Progress.get().playerCode = null;
-            return { zone, students, dlgAfterReset, dlgAfterDelete };
+            return { zone, students, backup, dlgAfterReset, dlgAfterDelete };
         })()`);
         record('«Опасная зона» ученику не показывается', r.zone ? 'раздел виден' : null);
         record('«Мои ученики» ученику не показывается', r.students ? 'раздел виден' : null);
+        record('«Резервная копия» ученику не показывается', r.backup ? 'раздел виден' : null);
         record('сброс прогресса не срабатывает в обход кнопки',
                r.dlgAfterReset ? 'открылось окно подтверждения' : null);
         record('удаление профиля не срабатывает в обход кнопки',
@@ -161,6 +163,53 @@ const SCREENS = [
 
         // Возвращаем как было — дальше идут языки, им нужен обычный аккаунт.
         await page.evaluate(`Progress.setAccountType('self', null); renderProfileScreen();`);
+    }
+
+    // Резервная копия. Единственный экземпляр данных лежит на одном сервере, поэтому
+    // выгрузка — не украшение, а то, чем закрывается самый дорогой риск в системе.
+    // Проверяем не «кнопка есть», а что она отдаёт разбираемый JSON с настоящими числами.
+    console.log('\nРезервная копия');
+    {
+        errors.length = 0;
+        const r = await page.evaluate(`(async () => {
+            Progress.setAccountType('self', null);
+            Progress.setToken('TUTOR1', 'x'.repeat(64));
+            Progress.get().playerCode = 'TUTOR1';
+            document.querySelectorAll('.modal-screen').forEach(x => x.style.display = 'none');
+            renderProfileScreen();
+            const visible = getComputedStyle(document.getElementById('backupSection')).display !== 'none';
+            closeAppDialog(null);
+            exportAllProgress();
+            // Сбор данных ходит на сервер; сети в проверке нет, но обещание всё равно
+            // разрешается — ждём чуть дольше одного кадра.
+            await new Promise(r => setTimeout(r, 900));
+            const area = document.querySelector('.backup-text');
+            const note = document.querySelector('#appDialogCard .dlg-text');
+            let parsed = null, err = null;
+            try { parsed = JSON.parse(area ? area.value : ''); } catch (e) { err = String(e.message); }
+            const btns = Array.from(document.querySelectorAll('#appDialogCard .dlg-btn')).map(x => x.innerText);
+            closeAppDialog(null);
+            Progress.get().playerCode = null;
+            return {
+                visible, err, btns,
+                noteText: note ? note.innerText : '',
+                format: parsed && parsed.format,
+                hasOwn: !!(parsed && parsed.profiles && parsed.profiles.length >= 1),
+                correct: parsed && parsed.profiles && parsed.profiles[0].state.totals.correct
+            };
+        })()`);
+        record('раздел «Резервная копия» открыт репетитору', r.visible ? null : 'раздела нет');
+        record('копия — разбираемый JSON', r.err ? `не разобрался: ${r.err}` : null);
+        record('в копии есть свой профиль с числами',
+               (r.hasOwn && typeof r.correct === 'number' && r.correct > 0)
+                   ? null : `формат ${r.format}, верных ${r.correct}`);
+        record('есть и копирование, и скачивание',
+               (r.btns.includes('Скопировать') && r.btns.includes('Скачать файл'))
+                   ? null : `кнопки: ${r.btns.join(', ')}`);
+        // Без сети учеников достать нельзя, и копия обязана об этом сказать: молчаливая
+        // неполная копия хуже отсутствия копии — на неё понадеются.
+        record('без связи с сервером копия честно предупреждает',
+               /достучаться не удалось/.test(r.noteText) ? null : `сказано: «${r.noteText}»`);
     }
 
     // Языки: перевод не должен ронять отрисовку — в словарях легко потерять подстановку.
