@@ -155,6 +155,54 @@ test('задачи не повторяются', () => {
     }));
 });
 
+group('Все языки, а не только русский');
+
+// Проверки выше смотрят только на русский — а показывается ученику тот язык, который
+// он выбрал. Пока переводов не было, приложение молча выдавало русский текст
+// француженке; теперь их четыре, и разъехаться они не должны.
+const LANGS = ['ru', 'en', 'fr', 'de'];
+
+test('во всех языках одни и те же клетки и ступени', () => {
+    LANGS.forEach(lang => {
+        const dict = CONTENT[lang];
+        assert(dict, `нет языка ${lang}`);
+        eq(Object.keys(dict).sort().join(','), CELLS.slice().sort().join(','), `клетки в ${lang}`);
+        CELLS.forEach(key => ['diamond', 'legend'].forEach(tier => {
+            assert(dict[key] && dict[key][tier], `${lang} ${key}: нет ступени ${tier}`);
+        }));
+    });
+});
+
+test('в каждом языке у задачи три части и те же правила длины', () => {
+    LANGS.forEach(lang => CELLS.forEach(key => ['diamond', 'legend'].forEach(tier => {
+        const item = CONTENT[lang][key][tier];
+        assert(item.task && item.answer && item.why, `${lang} ${key} ${tier}: части не заполнены`);
+        assert(item.task.length <= 200, `${lang} ${key} ${tier}: условие ${item.task.length} знаков`);
+        assert(item.answer.length <= 40, `${lang} ${key} ${tier}: ответ ${item.answer.length} знаков — это уже разбор`);
+        assert(item.why.length >= 40, `${lang} ${key} ${tier}: разбор слишком короткий`);
+        assert(!/\.$/.test(item.answer), `${lang} ${key} ${tier}: точка в конце короткого ответа`);
+    })));
+});
+
+test('перевод нигде не остался русским текстом', () => {
+    // Самая частая беда переводов — забытая строка. Кириллица в английском тексте
+    // видна сразу, и искать её глазами по сорока задачам никто не станет.
+    ['en', 'fr', 'de'].forEach(lang => CELLS.forEach(key => ['diamond', 'legend'].forEach(tier => {
+        const item = CONTENT[lang][key][tier];
+        ['task', 'answer', 'why'].forEach(part => {
+            assert(!/[А-Яа-яЁё]/.test(item[part]), `${lang} ${key} ${tier}: ${part} остался русским`);
+        });
+    })));
+});
+
+test('переводы не копируют друг друга дословно', () => {
+    // Копия русского, прогнанная мимо, выглядит как перевод, но им не является.
+    CELLS.forEach(key => ['diamond', 'legend'].forEach(tier => {
+        const seen = new Set(LANGS.map(l => CONTENT[l][key][tier].task));
+        eq(seen.size, LANGS.length, `${key} ${tier}: одинаковые условия в разных языках`);
+    }));
+});
+
 group('Что и когда открыто');
 
 const H = load({ CHALLENGE_CONTENT: CONTENT });
