@@ -12,15 +12,25 @@
 // синхронизацию прогресса нельзя ни в каком виде — отдать старый ответ здесь означало бы
 // показать ученику вчерашние цифры и, хуже того, слить их обратно на сервер.
 
-const VERSION = 'kluch-v1';
+const VERSION = 'kluch-v2';
 const SHELL_CACHE = `${VERSION}-shell`;
 const IMAGE_CACHE = `${VERSION}-img`;
 
+// Все подключённые скрипты обязаны быть в этом списке. index.html постепенно
+// разрезается на файлы, и каждый вынесенный кусок — это ещё один запрос, без которого
+// приложение либо теряет часть, либо не запускается вовсе. Проверка в тестах сверяет
+// этот список с тегами <script src> в index.html, чтобы следующий вынос не забыли.
 const SHELL_ASSETS = [
     './',
     './index.html',
     './manifest.json',
     './vendor/supabase.js',
+    './js/progress.js',
+    './content/paradoxes.js',
+    './content/hints.js',
+    './content/challenges.js',
+    './content/i18n.js',
+    './content/maintenance.js',
     './icons/icon-192.png',
     './icons/icon-512.png',
     './icons/apple-touch-icon.png'
@@ -80,8 +90,15 @@ self.addEventListener('fetch', (event) => {
                 caches.open(SHELL_CACHE).then(c => c.put(req, copy));
             }
             return res;
-        }).catch(() => caches.match(req).then(hit =>
-            hit || caches.match('./index.html')
-        ))
+        }).catch(() => caches.match(req).then(hit => {
+            if (hit) return hit;
+            // Запасной index.html годится только для перехода на страницу. Раньше он
+            // отдавался в ответ на ЛЮБОЙ несохранённый запрос — в том числе на <script>,
+            // и тогда браузер получал HTML вместо кода и пытался его исполнить. Теперь
+            // такой запрос честно падает: не загрузившийся скрипт виден сразу, а игра
+            // с молча пропавшим модулем — нет.
+            if (req.mode === 'navigate') return caches.match('./index.html');
+            return new Response('', { status: 504, statusText: 'offline' });
+        }))
     );
 });

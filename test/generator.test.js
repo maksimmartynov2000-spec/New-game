@@ -139,7 +139,7 @@ function generateOne(cat, op, level, isNegative) {
         if (op === 'fracOfNumber') return G.generateFracOfNumberProblem(level);
         return G.generateFractionProblem(op, level, isNegative);
     }
-    if (cat === 'decimal') return G.generateDecimalProblem(op, level, isNegative);
+    if (cat === 'decimal') return G.generateDecimalProblem(op, level);
     return G.generateProblem(op, level, isNegative);
 }
 
@@ -2129,6 +2129,40 @@ test('в отрицательных десятичная приманка не �
             }
         }
     });
+});
+
+group('Десятичные дроби: только положительные');
+// Раздел «Десятичные» в приложении один и всегда со знаком «+»: MAP_SECTIONS не содержит
+// 'decimal-', кнопка выбора несёт data-sign="positive" намертво, а сервер принимает только
+// четыре ключа раздела. Поэтому у генератора десятичных знака больше нет вовсе — проверка
+// закрепляет это свойство: если кто-то вернёт отрицательные числа сюда, она упадёт.
+test('ни одно число и ни один ответ не отрицательны', () => {
+    const bad = [];
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 400; i++) {
+                const p = G.generateDecimalProblem(op, lvl);
+                if (p.d1.intVal < 0 || p.d2.intVal < 0 || p.answer.intVal < 0) {
+                    bad.push(`${op} ${lvl}★: ${G.decToString(p.d1, false)} ${op} ${G.decToString(p.d2, false)}`);
+                }
+            }
+        }
+    });
+    assert(bad.length === 0, `отрицательные десятичные: ${bad.slice(0, 3).join('; ')}`);
+});
+
+test('ни один вариант ответа не отрицателен', () => {
+    const bad = [];
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 400; i++) {
+                const p = G.generateDecimalProblem(op, lvl);
+                const opts = G.buildDecimalDistractors(op, p.d1, p.d2, p.answer, 3);
+                opts.forEach(o => { if (o.intVal < 0) bad.push(`${op} ${lvl}★: ${G.decToString(o, false)}`); });
+            }
+        }
+    });
+    assert(bad.length === 0, `отрицательный вариант ответа: ${bad.slice(0, 3).join('; ')}`);
 });
 
 // ---------- итог ----------

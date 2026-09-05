@@ -23,13 +23,16 @@ const ROOT = path.join(__dirname, '..');
 function loadReport() {
     const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
     const script = html.match(/<script>([\s\S]*)<\/script>/)[1];
+    // LADDER_ID_RE переехал в модуль хранилища вместе с ним — он объявлен ради него.
+    const progressSrc = fs.readFileSync(path.join(ROOT, 'js', 'progress.js'), 'utf8');
 
-    const slice = (startMark, endMark, what) => {
-        const from = script.indexOf(startMark);
-        const to = script.indexOf(endMark, from + 1);
+    const sliceOf = (src, startMark, endMark, what) => {
+        const from = src.indexOf(startMark);
+        const to = src.indexOf(endMark, from + 1);
         if (from < 0 || to < 0) throw new Error(`не найдены границы среза: ${what}`);
-        return script.slice(from, to);
+        return src.slice(from, to);
     };
+    const slice = (startMark, endMark, what) => sliceOf(script, startMark, endMark, what);
 
     // Один большой срез: от работы с датами до конца абзаца для родителей. В него
     // целиком попадают shiftDayKey, isActiveDay, aggregateDaily, avgLevelOf,
@@ -47,7 +50,7 @@ function loadReport() {
                       '// ===================== ЭКРАН СТАТИСТИКИ', 'accuracyPct');
     const ladders = slice('function ladderDatesByTopic(unlocks)',
                           '// Когда тема взяла мастерство', 'достижения');
-    const re = slice('const LADDER_ID_RE = ', '\n', 'LADDER_ID_RE');
+    const re = sliceOf(progressSrc, 'const LADDER_ID_RE = ', '\n', 'LADDER_ID_RE');
 
     // shiftDayKey форматирует дату через Progress.dayKey — единственная его связь
     // с хранилищем. Подменяем ровно её, той же реализацией, что и в приложении.
