@@ -1950,6 +1950,12 @@
                 <button class="menu-btn" onclick="addStudent()">➕ <span>Добавить ученика</span></button>
             </div>
 
+            <div class="config-section" data-fold="profile:devices2" id="sessionsSection">
+                <div class="config-section-title">Вход на устройствах</div>
+                <div class="config-hint" style="margin-bottom:8px;">Каждый вход с нового устройства или из нового окна живёт 90 дней и остаётся действующим ключом от аккаунта. Если какое-то устройство больше не твоё — закрой на нём вход.</div>
+                <button class="menu-btn" onclick="logoutOtherDevices()">🚪 <span>Выйти на других устройствах</span></button>
+            </div>
+
             <div class="config-section" data-fold="profile:backup" id="backupSection">
                 <div class="config-section-title">Резервная копия</div>
                 <div class="config-hint" style="margin-bottom:8px;">Копия прогресса — твоего и всех учеников. Сервер один, и если с ним что-то случится, восстановить будет неоткуда. Сохраняй копию хотя бы иногда.</div>
@@ -3170,10 +3176,18 @@
                         }
                         return data.state;
                     }
-                    const { data, error } = await supabaseClient.rpc('login', { p_code: code, p_password: auth.password });
-                    if (error) throw error;
-                    if (!data || !data.ok) throw new Error(data && data.error || 'auth_failed');
-                    return data.state;
+                    // Токена нет — значит устройство ещё не обменяло пароль. Обмен идёт
+                    // через session_login и происходит при каждом запуске (ensureSessions),
+                    // поэтому сюда мы попадаем разве что при первом же обращении. Второго
+                    // пути к серверу больше нет и не нужно: старые парольные функции
+                    // повторяли те же правила вторым набором, а расходятся такие наборы
+                    // молча и незаметно.
+                    const fresh = await ensureToken(code);
+                    if (!fresh) throw new Error('auth_failed');
+                    const retry = await supabaseClient.rpc('session_state', { p_token: fresh });
+                    if (retry.error) throw retry.error;
+                    if (!retry.data || !retry.data.ok) throw new Error((retry.data && retry.data.error) || 'auth_failed');
+                    return retry.data.state;
                 },
                 async write(code, auth, state) {
                     if (auth.token) {
@@ -3187,11 +3201,11 @@
                         }
                         return;
                     }
-                    const { data, error } = await supabaseClient.rpc('save_state', {
-                        p_code: code, p_password: auth.password, p_state: state
-                    });
-                    if (error) throw error;
-                    if (!data) throw new Error('save_failed');
+                    const fresh = await ensureToken(code);
+                    if (!fresh) throw new Error('save_failed');
+                    const retry = await supabaseClient.rpc('session_save', { p_token: fresh, p_state: state });
+                    if (retry.error) throw retry.error;
+                    if (!retry.data || !retry.data.ok) throw new Error((retry.data && retry.data.error) || 'save_failed');
                 }
             });
         }
@@ -3214,6 +3228,25 @@
             }
         }
 
+        // Токен для запроса к серверу. Если на устройстве лежит только пароль (профиль
+        // добавляли до перехода на токены и приложение с тех пор не открывали), меняем
+        // его здесь же и продолжаем уже по токену.
+        //
+        // Ради этой функции и убран старый парольный путь: раньше каждый вызов умел
+        // ходить двумя способами, то есть на сервере жили два набора функций с одними и
+        // теми же правилами. Такие наборы расходятся молча — а расхождение в правилах
+        // доступа это и есть дыра. Теперь способ один.
+        async function ensureToken(code) {
+            const c = code || Progress.getCode();
+            if (!c || !supabaseClient) return null;
+            const have = Progress.getTokenFor(c);
+            if (have) return have;
+            const pw = Progress.getPasswordFor(c);
+            if (!pw) return null;
+            const ok = await exchangePasswordForToken(c, pw);
+            return ok ? Progress.getTokenFor(c) : null;
+        }
+
         // Разовая уборка при запуске: у всех профилей на этом устройстве меняем
         // сохранённый пароль на токен. Работает в фоне и игре не мешает.
         async function ensureSessions() {
@@ -3223,18 +3256,13 @@
             }
         }
 
-        // Один и тот же вызов в двух вариантах: по токену (основной путь) и по паролю
-        // (запасной, пока устройство не обменяло). Возвращает то же, что supabase.rpc.
-        async function callAuthed(tokenFn, tokenArgs, passwordFn, passwordArgs) {
+        // Запрос к серверу от имени текущего профиля. Путь ровно один — по токену;
+        // если токена ещё нет, он добывается обменом (см. ensureToken).
+        async function callAuthed(tokenFn, tokenArgs) {
             if (!supabaseClient) return { data: { ok: false, error: 'no_connection' }, error: null };
-            const code = Progress.getCode();
-            const auth = Progress.authFor(code);
-            if (!auth) return { data: { ok: false, error: 'no_auth' }, error: null };
-            if (auth.token) {
-                return supabaseClient.rpc(tokenFn, Object.assign({ p_token: auth.token }, tokenArgs));
-            }
-            return supabaseClient.rpc(passwordFn, Object.assign(
-                { p_tutor_code: code, p_tutor_password: auth.password }, passwordArgs));
+            const token = await ensureToken();
+            if (!token) return { data: { ok: false, error: 'no_auth' }, error: null };
+            return supabaseClient.rpc(tokenFn, Object.assign({ p_token: token }, tokenArgs));
         }
 
         // =====================================================================
@@ -3392,9 +3420,7 @@
             const auth = Progress.authFor(code);
             if (!code || !auth) return;
             try {
-                const { data, error } = auth.token
-                    ? await supabaseClient.rpc('session_my_access', { p_token: auth.token })
-                    : await supabaseClient.rpc('my_access', { p_code: code, p_password: auth.password });
+                const { data, error } = await callAuthed('session_my_access', {});
                 if (error || !data || !data.ok || !data.access) return;
                 Progress.setAccess(data.access);
                 refreshSectionLocks();
@@ -3620,8 +3646,7 @@
         // было необратимо, и ошибка стоила навсегда.
         async function openStudentAccess(studentCode, studentLabel) {
             const { data, error } = await callAuthed(
-                'session_student_access', { p_student_code: studentCode },
-                'student_access', { p_student_code: studentCode });
+                'session_student_access', { p_student_code: studentCode });
             if (error || !data || !data.ok) {
                 showToast(error ? t('Нужно запустить supabase/student-access.sql в Supabase.')
                                 : t('Не удалось прочитать доступ ученика.'), 'error');
@@ -3663,8 +3688,6 @@
                 const grant = grantFromPicks(sec, state.picks[sec.key] || {});
                 const res = await callAuthed(
                     'session_set_student_access',
-                    { p_student_code: studentCode, p_section: sec.key, p_grant: grant },
-                    'set_student_access',
                     { p_student_code: studentCode, p_section: sec.key, p_grant: grant });
                 if (res.error || !res.data || !res.data.ok) {
                     const messages = {
@@ -3718,14 +3741,9 @@
 
             loadingEl.style.display = 'block';
             try {
-                // session_login отдаёт и состояние, и токен. Если функции ещё нет в базе,
-                // откатываемся на старый login — тогда на устройстве останется пароль.
-                let res = await supabaseClient.rpc('session_login', { p_code: raw, p_password: pw });
-                let token = res.data && res.data.ok ? res.data.token : null;
-                if (res.error || !res.data) {
-                    res = await supabaseClient.rpc('login', { p_code: raw, p_password: pw });
-                    token = null;
-                }
+                // session_login отдаёт и состояние, и токен — один вход, один путь.
+                const res = await supabaseClient.rpc('session_login', { p_code: raw, p_password: pw });
+                const token = res.data && res.data.ok ? res.data.token : null;
                 const { data, error } = res;
                 loadingEl.style.display = 'none';
                 if (error) throw error;
@@ -5410,8 +5428,7 @@
             const wrap = document.getElementById('statsExamsList');
             if (!sec || !wrap) return;
             if (!studentCode || !supabaseClient) { sec.style.display = 'none'; return; }
-            const res = await callAuthed('session_student_exams', { p_student_code: studentCode },
-                                         'student_exams', { p_student_code: studentCode });
+            const res = await callAuthed('session_student_exams', { p_student_code: studentCode });
             const list = (!res.error && res.data && res.data.ok && res.data.exams) || [];
             if (!list.length) { sec.style.display = 'none'; return; }
             sec.style.display = '';
@@ -5611,8 +5628,7 @@
         // на устройстве стёрлось бы первой же синхронизацией.
         async function examSave(level) {
             if (!supabaseClient) return { error: t('Нет связи — результат не сохранён.') };
-            const res = await callAuthed('session_take_exam', { p_op: exam.op, p_level: level },
-                                         'take_exam', { p_op: exam.op, p_level: level });
+            const res = await callAuthed('session_take_exam', { p_op: exam.op, p_level: level });
             if (res.error || !res.data || !res.data.ok) {
                 const messages = {
                     already_today: t('Сегодня экзамен уже был. Приходи завтра.'),
@@ -7673,6 +7689,10 @@
             // воспользоваться. Ученику эта кнопка ничего не даёт и только путает.
             document.getElementById('backupSection').style.display = (type === 'linked') ? 'none' : '';
 
+            // Вход на устройствах — тоже работа репетитора. У ученика сессии гасит смена
+            // пароля, которую делает репетитор; отдельная кнопка ему только мешала бы.
+            document.getElementById('sessionsSection').style.display = (type === 'linked') ? 'none' : '';
+
             setupFolds('profileScreen');
         }
 
@@ -7706,12 +7726,8 @@
         // перезагружает страницу — проще и надёжнее, чем вручную обновлять десяток виджетов.
         async function loginAndSwitch(code, password) {
             if (!supabaseClient) { showToast(t('Нет соединения с сервером.'), 'error'); return false; }
-            let res = await supabaseClient.rpc('session_login', { p_code: code, p_password: password });
-            let token = res.data && res.data.ok ? res.data.token : null;
-            if (res.error || !res.data) {
-                res = await supabaseClient.rpc('login', { p_code: code, p_password: password });
-                token = null;
-            }
+            const res = await supabaseClient.rpc('session_login', { p_code: code, p_password: password });
+            const token = res.data && res.data.ok ? res.data.token : null;
             const { data, error } = res;
             if (error || !data || !data.ok) { showToast(t('Неверный код или пароль.'), 'error'); return false; }
             Progress.switchTo(code, password);
@@ -7772,11 +7788,9 @@
             const auth = Progress.authFor(myCode);
             if (!myCode || !auth || !supabaseClient) { said(false); return []; }
 
-            // Сначала пробуем лёгкий список (только имя + итоги + когда заходил).
-            // Старый list_my_students тянет ПОЛНОЕ состояние каждого ученика вместе
-            // с журналом занятий, а список открывается при каждом заходе в профиль.
-            const light = await callAuthed('session_list_students', {},
-                                           'list_my_students_summary', {});
+            // Лёгкий список: только имя, итоги и когда заходил. Полное состояние
+            // ученика с журналом занятий тянется отдельно и только когда его открывают.
+            const light = await callAuthed('session_list_students', {});
             if (!light.error && light.data && light.data.ok) {
                 said(true);
                 return (light.data.students || []).map(s => ({
@@ -7787,29 +7801,15 @@
                 }));
             }
 
-            // Откат на старый путь: функции ещё нет в базе (SQL не запущен) — приложение
-            // должно продолжать работать, просто чуть тяжелее.
-            if (auth.token) { said(false); return []; } // по токену запасного пути нет
-            const full = await supabaseClient.rpc('list_my_students', {
-                p_tutor_code: myCode, p_tutor_password: auth.password
-            });
-            if (full.error || !full.data || !full.data.ok) { said(false); return []; }
-            said(true);
-            return (full.data.students || []).map(s => ({
-                code: s.code,
-                label: (s.state && s.state.profileLabel) || '',
-                totals: (s.state && s.state.totals) || { correct: 0, wrong: 0 },
-                updatedAt: null,
-                state: s.state || null // пригодится, если get_student_state тоже недоступна
-            }));
+            said(false);
+            return [];
         }
 
         // Полное состояние одного ученика — с журналом по дням. Тянем только когда
         // реально открываем его статистику или отчёт, а не для отрисовки списка.
         async function fetchStudentState(code, fallbackState) {
             if (!Progress.authFor() || !supabaseClient) return fallbackState || null;
-            const res = await callAuthed('session_student_state', { p_student_code: code },
-                                         'get_student_state', { p_student_code: code });
+            const res = await callAuthed('session_student_state', { p_student_code: code });
             if (!res.error && res.data && res.data.ok) return res.data.state || null;
             return fallbackState || null; // функции ещё нет в базе — берём что есть
         }
@@ -7848,6 +7848,14 @@
         }
 
         // Экран репетитора остаётся русским — см. пояснение у pluralStudents.
+        function pluralLogins(n) {
+            const d100 = n % 100, d10 = n % 10;
+            if (d100 >= 11 && d100 <= 14) return 'входов';
+            if (d10 === 1) return 'вход';
+            if (d10 >= 2 && d10 <= 4) return 'входа';
+            return 'входов';
+        }
+
         function pluralProfiles(n) {
             const d100 = n % 100, d10 = n % 10;
             if (d100 >= 11 && d100 <= 14) return 'профилей';
@@ -8058,8 +8066,6 @@
             try {
                 const { data, error } = await callAuthed(
                     'session_create_student',
-                    { p_student_code: code, p_student_password: password, p_label: label },
-                    'create_student',
                     { p_student_code: code, p_student_password: password, p_label: label });
                 if (error) throw error;
                 if (!data || !data.ok) {
@@ -8099,8 +8105,7 @@
             const newPw = values.pw;
             try {
                 const { data, error } = await callAuthed(
-                    'session_reset_student_password', { p_student_code: code, p_new_password: newPw },
-                    'reset_student_password', { p_student_code: code, p_new_password: newPw });
+                    'session_reset_student_password', { p_student_code: code, p_new_password: newPw });
                 if (error) throw error;
                 if (!data || !data.ok) { showToast(t('Не удалось сменить пароль.'), 'error'); return; }
                 // Не всплывашкой: пароль нужно успеть прочитать и передать ученику,
@@ -8124,8 +8129,7 @@
             if (!ok) return;
             try {
                 const { data, error } = await callAuthed(
-                    'session_delete_student', { p_student_code: code },
-                    'delete_student', { p_student_code: code });
+                    'session_delete_student', { p_student_code: code });
                 if (error) throw error;
                 if (!data || !data.ok) { showToast(t('Не удалось удалить ученика.'), 'error'); return; }
                 Progress.forgetProfile(code); // если он был и в списке профилей на этом устройстве
@@ -8172,6 +8176,43 @@
         //  может молча не сработать. Поэтому текст ВСЕГДА показывается на экране и его
         //  всегда можно скопировать, а скачивание — приятное дополнение, если сработает.
         // =====================================================================
+
+        // Гасит все входы, кроме текущего. Именно «кроме»: закрыть заодно и своё
+        // устройство значило бы, что человек нажимает кнопку и тут же оказывается на
+        // экране входа — так делать нельзя, это выглядит как поломка.
+        //
+        // Прогресса это не касается вовсе: сессия — только способ подтвердить, кто ты.
+        // На других устройствах данные остаются, там просто попросят войти заново.
+        async function logoutOtherDevices() {
+            if (Progress.getAccountType() === 'linked') return;
+            const ok = await askConfirm({
+                title: 'Выйти на других устройствах?',
+                text: 'На всех остальных устройствах попросят войти заново — прогресс там останется на месте. Здесь ты продолжишь работать как ни в чём не бывало.',
+                okText: 'Выйти везде'
+            });
+            if (!ok) return;
+            const res = await callAuthed('session_logout_others', {});
+            if (res.error) {
+                // Две совершенно разные беды выглядели одинаково: «функции нет в базе» и
+                // «интернет пропал». Первое чинит один запуск SQL, второе не чинится
+                // вообще ничем, и советовать в этом случае лезть в Supabase — врать.
+                // PostgREST отвечает кодом PGRST202, когда функции не существует.
+                const missing = res.error.code === 'PGRST202'
+                    || /Could not find the function/i.test(res.error.message || '');
+                showToast(missing
+                    ? 'Нужно запустить supabase/logout-others.sql в Supabase.'
+                    : 'Не удалось связаться с сервером. Проверь интернет.', 'error');
+                return;
+            }
+            if (!res.data || !res.data.ok) {
+                showToast(res.data && res.data.error === 'no_auth'
+                    ? 'Сначала войди заново — на этом устройстве нет действующего входа.'
+                    : 'Не удалось закрыть входы. Попробуй ещё раз.', 'error');
+                return;
+            }
+            const n = res.data.closed || 0;
+            showToast(n ? `Закрыто ${n} ${pluralLogins(n)}.` : 'Других входов и не было.');
+        }
 
         const BACKUP_FORMAT = 1;
 
@@ -8316,10 +8357,7 @@
             });
             if (values === null) return;
             try {
-                const token = Progress.getToken();
-                const { data, error } = token
-                    ? await supabaseClient.rpc('session_delete_account', { p_token: token, p_password: values.pw })
-                    : await supabaseClient.rpc('delete_own_account', { p_code: code, p_password: values.pw });
+                const { data, error } = await callAuthed('session_delete_account', { p_password: values.pw });
                 if (error) throw error;
                 // Ошибку пароля показываем отдельно от сетевой: это разные беды.
                 if (data && data.error === 'bad_credentials') { showToast(t('Неверный пароль — профиль не тронут.'), 'error'); return; }
