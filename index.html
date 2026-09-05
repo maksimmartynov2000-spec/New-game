@@ -2288,6 +2288,8 @@
             "Не удалось сохранить результат. Запусти supabase/exam.sql.": "Could not save the result. Run supabase/exam.sql.",
             "Идут технические работы": "Maintenance in progress",
             "Приходи примерно через %1 %2": "Come back in about %1 %2",
+            "Приходи через %1 %2": "Come back in %1 %2",
+            "Осталась минута": "About a minute left",
             "Загляни попозже": "Look in a bit later",
             "минуту": "minute",
             "минуты": "minutes",
@@ -2836,6 +2838,8 @@
             "Не удалось сохранить результат. Запусти supabase/exam.sql.": "Impossible d’enregistrer le résultat. Lance supabase/exam.sql.",
             "Идут технические работы": "Maintenance en cours",
             "Приходи примерно через %1 %2": "Reviens dans environ %1 %2",
+            "Приходи через %1 %2": "Reviens dans %1 %2",
+            "Осталась минута": "Il reste une minute",
             "Загляни попозже": "Repasse un peu plus tard",
             "минуту": "minute",
             "минуты": "minutes",
@@ -3378,6 +3382,8 @@
             "Не удалось сохранить результат. Запусти supabase/exam.sql.": "Ergebnis konnte nicht gespeichert werden. Führe supabase/exam.sql aus.",
             "Идут технические работы": "Wartungsarbeiten laufen",
             "Приходи примерно через %1 %2": "Komm in etwa %1 %2 wieder",
+            "Приходи через %1 %2": "Komm in %1 %2 wieder",
+            "Осталась минута": "Noch etwa eine Minute",
             "Загляни попозже": "Schau etwas später vorbei",
             "минуту": "Minute",
             "минуты": "Minuten",
@@ -12519,7 +12525,11 @@
         // Все спорные случаи решаются в пользу игры: файла нет, время не разобралось,
         // часы устройства врут — работы считаются выключенными. Остаться без игры
         // из-за оборвавшейся сети хуже, чем поиграть во время работ.
-        const MAINTENANCE_POLL_MS = 30000;
+        // Раз в пятнадцать секунд, а не в тридцать: число на экране должно меняться
+        // вскоре после того, как минута прошла, иначе экран выглядит замершим.
+        const MAINTENANCE_POLL_MS = 15000;
+        // До этого порога называем минуты точно, дальше округляем вверх до пяти.
+        const MAINTENANCE_EXACT_MIN = 15;
 
         function maintenanceLeftMs(now) {
             const m = (typeof window !== 'undefined' && window.MAINTENANCE) || {};
@@ -12530,12 +12540,18 @@
         }
         function maintenanceActive(now) { return maintenanceLeftMs(now) > 0; }
 
-        // «Примерно через 20 минут» — округляем вверх до пяти минут. Обещать «через
-        // 3 минуты» нельзя: ученик вернётся ровно через три и упрётся в ту же заглушку.
+        // Сколько ещё ждать. Округляем ВВЕРХ: обещать «через 3 минуты» и не успеть хуже,
+        // чем сказать «через 5». Но у округления есть цена — с большого числа оно держит
+        // одну и ту же цифру пять минут подряд, и экран кажется замершим. Поэтому вблизи
+        // конца называем минуты точно: там ожидание и становится ожиданием.
         function maintenanceWaitText(leftMs) {
-            const mins = Math.max(1, Math.ceil(leftMs / 60000));
+            const mins = Math.max(0, Math.ceil(leftMs / 60000));
             if (mins > 90) return t('Загляни попозже');
-            const rounded = mins <= 5 ? 5 : Math.ceil(mins / 5) * 5;
+            if (mins <= 1) return t('Осталась минута');
+            if (mins <= MAINTENANCE_EXACT_MIN) {
+                return tf('Приходи через %1 %2', mins, pluralMinutes(mins));
+            }
+            const rounded = Math.ceil(mins / 5) * 5;
             return tf('Приходи примерно через %1 %2', rounded, pluralMinutes(rounded));
         }
         function pluralMinutes(n) {
