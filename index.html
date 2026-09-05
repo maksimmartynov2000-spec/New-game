@@ -7990,6 +7990,18 @@
             document.getElementById('statsScreen').style.display = 'flex';
         }
 
+        // Ограничения на попытки входа у нас нет: сервер доступен всем с публичным
+        // ключом, счётчика неудач нет, паузы нет. Перебору мешает только медленный
+        // bcrypt — этого достаточно для длинного пароля и совсем недостаточно для
+        // четырёхсимвольного, каким минимум был раньше.
+        //
+        // ВХОД это правило не трогает: уже выданные короткие пароли работают как
+        // работали. Запереть учеников снаружи — ровно та беда, от которой защищаемся.
+        // Длина проверяется только там, где пароль ЗАДАЁТСЯ. То же самое проверяет и
+        // сервер (supabase/password-length.sql); здесь — чтобы сказать об этом сразу,
+        // а не после похода по сети.
+        const PASSWORD_MIN = 8;
+
         async function addStudent() {
             if (!supabaseClient) { showToast(t('Нет соединения с сервером.'), 'error'); return; }
             if (!Progress.authFor()) { showToast(t('Сначала войди под своим логином.'), 'error'); return; }
@@ -8001,13 +8013,13 @@
                 text: t('Логин и пароль нужно будет передать ученику — под ними он войдёт со своего устройства.'),
                 fields: [
                     { key: 'code', label: t('Логин ученика'), value: suggestCode(), hint: t('6–20 символов, можно имя + число') },
-                    { key: 'password', label: t('Пароль'), type: 'password', hint: t('Минимум 4 символа') },
+                    { key: 'password', label: t('Пароль'), type: 'password', hint: t('Минимум 8 символов') },
                     { key: 'label', label: t('Имя (необязательно)'), autocapitalize: 'words', placeholder: t('Как показывать в списке') }
                 ],
                 okText: t('Создать'),
                 validate: (v) => {
                     if (v.code.length < 6 || v.code.length > 20) return t('Логин — от 6 до 20 символов.');
-                    if (v.password.length < 4) return t('Пароль — минимум 4 символа.');
+                    if (v.password.length < PASSWORD_MIN) return t('Пароль — минимум 8 символов.');
                     return null;
                 }
             });
@@ -8028,7 +8040,7 @@
                         tutor_auth_failed: t('Не удалось подтвердить твой пароль — попробуй войти заново.'),
                         not_a_tutor: t('Добавлять учеников может только репетитор.'),
                         code_taken: t('Этот код уже занят, придумай другой.'),
-                        password_too_short: t('Пароль слишком короткий — минимум 4 символа.')
+                        password_too_short: t('Пароль слишком короткий — минимум 8 символов.')
                     };
                     showToast(messages[data && data.error] || t('Не удалось создать ученика.'), 'error');
                     return;
@@ -8052,9 +8064,9 @@
             const values = await askForm({
                 title: t('Новый пароль'),
                 text: tf('Пароль для ученика «%1». Старый перестанет работать сразу.', code),
-                fields: [{ key: 'pw', label: t('Новый пароль'), type: 'password', hint: t('Минимум 4 символа') }],
+                fields: [{ key: 'pw', label: t('Новый пароль'), type: 'password', hint: t('Минимум 8 символов') }],
                 okText: t('Сменить'),
-                validate: (v) => v.pw.length < 4 ? t('Пароль — минимум 4 символа.') : null
+                validate: (v) => v.pw.length < PASSWORD_MIN ? t('Пароль — минимум 8 символов.') : null
             });
             if (values === null) return;
             const newPw = values.pw;
