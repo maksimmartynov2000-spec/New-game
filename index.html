@@ -1850,7 +1850,7 @@
     <div class="modal-screen" id="achievementsScreen" style="z-index:230; display:none;">
         <button class="start-menu-btn" onclick="closeAchievementsScreen()" aria-label="Назад">◀️</button>
         <h1 class="start-title">🏅 Достижения</h1>
-        <p class="start-subtitle" id="achievementsSubtitle">Ранги по темам</p>
+        <p class="start-subtitle" id="achievementsSubtitle">Медали по темам</p>
         <div class="config-container">
             <div id="ladderList"></div>
         </div>
@@ -2060,7 +2060,7 @@
         <div id="categoryStepScreen" style="width:100%; display:flex; flex-direction:column; align-items:center;">
             <div class="config-container">
                 <div class="config-section">
-                    <div class="config-section-title">Что тренируем</div>
+                    <div class="config-section-title">1️⃣ Что тренируем</div>
                     <div class="category-select-row" id="categorySelectRow">
                         <button class="btn-category" data-value="integer" data-sign="positive" data-title="Положительные">🔵 Положительные</button>
                         <button class="btn-category" data-value="integer" data-sign="negative" data-title="Отрицательные">🔴 Отрицательные</button>
@@ -2075,7 +2075,7 @@
         <div id="restStepScreen" style="display:none; width:100%; flex-direction:column; align-items:center;">
             <div class="config-container">
                 <div class="config-section">
-                    <div class="config-section-title">1️⃣ Что тренируем</div>
+                    <div class="config-section-title">2️⃣ Какое действие</div>
                     <div class="op-select-grid" id="opSelectGrid">
                         <button class="btn-op" data-op="add">➕ Сложение</button>
                         <button class="btn-op" data-op="sub">➖ Вычитание</button>
@@ -2084,7 +2084,7 @@
                     </div>
 
                     <div class="frac-special-block" id="fracSpecialBlock" style="display:none;">
-                        <div class="frac-special-label">✨ Особые режимы дробей — только положительные числа</div>
+                        <div class="frac-special-label">✨ Особые задания с дробями — только положительные числа</div>
                         <div class="op-select-grid">
                             <button class="btn-op frac-only-op" data-op="simplify">✂️ Сокращение</button>
                             <button class="btn-op frac-only-op" data-op="toMixed">🔼 В смешанное число</button>
@@ -2095,7 +2095,7 @@
                 </div>
 
                 <div class="config-section" id="difficultyContainer" style="display:none;">
-                    <div class="config-section-title">2️⃣ Сложность</div>
+                    <div class="config-section-title">3️⃣ Сложность</div>
                     <div id="difficultyList"></div>
                 </div>
             </div>
@@ -2106,7 +2106,10 @@
     <div class="top-panel-wrapper">
         <div class="game-clock-bar" id="gameClock">
             <button class="clock-menu-btn" id="btnOpenMenu" aria-label="Меню">☰</button>
-            ⏳ Время Эпохи: <span id="clockTimeText">00:00</span>
+            <!-- Просто часы миссии: сколько ученик уже решает. Раньше здесь стояло
+                 «Время Эпохи» — слово из другой части приложения (в статистике эпоха
+                 это свёрнутые 180 дней) и для ребёнка пустое. -->
+            ⏳ Время: <span id="clockTimeText">00:00</span>
         </div>
         <header>
             <div class="puzzle-mini" id="puzzleMiniBtn">
@@ -2158,7 +2161,7 @@
             <div class="timer-bar-container">
                 <div class="timer-bar" id="timerBar"></div>
             </div>
-            <div class="math-question" id="mathQuestion">Загрузка...</div>
+            <div class="math-question" id="mathQuestion">Загрузка…</div>
             <div class="answers-grid" id="answersGrid"></div>
         </div>
     </div>
@@ -2629,7 +2632,7 @@
             if (blocked.length) {
                 resetConfigScreen();
                 refreshSectionLocks();
-                showToast(t('Этот режим больше не открыт — выбери другой.'), 'error');
+                showToast(t('Это действие больше не открыто — выбери другое.'), 'error');
                 return;
             }
 
@@ -3678,7 +3681,10 @@
             const { data, error } = await callAuthed(
                 'session_student_access', { p_student_code: studentCode });
             if (error || !data || !data.ok) {
-                showToast(error ? t('Нужно запустить supabase/student-access.sql в Supabase.')
+                // Экран репетитора, и подсказка адресована ему: он единственный, кто может
+                // запустить недостающий файл. Поэтому она нарочно НЕ идёт через t() —
+                // переводить её некому и незачем, а t() означает «это увидит ученик».
+                showToast(error ? 'Нужно запустить supabase/student-access.sql в Supabase.'
                                 : t('Не удалось прочитать доступ ученика.'), 'error');
                 return;
             }
@@ -5354,8 +5360,8 @@
         function nearestGoalText(st, unlocks, ladderId) {
             const g = nearestLadderGoal(st, unlocks, ladderId);
             if (!g) return null;
-            return tf('Ближайшая цель — %1 %2: %3, сейчас %4',
-                      TIER_NAMES[g.tier], topicLabelWithLevel(g.key), g.needText, g.nowText);
+            return tf('Ближайшая цель — %1 в теме %2: %3, сейчас %4',
+                      medal(g.tier), topicLabelWithLevel(g.key), g.needText, g.nowText);
         }
 
         // Раскрытие карточки итогов. Три числа наверху отвечают «сколько», но не
@@ -5643,7 +5649,7 @@
                 ? tf('🔓 Открыто до %1★', level)
                 : t('Пока начнём с первой звезды');
             document.getElementById('examResultText').innerText = level
-                ? tf('Справился на %1★. Клетки до неё открыты — их можно пройти когда захочешь, ради пазлов и задач.', level)
+                ? tf('Справился на %1★. Все звёзды до неё открыты — проходи их когда захочешь, ради пазлов и задач.', level)
                 : t('Ничего страшного: начнём с самого начала, а экзамен можно пересдать завтра.');
 
             const saved = await examSave(level);
@@ -5660,13 +5666,19 @@
             if (!supabaseClient) return { error: t('Нет связи — результат не сохранён.') };
             const res = await callAuthed('session_take_exam', { p_op: exam.op, p_level: level });
             if (res.error || !res.data || !res.data.ok) {
+                // Ученику про сервер и тем более про SQL знать нечего: он не может ни
+                // того, ни другого. Раньше на этом месте ребёнку предлагалось запустить
+                // supabase/exam.sql. Подсказка нужна разработчику — она и уходит в консоль,
+                // а на экране остаётся то, что человек может сделать: прийти позже.
+                const code = res.data && res.data.error;
+                if (code === 'bad_op' || code === 'bad_level' || !code) {
+                    console.warn('Экзамен: сервер не принял результат (%s). Проверь, что запущены '
+                        + 'supabase/exam.sql и supabase/exam-cap.sql.', code || 'нет ответа');
+                }
                 const messages = {
-                    already_today: t('Сегодня экзамен уже был. Приходи завтра.'),
-                    bad_op: t('Такое действие сервер не принял.'),
-                    bad_level: t('Такой результат сервер не принял.')
+                    already_today: t('Сегодня экзамен уже был. Приходи завтра.')
                 };
-                return { error: messages[res.data && res.data.error]
-                                || t('Не удалось сохранить результат. Запусти supabase/exam.sql.') };
+                return { error: messages[code] || t('Результат не сохранился. Попробуй ещё раз позже.') };
             }
             await refreshAccess();
             return {};
@@ -6659,12 +6671,6 @@
             return out;
         }
 
-        function pluralSteps(n) {
-            const d10 = n % 10, d100 = n % 100;
-            if (d10 === 1 && d100 !== 11) return t('ступень');
-            if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return t('ступени');
-            return t('ступеней');
-        }
 
         // Мастерство темы — минимум из трёх лесенок. Раньше это был «сводный ранг»,
         // и он же работал ограничителем: ни одна лесенка не могла уйти выше сводного плюс
@@ -6767,7 +6773,7 @@
                 if (ls.some(l => l.id === 'c')) {
                     const next = sessionGoal(topicKey);
                     sub = next
-                        ? tf('Дальше %1 %2 — ещё ', TIER_NAMES[next.tier], TIER_ICONS[next.tier])
+                        ? tf('Дальше %1 — ещё ', medal(next.tier))
                           + `${next.left} ${pluralAnswers(next.left)}`
                         : t('Все медали за количество здесь уже твои');
                 }
@@ -6947,7 +6953,7 @@
                 renderDailyBar();
                 renderConfigTasks();
                 document.getElementById('configScreen').style.display = 'flex';
-                showToast(t('Этот режим больше не открыт — выбери другой.'), 'error');
+                showToast(t('Это действие больше не открыто — выбери другое.'), 'error');
                 return;
             }
             // Раздел ОБЯЗАТЕЛЬНО берём из ключа: возврат на экран выбора миссии обнуляет
@@ -7286,7 +7292,7 @@
                 aWrap.innerHTML = t('<div class="report-empty">В этот период новых достижений не было.</div>');
             } else {
                 if (stepCount) {
-                    earned.push(tf('📈 Продвижение по лесенкам тем: %1 %2', stepCount, pluralSteps(stepCount)));
+                    earned.push(tf('📈 Новых медалей за темы: %1', stepCount));
                 }
                 earned.forEach(t => {
                     const el = document.createElement('div');
@@ -7568,9 +7574,9 @@
         function ladderGoalText(tierName, needText, valueOk, have, needSample) {
             if (valueOk && have < needSample) {
                 const left = needSample - have;
-                return tf('до %1: ещё %2 %3', tierName, left, pluralAnswers(left));
+                return tf('до медали %1: ещё %2 %3', tierName, left, pluralAnswers(left));
             }
-            return tf('до %1: %2', tierName, needText);
+            return tf('до медали %1: %2', tierName, needText);
         }
         function pluralAnswers(n) {
             const d10 = n % 10, d100 = n % 100;
@@ -7618,17 +7624,17 @@
                 let nowText = '—', goalText = '';
                 if (l.id === 'c') {
                     nowText = String(m.count);
-                    if (next <= 5) goalText = tf('до %1: %2', TIER_NAMES[next], COUNT_TIERS[next - 1]);
+                    if (next <= 5) goalText = tf('до медали %1: %2', medal(next), COUNT_TIERS[next - 1]);
                 } else if (l.id === 'a') {
                     nowText = m.accuracy === null ? '—' : m.accuracy + '%';
-                    if (next <= 5) goalText = ladderGoalText(TIER_NAMES[next],
+                    if (next <= 5) goalText = ladderGoalText(medal(next),
                         `${ACCURACY_TIERS[next - 1]}%`,
                         m.accuracy !== null && m.accuracy >= ACCURACY_TIERS[next - 1],
                         m.count, LADDER_MIN_SAMPLE[next - 1]);
                 } else {
                     nowText = m.speedSec === null ? '—' : m.speedSec.toFixed(1) + t(' с');
                     const need = speedTiersFor(p.level, p.category)[next - 1];
-                    if (next <= 5) goalText = ladderGoalText(TIER_NAMES[next], tf('%1 с', need),
+                    if (next <= 5) goalText = ladderGoalText(medal(next), tf('%1 с', need),
                         m.speedSec !== null && m.speedSec <= need,
                         m.count, LADDER_MIN_SAMPLE[next - 1]);
                 }
@@ -7658,10 +7664,9 @@
                 if (earned > 0) tierEl.title = tf('Взято: %1', TIER_NAMES[earned]);
                 row.querySelector('.ladder-now').innerText = nowText === '—'
                     ? '—' : tf('сейчас %1', nowText);
-                // Ступень не называем ещё раз: её значок стоит тут же, а склонять
-                // «Алмаз» в «при алмазе» пришлось бы отдельной таблицей падежей.
+                // Медаль не называем ещё раз: её значок стоит тут же.
                 row.querySelector('.ladder-goal').innerText = slipped
-                    ? t('ниже взятой ступени') : goalText;
+                    ? t('ниже взятой медали') : goalText;
                 rowsWrap.appendChild(row);
             });
 
@@ -7945,7 +7950,7 @@
         // Здесь дважды стояло `const t = n % 100`, затиравшее функцию перевода: t('день')
         // звало ЧИСЛО как функцию, обе функции падали на любом аргументе, а вместе с ними
         // падал весь список учеников — стоило одному ученику замолчать или появиться хоть
-        // одной папке. Поэтому локальные имена здесь d10/d100, как в pluralSteps.
+        // одной папке. Поэтому локальные имена здесь d10/d100.
         //
         // Через t() эти слова НЕ проходят намеренно: предложения вокруг них («молчит %1 %2»,
         // «не выходил%3 на связь») в словаре не лежат — экран репетитора остаётся русским.
