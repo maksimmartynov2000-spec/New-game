@@ -14,6 +14,7 @@ window.TRANSLATIONS = {
     en: {
             "Ответ": "Answer",
             "%1 Задача за мастерство": "%1 Mastery problem",
+            "Задача для этой темы ещё не написана — она появится в обновлении. Медаль уже твоя, её никто не отнимет.": "A problem for this topic hasn't been written yet — it will come in an update. The medal is already yours, nobody is taking it away.",
             "%1 Задача за легенду": "%1 Legend problem",
             "Остальные — %1/%2": "Others — %1/%2",
             "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Collection complete (%1/%2)",
@@ -554,6 +555,7 @@ window.TRANSLATIONS = {
     fr: {
             "Ответ": "Réponse",
             "%1 Задача за мастерство": "%1 Défi de maîtrise",
+            "Задача для этой темы ещё не написана — она появится в обновлении. Медаль уже твоя, её никто не отнимет.": "Le défi de ce sujet n’est pas encore écrit — il arrivera dans une mise à jour. La médaille est déjà à toi, personne ne te la reprend.",
             "%1 Задача за легенду": "%1 Défi de légende",
             "Остальные — %1/%2": "Autres — %1/%2",
             "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Collection complète (%1/%2)",
@@ -1094,6 +1096,7 @@ window.TRANSLATIONS = {
     de: {
             "Ответ": "Antwort",
             "%1 Задача за мастерство": "%1 Meister-Aufgabe",
+            "Задача для этой темы ещё не написана — она появится в обновлении. Медаль уже твоя, её никто не отнимет.": "Die Aufgabe zu diesem Thema ist noch nicht geschrieben — sie kommt mit einem Update. Die Medaille gehört schon dir, die nimmt dir keiner weg.",
             "%1 Задача за легенду": "%1 Legenden-Aufgabe",
             "Остальные — %1/%2": "Weitere — %1/%2",
             "🏆 Коллекция собрана полностью (%1/%2)": "🏆 Sammlung vollständig (%1/%2)",

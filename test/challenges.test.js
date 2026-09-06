@@ -343,6 +343,29 @@ test('две ступени разом показываются по очере�
     assert(!box.dom.byId.winScreen.classList.contains('active'), 'итоги ждут своей очереди');
 });
 
+test('мастерство без задачи не молчит', () => {
+    // Сорок задач написаны только для положительных чисел. В остальных разделах
+    // мастерство до сих пор не давало НИЧЕГО и молча: очередь пополнялась только
+    // когда текст находился. Самая дорогая вещь в игре приходила пустой, и ученик
+    // мог решить, что награда сломалась. Чего нет — про то и говорим прямо.
+    const box = load({ CHALLENGE_CONTENT: CONTENT });
+    box.R.push('fraction+:mul:3', 4);
+    eq(box.R.showNextChallengeReveal(), true, 'окно должно открыться и без задачи');
+    eq(box.dom.byId.challengeReveal.hidden, false);
+    assert(/Медаль уже твоя/.test(box.dom.byId.challengeTask.innerText),
+        `сказано: «${box.dom.byId.challengeTask.innerText}»`);
+    eq(box.dom.byId.challengeAnswerValue.innerText, '', 'раскрывать нечего — ответа нет');
+});
+
+test('окно без задачи закрывается первым тапом', () => {
+    // Раскрывать там нечего, и второй тап пришёлся бы по пустому месту.
+    const box = load({ CHALLENGE_CONTENT: CONTENT });
+    box.R.push('fraction+:mul:3', 4);
+    box.R.showNextChallengeReveal();
+    box.R.tapChallengeReveal();
+    eq(box.dom.byId.challengeReveal.hidden, true, 'первый тап должен закрыть');
+});
+
 test('заголовок отличает легенду от алмаза', () => {
     const box = load({ CHALLENGE_CONTENT: CONTENT });
     box.R.push('integer+:sub:5', 5);
@@ -359,6 +382,16 @@ test('в очередь попадает каждая новая ступень,
     const body = SCRIPT.slice(from, SCRIPT.indexOf('return fresh;', from));
     assert(/for \(let tier = masteryBefore \+ 1; tier <= mastery/.test(body),
         'перебирать надо все ступени от прошлой до новой');
+});
+
+test('в очередь ставит наличие файла, а не наличие текста', () => {
+    // Условием было «нашёлся текст для этой клетки» — и мастерство в разделах без
+    // задач не давало ничего, молча. Это надо проверять на структуре: сам показ
+    // окна проверяется выше, но туда очередь наполняется руками, минуя это место.
+    const from = SCRIPT.indexOf('if (mastery > masteryBefore && mastery >= MASTERY_MIN_TIER)');
+    const body = SCRIPT.slice(from, SCRIPT.indexOf('return fresh;', from));
+    assert(/if \(resolveChallenges\(\)\) pendingChallengeReveals\.push/.test(body),
+        'в очередь снова ставится только то, для чего нашёлся текст');
 });
 
 test('очередь задач чистится вместе со счётчиками миссии', () => {
