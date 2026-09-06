@@ -1246,6 +1246,21 @@
         /* Точность до десяти ответов не считается вовсе — показывать долю нечестно. */
         .task-meter.unknown span { background: rgba(255,255,255,0.16); }
         .task-row.done .task-meter span { background: #22c55e; }
+
+        /* Три роли — три разных дела: вести вперёд, чинить просевшее, звать в новое.
+           Строки при этом выглядели одинаково, и три задания читались как список из
+           трёх поручений. Различаем цветом, а не словом: подписи «вперёд», «точность»,
+           «новое» заняли бы место и добавили чтения ровно там, где мы его убирали.
+           Цвет берётся не с потолка — эти три уже работают в приложении: бирюзовый
+           ведёт вперёд, янтарный отмечает просевшее в лесенках, фиолетовый — цвет
+           задач за мастерство. Красим кружок и полоску: начало строки и её итог. */
+        .task-row.role-advance .task-mark { border-color: rgba(34, 211, 238, 0.75); }
+        .task-row.role-fix     .task-mark { border-color: rgba(251, 191, 36, 0.75); }
+        .task-row.role-explore .task-mark { border-color: rgba(167, 139, 250, 0.75); }
+        .task-row.role-fix     .task-meter span { background: #fbbf24; }
+        .task-row.role-explore .task-meter span { background: #a78bfa; }
+        /* Выполненное зеленеет независимо от роли: сделано — оно и есть сделано. */
+        .task-row.done .task-mark { border-color: #22c55e; }
         .task-go {
             flex: 0 0 auto; padding: 5px 9px; border-radius: 8px; cursor: pointer;
             font-family: inherit; font-size: 0.66rem; font-weight: bold;
@@ -6223,7 +6238,8 @@
 
             const row = (task, isWeek) => {
                 const el = document.createElement('div');
-                el.className = 'task-row' + (task.done ? ' done' : '');
+                el.className = 'task-row' + (task.done ? ' done' : '')
+                    + (task.role ? ' role-' + task.role : '');
                 // Значок рисуем сами, а не эмодзи. Пустой квадратик ▫️ рядом с ✅ не
                 // читался как пара, а ⚪ выглядит жирной точкой. Здесь одна форма в двух
                 // состояниях: пустой кружок и он же с галочкой.
@@ -6866,8 +6882,13 @@
                     });
                     // Каждая взятая ступень мастерства открывает свою задачу. Если
                     // ступени пришли разом, покажем обе — по очереди, в конце миссии.
+                    // Ставим в очередь ВСЕГДА, если файл с задачами вообще доехал.
+                    // Раньше условием был найденный текст — и мастерство в разделах,
+                    // где задач нет (отрицательные, десятичные, дроби), не давало
+                    // ничего и молча: самая дорогая вещь в игре приходила пустой.
+                    // Чего нет — про то и скажем прямо, см. showNextChallengeReveal.
                     for (let tier = masteryBefore + 1; tier <= mastery; tier++) {
-                        if (challengeFor(topicKey, tier)) pendingChallengeReveals.push({ key: topicKey, tier });
+                        if (resolveChallenges()) pendingChallengeReveals.push({ key: topicKey, tier });
                     }
                 }
             }
@@ -6919,28 +6940,48 @@
         function showNextChallengeReveal() {
             const next = pendingChallengeReveals.shift();
             if (!next) return false;
+            // Файла целиком нет — окна тоже нет: это оборвавшаяся сеть, а не наша
+            // недоделка, и говорить о ней ребёнку нечего.
+            if (!resolveChallenges()) return showNextChallengeReveal();
             const item = challengeFor(next.key, next.tier);
-            if (!item) return showNextChallengeReveal();      // текстов нет — идём дальше
 
             document.getElementById('challengeCap').innerText = next.tier >= 5
                 ? tf('%1 Задача за легенду', TIER_ICONS[5])
                 : tf('%1 Задача за мастерство', TIER_ICONS[4]);
             document.getElementById('challengeTopic').innerText = topicLabelWithLevel(next.key);
-            document.getElementById('challengeTask').innerText = item.task;
             const ans = document.getElementById('challengeAnswer');
-            document.getElementById('challengeAnswerCap').innerText = t('Ответ');
-            document.getElementById('challengeAnswerValue').innerText = item.answer;
-            document.getElementById('challengeAnswerWhy').innerText = item.why || '';
+            if (item) {
+                document.getElementById('challengeTask').innerText = item.task;
+                document.getElementById('challengeAnswerCap').innerText = t('Ответ');
+                document.getElementById('challengeAnswerValue').innerText = item.answer;
+                document.getElementById('challengeAnswerWhy').innerText = item.why || '';
+                document.getElementById('challengeTap').innerText = t('Нажми, чтобы увидеть ответ');
+            } else {
+                // Задачи для этого раздела ещё не написаны. Сорок штук есть только для
+                // положительных чисел; в остальных разделах мастерство до сих пор
+                // приходило пустым. Пустое окно хуже честного: ученик решил, что
+                // награда сломалась. Говорим как есть — и заслуженное подтверждаем.
+                document.getElementById('challengeTask').innerText =
+                    t('Задача для этой темы ещё не написана — она появится в обновлении. '
+                      + 'Медаль уже твоя, её никто не отнимет.');
+                // Поля ответа чистим: они могли остаться от предыдущего окна, и тогда
+                // тап искал бы, что раскрыть, там, где раскрывать нечего.
+                document.getElementById('challengeAnswerValue').innerText = '';
+                document.getElementById('challengeAnswerWhy').innerText = '';
+                document.getElementById('challengeTap').innerText = t('Нажми, чтобы продолжить');
+            }
             ans.hidden = true;
             challengeAnswerShown = false;
-            document.getElementById('challengeTap').innerText = t('Нажми, чтобы увидеть ответ');
             document.getElementById('challengeReveal').hidden = false;
             return true;
         }
 
         function tapChallengeReveal() {
             const ans = document.getElementById('challengeAnswer');
-            if (!challengeAnswerShown) {
+            // У окна без задачи раскрывать нечего: первый же тап закрывает его.
+            // Иначе ученик тапал дважды по одному и тому же пустому месту.
+            const hasAnswer = !!document.getElementById('challengeAnswerValue').innerText;
+            if (!challengeAnswerShown && hasAnswer) {
                 challengeAnswerShown = true;
                 ans.hidden = false;
                 document.getElementById('challengeTap').innerText = t('Нажми, чтобы продолжить');

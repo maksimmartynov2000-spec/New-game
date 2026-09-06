@@ -247,6 +247,54 @@ const SCREENS = [
                Math.abs(r.btnMid - r.ttlMid) <= 2 ? null : `кнопка по центру ${r.btnMid}, заголовок ${r.ttlMid}`);
     }
 
+    // Три роли — три разных дела: вести вперёд, чинить просевшее, звать в новое.
+    // Строки выглядели одинаково, и три задания читались как список из трёх поручений.
+    // Различие сделано цветом, а не словом, — а цвет проверяется только измерением.
+    console.log('\nТри роли видно глазом');
+    {
+        errors.length = 0;
+        const shown = await page.evaluate(`(() => {
+            document.querySelectorAll('.modal-screen').forEach(x => x.style.display = 'none');
+            document.getElementById('configScreen').style.display = 'flex';
+            showConfigStep(1); renderConfigTasks();
+            return [...document.querySelectorAll('#tasksList .task-row')]
+                .map(el => (el.className.match(/role-(\\w+)/) || [])[1] || null);
+        })()`);
+        record('у настоящих заданий проставлен класс роли',
+               shown.filter(Boolean).length >= 2
+                   ? null : `ролей нашлось ${shown.filter(Boolean).length} из ${shown.length}`);
+
+        // А цвета меряем на строках, собранных руками. Первая версия этой проверки
+        // смотрела на то, что выпало ученику, — и молчала: при этих данных из трёх
+        // ролей выпадают две, причём одна выполнена и потому зелёная независимо от
+        // роли. Подсадка «убрать цвета» её не роняла. Роль тут выбираем мы, а не жребий.
+        const paint = await page.evaluate(`(() => {
+            const host = document.createElement('div');
+            host.style.cssText = 'position:fixed;left:-9999px;top:0';
+            document.body.appendChild(host);
+            const make = (cls) => {
+                const el = document.createElement('div');
+                el.className = cls;
+                el.innerHTML = '<span class="task-mark"></span><div class="task-body">'
+                    + '<div class="task-meter"><span style="width:50%"></span></div></div>';
+                host.appendChild(el);
+                return { mark: getComputedStyle(el.querySelector('.task-mark')).borderTopColor,
+                         meter: getComputedStyle(el.querySelector('.task-meter span')).backgroundColor };
+            };
+            const res = { plain: make('task-row') };
+            ['advance', 'fix', 'explore'].forEach(r => { res[r] = make('task-row role-' + r); });
+            host.remove();
+            return res;
+        })()`);
+        const roles = ['advance', 'fix', 'explore'];
+        const marks = roles.map(r => paint[r].mark);
+        record('у каждой роли свой цвет кружка',
+               new Set(marks).size === 3 ? null : `цветов ${new Set(marks).size} на три роли: ${marks.join(', ')}`);
+        const same = roles.filter(r => paint[r].mark === paint.plain.mark);
+        record('цвет роли отличается от обычной строки',
+               same.length === 0 ? null : `как у обычной строки: ${same.join(', ')}`);
+    }
+
     // Языки: перевод не должен ронять отрисовку — в словарях легко потерять подстановку.
     console.log('\nТо же самое на других языках');
     for (const lang of ['en', 'fr', 'de']) {
