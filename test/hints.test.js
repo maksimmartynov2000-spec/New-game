@@ -189,7 +189,7 @@ test('заём: подсказка говорит цифрами примера'
 test('таблица умножения: названа та клетка, которую посчитал ученик', () => {
     // 7 × 8 = 56, ученик выбрал 49 — это 7 × 7.
     const got = H.R.hintText('game', 'таблица умножения', meta('mul'), { a: 7, b: 8 }, 56, 49);
-    eq(got, 'Ты посчитал 7 × 7. В примере 7 × 8 — разница целых 7.');
+    eq(got, 'Посчитано 7 × 7. В примере 7 × 8 — разница целых 7.');
 });
 
 test('единицы при сложении: подставлены последние цифры', () => {
@@ -502,17 +502,17 @@ test('без чисел примера строка не собирается', 
 });
 
 test('выбранный ответ подписан отдельно', () => {
-    eq(H.R.hintChosenLine(9), 'ты выбрал 9');
-    eq(H.R.hintChosenLine('NO_SOLUTION'), 'ты выбрал Нет решения');
+    eq(H.R.hintChosenLine(9), 'выбрано: 9');
+    eq(H.R.hintChosenLine('NO_SOLUTION'), 'выбрано: Нет решения');
     eq(H.R.hintChosenLine(null), '');
 });
 
 test('пример и выбор доходят до карточки', () => {
     const box = loadHints({ HINT_CONTENT: CONTENT });
     box.R.showHintFreeze('Займи десяток.', () => {},
-        { example: '16 − 9 = 7', chosen: 'ты выбрал 9' });
+        { example: '16 − 9 = 7', chosen: 'выбрано: 9' });
     eq(box.dom.byId.hintFreezeExample.innerText, '16 − 9 = 7');
-    eq(box.dom.byId.hintFreezeChosen.innerText, 'ты выбрал 9');
+    eq(box.dom.byId.hintFreezeChosen.innerText, 'выбрано: 9');
 });
 
 test('без примера строки прячутся, а не висят пустыми', () => {
