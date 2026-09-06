@@ -212,6 +212,41 @@ const SCREENS = [
                /достучаться не удалось/.test(r.noteText) ? null : `сказано: «${r.noteText}»`);
     }
 
+    // Шапка выбора миссии. Кнопка ☰ вынута из потока (position:absolute), поэтому
+    // ничто не мешает ей налезть на то, что стоит под заголовком, — и она налезла:
+    // между её низом и верхом дневной полосы было −6 px, кнопка накрывала левый
+    // верхний угол полосы. Глазами это читалось как «слева всё слиплось».
+    // Заодно дневная полоса была шире карточек (min(94vw,520px) против 350 px):
+    // слева стояла вровень, справа торчала на 17 px и почти упиралась в край экрана.
+    // Обе вещи нельзя проверить чтением стилей — только измерением в браузере.
+    console.log('\nШапка выбора миссии');
+    {
+        errors.length = 0;
+        const r = await page.evaluate(`(() => {
+            document.querySelectorAll('.modal-screen').forEach(x => x.style.display = 'none');
+            document.getElementById('configScreen').style.display = 'flex';
+            showConfigStep(1); renderDailyBar(); renderConfigTasks();
+            const box = (sel) => { const e = document.querySelector(sel); return e && e.getBoundingClientRect(); };
+            const btn = box('#btnConfigCorner'), bar = box('#dailyBar');
+            const cat = box('#categoryStepScreen .config-container');
+            const ttl = box('#configScreen .start-title');
+            return { gap: bar.top - btn.bottom, barLeft: bar.left, barRight: bar.right,
+                     catLeft: cat.left, catRight: cat.right, btnLeft: btn.left,
+                     btnMid: (btn.top + btn.bottom) / 2, ttlMid: (ttl.top + ttl.bottom) / 2 };
+        })()`);
+        record('кнопка ☰ не налезает на дневную полосу',
+               r.gap >= 8 ? null : `между ними ${r.gap.toFixed(1)} px`);
+        record('дневная полоса той же ширины, что карточки',
+               Math.abs(r.barLeft - r.catLeft) < 1 && Math.abs(r.barRight - r.catRight) < 1
+                   ? null : `полоса ${r.barLeft}..${r.barRight}, карточки ${r.catLeft}..${r.catRight}`);
+        // Левая линия одна на весь экран: кнопка, полоса, карточки. Кнопка стояла на
+        // 16 px, всё остальное — на 20, и левый край экрана выглядел рваным.
+        record('кнопка ☰ стоит на той же левой линии, что карточки',
+               Math.abs(r.btnLeft - r.catLeft) < 1 ? null : `кнопка ${r.btnLeft}, карточки ${r.catLeft}`);
+        record('кнопка ☰ и заголовок на одной оси',
+               Math.abs(r.btnMid - r.ttlMid) <= 2 ? null : `кнопка по центру ${r.btnMid}, заголовок ${r.ttlMid}`);
+    }
+
     // Языки: перевод не должен ронять отрисовку — в словарях легко потерять подстановку.
     console.log('\nТо же самое на других языках');
     for (const lang of ['en', 'fr', 'de']) {
