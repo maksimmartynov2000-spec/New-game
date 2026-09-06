@@ -165,8 +165,14 @@ group('Заголовки экранов');
 // только самый длинный, и виноваты были два постоянных числа сразу: размер шрифта
 // и отступы по 54 px под кнопки в углах, которые забирали треть ширины.
 function styleRule(selector) {
-    const at = STYLE.indexOf(selector + ' {');
-    if (at < 0) throw new Error('не найдено правило ' + selector);
+    // Правило должно НАЧИНАТЬСЯ с этого селектора. Раньше искалась подстрока, и
+    // появившееся выше `#configScreen .start-title {` перехватило поиск
+    // `.start-title {`: проверка молча читала чужое правило и падала не по делу.
+    const re = new RegExp('(?:^|[}\\n,])\\s*'
+        + selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*\\{');
+    const m = re.exec(STYLE);
+    if (!m) throw new Error('не найдено правило ' + selector);
+    const at = m.index + m[0].length;
     return STYLE.slice(at, STYLE.indexOf('}', at));
 }
 
