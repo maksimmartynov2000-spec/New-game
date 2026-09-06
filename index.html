@@ -1192,13 +1192,43 @@
         /* Выполненное гасим, а не вычёркиваем: зачёркнутый текст на маленьком экране
            читается хуже, чем просто приглушённый. */
         .task-row.done { opacity: 0.5; }
-        .task-mark { flex: 0 0 auto; font-size: 0.9rem; line-height: 1; }
+        /* Одна форма в двух состояниях: пустой кружок и он же с галочкой. */
+        .task-mark {
+            flex: 0 0 auto; width: 16px; height: 16px; border-radius: 50%;
+            border: 1.5px solid rgba(255,255,255,0.22);
+            display: grid; place-items: center;
+            font-size: 0.62rem; line-height: 1; color: transparent;
+        }
+        .task-mark.done {
+            border-color: #22c55e; background: #22c55e; color: #06281a; font-weight: bold;
+        }
         .task-body { flex: 1 1 auto; min-width: 0; }
         .task-text { font-size: 0.8rem; color: #e2e8f0; line-height: 1.35; }
-        .task-sub { font-size: 0.68rem; color: #94a3b8; margin-top: 2px; }
+        /* Адрес слева, счёт справа. Раньше они стояли в одну строку через те же точки,
+           что и части адреса, и «0 из 13» читалось как продолжение «Умножение · 1★». */
+        .task-sub {
+            display: flex; align-items: baseline; gap: 8px;
+            font-size: 0.68rem; color: #94a3b8; margin-top: 3px;
+        }
+        .task-where { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .task-count { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: #cbd5e1; }
+        /* Полоска прогресса. «7 из 12» приходится читать, а долю видно сразу — и именно
+           доля отвечает на вопрос «мне ещё долго?». Тонкая нарочно: она подсказка, а не
+           главный герой строки. */
+        .task-meter {
+            height: 3px; margin-top: 6px; border-radius: 2px;
+            background: rgba(255,255,255,0.09); overflow: hidden;
+        }
+        .task-meter span {
+            display: block; height: 100%; border-radius: 2px;
+            background: var(--cyan); transition: width 0.3s ease;
+        }
+        /* Точность до десяти ответов не считается вовсе — показывать долю нечестно. */
+        .task-meter.unknown span { background: rgba(255,255,255,0.16); }
+        .task-row.done .task-meter span { background: #22c55e; }
         .task-go {
-            flex: 0 0 auto; padding: 7px 12px; border-radius: 9px; cursor: pointer;
-            font-family: inherit; font-size: 0.74rem; font-weight: bold;
+            flex: 0 0 auto; padding: 5px 9px; border-radius: 8px; cursor: pointer;
+            font-family: inherit; font-size: 0.66rem; font-weight: bold;
             color: var(--cyan); background: rgba(6, 182, 212, 0.10);
             border: 1px solid rgba(6, 182, 212, 0.35);
         }
@@ -5162,9 +5192,9 @@
             else document.getElementById('statsClassSection').style.display = 'none';
             // Задания считаются на СЕГОДНЯ и на текущую неделю, а не за выбранный период:
             // это то, что ученику предстоит, а не то, что он сделал в июле.
-            const tasksShown = renderTasks('statsTasksList', st, today,
-                                           foreignState ? (st.playerCode || '') : Progress.getCode(), false);
-            document.getElementById('statsTasksSection').style.display = tasksShown ? '' : 'none';
+            const tasksRes = renderTasks('statsTasksList', st, today,
+                                         foreignState ? (st.playerCode || '') : Progress.getCode(), false);
+            document.getElementById('statsTasksSection').style.display = tasksRes.shown ? '' : 'none';
 
             renderExamLog(foreignState ? (st.playerCode || '') : null);
             renderEpochCards(st);
@@ -5807,15 +5837,39 @@
         // Текст говорит ЧТО сделать, а где — уходит в подпись под ним. Вместе они не
         // помещались: «Реши 10 примеров без единой ошибки: Положительные · Сложение · 2★»
         // занимало три строки на телефоне, и действие тонуло в адресе.
+        //
+        // Слово «ступень» отсюда убрано. Оно наше внутреннее: ученик нигде больше его не
+        // видит — на экране достижений те же самые вещи называются поимённо, 🥉 Бронза,
+        // 🥈 Серебро и так далее. «Ближе к ступени» не говорило ни какая ступень, ни
+        // насколько ближе, ни зачем. Теперь медаль называется, и обещание сбывается
+        // буквально: если написано «возьмёшь бронзу» — значит, возьмёшь.
+        // Название медали подставляется в разные по падежу места: «до Легенды», «возьмёшь
+        // Бронзу». Заводить ради этого таблицы склонений — пять слов в четырёх языках, и
+        // всё ради одной строки. Проще поставить впереди слово «медаль»: оно и склоняется,
+        // а название остаётся приложением в кавычках и не меняется вовсе.
+        function medal(tier) { return `${TIER_ICONS[tier]} «${TIER_NAMES[tier]}»`; }
+
         function taskText(task) {
-            if (task.role === 'explore')  return tf('Загляни сюда: реши %1 примеров', task.need);
+            if (task.role === 'advance' && task.tier) {
+                // Два разных случая, и путать их нельзя. Задание либо закрывает медаль
+                // целиком — тогда так и говорим, — либо только приближает к ней, и тогда
+                // честно называем, сколько останется после.
+                return task.closes
+                    ? tf('Реши верно %1 — и медаль %2 твоя', task.need, medal(task.tier))
+                    : tf('Сегодня %1 верных — до медали %2 останется %3',
+                         task.need, medal(task.tier), task.gap - task.need);
+            }
             if (task.role === 'fix' && task.kind === 'accuracy')
                                           return tf('Подтяни точность до %1%', task.need);
-            if (task.role === 'fix')      return tf('Потренируй трудное: реши %1 примеров', task.need);
-            if (task.role === 'advance')  return tf('Ближе к ступени: реши %1 примеров', task.need);
+            if (task.role === 'fix' && task.kind === 'clean')
+                                          return tf('Реши %1 набело, без единой ошибки', task.need);
+            if (task.role === 'fix')      return tf('Тут пока много ошибок — реши %1', task.need);
+            if (task.role === 'explore')  return task.fresh
+                ? tf('Ты тут ещё не был — реши %1', task.need)
+                : tf('Давно тут не был — реши %1', task.need);
             if (task.kind === 'count')    return tf('Реши %1 примеров', task.need);
             if (task.kind === 'correct')  return task.tier
-                ? tf('Добери до ступени «%1» — ещё %2 верных', TIER_NAMES[task.tier], task.need)
+                ? tf('Добери до медали %1 — ещё %2 верных', medal(task.tier), task.need)
                 : tf('Реши верно %1 примеров', task.need);
             if (task.kind === 'accuracy') return tf('Набери %1% точности', task.need);
             if (task.kind === 'clean')    return tf('Реши %1 примеров без единой ошибки', task.need);
@@ -5884,20 +5938,35 @@
         // что клетка ещё не выучена. Такому ученику нужна практика, а не планка.
         const TASK_ACCURACY_FLOOR = 60;
 
-        // Роль «продвинуться»: где ближе всего до следующей ступени количества.
+        // Роль «продвинуться»: где ученик ДАЛЬШЕ ВСЕГО прошёл к своей следующей медали.
+        //
+        // Раньше здесь искалась клетка, где осталось меньше всего примеров, — и это
+        // уводило с работы. У ученика со сложением 2★ (218 верных, до серебра 32) и
+        // умножением 1★, куда он заглянул один раз (12 верных, до бронзы 13), побеждало
+        // умножение: 13 меньше 32. То есть задание игнорировало то, чем он занимается
+        // каждый день, и звало в клетку, про которую он забыл.
+        //
+        // Считаем долю: 218 из 250 — это 87%, а 12 из 25 — 48%. Клетка, в которую вложено
+        // больше всего, выигрывает сама, и отдельного правила «где он занимается» не нужно.
+        // Заодно это честнее по смыслу: «продвинуться» — про то, где продвижение уже есть.
         function roleAdvance(st, cells) {
             let best = null;
             cells.forEach(key => {
                 const have = ((st.byTopic || {})[key] || {}).correct || 0;
                 if (have <= 0) return;
-                let gap = null;
-                COUNT_TIERS.forEach(v => { if (gap === null && have < v) gap = v - have; });
-                if (gap === null) return;                       // всё взято
-                if (!best || gap < best.gap) best = { key, gap };
+                let target = null, tier = 0;
+                COUNT_TIERS.forEach((v, i) => { if (target === null && have < v) { target = v; tier = i + 1; } });
+                if (target === null) return;                    // все медали уже взяты
+                const share = have / target;
+                if (!best || share > best.share) best = { key, share, tier, gap: target - have };
             });
             if (!best) return null;
-            // За день реально добрать десяток-другой, а не всю ступень целиком.
-            return { kind: 'count', cell: best.key, need: Math.max(10, Math.min(20, best.gap)), role: 'advance' };
+            // За день реально добрать десяток-другой, а не всю медаль целиком.
+            const need = Math.max(10, Math.min(20, best.gap));
+            // Считаем ВЕРНЫЕ, а не решённые: медаль тоже даётся за верные, и обещание
+            // «реши столько — и возьмёшь медаль» иначе было бы неправдой.
+            return { kind: 'correct', cell: best.key, need, role: 'advance',
+                     tier: best.tier, gap: best.gap, closes: need >= best.gap };
         }
 
         // Роль «подтянуть»: клетка с самой просевшей точностью среди тех, где он бывал.
@@ -5940,7 +6009,7 @@
             return false;
         }
 
-        function roleExplore(daily, todayKey, cells, homeKey) {
+        function roleExplore(st, daily, todayKey, cells, homeKey) {
             const home = homeKey ? parseTopicKey(homeKey) : null;
             const homeSec = home ? `${home.category}${home.sign || ''}` : null;
             let best = null;
@@ -5953,6 +6022,12 @@
                 const sec = `${p.category}${p.sign || ''}`;
                 let distance, near;
                 if (home && sec === homeSec && p.op === home.op) {
+                    // Назад в СВОЁМ действии не зовём. Ученику, который каждый день решает
+                    // сложение 2★, приглашение «загляни в сложение 1★, давно не был»
+                    // читается как «вернись назад»: он это перерос. В чужом действии
+                    // начинать снизу правильно — сила в сложении ничего не говорит о
+                    // делении, — но в своём звать вниз незачем.
+                    if (p.level < (home.level || 1)) return;
                     distance = 1; near = Math.abs(p.level - (home.level || 1));
                 } else if (home && sec === homeSec) {
                     distance = 2; near = p.level;
@@ -5968,7 +6043,10 @@
                 if (!best || rankLess(rank, best.rank)) best = { key, rank };
             });
             if (!best) return null;
-            return { kind: 'count', cell: best.key, need: 10, role: 'explore' };
+            // «Ещё не был» и «давно не был» — разные вещи, и говорить о них надо разное.
+            // Окно cellForm короткое (две недели), поэтому смотрим на итоги за всё время.
+            const everTried = (((st || {}).byTopic || {})[best.key] || {}).correct !== undefined;
+            return { kind: 'count', cell: best.key, need: 10, role: 'explore', fresh: !everTried };
         }
 
         // Детерминированный выбор: одна и та же дата и логин дают один и тот же набор.
@@ -6002,7 +6080,7 @@
             // Нет истории — меряем от самого начала карты, туда же и позовём.
             const home = seen[0] || null;
             const roles = [roleAdvance(st, open), roleFix(daily, todayKey, seen),
-                           roleExplore(daily, todayKey, open, home)].filter(Boolean);
+                           roleExplore(st, daily, todayKey, open, home)].filter(Boolean);
 
             // Две роли могут указать на одну клетку — тогда второе задание про неё же
             // выглядит как повтор. Оставляем первое, оно важнее.
@@ -6072,18 +6150,26 @@
         // чем заняться, а не в статистике, куда он заходит редко.
         function renderTasks(containerId, st, todayKey, code, withButtons) {
             const wrap = document.getElementById(containerId);
-            if (!wrap) return false;
+            if (!wrap) return { shown: false, total: 0, done: 0 };
             wrap.innerHTML = '';
             const list = dailyTasks(st, todayKey, code);
             const week = weeklyTask(st, todayKey, code);
-            if (!list.length && !week) return false;
+            if (!list.length && !week) return { shown: false, total: 0, done: 0 };
 
             const row = (task, isWeek) => {
                 const el = document.createElement('div');
                 el.className = 'task-row' + (task.done ? ' done' : '');
+                // Значок рисуем сами, а не эмодзи. Пустой квадратик ▫️ рядом с ✅ не
+                // читался как пара, а ⚪ выглядит жирной точкой. Здесь одна форма в двух
+                // состояниях: пустой кружок и он же с галочкой.
+                //
+                // Того, что задание недельное, значок больше не несёт: над недельной
+                // строкой и так стоит подпись «На неделю», и говорить это дважды разными
+                // способами значит занять место ничем.
                 const mark = document.createElement('span');
-                mark.className = 'task-mark';
-                mark.innerText = task.done ? '✅' : (isWeek ? '📅' : '▫️');
+                mark.className = 'task-mark' + (task.done ? ' done' : '');
+                mark.setAttribute('aria-hidden', 'true');
+                mark.innerText = task.done ? '✓' : '';
                 el.appendChild(mark);
 
                 const body = document.createElement('div');
@@ -6092,19 +6178,43 @@
                 text.className = 'task-text';
                 text.innerText = task.text;
                 body.appendChild(text);
+
                 // Числом показываем ровно то, что проверяется: иначе «почти получилось»
                 // читается как «получилось».
-                const sub = document.createElement('div');
-                sub.className = 'task-sub';
                 const unit = task.kind === 'accuracy' ? '%' : '';
                 // Перевыполненное показываем ровно как цель: «13 из 10» формально верно,
                 // но читается как сбой счётчика.
                 const shown = task.done ? task.need : task.have;
-                const count = task.have === null
-                    ? tf('нужно хотя бы %1 ответов, чтобы засчитать', TASK_MIN_SAMPLE)
-                    : tf('%1 из %2', shown + unit, task.need + unit);
-                sub.innerText = task.where ? `${task.where} · ${count}` : count;
+
+                // Адрес и счёт стояли в одной строке через те же точки, что и части
+                // адреса: «Положительные · Умножение · 1★ · 0 из 13». Число читалось
+                // как продолжение адреса. Теперь адрес слева, счёт справа — разные вещи
+                // и выглядят по-разному.
+                const sub = document.createElement('div');
+                sub.className = 'task-sub';
+                const where = document.createElement('span');
+                where.className = 'task-where';
+                where.innerText = task.where || '';
+                const count = document.createElement('span');
+                count.className = 'task-count';
+                count.innerText = task.have === null
+                    ? tf('нужно %1 ответов', TASK_MIN_SAMPLE)
+                    : `${shown}${unit} / ${task.need}${unit}`;
+                sub.appendChild(where);
+                sub.appendChild(count);
                 body.appendChild(sub);
+
+                // Полоска. «7 из 12» словами приходится читать, а долю видно сразу —
+                // и именно доля отвечает на вопрос «мне ещё долго?».
+                const meter = document.createElement('div');
+                meter.className = 'task-meter' + (task.have === null ? ' unknown' : '');
+                const fill = document.createElement('span');
+                const part = (task.need > 0 && task.have !== null)
+                    ? Math.max(0, Math.min(1, task.have / task.need)) : 0;
+                fill.style.width = `${Math.round(part * 100)}%`;
+                meter.appendChild(fill);
+                body.appendChild(meter);
+
                 el.appendChild(body);
 
                 if (withButtons && task.go && !task.done) {
@@ -6112,6 +6222,7 @@
                     btn.className = 'task-go';
                     btn.type = 'button';
                     btn.innerText = t('Играть');
+                    btn.setAttribute('aria-label', `${t('Играть')}: ${task.text}`);
                     btn.addEventListener('click', () =>
                         startMissionAt(task.go.op, task.go.level, task.go.secKey, task.id));
                     el.appendChild(btn);
@@ -6127,7 +6238,10 @@
                 wrap.appendChild(cap);
                 wrap.appendChild(row(week, true));
             }
-            return true;
+            // Возвращаем счёт ДНЕВНЫХ заданий отдельно: недельное живёт своим сроком,
+            // и в подписи «2 из 3» ему не место — из-за него подпись показывала «из 4»
+            // и не сходилась с тем, что ученик видит как задания на сегодня.
+            return { shown: true, total: list.length, done: list.filter(x => x.done).length };
         }
 
         function renderConfigTasks() {
@@ -6135,13 +6249,10 @@
             if (!wrap) return;
             const st = (typeof Progress !== 'undefined' && Progress.get) ? Progress.get() : null;
             if (!st) { wrap.style.display = 'none'; return; }
-            const shown = renderTasks('tasksList', st, Progress.dayKey(), Progress.getCode(), true);
-            wrap.style.display = shown ? '' : 'none';
-            // Сколько закрыто — видно, не открывая раздел.
-            const rows = [...document.getElementById('tasksList').children]
-                .filter(x => x.className.indexOf('task-row') === 0);
-            const done = rows.filter(x => x.className.indexOf('done') >= 0).length;
-            setFoldSum('tasksSection', tf('%1 из %2', done, rows.length));
+            const res = renderTasks('tasksList', st, Progress.dayKey(), Progress.getCode(), true);
+            wrap.style.display = res.shown ? '' : 'none';
+            // Сколько закрыто — видно, не открывая раздел. Считаем только сегодняшние.
+            setFoldSum('tasksSection', tf('%1 из %2', res.done, res.total));
             setupFolds('configScreen');
         }
 
@@ -6658,7 +6769,7 @@
                     sub = next
                         ? tf('Дальше %1 %2 — ещё ', TIER_NAMES[next.tier], TIER_ICONS[next.tier])
                           + `${next.left} ${pluralAnswers(next.left)}`
-                        : t('Это последняя ступень количества в теме');
+                        : t('Все медали за количество здесь уже твои');
                 }
 
                 // Название темы намеренно не пишем: плашка появляется прямо над примером,
