@@ -14,28 +14,18 @@ create extension if not exists pgcrypto;
 -- 2. Поле для хеша пароля. Сам пароль в базе никогда не хранится как текст.
 alter table citadel_progress add column if not exists password_hash text;
 
--- 3. Удаляем старые неактивные тестовые аккаунты
-delete from citadel_progress
-where code in ('27Q995', 'GGARQH', 'MXCY2J', 'AV9ZGW', 'ЦИТ-S47V');
-
--- 4. Заводим твой собственный аккаунт репетитора.
---    ЗАМЕНИ 'MaksimMartynov' и 'ПРИДУМАЙ_ПАРОЛЬ' на свои значения перед запуском.
-insert into citadel_progress (code, password_hash, state, updated_at)
-values (
-  'MaksimMartynov',
-  crypt('ПРИДУМАЙ_ПАРОЛЬ', gen_salt('bf')),
-  jsonb_build_object(
-    'schema', 2, 'playerCode', 'MaksimMartynov', 'updatedAt', 0,
-    'profileLabel', '', 'accountType', 'self', 'ownerCode', null,
-    'config', null,
-    'puzzle', jsonb_build_object('idx', null, 'filled', 0),
-    'collections', jsonb_build_object('paradoxes', '[]'::jsonb),
-    'totals', jsonb_build_object('correct', 0, 'wrong', 0, 'puzzlesCompleted', 0),
-    'byTopic', '{}'::jsonb, 'unlocks', '[]'::jsonb
-  ),
-  now()
-)
-on conflict (code) do nothing;
+-- 3. Заведение первого аккаунта репетитора вынесено отсюда в bootstrap-tutor.sql.
+--
+--    Почему: здесь стояло БЕЗУСЛОВНОЕ удаление аккаунтов по списку кодов, оставшееся
+--    с давней уборки, и рядом с ним вставка аккаунта репетитора. А этот файл значится
+--    в schema.sql как шаг восстановления базы с нуля, то есть его предлагается
+--    запускать повторно. Сегодня то удаление не удаляет ничего — таких кодов больше
+--    нет, — но однажды один из них мог совпасть с настоящим логином, и восстановление
+--    молча снесло бы живой аккаунт.
+--
+--    Теперь в этом файле только объявления: таблица, колонка и функции. Он безопасен
+--    для повторного запуска целиком. Всё одноразовое живёт отдельно и в восстановлении
+--    не участвует.
 
 -- =====================================================================
 --  RPC-функции. Всё общение с таблицей идёт только через них — пароль
