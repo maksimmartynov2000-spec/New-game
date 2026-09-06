@@ -254,7 +254,12 @@ const SCREENS = [
         let problem = null;
         try {
             await page.evaluate(`setLang('${lang}')`);
-            await page.waitForTimeout(150);
+            // setLang перезагружает страницу. Фиксированная пауза здесь врала: иногда
+            // скрипты ещё не разобраны, и проверка падала с «renderStatsScreen is not
+            // defined» — не по делу, но выглядело как поломка перевода. Ждём, пока
+            // страница поднимется и язык действительно переключится.
+            await page.waitForFunction(`typeof renderStatsScreen === 'function'`
+                + ` && typeof LANG === 'string' && LANG === '${lang}'`);
             await page.evaluate(`document.querySelectorAll('.modal-screen').forEach(x => x.style.display='none');
                                  renderStatsScreen(); document.getElementById('statsScreen').style.display='flex';
                                  renderDailyBar(); renderConfigTasks();`);
