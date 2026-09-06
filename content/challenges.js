@@ -36,9 +36,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Убери разницу — останется 16, это две равные половины по 8. Разницу верни большему: 8 + 4 = 12.'
             },
             legend: {
-                task: 'Сколько будет 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10?',
-                answer: '55',
-                why: 'Складывай не подряд, а парами с концов: 1 + 10 = 11, 2 + 9 = 11, и так пять пар. Пять раз по 11 — это 55.'
+                task: 'Как быстро сложить 68 + 27?',
+                answer: '95',
+                why: 'Займи у второго числа два: 68 + 2 = 70, и остаётся прибавить 25. Круглое число складывать легче — важно не потерять те два, что переехали.'
             }
         },
         'integer+:add:3': {
@@ -81,9 +81,9 @@ window.CHALLENGE_CONTENT = {
         // ===================== ВЫЧИТАНИЕ =====================
         'integer+:sub:1': {
             diamond: {
-                task: 'У тебя было 10 конфет. Ты съел несколько, осталось 4. Потом тебе дали ещё, и снова стало 10. Сколько конфет тебе дали?',
+                task: 'В вазе было 10 конфет. Несколько съели, осталось 4. Потом конфет доложили, и снова стало 10. Сколько доложили?',
                 answer: 'Шесть',
-                why: 'Ровно столько, сколько ты съел: чтобы вернуться к прежнему числу, надо добавить то же, что убавили.'
+                why: 'Ровно столько, сколько съели: чтобы вернуться к прежнему числу, надо добавить то же, что убавили.'
             },
             legend: {
                 task: 'Из числа вычли 3, потом ещё 3 — получилось 4. Какое число было вначале?',
@@ -93,14 +93,14 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:sub:2': {
             diamond: {
-                task: 'Верёвку длиной 20 метров разрезали на две части, и одна оказалась на 4 метра длиннее. Какие получились части?',
-                answer: '12 и 8 метров',
-                why: 'Отложи разницу в сторону: останется 16 на две равные части, по 8. Разницу верни длинной: 8 + 4 = 12.'
+                task: 'Брату 10 лет, сестре 6. Через 5 лет на сколько лет брат будет старше?',
+                answer: 'На четыре',
+                why: 'Разница в возрасте не меняется никогда: оба стали старше на пять, и она осталась прежней.'
             },
             legend: {
-                task: 'Сколько целых чисел стоит между 7 и 15?',
-                answer: 'Семь: от 8 до 14',
-                why: 'Разность 15 − 7 = 8 считает промежутки, а сами числа между концами — это на одно меньше.'
+                task: 'Как быстро посчитать 63 − 29?',
+                answer: '34',
+                why: 'Вычти 30 — это легко: 63 − 30 = 33. Отняли на один больше, чем нужно, значит его надо вернуть: 33 + 1 = 34.'
             }
         },
         'integer+:sub:3': {
@@ -110,9 +110,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Всего убавили 30, значит было 30 + 30 = 60. Два вычитания подряд можно сложить в одно.'
             },
             legend: {
-                task: 'Сколько лет человеку сейчас, если через 10 лет ему будет столько же, сколько было 10 лет назад плюс 20?',
-                answer: 'Любое: условие верно всегда',
-                why: 'Через десять лет человек старше на двадцать, чем был десять лет назад, — это просто повтор одного и того же.'
+                task: 'Сколько будет 100 − (40 − 10)?',
+                answer: '70',
+                why: 'Сначала скобка: 40 − 10 = 30, и 100 − 30 = 70. Убрать скобки не думая — выйдет 50: вычитая скобку, вычитаешь всё, что внутри.'
             }
         },
         'integer+:sub:4': {
@@ -155,9 +155,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:mul:2': {
             diamond: {
-                task: 'Лист бумаги сложили пополам пять раз. Сколько получилось слоёв?',
-                answer: '32',
-                why: 'Удвоение пять раз подряд: 2, 4, 8, 16, 32. Кажется, что должно выйти около десяти, — но удвоение обгоняет ожидания очень быстро.'
+                task: 'Сколько будет 2 × 17 × 5?',
+                answer: '170',
+                why: 'Переставь множители: 2 × 5 = 10, и остаётся 10 × 17. Искать удобную пару выгоднее, чем считать по порядку.'
             },
             legend: {
                 task: 'Сколько будет 5 × 4 × 2 × 0 × 3?',
@@ -173,8 +173,8 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Что больше: 12 × 8 или 16 × 6?',
-                answer: 'Поровну, оба равны 96',
-                why: 'Во втором один множитель вырос, зато другой уменьшился ровно так же — произведение не изменилось.'
+                answer: 'Поровну',
+                why: 'Оба дают 96. Во втором один множитель вырос, зато другой уменьшился ровно так же — произведение не изменилось.'
             }
         },
         'integer+:mul:4': {
@@ -197,8 +197,8 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Сколько нулей будет в конце произведения 2 × 5 × 4 × 5 × 6?',
-                answer: 'Два: получается 1200',
-                why: 'Каждый ноль в конце рождается парой «два и пять», а таких пар здесь ровно две.'
+                answer: 'Два',
+                why: 'Получается 1200. Каждый ноль в конце рождается парой «два и пять», а таких пар здесь ровно две.'
             }
         },
 
@@ -210,9 +210,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Разрезов всегда на один меньше, чем частей: последний кусок отделяется тем же разрезом, что и предпоследний.'
             },
             legend: {
-                task: 'Шесть котов съедают шесть рыбок за шесть минут. За сколько минут шесть котов съедят двенадцать рыбок?',
-                answer: 'За двенадцать',
-                why: 'Каждый кот ест свою рыбку шесть минут, значит вторую съест ещё за шесть. Число котов здесь вообще ни при чём.'
+                task: 'Что больше: 100 ÷ 4 или 100 ÷ 5?',
+                answer: '100 ÷ 4',
+                why: 'Это 25 против 20. Чем на большее число делят, тем меньше достаётся каждому — с делителем результат идёт в обратную сторону.'
             }
         },
         'integer+:div:2': {
@@ -234,9 +234,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'После первой отдачи осталось 10, после второй — половина от десяти. Половину берут каждый раз от того, что есть сейчас.'
             },
             legend: {
-                task: 'Что больше: 100 ÷ 4 или 100 ÷ 5?',
-                answer: '100 ÷ 4 = 25, это больше, чем 20',
-                why: 'Чем на большее число делят, тем меньше достаётся каждому — с делителем результат идёт в обратную сторону.'
+                task: 'Шесть котов съедают шесть рыбок за шесть минут. За сколько минут шесть котов съедят двенадцать рыбок?',
+                answer: 'За двенадцать',
+                why: 'Каждый кот ест свою рыбку шесть минут, значит вторую съест ещё за шесть. Число котов здесь вообще ни при чём.'
             }
         },
         'integer+:div:4': {
@@ -285,9 +285,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Take the gap away and 16 is left — two equal halves of 8. Give the gap back to the bigger one: 8 + 4 = 12.'
             },
             legend: {
-                task: 'How much is 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10?',
-                answer: '55',
-                why: 'Don’t add in order — pair the ends: 1 + 10 = 11, 2 + 9 = 11, and so on for five pairs. Five times 11 is 55.'
+                task: 'What is a fast way to add 68 + 27?',
+                answer: '95',
+                why: 'Borrow two from the second number: 68 + 2 = 70, and 25 is left to add. Round numbers are easier — just don’t lose the two that moved.'
             }
         },
         'integer+:add:3': {
@@ -329,9 +329,9 @@ window.CHALLENGE_CONTENT = {
         // ===================== ВЫЧИТАНИЕ =====================
         'integer+:sub:1': {
             diamond: {
-                task: 'You had 10 sweets. You ate some and 4 were left. Then you were given more and it was 10 again. How many were you given?',
+                task: 'A bowl had 10 sweets. Some were eaten and 4 were left. Then sweets were added and there were 10 again. How many were added?',
                 answer: 'Six',
-                why: 'Exactly as many as you ate: to get back to the old number you have to add back what was taken away.'
+                why: 'Exactly as many as were eaten: to get back to the old number you have to add back what was taken away.'
             },
             legend: {
                 task: '3 was subtracted from a number, then 3 again — and 4 came out. What was the number at the start?',
@@ -341,14 +341,14 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:sub:2': {
             diamond: {
-                task: 'A 20-metre rope was cut into two pieces, and one turned out 4 metres longer. How long is each piece?',
-                answer: '12 and 8 metres',
-                why: 'Set the difference aside: 16 is left for two equal pieces of 8. Give the difference back to the long one: 8 + 4 = 12.'
+                task: 'A brother is 10 and a sister is 6. In 5 years, by how many years will the brother be older?',
+                answer: 'By four',
+                why: 'An age gap never changes: both grew five years older, so the gap stayed exactly as it was.'
             },
             legend: {
-                task: 'How many whole numbers lie between 7 and 15?',
-                answer: 'Seven: from 8 to 14',
-                why: 'The difference 15 − 7 = 8 counts the gaps, and the numbers in between are one fewer than that.'
+                task: 'What is a fast way to work out 63 − 29?',
+                answer: '34',
+                why: 'Subtract 30 — that is easy: 63 − 30 = 33. That took away one too many, so give it back: 33 + 1 = 34.'
             }
         },
         'integer+:sub:3': {
@@ -358,9 +358,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Altogether 30 was taken away, so it was 30 + 30 = 60. Two subtractions in a row can be added into one.'
             },
             legend: {
-                task: 'How old is a person now, if in 10 years they will be as old as they were 10 years ago plus 20?',
-                answer: 'Any age: it is always true',
-                why: 'In ten years a person is twenty years older than ten years ago — that is simply the same statement said twice.'
+                task: 'What is 100 − (40 − 10)?',
+                answer: '70',
+                why: 'Brackets first: 40 − 10 = 30, and 100 − 30 = 70. Drop the brackets carelessly and you get 50 — subtracting a bracket subtracts everything inside it.'
             }
         },
         'integer+:sub:4': {
@@ -402,9 +402,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:mul:2': {
             diamond: {
-                task: 'A sheet of paper was folded in half five times. How many layers are there?',
-                answer: '32',
-                why: 'Doubling five times over: 2, 4, 8, 16, 32. It feels like it should be about ten — but doubling overtakes expectations very fast.'
+                task: 'What is 2 × 17 × 5?',
+                answer: '170',
+                why: 'Reorder the factors: 2 × 5 = 10, and 10 × 17 is left. Hunting for a handy pair beats multiplying in the order given.'
             },
             legend: {
                 task: 'How much is 5 × 4 × 2 × 0 × 3?',
@@ -420,8 +420,8 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Which is bigger: 12 × 8 or 16 × 6?',
-                answer: 'Equal, both make 96',
-                why: 'In the second one factor grew, but the other shrank by exactly as much — the product did not change.'
+                answer: 'Equal',
+                why: 'Both make 96. In the second one factor grew, but the other shrank by exactly as much — the product did not change.'
             }
         },
         'integer+:mul:4': {
@@ -444,8 +444,8 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'How many zeros will there be at the end of 2 × 5 × 4 × 5 × 6?',
-                answer: 'Two: it makes 1200',
-                why: 'Every zero at the end is born from a pair of two and five, and there are exactly two such pairs here.'
+                answer: 'Two',
+                why: 'It makes 1200. Every zero at the end is born from a pair of two and five, and there are exactly two such pairs here.'
             }
         },
         // ===================== ДЕЛЕНИЕ =====================
@@ -456,9 +456,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'There is always one cut fewer than pieces: the last piece falls away with the same cut as the one before it.'
             },
             legend: {
-                task: 'Six cats eat six fish in six minutes. How many minutes will six cats need to eat twelve fish?',
-                answer: 'Twelve',
-                why: 'Each cat eats its own fish in six minutes, so it needs six more for a second one. The number of cats does not matter at all.'
+                task: 'Which is bigger: 100 ÷ 4 or 100 ÷ 5?',
+                answer: '100 ÷ 4',
+                why: 'That is 25 against 20. The bigger the number you divide by, the less each one gets — with the divisor the result goes the other way.'
             }
         },
         'integer+:div:2': {
@@ -480,9 +480,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'After the first giving 10 were left, after the second half of ten. Each time the half is taken from what is there now.'
             },
             legend: {
-                task: 'Which is bigger: 100 ÷ 4 or 100 ÷ 5?',
-                answer: '100 ÷ 4 = 25, more than 20',
-                why: 'The bigger the number you divide by, the less each one gets — with the divisor the result goes the other way.'
+                task: 'Six cats eat six fish in six minutes. How many minutes will six cats need to eat twelve fish?',
+                answer: 'Twelve',
+                why: 'Each cat eats its own fish in six minutes, so it needs six more for a second one. The number of cats does not matter at all.'
             }
         },
         'integer+:div:4': {
@@ -531,9 +531,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Retire l’écart : il reste 16, soit deux moitiés égales de 8. Rends l’écart au plus grand : 8 + 4 = 12.'
             },
             legend: {
-                task: 'Combien font 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10 ?',
-                answer: '55',
-                why: 'N’additionne pas dans l’ordre : associe les extrémités. 1 + 10 = 11, 2 + 9 = 11, et ainsi cinq paires. Cinq fois 11 font 55.'
+                task: 'Comment additionner vite 68 + 27 ?',
+                answer: '95',
+                why: 'Emprunte deux au second nombre : 68 + 2 = 70, il reste 25 à ajouter. Les nombres ronds sont plus faciles — ne perds pas les deux qui ont déménagé.'
             }
         },
         'integer+:add:3': {
@@ -575,9 +575,9 @@ window.CHALLENGE_CONTENT = {
         // ===================== ВЫЧИТАНИЕ =====================
         'integer+:sub:1': {
             diamond: {
-                task: 'Tu avais 10 bonbons. Tu en as mangé quelques-uns, il en restait 4. Puis on t’en a donné, et tu en as de nouveau 10. Combien t’en a-t-on donné ?',
+                task: 'Il y avait 10 bonbons dans un bol. On en a mangé quelques-uns, il en restait 4. Puis on en a rajouté, et il y en avait de nouveau 10. Combien en a-t-on rajouté ?',
                 answer: 'Six',
-                why: 'Exactement autant que tu en as mangé : pour revenir au nombre de départ, il faut rendre ce qu’on a enlevé.'
+                why: 'Exactement autant qu’on en a mangé : pour revenir au nombre de départ, il faut rendre ce qu’on a enlevé.'
             },
             legend: {
                 task: 'On a retiré 3 à un nombre, puis encore 3 — il reste 4. Quel était ce nombre au départ ?',
@@ -587,14 +587,14 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:sub:2': {
             diamond: {
-                task: 'Une corde de 20 mètres a été coupée en deux, et un morceau fait 4 mètres de plus. Combien mesure chaque morceau ?',
-                answer: '12 et 8 mètres',
-                why: 'Mets l’écart de côté : il reste 16 pour deux morceaux égaux de 8. Rends l’écart au plus long : 8 + 4 = 12.'
+                task: 'Le frère a 10 ans, la sœur 6. Dans 5 ans, de combien d’années le frère sera-t-il plus âgé ?',
+                answer: 'De quatre',
+                why: 'Un écart d’âge ne change jamais : tous les deux ont pris cinq ans, et l’écart est resté le même.'
             },
             legend: {
-                task: 'Combien de nombres entiers se trouvent entre 7 et 15 ?',
-                answer: 'Sept : de 8 à 14',
-                why: 'La différence 15 − 7 = 8 compte les intervalles, et les nombres entre les bornes sont un de moins.'
+                task: 'Comment calculer vite 63 − 29 ?',
+                answer: '34',
+                why: 'Enlève 30, c’est facile : 63 − 30 = 33. On a enlevé un de trop, il faut donc le rendre : 33 + 1 = 34.'
             }
         },
         'integer+:sub:3': {
@@ -604,9 +604,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'En tout on a retiré 30, donc c’était 30 + 30 = 60. Deux soustractions de suite se regroupent en une seule.'
             },
             legend: {
-                task: 'Quel âge a une personne si, dans 10 ans, elle aura l’âge qu’elle avait il y a 10 ans plus 20 ?',
-                answer: 'N’importe lequel : toujours vrai',
-                why: 'Dans dix ans, on a vingt ans de plus qu’il y a dix ans — c’est la même chose dite deux fois.'
+                task: 'Combien font 100 − (40 − 10) ?',
+                answer: '70',
+                why: 'D’abord la parenthèse : 40 − 10 = 30, puis 100 − 30 = 70. Enlève les parenthèses sans réfléchir et tu obtiens 50 — soustraire une parenthèse, c’est soustraire tout ce qu’elle contient.'
             }
         },
         'integer+:sub:4': {
@@ -648,9 +648,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:mul:2': {
             diamond: {
-                task: 'On a plié une feuille en deux, cinq fois de suite. Combien de couches obtient-on ?',
-                answer: '32',
-                why: 'Cinq doublements d’affilée : 2, 4, 8, 16, 32. On croirait arriver à une dizaine — mais doubler dépasse très vite ce qu’on imagine.'
+                task: 'Combien font 2 × 17 × 5 ?',
+                answer: '170',
+                why: 'Réordonne les facteurs : 2 × 5 = 10, il reste 10 × 17. Chercher une paire commode vaut mieux que multiplier dans l’ordre.'
             },
             legend: {
                 task: 'Combien font 5 × 4 × 2 × 0 × 3 ?',
@@ -666,8 +666,8 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Qu’est-ce qui est plus grand : 12 × 8 ou 16 × 6 ?',
-                answer: 'Égaux, tous deux font 96',
-                why: 'Dans le second, un facteur a grandi, mais l’autre a diminué d’autant — le produit n’a pas bougé.'
+                answer: 'Égaux',
+                why: 'Tous deux font 96. Dans le second, un facteur a grandi, mais l’autre a diminué d’autant — le produit n’a pas bougé.'
             }
         },
         'integer+:mul:4': {
@@ -690,8 +690,8 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Combien de zéros y aura-t-il à la fin de 2 × 5 × 4 × 5 × 6 ?',
-                answer: 'Deux : cela fait 1200',
-                why: 'Chaque zéro final naît d’une paire deux-et-cinq, et il y a ici exactement deux paires de ce genre.'
+                answer: 'Deux',
+                why: 'Cela fait 1200. Chaque zéro final naît d’une paire deux-et-cinq, et il y a ici exactement deux paires de ce genre.'
             }
         },
         // ===================== ДЕЛЕНИЕ =====================
@@ -702,9 +702,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Il y a toujours une coupe de moins que de morceaux : le dernier morceau se détache avec la même coupe que l’avant-dernier.'
             },
             legend: {
-                task: 'Six chats mangent six poissons en six minutes. En combien de minutes six chats mangeront-ils douze poissons ?',
-                answer: 'En douze',
-                why: 'Chaque chat mange son poisson en six minutes, il lui en faut donc six de plus pour un second. Le nombre de chats n’y change rien.'
+                task: 'Qu’est-ce qui est plus grand : 100 ÷ 4 ou 100 ÷ 5 ?',
+                answer: '100 ÷ 4',
+                why: 'C’est 25 contre 20. Plus le diviseur est grand, moins chacun reçoit — avec le diviseur, le résultat va dans l’autre sens.'
             }
         },
         'integer+:div:2': {
@@ -726,9 +726,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Après le premier don il en restait 10, après le second la moitié de dix. Chaque fois, la moitié se prend sur ce qui reste.'
             },
             legend: {
-                task: 'Qu’est-ce qui est plus grand : 100 ÷ 4 ou 100 ÷ 5 ?',
-                answer: '100 ÷ 4 = 25, plus que 20',
-                why: 'Plus le diviseur est grand, moins chacun reçoit — avec le diviseur, le résultat va dans l’autre sens.'
+                task: 'Six chats mangent six poissons en six minutes. En combien de minutes six chats mangeront-ils douze poissons ?',
+                answer: 'En douze',
+                why: 'Chaque chat mange son poisson en six minutes, il lui en faut donc six de plus pour un second. Le nombre de chats n’y change rien.'
             }
         },
         'integer+:div:4': {
@@ -777,9 +777,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Nimm den Abstand weg, dann bleiben 16 — zwei gleiche Hälften zu 8. Gib den Abstand der größeren zurück: 8 + 4 = 12.'
             },
             legend: {
-                task: 'Wie viel ist 1 + 2 + 3 + 4 + 5 + 6 + 7 + 8 + 9 + 10?',
-                answer: '55',
-                why: 'Addiere nicht der Reihe nach, sondern paarweise von außen: 1 + 10 = 11, 2 + 9 = 11, so fünf Paare. Fünfmal 11 sind 55.'
+                task: 'Wie addiert man 68 + 27 schnell?',
+                answer: '95',
+                why: 'Nimm zwei von der zweiten Zahl: 68 + 2 = 70, und 25 bleiben zum Addieren. Runde Zahlen sind leichter — nur die zwei nicht verlieren, die umgezogen sind.'
             }
         },
         'integer+:add:3': {
@@ -821,9 +821,9 @@ window.CHALLENGE_CONTENT = {
         // ===================== ВЫЧИТАНИЕ =====================
         'integer+:sub:1': {
             diamond: {
-                task: 'Du hattest 10 Bonbons. Du hast einige gegessen, 4 blieben übrig. Dann bekamst du welche dazu, und es waren wieder 10. Wie viele hast du bekommen?',
+                task: 'In einer Schale lagen 10 Bonbons. Einige wurden gegessen, 4 blieben übrig. Dann wurden Bonbons nachgelegt, und es waren wieder 10. Wie viele wurden nachgelegt?',
                 answer: 'Sechs',
-                why: 'Genau so viele, wie du gegessen hast: um zur alten Zahl zurückzukommen, muss man dasselbe wieder dazugeben.'
+                why: 'Genau so viele, wie gegessen wurden: um zur alten Zahl zurückzukommen, muss man dasselbe wieder dazugeben.'
             },
             legend: {
                 task: 'Von einer Zahl wurde 3 abgezogen, dann noch einmal 3 — heraus kam 4. Wie hieß die Zahl am Anfang?',
@@ -833,14 +833,14 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:sub:2': {
             diamond: {
-                task: 'Ein 20 Meter langes Seil wurde in zwei Stücke geschnitten, eines ist 4 Meter länger. Wie lang sind die Stücke?',
-                answer: '12 und 8 Meter',
-                why: 'Leg den Unterschied beiseite: es bleiben 16 für zwei gleiche Stücke zu 8. Gib den Unterschied dem längeren zurück: 8 + 4 = 12.'
+                task: 'Der Bruder ist 10, die Schwester 6. Um wie viele Jahre ist der Bruder in 5 Jahren älter?',
+                answer: 'Um vier',
+                why: 'Ein Altersunterschied ändert sich nie: beide sind fünf Jahre älter geworden, der Abstand blieb gleich.'
             },
             legend: {
-                task: 'Wie viele ganze Zahlen liegen zwischen 7 und 15?',
-                answer: 'Sieben: von 8 bis 14',
-                why: 'Die Differenz 15 − 7 = 8 zählt die Zwischenräume, und die Zahlen dazwischen sind eine weniger.'
+                task: 'Wie rechnet man 63 − 29 schnell?',
+                answer: '34',
+                why: 'Ziehe 30 ab, das ist leicht: 63 − 30 = 33. Eins zu viel abgezogen, also zurückgeben: 33 + 1 = 34.'
             }
         },
         'integer+:sub:3': {
@@ -850,9 +850,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Insgesamt wurden 30 abgezogen, also war es 30 + 30 = 60. Zwei Abzüge hintereinander lassen sich zu einem zusammenfassen.'
             },
             legend: {
-                task: 'Wie alt ist jemand jetzt, wenn er in 10 Jahren so alt ist wie vor 10 Jahren plus 20?',
-                answer: 'Jedes Alter: es stimmt immer',
-                why: 'In zehn Jahren ist man zwanzig Jahre älter als vor zehn Jahren — das ist einfach zweimal dasselbe gesagt.'
+                task: 'Wie viel ist 100 − (40 − 10)?',
+                answer: '70',
+                why: 'Zuerst die Klammer: 40 − 10 = 30, dann 100 − 30 = 70. Lässt man die Klammer gedankenlos weg, kommt 50 heraus — wer eine Klammer abzieht, zieht alles darin ab.'
             }
         },
         'integer+:sub:4': {
@@ -894,9 +894,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:mul:2': {
             diamond: {
-                task: 'Ein Blatt Papier wurde fünfmal in der Mitte gefaltet. Wie viele Lagen sind es?',
-                answer: '32',
-                why: 'Fünfmal verdoppelt: 2, 4, 8, 16, 32. Man tippt auf etwa zehn — aber Verdoppeln überholt die Erwartung sehr schnell.'
+                task: 'Wie viel ist 2 × 17 × 5?',
+                answer: '170',
+                why: 'Stelle die Faktoren um: 2 × 5 = 10, es bleibt 10 × 17. Ein bequemes Paar zu suchen ist besser, als der Reihe nach zu rechnen.'
             },
             legend: {
                 task: 'Wie viel ist 5 × 4 × 2 × 0 × 3?',
@@ -912,8 +912,8 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Was ist größer: 12 × 8 oder 16 × 6?',
-                answer: 'Gleich, beide ergeben 96',
-                why: 'Beim zweiten ist ein Faktor gewachsen, dafür der andere genauso geschrumpft — das Produkt blieb gleich.'
+                answer: 'Gleich',
+                why: 'Beide ergeben 96. Beim zweiten ist ein Faktor gewachsen, dafür der andere genauso geschrumpft — das Produkt blieb gleich.'
             }
         },
         'integer+:mul:4': {
@@ -936,8 +936,8 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Wie viele Nullen stehen am Ende von 2 × 5 × 4 × 5 × 6?',
-                answer: 'Zwei: es ergibt 1200',
-                why: 'Jede Null am Ende entsteht aus einem Paar aus Zwei und Fünf, und davon gibt es hier genau zwei.'
+                answer: 'Zwei',
+                why: 'Es ergibt 1200. Jede Null am Ende entsteht aus einem Paar aus Zwei und Fünf, und davon gibt es hier genau zwei.'
             }
         },
         // ===================== ДЕЛЕНИЕ =====================
@@ -948,9 +948,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Es sind immer ein Schnitt weniger als Stücke: das letzte Stück trennt sich mit demselben Schnitt wie das vorletzte.'
             },
             legend: {
-                task: 'Sechs Katzen fressen sechs Fische in sechs Minuten. In wie vielen Minuten fressen sechs Katzen zwölf Fische?',
-                answer: 'In zwölf',
-                why: 'Jede Katze frisst ihren Fisch in sechs Minuten, für den zweiten braucht sie noch einmal sechs. Die Anzahl der Katzen spielt gar keine Rolle.'
+                task: 'Was ist größer: 100 ÷ 4 oder 100 ÷ 5?',
+                answer: '100 ÷ 4',
+                why: 'Das sind 25 gegen 20. Je größer die Zahl, durch die man teilt, desto weniger bekommt jeder — beim Teiler läuft das Ergebnis andersherum.'
             }
         },
         'integer+:div:2': {
@@ -972,9 +972,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Nach dem ersten Mal blieben 10, nach dem zweiten die Hälfte von zehn. Die Hälfte nimmt man jedes Mal von dem, was gerade da ist.'
             },
             legend: {
-                task: 'Was ist größer: 100 ÷ 4 oder 100 ÷ 5?',
-                answer: '100 ÷ 4 = 25, mehr als 20',
-                why: 'Je größer die Zahl, durch die man teilt, desto weniger bekommt jeder — beim Teiler läuft das Ergebnis andersherum.'
+                task: 'Sechs Katzen fressen sechs Fische in sechs Minuten. In wie vielen Minuten fressen sechs Katzen zwölf Fische?',
+                answer: 'In zwölf',
+                why: 'Jede Katze frisst ihren Fisch in sechs Minuten, für den zweiten braucht sie noch einmal sechs. Die Anzahl der Katzen spielt gar keine Rolle.'
             }
         },
         'integer+:div:4': {
