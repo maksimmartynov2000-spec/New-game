@@ -114,12 +114,10 @@ drop function if exists list_access_codes(text, text, text);
 drop function if exists redeem_access_code(text, text, text);
 drop function if exists revoke_access_code(text, text, text);
 
--- Две внутренние функции стояли открытыми для anon по недосмотру. Удалять их
--- нельзя — их зовут session_take_exam и потолок экзамена, — но снаружи они
--- быть видны не должны: правило для всех остальных impl_* ровно такое же.
-revoke execute on function impl_exam_allowed(text, text) from public;
-revoke execute on function exam_max_grant() from public;
-revoke execute on function valid_grant(jsonb) from public;
+-- Внутренние функции тоже стоят открытыми, но закрываются они ОТДЕЛЬНЫМ файлом,
+-- lock-internals.sql. Здесь их трогать бесполезно: Supabase выдаёт права не через
+-- public, а прямой выдачей роли anon, и «revoke ... from public» такую выдачу не
+-- отзывает. Ровно на этом я и ошибся в первой версии — см. шапку того файла.
 
 commit;
 
