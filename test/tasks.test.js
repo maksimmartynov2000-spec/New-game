@@ -436,17 +436,23 @@ group('Задание не двигается под руками у того, �
 // Один день, одна клетка, ответы копятся. Ровно то, что было на экране у ученика:
 // «Реши верно 20 — до медали «Бронза» останется 3», следующий ответ — «останется 2»,
 // ещё один — «останется 1», а на шестом строка в игре пропадала совсем.
-function dayOf(cell, correct) {
-    return { byTopic: { [cell]: { correct, wrong: 0 } },
-             daily: journal({ 0: day(correct, 0, { [cell]: [correct, 0] }) }) };
+// before — сколько верных было в клетке ВЧЕРА, today — сколько добавили сегодня.
+// Разделять обязательно: задание выбирается по вчерашней картине, а счётчик считает
+// сегодняшнее. Первая версия этих проверок складывала всё в сегодня и потому
+// проверяла состояние, в котором роли «продвинуться» не бывает вовсе.
+function dayOf(cell, before, today) {
+    const j = {};
+    if (before > 0) j[1] = day(before, 0, { [cell]: [before, 0] });
+    if (today > 0) j[0] = day(today, 0, { [cell]: [today, 0] });
+    return { byTopic: { [cell]: { correct: before + today, wrong: 0 } }, daily: journal(j) };
 }
 
 test('за день не меняются ни цель, ни текст, ни номер задания', () => {
     const cell = 'integer+:add:1';
     const w = load({ open: [cell, 'integer+:sub:1'] });
     const seen = [];
-    for (let n = 2; n <= 12; n++) {
-        const adv = w.dailyTasks(dayOf(cell, n), TODAY, 'ЯР7').filter(x => x.role === 'advance')[0];
+    for (let n = 0; n <= 12; n++) {
+        const adv = w.dailyTasks(dayOf(cell, 2, n), TODAY, 'ЯР7').filter(x => x.role === 'advance')[0];
         assert(adv, `на ${n} верных задание «продвинуться» пропало`);
         seen.push(`${adv.id} :: ${adv.text}`);
     }
@@ -462,14 +468,13 @@ test('обещанное «останется N» сбывается', () => {
     // 20 на глазах превращалось в 13.
     const cell = 'integer+:add:1';
     const w = load({ open: [cell, 'integer+:sub:1'] });
-    const start = w.dailyTasks(dayOf(cell, 0), TODAY, 'ЯР7').filter(x => x.role === 'advance')[0]
-               || w.dailyTasks(dayOf(cell, 1), TODAY, 'ЯР7').filter(x => x.role === 'advance')[0];
+    const start = w.dailyTasks(dayOf(cell, 2, 0), TODAY, 'ЯР7').filter(x => x.role === 'advance')[0];
     assert(start, 'задания «продвинуться» нет');
     // Сделали ровно столько, сколько просили, — и до медали осталось ровно обещанное.
-    const after = w.dailyTasks(dayOf(cell, start.need), TODAY, 'ЯР7')
+    const after = w.dailyTasks(dayOf(cell, 2, start.need), TODAY, 'ЯР7')
                    .filter(x => x.role === 'advance')[0];
     assert(after && after.done, `сделали ${start.need}, а задание не закрылось`);
-    const left = 25 - start.need;          // COUNT_TIERS[0] — бронза
+    const left = 25 - 2 - start.need;      // COUNT_TIERS[0] — бронза
     assert(start.gap - start.need === left,
         `обещали «останется ${start.gap - start.need}», а осталось ${left}`);
 });
@@ -503,15 +508,23 @@ test('недельное задание тоже стоит на месте вс
     // Недельное выбирается жребием из трёх, и на две трети кодов выпадает не то
     // задание, что считается от прогресса. Тогда проверка молчала бы при любой
     // поломке — берём код, у которого выпадает именно оно.
+    // Недельное меряет от начала НЕДЕЛИ, поэтому история нужна из прошлой недели:
+    // вчерашние ответы лежат внутри текущей и в основание не годятся. Восемь дней
+    // назад — всегда прошлая неделя, какой бы день сегодня ни был.
+    const weekOf = (today) => {
+        const j = { 8: day(30, 0, { [cell]: [30, 0] }) };
+        if (today > 0) j[0] = day(today, 0, { [cell]: [today, 0] });
+        return { byTopic: { [cell]: { correct: 30 + today, wrong: 0 } }, daily: journal(j) };
+    };
     let code = null;
     for (const c of ['ЯР7', 'ЯР8', 'ЯР9', 'МД1', 'МД2', 'МД3', 'АБ1', 'АБ2', 'АБ3']) {
-        const wk = w.weeklyTask(dayOf(cell, 1), TODAY, c);
+        const wk = w.weeklyTask(weekOf(1), TODAY, c);
         if (wk && wk.cell === cell) { code = c; break; }
     }
     assert(code, 'не нашлось кода, у которого недельное задание считается от прогресса');
     const seen = [];
     for (let n = 1; n <= 8; n++) {
-        const wk = w.weeklyTask(dayOf(cell, n), TODAY, code);
+        const wk = w.weeklyTask(weekOf(n), TODAY, code);
         assert(wk && wk.cell === cell, `на ${n} верных недельное задание сменилось на другое`);
         seen.push(`${wk.id} :: ${wk.text}`);
     }
@@ -520,12 +533,98 @@ test('недельное задание тоже стоит на месте вс
         `недельное изменилось:\n      было  ${seen[0]}\n      стало ${moved[0]}`);
 });
 
+test('у нового ученика набор не перетасовывается на первом же ответе', () => {
+    // Совсем новый аккаунт: ничего никогда не решал. Первый верный ответ рождал роль
+    // «продвинуться», она занимала клетку, «Новая тема» съезжала в соседнюю, третье
+    // задание вытеснялось, а у недельного менялась длина жребия — и оно тоже
+    // сменялось. Весь набор перетасовывался на одном ответе.
+    const cell = 'integer+:add:1';
+    const w = load({ open: [cell, 'integer+:sub:1', 'integer+:mul:1', 'integer+:div:1'] });
+    const shot = (n) => {
+        const st = n === 0 ? { byTopic: {}, daily: {} } : dayOf(cell, 0, n);
+        const wk = w.weeklyTask(st, TODAY, 'ЯР7');
+        return w.dailyTasks(st, TODAY, 'ЯР7').map(x => x.id).join(' , ')
+             + '  ||  ' + (wk ? wk.id : '—');
+    };
+    const first = shot(0);
+    for (const n of [1, 2, 5, 9, 14]) {
+        eq(shot(n), first, `после ${n} верных набор заданий стал другим`);
+    }
+});
+
+test('недельный жребий всегда из трёх вариантов', () => {
+    // Первый вариант добавлялся, только если роль «продвинуться» нашлась, — и длина
+    // списка менялась с двух на три, а вместе с ней остаток от деления. Недельное
+    // задание из-за этого сменялось посреди недели. Длину проверяем прямо: у пустого
+    // аккаунта по разным кодам должны встречаться ВСЕ ТРИ варианта, а не два.
+    const w = load({ open: ['integer+:add:1', 'integer+:sub:1'] });
+    const empty = { byTopic: {}, daily: {} };
+    const kinds = {};
+    for (let i = 0; i < 60; i++) {
+        const wk = w.weeklyTask(empty, TODAY, 'S' + i);
+        if (wk) kinds[wk.id] = true;
+    }
+    eq(Object.keys(kinds).length, 3,
+        `вариантов недельного задания ${Object.keys(kinds).length}, а должно быть три: ${Object.keys(kinds).join(', ')}`);
+});
+
+test('подпись общего задания не читается как «в каждой теме»', () => {
+    // Под «Реши 25 примеров» стояло «по всем темам» — и вместе это читалось как
+    // «по двадцать пять в каждой теме». Задание считает ответы где угодно, и подпись
+    // не должна называть темы вовсе.
+    const w = load({ open: ['integer+:add:1', 'integer+:sub:1'] });
+    const list = w.dailyTasks({ byTopic: {}, daily: {} }, TODAY, 'ЯР7');
+    const common = list.filter(x => !x.cell);
+    assert(common.length > 0, 'общих заданий не нашлось');
+    common.forEach(x => {
+        assert(!/тем/i.test(x.where || ''),
+            `подпись общего задания называет темы: «${x.where}»`);
+        assert((x.where || '').trim(), 'подпись общего задания снова пустая');
+    });
+});
+
+test('общие задания не начинаются одинаково', () => {
+    // «Реши 25 примеров» и «Реши верно 15 примеров» стояли рядом и отличались одним
+    // словом в середине — Максим прочитал их как одно требование. Считают они разное:
+    // первое любые ответы, второе только верные. Разное надо и называть по-разному,
+    // причём с первого слова: дальше ребёнок уже не вчитывается.
+    const w = load({ open: ['integer+:add:1', 'integer+:sub:1'] });
+    const seen = {};
+    for (let i = 0; i < 60; i++) {
+        w.dailyTasks({ byTopic: {}, daily: {} }, TODAY, 'S' + i)
+            .filter(x => !x.cell)
+            .forEach(x => { seen[x.text.split(' ')[0].toLowerCase()] = x.text; });
+    }
+    const starts = Object.keys(seen);
+    const texts = starts.map(k => seen[k]);
+    // Одно первое слово — один текст. Если два разных задания начинаются одинаково,
+    // в seen останется только последнее, и число текстов не сойдётся с числом заданий.
+    const all = {};
+    for (let i = 0; i < 60; i++) {
+        w.dailyTasks({ byTopic: {}, daily: {} }, TODAY, 'S' + i)
+            .filter(x => !x.cell).forEach(x => { all[x.text] = true; });
+    }
+    eq(starts.length, Object.keys(all).length,
+        `общих заданий ${Object.keys(all).length}, а разных первых слов ${starts.length}: ${texts.join(' / ')}`);
+});
+
+test('«попробовать» зовёт в тему, а не в «место»', () => {
+    // «Новое место» — оборот из нашей головы: у ученика мест нет, у него есть темы,
+    // и слово «тема» стоит тут же, в подписи под строкой.
+    const w = load({ open: ['integer+:add:1', 'integer+:sub:1'] });
+    const ex = w.dailyTasks({ byTopic: {}, daily: {} }, TODAY, 'ЯР7')
+                .filter(x => x.role === 'explore')[0];
+    assert(ex, 'задания «попробовать» нет');
+    assert(/тем/i.test(ex.text), `сказано: «${ex.text}»`);
+    assert(!/мест/i.test(ex.text), `снова про «место»: «${ex.text}»`);
+});
+
 test('роль не пропадает из-за того, что клетку заняла другая', () => {
     // У нового ученика «продвинуться» и «попробовать» обе указывали на первую клетку
     // карты. Совпавшую просто отбрасывали — и заданий выходило два вместо трёх.
     const cell = 'integer+:add:1';
     const w = load({ open: [cell, 'integer+:sub:1', 'integer+:mul:1'] });
-    const list = w.dailyTasks(dayOf(cell, 6), TODAY, 'ЯР7');
+    const list = w.dailyTasks(dayOf(cell, 6, 0), TODAY, 'ЯР7');
     const roles = list.filter(x => x.role).map(x => x.role);
     assert(roles.indexOf('advance') >= 0, 'нет задания «продвинуться»');
     assert(roles.indexOf('explore') >= 0, 'нет задания «попробовать» — его съела другая роль');
