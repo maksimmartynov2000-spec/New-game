@@ -323,7 +323,7 @@ test('когда везде побывал недавно — никуда не 
     const all = {};
     ['add', 'sub', 'mul', 'div'].forEach(op => { all[`integer+:${op}:1`] = [10, 1]; all[`integer+:${op}:2`] = [10, 1]; });
     const daily = journal({ 0: day(80, 8, all), 1: day(80, 8, all) });
-    eq(T.roleExplore(ST, daily, TODAY, T.openCells()), null, 'позвали туда, где ученик был вчера');
+    eq(T.roleExplore(ST, daily, TODAY, T.openCells(), null, TODAY, TODAY), null, 'позвали туда, где ученик был вчера');
 });
 
 test('две роли не дают двух заданий про одну клетку', () => {
@@ -375,7 +375,7 @@ test('в своём действии зовёт вверх, а не назад',
     // сила в сложении ничего не говорит о делении, — и это проверяется следующим тестом.
     const w = wide();
     const daily = journal({ 0: day(20, 2, { 'integer+:add:4': [20, 2] }) });
-    const t = w.roleExplore(ST, daily, TODAY, ALL_OPEN, 'integer+:add:4');
+    const t = w.roleExplore(ST, daily, TODAY, ALL_OPEN, 'integer+:add:4', TODAY, TODAY);
     eq(t.cell, 'integer+:add:5', 'ждали следующую звезду того же действия, а не предыдущую');
 });
 
@@ -384,7 +384,7 @@ test('ниже своей звезды в своём действии не зо�
     const daily = journal({ 0: day(20, 2, { 'integer+:add:3': [20, 2] }) });
     // Оставляем открытыми только сложение: пусть выбор будет лишь между 1★-5★.
     const onlyAdd = ALL_OPEN.filter(k => k.indexOf('integer+:add:') === 0);
-    const t = w.roleExplore(ST, daily, TODAY, onlyAdd, 'integer+:add:3');
+    const t = w.roleExplore(ST, daily, TODAY, onlyAdd, 'integer+:add:3', TODAY, TODAY);
     assert(t, 'задание должно быть');
     const level = Number(t.cell.split(':')[2]);
     assert(level > 3, `позвали на ${level}★, а работает он на 3★`);
@@ -396,7 +396,7 @@ test('в другое действие зовёт с низкой звезды, 
     const fresh = {};
     for (let l = 1; l <= 5; l++) fresh[`integer+:add:${l}`] = [10, 1];
     const daily = journal({ 0: day(50, 5, fresh), 1: day(50, 5, fresh) });
-    const t = w.roleExplore(ST, daily, TODAY, ALL_OPEN, 'integer+:add:4');
+    const t = w.roleExplore(ST, daily, TODAY, ALL_OPEN, 'integer+:add:4', TODAY, TODAY);
     assert(t.cell.indexOf('integer+:') === 0, `ушли из раздела: ${t.cell}`);
     assert(t.cell.indexOf(':add:') < 0, `остались в том же действии: ${t.cell}`);
     assert(t.cell.slice(-1) === '1', `в новом действии зовут не с первой звезды: ${t.cell}`);
@@ -409,7 +409,7 @@ test('в другой раздел — только когда в своём в�
         for (let l = 1; l <= 5; l++) fresh[`integer+:${op}:${l}`] = [4, 0];
     });
     const daily = journal({ 0: day(80, 0, fresh), 1: day(80, 0, fresh) });
-    const t = w.roleExplore(ST, daily, TODAY, ALL_OPEN, 'integer+:add:4');
+    const t = w.roleExplore(ST, daily, TODAY, ALL_OPEN, 'integer+:add:4', TODAY, TODAY);
     assert(t && t.cell.indexOf('integer-') === 0, `остались в исхоженном разделе: ${t && t.cell}`);
 });
 
@@ -420,16 +420,118 @@ test('простой решает только среди одинаково б�
     const w = wide();
     const daily = journal({ 0: day(20, 2, { 'integer+:add:4': [20, 2] }),
                             13: day(5, 0, { 'integer-:mul:1': [5, 0] }) });
-    const t = w.roleExplore(ST, daily, TODAY, ALL_OPEN, 'integer+:add:4');
+    const t = w.roleExplore(ST, daily, TODAY, ALL_OPEN, 'integer+:add:4', TODAY, TODAY);
     eq(t.cell, 'integer+:add:5', 'дальняя клетка с большим простоем перебила ближнюю');
 });
 
 test('без истории зовём в самое начало карты', () => {
     const w = wide();
-    const t = w.roleExplore(ST, {}, TODAY, ALL_OPEN, null);
+    const t = w.roleExplore(ST, {}, TODAY, ALL_OPEN, null, TODAY, TODAY);
     eq(t.cell, 'integer+:add:1', 'новичка позвали не с первой клетки');
 });
 
+
+group('Задание не двигается под руками у того, кто его делает');
+
+// Один день, одна клетка, ответы копятся. Ровно то, что было на экране у ученика:
+// «Реши верно 20 — до медали «Бронза» останется 3», следующий ответ — «останется 2»,
+// ещё один — «останется 1», а на шестом строка в игре пропадала совсем.
+function dayOf(cell, correct) {
+    return { byTopic: { [cell]: { correct, wrong: 0 } },
+             daily: journal({ 0: day(correct, 0, { [cell]: [correct, 0] }) }) };
+}
+
+test('за день не меняются ни цель, ни текст, ни номер задания', () => {
+    const cell = 'integer+:add:1';
+    const w = load({ open: [cell, 'integer+:sub:1'] });
+    const seen = [];
+    for (let n = 2; n <= 12; n++) {
+        const adv = w.dailyTasks(dayOf(cell, n), TODAY, 'ЯР7').filter(x => x.role === 'advance')[0];
+        assert(adv, `на ${n} верных задание «продвинуться» пропало`);
+        seen.push(`${adv.id} :: ${adv.text}`);
+    }
+    const first = seen[0];
+    const moved = seen.filter(x => x !== first);
+    assert(moved.length === 0,
+        `задание изменилось за день:\n      было  ${first}\n      стало ${moved[0]}`);
+});
+
+test('обещанное «останется N» сбывается', () => {
+    // Раньше цель уезжала навстречу: каждый верный ответ прибавлял счётчику единицу
+    // и отнимал единицу у цели. «Реши верно 20» закрывалось на тринадцатом, и число
+    // 20 на глазах превращалось в 13.
+    const cell = 'integer+:add:1';
+    const w = load({ open: [cell, 'integer+:sub:1'] });
+    const start = w.dailyTasks(dayOf(cell, 0), TODAY, 'ЯР7').filter(x => x.role === 'advance')[0]
+               || w.dailyTasks(dayOf(cell, 1), TODAY, 'ЯР7').filter(x => x.role === 'advance')[0];
+    assert(start, 'задания «продвинуться» нет');
+    // Сделали ровно столько, сколько просили, — и до медали осталось ровно обещанное.
+    const after = w.dailyTasks(dayOf(cell, start.need), TODAY, 'ЯР7')
+                   .filter(x => x.role === 'advance')[0];
+    assert(after && after.done, `сделали ${start.need}, а задание не закрылось`);
+    const left = 25 - start.need;          // COUNT_TIERS[0] — бронза
+    assert(start.gap - start.need === left,
+        `обещали «останется ${start.gap - start.need}», а осталось ${left}`);
+});
+
+test('«Новое место» не убегает, когда его начинают делать', () => {
+    // Роль выбирала клетку, где давно не были. Первый же ответ там делал её «сегодняшней»,
+    // роль выбирала другую, и счёт начинался с нуля. Выполнить такое было нельзя.
+    const home = 'integer+:add:1';
+    const w = load({ open: [home, 'integer+:sub:1', 'integer+:mul:1', 'integer+:div:1'] });
+    const cells = {};
+    const st = (k) => {
+        const t = { [home]: [30, 0] };
+        if (k > 0) cells.target && (t[cells.target] = [k, 0]);
+        return { byTopic: Object.assign({ [home]: { correct: 30, wrong: 0 } },
+                     k > 0 && cells.target ? { [cells.target]: { correct: k, wrong: 0 } } : {}),
+                 daily: journal({ 1: day(30, 0, { [home]: [30, 0] }), 0: day(30 + k, 0, t) }) };
+    };
+    const first = w.dailyTasks(st(0), TODAY, 'ЯР7').filter(x => x.role === 'explore')[0];
+    assert(first, 'задания «попробовать» нет вовсе');
+    cells.target = first.cell;
+    for (let k = 1; k <= 4; k++) {
+        const now = w.dailyTasks(st(k), TODAY, 'ЯР7').filter(x => x.role === 'explore')[0];
+        assert(now, `после ${k} ответов задание «попробовать» пропало`);
+        eq(now.cell, first.cell, `после ${k} ответов задание перепрыгнуло в другую клетку`);
+    }
+});
+
+test('недельное задание тоже стоит на месте всю неделю', () => {
+    const cell = 'integer+:add:1';
+    const w = load({ open: [cell, 'integer+:sub:1'] });
+    // Недельное выбирается жребием из трёх, и на две трети кодов выпадает не то
+    // задание, что считается от прогресса. Тогда проверка молчала бы при любой
+    // поломке — берём код, у которого выпадает именно оно.
+    let code = null;
+    for (const c of ['ЯР7', 'ЯР8', 'ЯР9', 'МД1', 'МД2', 'МД3', 'АБ1', 'АБ2', 'АБ3']) {
+        const wk = w.weeklyTask(dayOf(cell, 1), TODAY, c);
+        if (wk && wk.cell === cell) { code = c; break; }
+    }
+    assert(code, 'не нашлось кода, у которого недельное задание считается от прогресса');
+    const seen = [];
+    for (let n = 1; n <= 8; n++) {
+        const wk = w.weeklyTask(dayOf(cell, n), TODAY, code);
+        assert(wk && wk.cell === cell, `на ${n} верных недельное задание сменилось на другое`);
+        seen.push(`${wk.id} :: ${wk.text}`);
+    }
+    const moved = seen.filter(x => x !== seen[0]);
+    assert(moved.length === 0,
+        `недельное изменилось:\n      было  ${seen[0]}\n      стало ${moved[0]}`);
+});
+
+test('роль не пропадает из-за того, что клетку заняла другая', () => {
+    // У нового ученика «продвинуться» и «попробовать» обе указывали на первую клетку
+    // карты. Совпавшую просто отбрасывали — и заданий выходило два вместо трёх.
+    const cell = 'integer+:add:1';
+    const w = load({ open: [cell, 'integer+:sub:1', 'integer+:mul:1'] });
+    const list = w.dailyTasks(dayOf(cell, 6), TODAY, 'ЯР7');
+    const roles = list.filter(x => x.role).map(x => x.role);
+    assert(roles.indexOf('advance') >= 0, 'нет задания «продвинуться»');
+    assert(roles.indexOf('explore') >= 0, 'нет задания «попробовать» — его съела другая роль');
+    const cellsUsed = list.filter(x => x.cell).map(x => x.cell);
+    eq(cellsUsed.length, new Set(cellsUsed).size, 'два задания про одну клетку');
+});
 
 group('Слова, которые видит ученик');
 
@@ -481,7 +583,7 @@ test('обещание медали сбывается буквально', () =
     for (let have = 1; have < 250; have++) {
         const st = { daily: {}, byTopic: { 'integer+:add:2': { correct: have, wrong: 0 } } };
         const w = load({ open: ['integer+:add:2'] });
-        const task = w.roleAdvance(st, ['integer+:add:2']);
+        const task = w.roleAdvance(st, ['integer+:add:2'], st.daily, TODAY, TODAY);
         if (!task) continue;
         const closes = /медаль .* твоя/.test(w.dailyTasks(st, TODAY, 'ЯР7')
             .filter(x => x.role === 'advance').map(x => x.text).join(' '));
@@ -499,7 +601,7 @@ test('«продвинуться» ведёт туда, где вложено б
         'integer+:add:2': { correct: 218, wrong: 20 },
         'integer+:mul:1': { correct: 12, wrong: 1 }
     } };
-    const t = w.roleAdvance(st, ['integer+:add:2', 'integer+:mul:1']);
+    const t = w.roleAdvance(st, ['integer+:add:2', 'integer+:mul:1'], st.daily, TODAY, TODAY);
     eq(t.cell, 'integer+:add:2', 'задание увело с той клетки, в которую вложено больше');
 });
 
@@ -508,7 +610,7 @@ test('«продвинуться» считает верные, а не решё
     // медаль твоя» не сбудется у того, кто из тринадцати ошибётся трижды.
     const w = load({ open: ['integer+:add:2'] });
     const st = { daily: {}, byTopic: { 'integer+:add:2': { correct: 20, wrong: 5 } } };
-    eq(w.roleAdvance(st, ['integer+:add:2']).kind, 'correct');
+    eq(w.roleAdvance(st, ['integer+:add:2'], st.daily, TODAY, TODAY).kind, 'correct');
 });
 
 test('перевыполненное задание не показывает больше цели', () => {

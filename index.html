@@ -6012,6 +6012,37 @@
         // что клетка ещё не выучена. Такому ученику нужна практика, а не планка.
         const TASK_ACCURACY_FLOOR = 60;
 
+        // Сколько верных было в клетке НА НАЧАЛО периода.
+        //
+        // Задание не должно меняться под руками у того, кто его выполняет. Раньше оно
+        // считалось от текущего прогресса и пересчитывалось при каждой отрисовке —
+        // а прогресс растёт с каждым ответом. Получалось так: «Реши верно 20 — до
+        // медали «Бронза» останется 3», следующий ответ — «останется 2», ещё один —
+        // «останется 1». Хвост условия уменьшался как счётчик, хотя он часть ОБЕЩАНИЯ.
+        //
+        // Хуже: цель уезжала навстречу. Каждый верный ответ прибавлял счётчику единицу
+        // и отнимал единицу у цели, поэтому «реши 20» закрывалось на тринадцатом —
+        // и число 20 на глазах превращалось в 13. А когда до медали оставалось меньше
+        // двадцати, менялось и само число в опознавательном номере задания; строка
+        // во время миссии помнит номер, он переставал совпадать, и строка пропадала.
+        //
+        // Ничего нового хранить для этого не нужно: итог за всё время у нас есть,
+        // сделанное за период — тоже, и разница есть то, с чего период начался.
+        function correctInPeriod(daily, cellKey, fromKey, toKey) {
+            let sum = 0;
+            for (let k = toKey, guard = 0; guard < 400; guard++) {
+                const v = (((daily || {})[k] || {}).t || {})[cellKey];
+                if (v) sum += v[0] || 0;
+                if (k === fromKey) break;
+                k = shiftDayKey(k, -1);
+            }
+            return sum;
+        }
+        function correctBefore(st, daily, cellKey, fromKey, toKey) {
+            const all = ((((st || {}).byTopic) || {})[cellKey] || {}).correct || 0;
+            return Math.max(0, all - correctInPeriod(daily, cellKey, fromKey, toKey));
+        }
+
         // Роль «продвинуться»: где ученик ДАЛЬШЕ ВСЕГО прошёл к своей следующей медали.
         //
         // Раньше здесь искалась клетка, где осталось меньше всего примеров, — и это
@@ -6023,11 +6054,15 @@
         // Считаем долю: 218 из 250 — это 87%, а 12 из 25 — 48%. Клетка, в которую вложено
         // больше всего, выигрывает сама, и отдельного правила «где он занимается» не нужно.
         // Заодно это честнее по смыслу: «продвинуться» — про то, где продвижение уже есть.
-        function roleAdvance(st, cells) {
+        function roleAdvance(st, cells, daily, fromKey, toKey) {
             let best = null;
             cells.forEach(key => {
-                const have = ((st.byTopic || {})[key] || {}).correct || 0;
-                if (have <= 0) return;
+                // Кандидат — по ТЕКУЩЕМУ счёту: клетка, куда зашли впервые сегодня,
+                // задание получить должна. А цель считается от начала периода, и
+                // потому за день не двигается.
+                const now = ((st.byTopic || {})[key] || {}).correct || 0;
+                if (now <= 0) return;
+                const have = correctBefore(st, daily, key, fromKey, toKey);
                 let target = null, tier = 0;
                 COUNT_TIERS.forEach((v, i) => { if (target === null && have < v) { target = v; tier = i + 1; } });
                 if (target === null) return;                    // все медали уже взяты
@@ -6044,9 +6079,10 @@
         }
 
         // Роль «подтянуть»: клетка с самой просевшей точностью среди тех, где он бывал.
-        function roleFix(daily, todayKey, cells) {
+        function roleFix(daily, todayKey, cells, taken) {
             let worst = null;
             cells.forEach(key => {
+                if (taken && taken.indexOf(key) >= 0) return;
                 const f = cellForm(daily, todayKey, key, TASK_CELL_WINDOW);
                 if (f.attempts < TASK_MIN_CELL || f.accuracy === null) return;
                 if (!worst || f.accuracy < worst.accuracy) worst = { key, accuracy: f.accuracy };
@@ -6083,11 +6119,12 @@
             return false;
         }
 
-        function roleExplore(st, daily, todayKey, cells, homeKey) {
+        function roleExplore(st, daily, todayKey, cells, homeKey, fromKey, toKey, taken) {
             const home = homeKey ? parseTopicKey(homeKey) : null;
             const homeSec = home ? `${home.category}${home.sign || ''}` : null;
             let best = null;
             cells.forEach(key => {
+                if (taken && taken.indexOf(key) >= 0) return;
                 const f = cellForm(daily, todayKey, key, TASK_CELL_WINDOW);
                 const age = f.lastDay === null ? 999 : f.lastDay;
                 if (age < TASK_STALE_DAYS) return;
@@ -6119,7 +6156,10 @@
             if (!best) return null;
             // «Ещё не был» и «давно не был» — разные вещи, и говорить о них надо разное.
             // Окно cellForm короткое (две недели), поэтому смотрим на итоги за всё время.
-            const everTried = (((st || {}).byTopic || {})[best.key] || {}).correct !== undefined;
+            // «Ещё не был» — тоже про состояние ДО периода. Иначе первый же верный
+            // ответ в этой клетке переписывал «Новое место» на «Пора сюда вернуться»
+            // прямо посреди её выполнения.
+            const everTried = correctBefore(st, daily, best.key, fromKey, toKey) > 0;
             return { kind: 'count', cell: best.key, need: 10, role: 'explore', fresh: !everTried };
         }
 
@@ -6146,23 +6186,32 @@
         function dailyTasks(st, todayKey, code) {
             const daily = (st && st.daily) || {};
             const open = openCells();
-            const seen = recentCells(daily, todayKey, TASK_CELL_WINDOW);
+            // Всю историю, по которой ВЫБИРАЕТСЯ задание, смотрим по вчерашний день
+            // включительно. Сегодняшние ответы на выбор влиять не должны — иначе
+            // задание убегает от того, кто его выполняет: «Новое место — реши 10»
+            // после первого же ответа переставало быть новым местом, роль выбирала
+            // другую клетку, и счёт начинался заново с нуля. Выполнить такое нельзя.
+            const asOf = shiftDayKey(todayKey, -1);
+            const seen = recentCells(daily, asOf, TASK_CELL_WINDOW);
             // Роли берём по порядку важности и НЕ перемешиваем: продвинуться важнее, чем
             // подтянуть, а подтянуть важнее, чем попробовать новое. Жребий здесь только
             // добивает остаток — иначе он мог бы вытеснить главное задание дня.
             // Откуда мерить близость: клетка, где ученик занимается больше всего.
             // Нет истории — меряем от самого начала карты, туда же и позовём.
             const home = seen[0] || null;
-            const roles = [roleAdvance(st, open), roleFix(daily, todayKey, seen),
-                           roleExplore(st, daily, todayKey, open, home)].filter(Boolean);
-
-            // Две роли могут указать на одну клетку — тогда второе задание про неё же
-            // выглядит как повтор. Оставляем первое, оно важнее.
+            // Роли идут по очереди и каждая знает, что уже занято. Раньше они выбирали
+            // независимо, а совпавшую клетку у второй просто отбрасывали — и роль
+            // молча пропадала целиком, хотя ей было куда пойти. У нового ученика так и
+            // выходило: «продвинуться» и «попробовать» обе указывали на первую клетку
+            // карты, и заданий оставалось два вместо трёх.
             const chosen = [];
-            roles.forEach(task => {
-                if (chosen.some(x => x.cell === task.cell)) return;
-                chosen.push(task);
-            });
+            const takeRole = (task) => {
+                if (task && !chosen.some(x => x.cell === task.cell)) chosen.push(task);
+                return chosen.map(x => x.cell);
+            };
+            let taken = takeRole(roleAdvance(st, open, daily, todayKey, todayKey));
+            taken = takeRole(roleFix(daily, asOf, seen, taken));
+            takeRole(roleExplore(st, daily, asOf, open, home, todayKey, todayKey, taken));
 
             // Не набралось трёх — добираем общими. У пустого аккаунта вести некуда, и
             // это нормальная его неделя, а не сбой: как появится история, задания
@@ -6181,16 +6230,20 @@
             const from = weekStartKey(todayKey);
             // Ту же клетку, что и роль «продвинуться»: неделя — это про дойти до ступени,
             // а не про «где он чаще сидел».
-            const advance = roleAdvance(st, openCells());
+            const advance = roleAdvance(st, openCells(), daily, from, todayKey);
             const primary = [];
             if (advance) {
-                // Если до следующей ступени количества осталось столько, сколько реально
-                // взять за неделю, — так и говорим. Иначе обещать ступень нельзя.
-                const have = ((st.byTopic || {})[advance.cell] || {}).correct || 0;
-                let tier = 0, gap = 0;
-                COUNT_TIERS.forEach((v, i) => { if (!tier && have < v) { tier = i + 1; gap = v - have; } });
-                if (tier && gap >= 20 && gap <= 80) primary.push({ kind: 'correct', cell: advance.cell, need: gap, tier });
-                else primary.push({ kind: 'correct', cell: advance.cell, need: 60 });
+                // Если до следующей медали осталось столько, сколько реально взять за
+                // неделю, — так и говорим. Иначе медаль обещать нельзя.
+                //
+                // Расстояние берём у самой роли: она уже посчитала его от начала недели.
+                // Раньше здесь стоял второй, независимый подсчёт от ТЕКУЩЕГО итога —
+                // и недельная цель уменьшалась с каждым ответом ровно так же, как дневная.
+                if (advance.gap >= 20 && advance.gap <= 80) {
+                    primary.push({ kind: 'correct', cell: advance.cell, need: advance.gap, tier: advance.tier });
+                } else {
+                    primary.push({ kind: 'correct', cell: advance.cell, need: 60 });
+                }
             }
             // «Позанимайся 5 дней» лежало в добивке и не выпадало НИКОГДА: у недельного
             // задания одно место, а основное есть у любого, кто решил хоть что-нибудь.
