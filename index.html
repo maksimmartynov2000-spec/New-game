@@ -5471,7 +5471,12 @@
         // решение репетитора, а не вопрос умения.
         async function openLockedStar(secKey, op, level) {
             const gated = levelAllowedByAccess(secKey, op, level);
-            const canExam = gated && secKey === EXAM_SECTION && levelGateApplies();
+            // Экзамен предлагаем только там, где он МОЖЕТ помочь. Потолок у него —
+            // третья звезда, а проверки уровня здесь не было вовсе: ребёнок нажимал
+            // 4★, ему предлагали экзамен, он его сдавал — и 4★ не открывалась.
+            // Обещание, которое не может сбыться.
+            const canExam = gated && secKey === EXAM_SECTION && levelGateApplies()
+                            && Number(level) <= EXAM_MAX_GRANT;
             const opName = (OP_LABELS[op] || op).replace(/^\S+\s/, '').toLowerCase();
 
             if (!canExam) {
@@ -5485,7 +5490,10 @@
                 title: tf('%1★ пока закрыта', level),
                 text: levelLockReason(secKey, op, level) + '\n\n'
                     + tf('Или пройди экзамен по действию «%1»: %2 примеров, по %3 секунд на каждый. ', opName, EXAM_QUESTIONS, EXAM_SECONDS)
-                    + tf('Сдашь — откроются звёзды до %1★. Дальше открывает репетитор.', EXAM_MAX_GRANT),
+                    // «Дальше открывает репетитор» было неправдой: у ворот нет потолка по
+                    // уровню, золото на 3★ открывает 4★, золото на 4★ — пятую. Фраза
+                    // должна была сказать «экзамен выше не поднимет», а сказала другое.
+                    + tf('Сдашь — откроются звёзды до %1★. Выше — только золотом.', EXAM_MAX_GRANT),
                 okText: t('Пройти экзамен'),
                 cancelText: t('Не сейчас')
             });
