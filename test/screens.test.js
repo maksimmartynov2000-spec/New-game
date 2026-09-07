@@ -247,6 +247,61 @@ const SCREENS = [
                Math.abs(r.btnMid - r.ttlMid) <= 2 ? null : `кнопка по центру ${r.btnMid}, заголовок ${r.ttlMid}`);
     }
 
+    // Размер под палец. Меряли на 390 px: «Играть» была 55×23, ☰ во время игры
+    // 36×28, ✕ в меню 34×34, звёзды 58×31 по пять в ряд. Ориентир — 44×44 (Apple),
+    // 48×48 (Google): ниже этого взрослый мажет иногда, ребёнок постоянно, а промах
+    // по звезде открывает не то окно. Проверять это можно только измерением: в CSS
+    // высота набирается из шрифта, отступов и рамки, по правилу её не видно.
+    console.log('\nРазмер под палец');
+    {
+        const SCREENS_TO_MEASURE = [
+            ['выбор миссии', `document.querySelectorAll('.modal-screen').forEach(x=>x.style.display='none');
+                document.getElementById('configScreen').style.display='flex';
+                showConfigStep(1); renderDailyBar(); renderConfigTasks();`],
+            ['шаг 2', `showConfigStep(2);`],
+            ['статистика', `document.querySelectorAll('.modal-screen').forEach(x=>x.style.display='none');
+                renderStatsScreen(); document.getElementById('statsScreen').style.display='flex';`],
+            ['достижения', `document.querySelectorAll('.modal-screen').forEach(x=>x.style.display='none');
+                renderAchievementsScreen(); document.getElementById('achievementsScreen').style.display='flex';`],
+            ['профиль', `document.querySelectorAll('.modal-screen').forEach(x=>x.style.display='none');
+                renderProfileScreen(); document.getElementById('profileScreen').style.display='flex';`],
+            // Меню — отдельным экраном: без него подсадка «вернуть ✕ 34×34» не ловилась,
+            // проверка молчала бы про целый экран.
+            ['меню', `document.querySelectorAll('.modal-screen').forEach(x=>x.style.display='none');
+                openMainMenu();`],
+            ['коллекция', `closeMainMenu(); openCollectionModal();`]
+        ];
+        const MIN = 44;
+        let checked = 0;
+        const small = [];
+        for (const [name, open] of SCREENS_TO_MEASURE) {
+            await page.evaluate(open);
+            await page.waitForTimeout(200);
+            const r = await page.evaluate(`(() => {
+                const sel = 'button, [role=button], input, select, .btn-star, .ach-star, .stat-hero-card';
+                const out = { total: 0, small: [] };
+                [...document.querySelectorAll(sel)].forEach(e => {
+                    const s = getComputedStyle(e);
+                    if (s.display === 'none' || s.visibility === 'hidden') return;
+                    const b = e.getBoundingClientRect();
+                    if (b.width <= 0 || b.height <= 0) return;
+                    out.total++;
+                    if (b.width < ${MIN} || b.height < ${MIN}) {
+                        out.small.push(((e.id || e.className || e.tagName) + '').split(' ')[0]
+                            + ' ' + Math.round(b.width) + '×' + Math.round(b.height));
+                    }
+                });
+                return out;
+            })()`);
+            checked += r.total;
+            r.small.forEach(x => small.push(`${name}: ${x}`));
+        }
+        record('нажимаемых целей нашлось, есть что мерить',
+               checked >= 20 ? null : `целей всего ${checked} — экраны не отрисовались`);
+        record(`ни одна цель не меньше ${MIN}×${MIN}`,
+               small.length === 0 ? null : small.slice(0, 6).join(' | '));
+    }
+
     // Три роли — три разных дела: вести вперёд, чинить просевшее, звать в новое.
     // Строки выглядели одинаково, и три задания читались как список из трёх поручений.
     // Различие сделано цветом, а не словом, — а цвет проверяется только измерением.
