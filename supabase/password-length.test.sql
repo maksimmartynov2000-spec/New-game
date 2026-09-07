@@ -51,11 +51,14 @@ select case when (session_reset_student_password((session_login('TUTOR','abcd'))
             else 'НЕТ сброс на длинный не прошёл' end;
 
 -- Смена своего пароля: то же правило, и старый пароль при этом короткий.
-select case when (change_own_password('TUTOR','abcd','abcd1'))->>'error' = 'password_too_short'
+-- Смена своего пароля переехала на токен (см. drop-legacy.sql): парольного пути
+-- больше нет. Правило про восемь символов при переезде не потерялось.
+select (session_login('TUTOR','abcd'))->>'token' as ttok \gset
+select case when (session_change_own_password(:'ttok','abcd','abcd1'))->>'error' = 'password_too_short'
             then 'ДА  свой пароль на короткий не сменить'
             else 'НЕТ приняли короткий новый пароль' end;
 
-select case when (change_own_password('TUTOR','abcd','newlongpass'))->>'ok' = 'true'
+select case when (session_change_own_password(:'ttok','abcd','newlongpass'))->>'ok' = 'true'
             then 'ДА  свой пароль на длинный меняется'
             else 'НЕТ смена на длинный не прошла' end;
 

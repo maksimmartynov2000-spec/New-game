@@ -2044,8 +2044,9 @@
 
             <div class="config-section" data-fold="profile:backup" id="backupSection">
                 <div class="config-section-title">Резервная копия</div>
-                <div class="config-hint" style="margin-bottom:8px;">Копия прогресса — твоего и всех учеников. Сервер один, и если с ним что-то случится, восстановить будет неоткуда. Сохраняй копию хотя бы иногда.</div>
+                <div class="config-hint" style="margin-bottom:8px;">Копия прогресса — твоего и всех учеников. Сервер один, и если с ним что-то случится, взять данные будет больше неоткуда. Сохраняй копию хотя бы иногда.</div>
                 <button class="menu-btn" onclick="exportAllProgress()">⬇️ <span>Выгрузить прогресс</span></button>
+                <button class="menu-btn" style="margin-top:8px;" onclick="importAllProgress()">⬆️ <span>Восстановить из копии</span></button>
             </div>
 
             <div class="config-section" data-fold="profile:danger" id="dangerSection">
@@ -8579,6 +8580,133 @@
                 }
             }
             return { data: out, students: students.length, failed };
+        }
+
+        // ---------------------------------------------------------------------
+        //  ВОССТАНОВЛЕНИЕ ИЗ КОПИИ
+        // ---------------------------------------------------------------------
+        //  Копия делалась, а положить её обратно было нечем: в приложении не было ни
+        //  одного места, которое читает файл. Дверь работала в одну сторону, и при
+        //  аварии на сервере от копии не было никакого проку — раздел при этом честно
+        //  просил её сохранять.
+        //
+        //  Это единственное действие в приложении, которое ПЕРЕЗАПИСЫВАЕТ чужой
+        //  прогресс, поэтому оно устроено осторожнее прочих:
+        //    · показываем, что именно нашлось в файле и что заменит собой что;
+        //    · называем каждого профиля по имени и рядом — сколько верных ответов
+        //      сейчас и сколько станет, чтобы «восстановил и стало меньше» не было
+        //      неожиданностью;
+        //    · подтверждение красное и отдельное, как у необратимых действий;
+        //    · ученики, которых в этой копии нет, не трогаются вовсе.
+        //
+        //  Личность из файла не берётся никогда: код, метка, тип аккаунта и владелец
+        //  остаются те, что есть. И на устройстве (Progress.restoreOwn), и на сервере
+        //  (pin_identity в session_restore_student) — по одному правилу с двух сторон.
+        function backupSummary(state) {
+            const t = (state && state.totals) || {};
+            return (t.correct || 0);
+        }
+
+        function parseBackup(text) {
+            let data;
+            try { data = JSON.parse(text); }
+            catch (e) { return { error: 'Это не файл копии: не разобрать.' }; }
+            if (!data || typeof data !== 'object' || !Array.isArray(data.profiles)) {
+                return { error: 'Это не файл копии: нет списка профилей.' };
+            }
+            if (data.format !== BACKUP_FORMAT) {
+                return { error: `Копия другого формата (${data.format}), эта версия читает ${BACKUP_FORMAT}.` };
+            }
+            const profiles = data.profiles.filter(p => p && p.code && p.state && typeof p.state === 'object');
+            if (!profiles.length) return { error: 'В копии нет ни одного профиля с данными.' };
+            return { data, profiles };
+        }
+
+        async function importAllProgress() {
+            if (Progress.getAccountType() === 'linked') return;
+
+            const text = await askForm({
+                title: 'Восстановить из копии',
+                text: 'Вставь сюда содержимое файла копии целиком.',
+                fields: [{ key: 'json', label: 'Копия', multiline: true,
+                           hint: 'Тот самый текст, который выдаёт «Выгрузить прогресс»' }],
+                okText: 'Разобрать'
+            });
+            if (text === null || !text.json || !text.json.trim()) return;
+
+            const parsed = parseBackup(text.json.trim());
+            if (parsed.error) { showToast(parsed.error, 'error'); return; }
+
+            const myCode = Progress.getCode();
+            const students = await fetchMyStudents({}).catch(() => []);
+            const known = {};
+            students.forEach(st => { known[st.code] = st; });
+
+            // Что именно произойдёт — по строке на профиль, с числами до и после.
+            const plan = [];
+            parsed.profiles.forEach(p => {
+                const after = backupSummary(p.state);
+                if (p.code === myCode) {
+                    plan.push({ code: p.code, label: 'Твой профиль', own: true,
+                                before: backupSummary(Progress.get()), after, state: p.state });
+                } else if (known[p.code]) {
+                    plan.push({ code: p.code, label: known[p.code].label || p.code, own: false,
+                                before: backupSummary(known[p.code].state), after, state: p.state });
+                } else {
+                    plan.push({ code: p.code, label: p.label || p.code, own: false,
+                                missing: true, after, state: p.state });
+                }
+            });
+
+            const doable = plan.filter(x => !x.missing);
+            const missing = plan.filter(x => x.missing);
+            if (!doable.length) {
+                showToast('Ни один профиль из копии не найден: ни твой, ни ученики.', 'error');
+                return;
+            }
+
+            const lines = doable.map(x =>
+                `${x.label}: сейчас ${x.before} верных → станет ${x.after}`).join('\n');
+            const note = missing.length
+                ? `\n\nНе найдены и тронуты не будут: ${missing.map(x => x.label).join(', ')}.`
+                : '';
+
+            const ok = await askConfirm({
+                title: 'Заменить прогресс?',
+                text: `Прогресс будет заменён содержимым копии. Отменить это нельзя.\n\n${lines}${note}`,
+                okText: 'Заменить', danger: true
+            });
+            if (!ok) return;
+
+            showToast('Восстанавливаю…');
+            let done = 0, failed = [];
+            for (const x of doable) {
+                try {
+                    if (x.own) {
+                        const okOwn = await Progress.restoreOwn(x.state);
+                        okOwn ? done++ : failed.push(x.label);
+                    } else {
+                        const res = await callAuthed('session_restore_student',
+                            { p_student_code: x.code, p_state: x.state });
+                        (res.data && res.data.ok) ? done++ : failed.push(x.label);
+                    }
+                } catch (e) { failed.push(x.label); }
+            }
+
+            if (failed.length) {
+                await showNotice({
+                    title: 'Восстановлено не всё',
+                    text: `Получилось: ${done}. Не получилось: ${failed.join(', ')}.\n\n`
+                        + 'Проверь интернет и попробуй ещё раз — уже восстановленное повторной '
+                        + 'попыткой не испортится.'
+                });
+            } else {
+                await showNotice({
+                    title: 'Готово',
+                    text: `Восстановлено профилей: ${done}. Приложение сейчас перезапустится.`
+                });
+            }
+            location.reload();
         }
 
         async function exportAllProgress() {

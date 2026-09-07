@@ -42,12 +42,15 @@ select case when account_type = 'linked' and owner_code = 'TUTOR'
             else 'НЕТ отвязался: ' || coalesce(owner_code,'null') || '/' || account_type end
   from citadel_progress where code = 'PUPIL';
 
--- Атака по старому паролю
-select save_state('PUPIL','pupilpassword',
-       jsonb_build_object('playerCode','PUPIL','accountType','self','ownerCode',null)) \gset attack2_
+-- Вторая попытка тем же способом, но с новым входом: проверяем, что замок стоит
+-- не на одной функции, а в общей pin_identity. Раньше здесь стоял старый путь по
+-- паролю — его больше нет (см. drop-legacy.sql), и повторяем через токен.
+select (session_login('PUPIL','pupilpassword'))->>'token' as ptok \gset
+select session_save(:'ptok',
+       jsonb_build_object('playerCode','PUPIL','accountType','self','ownerCode',null));
 select case when account_type = 'linked' and owner_code = 'TUTOR'
-            then 'ДА  отвязаться по паролю тоже не вышло'
-            else 'НЕТ отвязался по старому пути' end
+            then 'ДА  отвязаться со второй попытки тоже не вышло'
+            else 'НЕТ отвязался' end
   from citadel_progress where code = 'PUPIL';
 
 -- Репетитор остаётся репетитором, что бы ни прислал

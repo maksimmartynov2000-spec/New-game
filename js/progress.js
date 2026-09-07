@@ -864,6 +864,39 @@ const Progress = (() => {
         // Полный сброс прогресса текущего профиля — тот же код, чистые счётчики.
         // В отличие от flush(), НЕ сливается со старым состоянием на сервере:
         // слияние "прогресс только растёт" иначе немедленно вернуло бы всё обратно.
+        // Восстановление СВОЕГО профиля из резервной копии. Устроено как hardReset:
+        // состояние заменяется целиком, а личность — код, метка, тип аккаунта,
+        // владелец — берётся с устройства, а не из файла. Иначе копией можно было бы
+        // подменить себе логин или тип аккаунта, а это уже не восстановление.
+        //
+        // Настройки миссии (config) тоже свои: они про «во что играть сейчас», к
+        // прогрессу отношения не имеют, и подставлять их из копии месячной давности
+        // значит менять экран без спроса.
+        async restoreOwn(incoming) {
+            const n = normalize(incoming);
+            if (!n) return false;
+            const code = state.playerCode;
+            const keep = {
+                playerCode: code,
+                profileLabel: state.profileLabel,
+                accountType: state.accountType,
+                ownerCode: state.ownerCode,
+                config: state.config
+            };
+            state = n;
+            Object.assign(state, keep);
+            if (code) profiles[code] = state;
+            persistLocal();
+            dirty = true;
+            if (remoteDriver && code) {
+                const auth = authFor(code);
+                if (!auth) return false;
+                try { await remoteDriver.write(code, auth, state); dirty = false; return true; }
+                catch (e) { return false; }
+            }
+            return true;
+        },
+
         async hardReset() {
             const code = state.playerCode;
             const keep = {
