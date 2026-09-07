@@ -101,6 +101,42 @@ test('у каждой проверки есть своя миграция', () =
     assert(orphan.length === 0, `проверка без миграции: ${orphan.join(', ')}`);
 });
 
+group('Права снимаются у ролей, а не у public');
+
+test('внутренности закрываются отзывом у самих ролей', () => {
+    // На этом я ошибся на живой базе. Supabase настраивает права по умолчанию так:
+    //     alter default privileges in schema public grant all on functions to anon;
+    // то есть каждая новая функция получает разрешение НЕ через public, а прямой
+    // выдачей роли anon. «revoke ... from public» такую выдачу не трогает — она
+    // остаётся, и проверка на живой базе показала 43 открытых имени, где кроме
+    // session_* были все impl_*. Локальная база этого не поймала: роль anon там
+    // была, а прав по умолчанию не было — то есть отличалась ровно тем местом,
+    // которое и решало.
+    const src = fs.readFileSync(path.join(DIR, 'lock-internals.sql'), 'utf8');
+    assert(/revoke execute[^;]*from anon/i.test(src),
+        'права не отзываются у самой роли anon — на Supabase это не сработает');
+    assert(/authenticated/.test(src),
+        'роль authenticated не тронута, а Supabase выдаёт права и ей');
+});
+
+test('замок ставится перебором, а не списком имён', () => {
+    // Список пришлось бы дополнять при каждой новой внутренней функции, и однажды
+    // его забыли бы. Перебор закрывает и то, чего ещё нет.
+    const src = fs.readFileSync(path.join(DIR, 'lock-internals.sql'), 'utf8');
+    assert(/pg_proc/.test(src) && /loop/i.test(src),
+        'замок перечисляет функции поимённо — новую забудут');
+    assert(/proname not like 'session/.test(src),
+        'перебор не отличает внешний слой session_* от внутренностей');
+});
+
+test('функции расширений не трогаются', () => {
+    // pgcrypto и подобные раздают права сами; лезть туда не наше дело, а сломать
+    // чужое расширение отзывом — легко.
+    const src = fs.readFileSync(path.join(DIR, 'lock-internals.sql'), 'utf8');
+    assert(/pg_depend/.test(src) && /deptype = 'e'/.test(src),
+        'перебор не исключает функции расширений');
+});
+
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
     console.log(`Все проверки пройдены: ${passed}`);
