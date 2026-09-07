@@ -2863,37 +2863,36 @@
         // игры остаётся лёгким, а картинки браузер грузит по одной, как обычные файлы сайта
         // (с кэшированием), а не одним гигантским текстовым блоком.
         const PUZZLE_IMAGE_SRCS = [
-            'images/IMG_2427.png',
-            'images/IMG_2428.png',
-            'images/IMG_2429.png',
-            'images/IMG_2430.png',
-            'images/IMG_2431.png',
-            'images/IMG_2432.png',
-            'images/IMG_2433.png',
-            'images/IMG_2434.png',
-            'images/IMG_2436.png',
-            'images/IMG_2437.png',
-            'images/IMG_2438.png',
-            'images/IMG_2439.png',
-            'images/IMG_2440.png',
-            'images/IMG_2441.png',
-            'images/IMG_2442.png',
-            'images/IMG_2443.png',
-            'images/IMG_2444.png',
-            'images/IMG_2445.png',
-            'images/IMG_2446.png',
-            'images/IMG_2447.png'
+            'images/IMG_2427.webp',
+            'images/IMG_2428.webp',
+            'images/IMG_2429.webp',
+            'images/IMG_2430.webp',
+            'images/IMG_2431.webp',
+            'images/IMG_2432.webp',
+            'images/IMG_2433.webp',
+            'images/IMG_2434.webp',
+            'images/IMG_2436.webp',
+            'images/IMG_2437.webp',
+            'images/IMG_2438.webp',
+            'images/IMG_2439.webp',
+            'images/IMG_2440.webp',
+            'images/IMG_2441.webp',
+            'images/IMG_2442.webp',
+            'images/IMG_2443.webp',
+            'images/IMG_2444.webp',
+            'images/IMG_2445.webp',
+            'images/IMG_2446.webp',
+            'images/IMG_2447.webp'
         ];
 
-        // Превью 256×256 в WebP для сетки коллекции. Полные картинки — 1024×1024 PNG примерно
-        // по мегабайту каждая, и раньше экран коллекции тянул их все разом (около 20 МБ) ради
-        // плиток размером в сотню пикселей. Превью весят 241 КБ на все двадцать — в 84 раза
-        // меньше, а на плитке неотличимы. Полный файл грузится только когда открывают
-        // конкретный парадокс или собранный пазл, то есть ровно там, где качество видно.
+        // Превью 256×256 для сетки коллекции: 241 КБ на все двадцать против 1,2 МБ
+        // полных. На плитке в сотню пикселей они неотличимы, а полный файл грузится
+        // только когда открывают конкретный парадокс или собранный пазл, то есть
+        // ровно там, где качество видно.
         function puzzleThumbSrc(idx) {
             const full = PUZZLE_IMAGE_SRCS[idx];
             if (!full) return '';
-            return full.replace('images/', 'images/thumbs/').replace('.png', '.webp');
+            return full.replace('images/', 'images/thumbs/');
         }
 
         // ===== КОЛЛЕКЦИЯ №1: ПАРАДОКСЫ МАТЕМАТИКИ =====
@@ -9867,7 +9866,40 @@
         // как раньше, просто без офлайна, и падать из-за этого приложение не должно.
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('sw.js').catch(() => { /* офлайна не будет */ });
+                // Догружаем картинки только если service worker правда встал: без него
+                // класть их некуда, и запросы просто сожгли бы трафик впустую.
+                navigator.serviceWorker.register('sw.js')
+                    .then(preloadPuzzleImages, () => { /* офлайна не будет */ });
+            });
+        }
+
+        // Догрузка картинок пазла в фоне.
+        //
+        // Раньше картинка появлялась в кеше только после того, как её показали, —
+        // значит без сети незнакомая картинка не открывалась вовсе. Класть их все в
+        // установку service worker'а тоже нельзя: установка либо ждала бы двадцать
+        // запросов, либо срывалась из-за одного неудачного.
+        //
+        // Поэтому: после загрузки страницы, по одной, в самом конце очереди. Все
+        // двадцать весят 1,2 МБ — меньше одной старой картинки, — и после этого
+        // пазл работает без сети целиком. Запрос идёт через service worker, который
+        // сам кладёт ответ в кеш; отдельной логики хранения тут нет.
+        //
+        // Режим экономии трафика уважаем: там ученик сам попросил не тратить.
+        function preloadPuzzleImages() {
+            const conn = navigator.connection || {};
+            if (conn.saveData) return;
+            const later = window.requestIdleCallback || ((fn) => setTimeout(fn, 3000));
+            later(() => {
+                let i = 0;
+                const next = () => {
+                    if (i >= PUZZLE_IMAGE_SRCS.length) return;
+                    const src = PUZZLE_IMAGE_SRCS[i++];
+                    // Обрыв не считаем бедой: не докачали — докачаем в другой раз,
+                    // а картинка по-прежнему возьмётся из сети, когда понадобится.
+                    fetch(src, { cache: 'force-cache' }).then(next, next);
+                };
+                next();
             });
         }
     </script>

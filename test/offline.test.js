@@ -83,6 +83,36 @@ test('несохранённый скрипт не подменяется стр
         'запасной index.html отдаётся без проверки req.mode — он попадёт и в ответ на <script>');
 });
 
+test('картинки догружаются в фоне, но только когда есть куда', () => {
+    // Раньше картинка попадала в кеш лишь после того, как её показали, — значит без
+    // сети незнакомая не открывалась вовсе. Класть все двадцать в установку service
+    // worker'а тоже нельзя: установка ждала бы двадцать запросов или срывалась из-за
+    // одного неудачного. Поэтому догрузка идёт со страницы, после загрузки, по одной.
+    const body = HTML.slice(HTML.indexOf('function preloadPuzzleImages'),
+                              HTML.indexOf("function preloadPuzzleImages") + 900);
+    assert(/saveData/.test(body), 'режим экономии трафика не уважается');
+    assert(/PUZZLE_IMAGE_SRCS/.test(body), 'догружаются не картинки пазла');
+    // Запускается ТОЛЬКО после успешной регистрации: без service worker кеша нет,
+    // и запросы сожгли бы трафик впустую. Так и было в первой версии.
+    const reg = HTML.slice(HTML.indexOf("register('sw.js')"),
+                             HTML.indexOf("register('sw.js')") + 200);
+    assert(/\.then\(preloadPuzzleImages/.test(reg),
+        'догрузка запускается мимо регистрации service worker');
+});
+
+test('картинки перестали весить как фотоальбом', () => {
+    // Было двадцать PNG 1024×1024 примерно по мегабайту: 20 МБ на приложение, которое
+    // показывает их в 420 точек. WebP при том же качестве даёт в шестнадцать раз
+    // меньше, и только после этого догрузка всех двадцати вообще имеет смысл.
+    const dir = path.join(ROOT, 'images');
+    const files = fs.readdirSync(dir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
+    const png = files.filter(f => /\.(png|jpg|jpeg)$/i.test(f));
+    assert(png.length === 0, `остались тяжёлые форматы: ${png.slice(0, 3).join(', ')}`);
+    const bytes = files.reduce((sum, f) => sum + fs.statSync(path.join(dir, f)).size, 0);
+    assert(bytes < 3 * 1024 * 1024,
+        `картинки весят ${(bytes / 1048576).toFixed(1)} МБ — больше трёх`);
+});
+
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
     console.log(`Все проверки пройдены: ${passed}`);
