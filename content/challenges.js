@@ -13,10 +13,41 @@
 // Разделены намеренно: ответ ученик ищет глазами, и он не должен тонуть в разборе.
 //
 // Языки добавляются ключом верхнего уровня, как в остальных файлах содержимого.
+//
+// ===================== ЧЕМУ ЗДЕСЬ СЛЕДОВАТЬ =====================
+//
+// Эти правила выведены не из головы: каждое появилось после того, как очередной
+// набор задач написали и прочли целиком. Порядок — по важности.
+//
+// СНАЧАЛА СИТУАЦИЯ, ПОТОМ ПРОВЕРКА. Если садиться с мыслью «этот раздел про
+// правило знаков», выйдут множители и частные. Если с мыслью «где это видно в
+// жизни» — выйдет аквалангист, который три минуты назад был выше. Придумывать
+// надо ситуацию, а уже потом смотреть, попадает ли она в клетку.
+//
+// БЕЗ ШКОЛЬНЫХ СУЩЕСТВИТЕЛЬНЫХ. Множитель, делимое, делитель, произведение,
+// слагаемое, частное, разность, модуль — слова, которые ребёнок слышит только
+// на уроке. Глаголы «перемножили», «разделили», «прибавили» знают все, и они
+// разрешены. Проверку на это держит test/challenges.test.js.
+//
+// МИНУС ДОЛЖЕН БЫТЬ В СЧЁТЕ, А НЕ В СЛОВАХ. Сюжет умеет спрятать знак: «под
+// водой», «долг», «мороз» — и задача решается целиком в положительных числах.
+// Шесть задач отрицательного раздела были такими и переписаны. Проверяй так:
+// можно ли решить, ни разу не написав минус? Если да — вопрос надо менять.
+//
+// ОТВЕТ ИЩУТ ГЛАЗАМИ. Число или одно слово. «Приписать ноль и минус» — это уже
+// не ответ, а короткий разбор, ему место в why.
+//
+// ПРИЁМ НЕ ПОВТОРЯЕТСЯ. Мастерство берётся раз в несколько месяцев, и «ага» —
+// вся его ценность; второй раз тот же поворот её убивает. Машине приём не
+// виден, ловится только чтением всех задач подряд.
+//
+// ДЕКОРАЦИИ НЕ ТОЛПЯТСЯ. Когда сюжеты появились, семь задач подряд оказались
+// про очки в игре. Сейчас миров шесть — деньги, погода, глубина, игра, этажи,
+// люди, — и ни один не занимает больше шести задач из сорока.
 
 window.CHALLENGE_CONTENT = {
     ru: {
-        // ===================== СЛОЖЕНИЕ =====================
+        // ================= СЛОЖЕНИЕ =================
         'integer+:add:1': {
             diamond: {
                 task: 'Из одной корзины во вторую переложили одно яблоко — и яблок стало поровну. На сколько яблок в первой корзине было больше?',
@@ -55,9 +86,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:add:4': {
             diamond: {
-                task: 'Как быстро сложить 99 + 99 + 99, не считая столбиком?',
-                answer: '297',
-                why: 'Каждое 99 — это 100 без одного. Три сотни это 300, и вычитаем три единицы: 300 − 3 = 297.'
+                task: 'Как узнать последнюю цифру у 37 + 48, не считая целиком?',
+                answer: 'Сложить 7 и 8',
+                why: 'Последнюю цифру задают только единицы: 7 + 8 = 15, значит ответ кончается на пять. Десятки на неё не влияют совсем — они решают лишь, сколько выйдет всего. Столбик потому и считают справа налево.'
             },
             legend: {
                 task: 'Сколько будет 1 + 2 + 4 + 8 + 16 + 32 + 64?',
@@ -77,8 +108,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'Первый жмёт руку троим, второй — оставшимся двоим, третий — последнему: 3 + 2 + 1 = 6. Считать надо пары, а не людей.'
             }
         },
-
-        // ===================== ВЫЧИТАНИЕ =====================
+        // ================= ВЫЧИТАНИЕ =================
         'integer+:sub:1': {
             diamond: {
                 task: 'В вазе было 10 конфет. Несколько съели, осталось 4. Потом конфет доложили, и снова стало 10. Сколько доложили?',
@@ -122,9 +152,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Вычитать по очереди то же самое, что вычесть сумму: 1 + 2 + 3 + 4 = 10, и 100 − 10 = 90.'
             },
             legend: {
-                task: 'Разность двух чисел равна 15, а их сумма 45. Что это за числа?',
-                answer: '30 и 15',
-                why: 'Сумма без разницы — это два меньших числа: 45 − 15 = 30, значит меньшее 15, а большее 15 + 15 = 30.'
+                task: 'В автобусе ехали 20 человек. На остановке вышли 8, вошли 5. На следующей вышли 4, вошли 6. Сколько было остановок?',
+                answer: 'Две',
+                why: 'Пока считают людей, забывают, о чём спросили. Все эти восемь, пять, четыре и шесть к ответу отношения не имеют вовсе — остановок ровно столько, сколько их назвали. Читать вопрос стоит раньше, чем начинать считать.'
             }
         },
         'integer+:sub:5': {
@@ -139,8 +169,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'Разбей на пары: 100 − 99 = 1, 98 − 97 = 1, и так далее. Пар ровно пятьдесят, каждая даёт единицу.'
             }
         },
-
-        // ===================== УМНОЖЕНИЕ =====================
+        // ================= УМНОЖЕНИЕ =================
         'integer+:mul:1': {
             diamond: {
                 task: 'Сколько всего ног у трёх кошек и двух птиц?',
@@ -196,13 +225,12 @@ window.CHALLENGE_CONTENT = {
                 why: 'Считай 99 как сотню без единицы: 100 × 7 = 700, потом вычти семь лишних — 700 − 7 = 693.'
             },
             legend: {
-                task: 'Сколько нулей будет в конце произведения 2 × 5 × 4 × 5 × 6?',
+                task: 'Сколько нулей будет в конце у 2 × 5 × 4 × 5 × 6?',
                 answer: 'Два',
                 why: 'Получается 1200. Каждый ноль в конце рождается парой «два и пять», а таких пар здесь ровно две.'
             }
         },
-
-        // ===================== ДЕЛЕНИЕ =====================
+        // ================== ДЕЛЕНИЕ ==================
         'integer+:div:1': {
             diamond: {
                 task: 'Верёвку разрезали на четыре части. Сколько сделали разрезов?',
@@ -241,9 +269,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:div:4': {
             diamond: {
-                task: 'Сколько раз число 8 помещается в 100 и что останется?',
-                answer: '12 раз, остаток 4',
-                why: 'Двенадцать восьмёрок — это 96, до сотни не хватает четырёх, а тринадцатая восьмёрка уже не влезает.'
+                task: 'Что общего у 420 ÷ 70 и 42 ÷ 7?',
+                answer: 'Ответ один и тот же',
+                why: 'Оба дают шесть. Деление показывает, во сколько раз одно число больше другого, а если уменьшить оба в десять раз, это не сдвинется. Отсюда и приём: у круглых чисел можно вычеркнуть по нулю и считать маленькие.'
             },
             legend: {
                 task: 'Число разделили на 5 и получили 5. Что получится, если это же число разделить на 25?',
@@ -253,19 +281,263 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:div:5': {
             diamond: {
+                task: 'Конфеты разделили поровну между детьми, каждому досталось по 8. Конфет привезли вдвое больше, детей столько же. Сколько теперь у каждого?',
+                answer: 'По 16',
+                why: 'Детей не прибавилось, а конфет стало вдвое больше — значит и каждому достанется вдвое больше. Когда делят на одно и то же число людей, ответ растёт ровно так же, как растёт то, что делят.'
+            },
+            legend: {
                 task: 'Как быстро разделить 300 на 25?',
                 answer: 'Двенадцать',
                 why: 'В сотне четыре четвертака, значит в трёх сотнях их 4 × 3 = 12. Делить на 25 удобно через сотни.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
+        'integer-:add:1': {
+            diamond: {
+                task: 'Лифт с −3 этажа поднялся на 5, потом опустился на 4. Где он теперь?',
+                answer: '−2',
+                why: 'С −3 вверх на пять — это ноль, а потом ещё два вверх: лифт на втором. Оттуда вниз на четыре, и он снова под землёй, на −2. Ноль переходят дважды, и оба раза счёт не сбрасывается, а идёт дальше.'
             },
             legend: {
-                task: 'При делении получилось частное 8. Каким станет частное, если делимое удвоить, а делитель оставить прежним?',
-                answer: 'Шестнадцать',
-                why: 'Делимое выросло вдвое, делитель не менялся — значит и результат вырос ровно вдвое, какие бы числа там ни стояли.'
+                task: 'После двух ходов в игре очков стало меньше, чем было. Обязательно ли оба хода были в минус?',
+                answer: 'Нет, хватит одного',
+                why: 'Хочется сказать «оба», но достаточно, чтобы один ход отнял больше, чем второй прибавил: −9 и +4 вместе дают −5. Чтобы уйти вниз, нужен не каждый шаг вниз, а перевес.'
+            }
+        },
+        'integer-:add:2': {
+            diamond: {
+                task: 'Было 8 градусов тепла, за ночь стало на 15 холоднее. Что показывает термометр утром?',
+                answer: '−7',
+                why: 'Спускаемся на восемь — это ноль, и падать остаётся ещё семь. Ноль не преграда: счёт идёт через него дальше, только уже в минус. Отсюда и −7, а на словах это «семь градусов мороза».'
+            },
+            legend: {
+                task: 'На счету −8 рублей. Сколько надо положить, чтобы стало 8?',
+                answer: '16',
+                why: 'Восьмёрка не годится — она доводит только до нуля. Путь идёт дважды: восемь до нуля и ещё восемь дальше. От числа до его зеркального всегда вдвое больше, чем до нуля.'
+            }
+        },
+        'integer-:add:3': {
+            diamond: {
+                task: 'Батискаф был на отметке −11 и поднялся на 10 метров. Всплыл он?',
+                answer: 'Нет, метра не хватило',
+                why: 'С −11 вверх на десять — это −1, то есть метр до поверхности. Когда числа почти равны, ответ выходит крошечным, но сторону всё равно решает большее: одиннадцать перевесило десять.'
+            },
+            legend: {
+                task: 'Термометр показывает −30 и поднимается на 7 градусов в час. Какое показание будет ближе всего к нулю?',
+                answer: '−2',
+                why: 'Через четыре часа станет −2, а через пять уже +5 — ноль перескочили. Ровно в ноль одинаковыми шагами попадают, только если начальное расстояние делится на шаг, а тридцать на семь не делится.'
+            }
+        },
+        'integer-:add:4': {
+            diamond: {
+                task: 'Как записать 24 + (−19) короче, без скобок?',
+                answer: '24 − 19',
+                why: 'Прибавить отрицательное — то же самое, что вычесть положительное: шаг вниз он и есть шаг вниз, как его ни записать. Плюс и минус рядом сворачиваются в один минус, и скобки становятся не нужны.'
+            },
+            legend: {
+                task: 'Что можно прибавить к любому числу, чтобы оно не изменилось?',
+                answer: 'Ноль',
+                why: 'Прибавить ноль — значит не сдвинуться с места. Любое другое число обязательно уводит вправо или влево, и совпасть с прежним уже не выйдет. Ноль единственный, кто так умеет.'
+            }
+        },
+        'integer-:add:5': {
+            diamond: {
+                task: '−97 + 95 и −95 + 97. У какой из двух ответ окажется ниже нуля?',
+                answer: 'У первой',
+                why: 'Сторону задаёт то число, что дальше от нуля. В первой дальше −97, и ответ уходит вниз: −2. Во второй дальше 97, и ответ 2. Величину решают сами числа, а сторону — знак большего из них.'
+            },
+            legend: {
+                task: 'Ход в игре даёт либо −7 очков, либо +3. За сколько ходов вернуться ровно к нулю?',
+                answer: 'Десять',
+                why: 'Семёрки тянут вниз, тройки вверх, и сравняться они могут только на двадцати одном — первом числе, которое делится и на семь, и на три. Это три хода по −7 и семь ходов по +3, вместе десять. Меньше не выйдет.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · ВЫЧИТАНИЕ =========
+        'integer-:sub:1': {
+            diamond: {
+                task: 'У Ани на счету −4, у Бори 4. Оба потратили по 6. Насколько счета отличаются теперь?',
+                answer: 'На 8',
+                why: 'У Ани стало −10, у Бори −2. Разница как была восемь, так и осталась: если у двоих отнять поровну, оба сдвинутся одинаково, и расстояние между ними не изменится.'
+            },
+            legend: {
+                task: 'Костя старше Оли на 6 лет. На сколько лет Оля старше Кости?',
+                answer: 'На −6',
+                why: 'Она не старше, а младше — и это тот самый случай, когда «на сколько больше» отвечают числом со знаком минус. Поменяли местами, кого с кем сравниваем, — и ответ перевернулся, а величина осталась.'
+            }
+        },
+        'integer-:sub:2': {
+            diamond: {
+                task: 'Чайка летит на высоте 5 метров, а ныряльщик на 13 метров ниже неё. Где ныряльщик?',
+                answer: '−8',
+                why: 'От пятёрки вниз пять метров — это поверхность воды, и опускаться остаётся ещё восемь. Ноль тут не дно и не стена: под ним счёт продолжается теми же метрами, только со знаком минус.'
+            },
+            legend: {
+                task: 'Утром термометр показывал −5, вечером −12. Стало теплее или холоднее?',
+                answer: 'Холоднее на 7',
+                why: 'Оба числа ниже нуля, и сравнивать их привычным «где цифра больше» нельзя: двенадцать больше пяти, а −12 холоднее, чем −5. Чем дальше вниз от нуля, тем меньше само число.'
+            }
+        },
+        'integer-:sub:3': {
+            diamond: {
+                task: 'У Пети было −6 очков. Выиграл 14, потом проиграл 20. Сколько теперь?',
+                answer: '−12',
+                why: 'После выигрыша стало 8 — ноль перешли вверх. После проигрыша ушли ниже нуля ещё на двенадцать. Ноль здесь не преграда и не остановка: счёт идёт через него насквозь, в обе стороны.'
+            },
+            legend: {
+                task: 'Шахтёр был на отметке −13 и спустился ещё на 14 метров. Где он теперь?',
+                answer: '−27',
+                why: 'Обе отметки ниже нуля, и вычитание уводит ещё ниже: −13 − 14 = −27. Когда начинают в минусе и продолжают вниз, числа складываются по величине, а знак остаётся прежним.'
+            }
+        },
+        'integer-:sub:4': {
+            diamond: {
+                task: 'На сколько 20 − (−5) отличается от 20 − 5?',
+                answer: 'На 10',
+                why: 'Первая даёт 25, вторая 15. Кажется, что разойтись они должны на пять, но минус перед скобкой разворачивает знак: пятёрка не отнимается, а прибавляется, и расхождение выходит вдвое больше.'
+            },
+            legend: {
+                task: 'Записи −8 − (−3) и −8 + 3 всегда дают один ответ. Почему так выходит?',
+                answer: 'Два минуса дают плюс',
+                why: 'Списать долг — значит стать богаче ровно на этот долг. Минус от действия и минус у самого числа гасят друг друга, и остаётся прибавление. Обе записи дают −5.'
+            }
+        },
+        'integer-:sub:5': {
+            diamond: {
+                task: 'Не считая точно: у −94 − (−86) ответ будет около −180 или около −8?',
+                answer: 'Около −8',
+                why: 'Два минуса рядом сворачиваются в плюс, и получается −94 + 86. Числа почти равны и почти гасят друг друга, поэтому ответ крошечный. Около −180 вышло бы, если бы они складывались, а они здесь вычитаются.'
+            },
+            legend: {
+                task: 'На трёх счетах −71, −30 и 62 рубля. Какая наибольшая разница между двумя из них?',
+                answer: '133',
+                why: 'Дальше всего друг от друга самый богатый и самый должный: от −71 до 62 ровно 133 рубля. Самый большой долг оказывается самым полезным — вычесть его значит прибавить.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · УМНОЖЕНИЕ =========
+        'integer-:mul:1': {
+            diamond: {
+                task: 'Каждый час холодает на 5 градусов. Сейчас ровно ноль. Что покажет термометр через 4 часа?',
+                answer: '−20',
+                why: 'Пять градусов вниз, взятые четыре раза, — это и есть умножение: 5 × 4 = 20, и все двадцать уходят ниже нуля. Когда одно и то же повторяется много раз, направление сохраняется, а величина растёт.'
+            },
+            legend: {
+                task: 'Все счета в банке умножили на −1. Что стало с теми, кто был должен?',
+                answer: 'Они разбогатели',
+                why: 'Умножение на единицу оставляет число как есть, а минус разворачивает его на другую сторону от нуля. Долг в 500 превращается в 500 на счету: величина та же, сторона другая.'
+            }
+        },
+        'integer-:mul:2': {
+            diamond: {
+                task: '−4 × 8 даёт минус. Что достаточно поменять, чтобы вышел плюс?',
+                answer: 'Любой один знак',
+                why: 'Сейчас минус один, поэтому и ответ с минусом. Достаточно убрать его или добавить второй — станет либо ноль минусов, либо два, и оба случая дают плюс. Важно не где минус, а сколько их.'
+            },
+            legend: {
+                task: 'Лифт опускается на 3 этажа за раз. Где он окажется после 4 спусков с 6 этажа?',
+                answer: 'На −6',
+                why: 'Четыре спуска по три этажа — это 3 × 4 = 12 этажей вниз. С шестого вниз двенадцать: шесть до земли и ещё шесть под неё. Ноль между ними не остановка, а такой же этаж пути.'
+            }
+        },
+        'integer-:mul:3': {
+            diamond: {
+                task: 'Число умножили само на себя. Может ли выйти меньше нуля?',
+                answer: 'Нет, знаки одинаковы',
+                why: 'Числа тут одинаковые, значит и знаки у них одинаковые: либо оба плюса, либо оба минуса. Минусов выходит ноль или два, а чётное их число всегда даёт плюс.'
+            },
+            legend: {
+                task: '−7 × 8 = −56. Чему равны 7 × (−8) и −7 × (−8)?',
+                answer: '−56 и 56',
+                why: 'Во всех трёх записях считают одно и то же — семью восемь. Заново считать нечего, остаётся посмотреть на минусы: один даёт −56, два дают 56. Таблицу учат один раз, знак приписывают отдельно.'
+            }
+        },
+        'integer-:mul:4': {
+            diamond: {
+                task: '3 × 9 = 27. Чему равно −3 × 90?',
+                answer: '−270',
+                why: 'Девяносто — это девять и ноль, поэтому ответ вырастает в десять раз. Минус приходит отдельно, от одного отрицательного числа. Два действия не мешают друг другу: сначала величина, потом сторона.'
+            },
+            legend: {
+                task: 'Аквалангист уходит вниз по 6 метров в минуту. Сейчас он на −42. Где он был 3 минуты назад?',
+                answer: 'На −24',
+                why: 'Три минуты назад — это −3 минуты, а спуск за минуту — это −6 метров. Вместе они дают +18, и глубина была на восемнадцать метров меньше: −42 + 18 = −24. Вот и вся загадка про минус на минус: назад во времени по дороге вниз — значит выше.'
+            }
+        },
+        'integer-:mul:5': {
+            diamond: {
+                task: 'Три числа перемножили, и вышло меньше нуля. Сколько из них были меньше нуля?',
+                answer: 'Одно или три',
+                why: 'Каждый минус переворачивает ответ, поэтому важно только, чётное их число или нет. Нечётное оставляет минус, чётное убирает. Из трёх нечётными бывают одно и три.'
+            },
+            legend: {
+                task: 'Перемножили три разных числа, все меньше нуля, и вышло −8. Что это за числа?',
+                answer: '−1, −2 и −4',
+                why: 'Три минуса дают минус, значит по знаку всё сходится, и остаётся разложить восьмёрку на три разных. Годится только один набор: один, два и четыре. Двойки повторились бы, а восьмёрка потребовала бы единицу дважды.'
+            }
+        },
+        // ========== ОТРИЦАТЕЛЬНЫЕ · ДЕЛЕНИЕ ==========
+        'integer-:div:1': {
+            diamond: {
+                task: 'За 4 часа похолодало на 20 градусов, и каждый час одинаково. На сколько менялся термометр за час?',
+                answer: 'На −5',
+                why: 'Двадцать градусов вниз разложили на четыре равные части: 20 ÷ 4 = 5, и каждая часть идёт вниз. Деление дробит величину, а направление у всех кусков остаётся то же, что у целого.'
+            },
+            legend: {
+                task: 'Чем отличаются записи −35 ÷ 1 и −35 ÷ 0?',
+                answer: 'У второй ответа нет',
+                why: 'Деление на единицу оставляет число как есть: −35. А деление на ноль просит найти число, которое при умножении на ноль даст −35, и такого нет — ноль на что ни умножь, выйдет ноль.'
+            }
+        },
+        'integer-:div:2': {
+            diamond: {
+                task: '−21 ÷ 7 даёт целое число. А что выйдет у 7 ÷ (−21)?',
+                answer: 'Не целое',
+                why: 'Двадцать один делится на семь, а семь на двадцать один — нет. В делении числа местами не переставляют: знак у обеих записей одинаковый, а вот целым ответ бывает только у одной.'
+            },
+            legend: {
+                task: 'Какое число надо разделить на −6, чтобы получилось −6?',
+                answer: '36',
+                why: 'Так и хочется сказать «тридцать шесть с минусом», но два минуса дали бы плюс. Минус нужен один, и он уже есть у шестёрки, поэтому первое число остаётся без него.'
+            }
+        },
+        'integer-:div:3': {
+            diamond: {
+                task: '−56 ÷ 8 = −7. Чему равно −56 ÷ (−7)?',
+                answer: '8',
+                why: 'Семёрка и восьмёрка просто поменялись ролями — это одна и та же тройка чисел. Ответ становится восьмёркой, а два минуса дают плюс, и он остаётся без знака.'
+            },
+            legend: {
+                task: 'Долг 48 рублей поделили поровну на 6 человек. Каким стал счёт каждого?',
+                answer: '−8',
+                why: 'Делят долг, а не деньги, поэтому и достаётся каждому долг: −48 ÷ 6 = −8. Знак делимого переходит в ответ целиком — шесть человек ничего не переворачивают, они только дробят.'
+            }
+        },
+        'integer-:div:4': {
+            diamond: {
+                task: '−320 разделили на какое-то число и получили −80. На что делили?',
+                answer: 'На 4',
+                why: 'Минус уже есть у первого числа, и в ответе он остался — значит второе ничего не переворачивало и было без минуса. Будь оно −4, два минуса дали бы плюс, и вышло бы 80.'
+            },
+            legend: {
+                task: 'Трос уходит под воду, метки стоят каждые 7 метров. Какая метка ближе всего к −50?',
+                answer: '−49',
+                why: 'Метки идут на −7, −14 и дальше вниз тем же шагом. Сорок девять — последняя перед пятьюдесятью, а следующая, −56, уже дальше от неё. Вниз от нуля кратные идут так же, как вверх.'
+            }
+        },
+        'integer-:div:5': {
+            diamond: {
+                task: 'В 540 ÷ (−30) получили −18. Как проверить этот ответ одним действием?',
+                answer: 'Умножить на −30',
+                why: 'Деление и умножение — обратные действия, поэтому ответ, умноженный на то, на что делили, должен дать исходное число. Два минуса гасятся, выходит 540 — сходится. Такая проверка ловит и ошибку в знаке, и ошибку в счёте.'
+            },
+            legend: {
+                task: 'Долг 960 рублей делят между людьми. Их больше одного, но меньше десяти. Какой самый большой долг достанется одному?',
+                answer: '−480',
+                why: 'Чем меньше людей, тем больше достаётся каждому, а меньше всего людей — двое. Долг остаётся долгом: 960 на двоих это по 480 рублей минуса. Одного человека исключили — тогда он просто забрал бы весь долг.'
             }
         }
     },
     en: {
-        // ===================== СЛОЖЕНИЕ =====================
+        // ================= СЛОЖЕНИЕ =================
         'integer+:add:1': {
             diamond: {
                 task: 'One apple was moved from the first basket to the second — and now both have the same number. How many more apples did the first basket have?',
@@ -304,9 +576,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:add:4': {
             diamond: {
-                task: 'How do you add 99 + 99 + 99 quickly, without working it out on paper?',
-                answer: '297',
-                why: 'Each 99 is a hundred minus one. Three hundreds make 300, then take away the three ones: 300 − 3 = 297.'
+                task: 'How can you tell the last digit of 37 + 48 without adding it all up?',
+                answer: 'Add 7 and 8',
+                why: 'Only the ones set the last digit: 7 + 8 = 15, so the answer ends in five. The tens have no say in it at all — they only decide how much there is altogether. That is why written addition is worked from right to left.'
             },
             legend: {
                 task: 'How much is 1 + 2 + 4 + 8 + 16 + 32 + 64?',
@@ -326,7 +598,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'The first shakes three hands, the second the remaining two, the third the last one: 3 + 2 + 1 = 6. Count pairs, not people.'
             }
         },
-        // ===================== ВЫЧИТАНИЕ =====================
+        // ================= ВЫЧИТАНИЕ =================
         'integer+:sub:1': {
             diamond: {
                 task: 'A bowl had 10 sweets. Some were eaten and 4 were left. Then sweets were added and there were 10 again. How many were added?',
@@ -370,9 +642,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Subtracting one after another is the same as subtracting the total: 1 + 2 + 3 + 4 = 10, and 100 − 10 = 90.'
             },
             legend: {
-                task: 'The difference of two numbers is 15 and their sum is 45. What are they?',
-                answer: '30 and 15',
-                why: 'The sum without the difference is two of the smaller number: 45 − 15 = 30, so the smaller is 15 and the bigger 15 + 15 = 30.'
+                task: 'A bus carried 20 people. At a stop 8 got off and 5 got on. At the next one 4 got off and 6 got on. How many stops were there?',
+                answer: 'Two',
+                why: 'While counting people, one forgets what was asked. All those eights, fives, fours and sixes have nothing to do with the answer — there are exactly as many stops as were named. Reading the question is worth doing before starting to count.'
             }
         },
         'integer+:sub:5': {
@@ -387,7 +659,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'Break it into pairs: 100 − 99 = 1, 98 − 97 = 1, and so on. There are exactly fifty pairs, each giving one.'
             }
         },
-        // ===================== УМНОЖЕНИЕ =====================
+        // ================= УМНОЖЕНИЕ =================
         'integer+:mul:1': {
             diamond: {
                 task: 'How many legs do three cats and two birds have altogether?',
@@ -448,7 +720,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'It makes 1200. Every zero at the end is born from a pair of two and five, and there are exactly two such pairs here.'
             }
         },
-        // ===================== ДЕЛЕНИЕ =====================
+        // ================== ДЕЛЕНИЕ ==================
         'integer+:div:1': {
             diamond: {
                 task: 'A rope was cut into four pieces. How many cuts were made?',
@@ -487,9 +759,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:div:4': {
             diamond: {
-                task: 'How many times does 8 fit into 100, and what is left over?',
-                answer: '12 times, remainder 4',
-                why: 'Twelve eights make 96, four short of a hundred, and a thirteenth eight no longer fits.'
+                task: 'What do 420 ÷ 70 and 42 ÷ 7 have in common?',
+                answer: 'The same answer',
+                why: 'Both give six. Division shows how many times one number fits into another, and shrinking both tenfold does not change that. Hence the trick: with round numbers a zero can be crossed off each and the small ones counted.'
             },
             legend: {
                 task: 'A number was divided by 5 and gave 5. What comes out if the same number is divided by 25?',
@@ -499,19 +771,263 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:div:5': {
             diamond: {
+                task: 'Sweets were shared evenly among some children, 8 each. Twice as many sweets arrive, the same children. How many does each get now?',
+                answer: '16 each',
+                why: 'The children did not increase, but the sweets doubled — so each share doubles too. When the same number of people is sharing, the answer grows exactly as what is being shared grows.'
+            },
+            legend: {
                 task: 'How do you divide 300 by 25 quickly?',
                 answer: 'Twelve',
                 why: 'There are four quarters in a hundred, so in three hundreds there are 4 × 3 = 12. Dividing by 25 is easiest through hundreds.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
+        'integer-:add:1': {
+            diamond: {
+                task: 'A lift went up 5 floors from floor −3, then down 4. Where is it now?',
+                answer: '−2',
+                why: 'From −3 up five is zero, then two more up: the lift is on the second floor. From there down four, and it is underground again, at −2. Zero is crossed twice, and neither time does the count restart — it simply carries on.'
             },
             legend: {
-                task: 'A division gave a quotient of 8. What will the quotient be if the dividend is doubled and the divisor left as it was?',
-                answer: 'Sixteen',
-                why: 'The dividend grew twice, the divisor did not change — so the result grew exactly twice as well, whatever the numbers were.'
+                task: 'After two moves in a game there are fewer points than before. Did both moves have to take points away?',
+                answer: 'No, one is enough',
+                why: 'It feels like both, but it is enough for one move to take away more than the other gave back: −9 and +4 together make −5. Going down needs a balance tipped, not every single step downwards.'
+            }
+        },
+        'integer-:add:2': {
+            diamond: {
+                task: 'It was 8 degrees above zero, and overnight it got 15 degrees colder. What does the thermometer read in the morning?',
+                answer: '−7',
+                why: 'Eight down is zero, and there are still seven left to fall. Zero is not a wall: the count goes straight through it, only now into the minus. Hence −7, which in words is «seven degrees of frost».'
+            },
+            legend: {
+                task: 'An account is at −8. How much has to be paid in to reach 8?',
+                answer: '16',
+                why: 'Eight will not do — it only gets you to zero. The journey is made twice: eight up to zero and eight more beyond. From a number to its mirror image is always twice the distance to zero.'
+            }
+        },
+        'integer-:add:3': {
+            diamond: {
+                task: 'A submersible was at −11 and rose 10 metres. Did it surface?',
+                answer: 'No, a metre short',
+                why: 'From −11 up ten is −1, that is one metre below the surface. When two numbers are nearly equal the answer comes out tiny, but the larger one still decides the side: eleven outweighed ten.'
+            },
+            legend: {
+                task: 'A thermometer reads −30 and rises 7 degrees an hour. Which reading comes closest to zero?',
+                answer: '−2',
+                why: 'After four hours it reads −2, and after five it is already +5 — zero was jumped over. Equal steps land exactly on zero only when the starting distance divides by the step, and thirty does not divide by seven.'
+            }
+        },
+        'integer-:add:4': {
+            diamond: {
+                task: 'How can 24 + (−19) be written more briefly, without brackets?',
+                answer: '24 − 19',
+                why: 'Adding a negative is the same as subtracting a positive: a step down is a step down however it is written. A plus and a minus side by side collapse into one minus, and the brackets are no longer needed.'
+            },
+            legend: {
+                task: 'What can be added to any number and leave it unchanged?',
+                answer: 'Zero',
+                why: 'Adding zero means not moving at all. Any other number is bound to pull left or right, and matching the original is then impossible. Zero is the only one that can do this.'
+            }
+        },
+        'integer-:add:5': {
+            diamond: {
+                task: '−97 + 95 and −95 + 97. Which of the two ends up below zero?',
+                answer: 'The first one',
+                why: 'The side is set by whichever number lies further from zero. In the first that is −97, so the answer goes down: −2. In the second it is 97, and the answer is 2. The numbers set the size, the sign of the larger one sets the side.'
+            },
+            legend: {
+                task: 'A move in a game gives either −7 points or +3. How many moves does it take to get back to exactly zero?',
+                answer: 'Ten',
+                why: 'Sevens pull down, threes pull up, and they can only level out at twenty-one — the first number divisible by both seven and three. That is three moves of −7 and seven moves of +3, ten in all. Fewer will not do.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · ВЫЧИТАНИЕ =========
+        'integer-:sub:1': {
+            diamond: {
+                task: 'Anya is at −4 and Boris at 4. Both spend 6. How far apart are they now?',
+                answer: 'By 8',
+                why: 'Anya is now at −10, Boris at −2. The gap was eight and stayed eight: take the same amount from two numbers and both shift equally, leaving the distance between them untouched.'
+            },
+            legend: {
+                task: 'Kostya is 6 years older than Olya. By how many years is Olya older than Kostya?',
+                answer: 'By −6',
+                why: 'She is not older, she is younger — and this is exactly the case where «by how much more» is answered with a minus. Swap who is compared with whom and the answer flips over, while its size stays the same.'
+            }
+        },
+        'integer-:sub:2': {
+            diamond: {
+                task: 'A gull flies 5 metres up, and a diver is 13 metres below it. Where is the diver?',
+                answer: '−8',
+                why: 'Five metres down from the gull is the surface of the water, with eight metres still to go. Zero here is neither the bottom nor a wall: below it the count continues in the same metres, only with a minus.'
+            },
+            legend: {
+                task: 'A thermometer read −5 in the morning and −12 in the evening. Did it get warmer or colder?',
+                answer: 'Colder by 7',
+                why: 'Both numbers are below zero, and the usual «bigger digit wins» does not work: twelve is more than five, yet −12 is colder than −5. The further down from zero, the smaller the number itself.'
+            }
+        },
+        'integer-:sub:3': {
+            diamond: {
+                task: 'Petya had −6 points. He won 14, then lost 20. How many now?',
+                answer: '−12',
+                why: 'After the win it was 8 — zero was crossed going up. After the loss it went twelve below zero. Zero here is not a barrier and not a stop: the score runs straight through it, both ways.'
+            },
+            legend: {
+                task: 'A miner was at −13 and went down another 14 metres. Where is he now?',
+                answer: '−27',
+                why: 'Both marks are below zero, and subtracting takes him lower still: −13 − 14 = −27. Starting in the minus and carrying on downwards, the sizes add up while the sign stays as it was.'
+            }
+        },
+        'integer-:sub:4': {
+            diamond: {
+                task: 'By how much does 20 − (−5) differ from 20 − 5?',
+                answer: 'By 10',
+                why: 'The first gives 25, the second 15. It looks as though they should differ by five, but the minus in front of the bracket turns the sign around: the five is not taken away but added, so the gap comes out twice as wide.'
+            },
+            legend: {
+                task: '−8 − (−3) and −8 + 3 always give the same answer. Why does that happen?',
+                answer: 'Two minuses make a plus',
+                why: 'Writing off a debt makes you richer by exactly that debt. The minus of the operation and the minus of the number cancel each other, and adding is what is left. Both give −5.'
+            }
+        },
+        'integer-:sub:5': {
+            diamond: {
+                task: 'Without working it out exactly: is −94 − (−86) around −180 or around −8?',
+                answer: 'Around −8',
+                why: 'Two minuses side by side collapse into a plus, giving −94 + 86. The numbers are nearly equal and nearly cancel out, so the answer is tiny. Around −180 would happen if they added up, but here they take from each other.'
+            },
+            legend: {
+                task: 'Three accounts hold −71, −30 and 62. What is the biggest gap between any two of them?',
+                answer: '133',
+                why: 'The furthest apart are the richest and the deepest in debt: from −71 to 62 is exactly 133. The biggest debt turns out to be the most useful one — subtracting it means adding.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · УМНОЖЕНИЕ =========
+        'integer-:mul:1': {
+            diamond: {
+                task: 'It gets 5 degrees colder every hour. Right now it is exactly zero. What will the thermometer read in 4 hours?',
+                answer: '−20',
+                why: 'Five degrees down, taken four times, is exactly what multiplying means: 5 × 4 = 20, and all twenty go below zero. When the same thing repeats many times the direction stays and the size grows.'
+            },
+            legend: {
+                task: 'Every account in a bank was multiplied by −1. What happened to those who were in debt?',
+                answer: 'They got rich',
+                why: 'Multiplying by one leaves a number as it is, and the minus turns it to the other side of zero. A debt of 500 becomes 500 in the account: the same size, the other side.'
+            }
+        },
+        'integer-:mul:2': {
+            diamond: {
+                task: '−4 × 8 gives a minus. What is enough to change so that it comes out a plus?',
+                answer: 'Any single sign',
+                why: 'There is one minus now, so the answer carries one too. It is enough to remove it or add a second — that gives either no minuses or two, and both cases come out a plus. What matters is how many, not where.'
+            },
+            legend: {
+                task: 'A lift goes down 3 floors at a time. Where does it end up after 4 trips from floor 6?',
+                answer: 'At −6',
+                why: 'Four trips of three floors is 3 × 4 = 12 floors down. From the sixth, twelve down: six to the ground and six more below it. Zero in between is not a stop, just another floor along the way.'
+            }
+        },
+        'integer-:mul:3': {
+            diamond: {
+                task: 'A number was multiplied by itself. Can the result come out below zero?',
+                answer: 'No, the signs match',
+                why: 'The numbers here are the same, so their signs are the same too: either two pluses or two minuses. That makes zero minuses or two, and an even number of them always gives a plus.'
+            },
+            legend: {
+                task: '−7 × 8 = −56. What are 7 × (−8) and −7 × (−8)?',
+                answer: '−56 and 56',
+                why: 'All three work out the same thing — seven eights. There is nothing to count again, only the minuses to look at: one gives −56, two give 56. The table is learned once, the sign is added separately.'
+            }
+        },
+        'integer-:mul:4': {
+            diamond: {
+                task: '3 × 9 = 27. What is −3 × 90?',
+                answer: '−270',
+                why: 'Ninety is nine with a zero, so the answer grows tenfold. The minus arrives separately, from the one negative number. The two steps do not interfere: first the size, then the side.'
+            },
+            legend: {
+                task: 'A diver descends 6 metres a minute and is now at −42. Where was he 3 minutes ago?',
+                answer: 'At −24',
+                why: 'Three minutes ago is −3 minutes, and a minute of descending is −6 metres. Together they give +18, so the depth was eighteen metres less: −42 + 18 = −24. That is the whole riddle of minus times minus: back in time along a downward path means higher up.'
+            }
+        },
+        'integer-:mul:5': {
+            diamond: {
+                task: 'Three numbers were multiplied and the result came out below zero. How many of them were below zero?',
+                answer: 'One or three',
+                why: 'Every minus flips the answer, so all that matters is whether their count is even. An odd count leaves the minus, an even one removes it. Out of three, the odd counts are one and three.'
+            },
+            legend: {
+                task: 'Three different numbers, all below zero, were multiplied and gave −8. What are they?',
+                answer: '−1, −2 and −4',
+                why: 'Three minuses give a minus, so the sign works out, and eight only has to be split into three different pieces. Only one set fits: one, two and four. Twos would repeat, and eight would need the one twice.'
+            }
+        },
+        // ========== ОТРИЦАТЕЛЬНЫЕ · ДЕЛЕНИЕ ==========
+        'integer-:div:1': {
+            diamond: {
+                task: 'Over 4 hours it got 20 degrees colder, the same amount each hour. How much did the thermometer change per hour?',
+                answer: 'By −5',
+                why: 'Twenty degrees downwards were split into four equal parts: 20 ÷ 4 = 5, and every part goes down. Dividing breaks up the size, while the direction of each piece stays the same as the whole.'
+            },
+            legend: {
+                task: 'What is the difference between −35 ÷ 1 and −35 ÷ 0?',
+                answer: 'The second has none',
+                why: 'Dividing by one leaves the number as it is: −35. Dividing by zero asks for a number that multiplied by zero gives −35, and there is none — zero times anything is zero.'
+            }
+        },
+        'integer-:div:2': {
+            diamond: {
+                task: '−21 ÷ 7 comes out whole. What about 7 ÷ (−21)?',
+                answer: 'Not whole',
+                why: 'Twenty-one divides by seven, but seven does not divide by twenty-one. In division the numbers cannot swap places: the sign is the same for both, but only one comes out whole.'
+            },
+            legend: {
+                task: 'What number has to be divided by −6 to give −6?',
+                answer: '36',
+                why: 'It is tempting to say «thirty-six with a minus», but two minuses would give a plus. Exactly one minus is needed, and the six already has it, so the first number stays without one.'
+            }
+        },
+        'integer-:div:3': {
+            diamond: {
+                task: '−56 ÷ 8 = −7. What is −56 ÷ (−7)?',
+                answer: '8',
+                why: 'The seven and the eight simply swapped roles — it is the same trio of numbers. The answer becomes eight, and the two minuses give a plus, so it carries no sign.'
+            },
+            legend: {
+                task: 'A debt of 48 was split evenly between 6 people. What did each account become?',
+                answer: '−8',
+                why: 'What is being split is a debt, not money, so a debt is what each one gets: −48 ÷ 6 = −8. The sign passes into the answer whole — six people flip nothing, they only break things up.'
+            }
+        },
+        'integer-:div:4': {
+            diamond: {
+                task: '−320 was divided by some number and gave −80. What was it divided by?',
+                answer: 'By 4',
+                why: 'The minus is already on the first number and it stayed in the answer — so the second flipped nothing and had no minus. Had it been −4, two minuses would give a plus and the answer would be 80.'
+            },
+            legend: {
+                task: 'A cable runs down into the water with marks every 7 metres. Which mark is closest to −50?',
+                answer: '−49',
+                why: 'The marks sit at −7, −14 and onwards with the same step. Forty-nine is the last one before fifty, and the next, −56, is further away again. Below zero the multiples run just as they do above.'
+            }
+        },
+        'integer-:div:5': {
+            diamond: {
+                task: '540 ÷ (−30) gave −18. How can this answer be checked in one step?',
+                answer: 'Multiply by −30',
+                why: 'Dividing and multiplying undo each other, so the answer times what you divided by must give the starting number. The two minuses cancel and 540 comes out — it fits. Such a check catches both a wrong sign and a wrong count.'
+            },
+            legend: {
+                task: 'A debt of 960 is split between people. There are more than one but fewer than ten. What is the largest debt one person can end up with?',
+                answer: '−480',
+                why: 'The fewer the people, the more each one gets, and the fewest is two. A debt stays a debt: 960 between two is 480 of minus each. One person was ruled out — they would simply take the whole debt.'
             }
         }
     },
     fr: {
-        // ===================== СЛОЖЕНИЕ =====================
+        // ================= СЛОЖЕНИЕ =================
         'integer+:add:1': {
             diamond: {
                 task: 'On a déplacé une pomme du premier panier vers le second — et maintenant les deux en ont autant. Combien le premier en avait-il de plus ?',
@@ -550,9 +1066,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:add:4': {
             diamond: {
-                task: 'Comment calculer vite 99 + 99 + 99, sans poser l’opération ?',
-                answer: '297',
-                why: 'Chaque 99 est une centaine moins un. Trois centaines font 300, puis on retire les trois unités : 300 − 3 = 297.'
+                task: 'Comment connaître le dernier chiffre de 37 + 48 sans tout calculer ?',
+                answer: 'Ajouter 7 et 8',
+                why: 'Seules les unités fixent le dernier chiffre : 7 + 8 = 15, donc la réponse se termine par cinq. Les dizaines n’y changent rien — elles décident seulement du total. C’est pour cela qu’on pose l’opération de droite à gauche.'
             },
             legend: {
                 task: 'Combien font 1 + 2 + 4 + 8 + 16 + 32 + 64 ?',
@@ -572,7 +1088,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'La première en serre trois, la deuxième les deux qui restent, la troisième la dernière : 3 + 2 + 1 = 6. On compte des paires, pas des personnes.'
             }
         },
-        // ===================== ВЫЧИТАНИЕ =====================
+        // ================= ВЫЧИТАНИЕ =================
         'integer+:sub:1': {
             diamond: {
                 task: 'Il y avait 10 bonbons dans un bol. On en a mangé quelques-uns, il en restait 4. Puis on en a rajouté, et il y en avait de nouveau 10. Combien en a-t-on rajouté ?',
@@ -616,9 +1132,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Retirer l’un après l’autre revient à retirer la somme : 1 + 2 + 3 + 4 = 10, et 100 − 10 = 90.'
             },
             legend: {
-                task: 'La différence de deux nombres est 15, et leur somme 45. Quels sont-ils ?',
-                answer: '30 et 15',
-                why: 'La somme sans l’écart, ce sont deux fois le plus petit : 45 − 15 = 30, donc le petit vaut 15 et le grand 15 + 15 = 30.'
+                task: 'Un bus transportait 20 personnes. À un arrêt, 8 sont descendues et 5 montées. Au suivant, 4 descendues et 6 montées. Combien y a-t-il eu d’arrêts ?',
+                answer: 'Deux',
+                why: 'À force de compter les gens, on oublie ce qui était demandé. Tous ces huit, cinq, quatre et six n’ont rien à voir avec la réponse — il y a exactement autant d’arrêts qu’on en a nommés. Mieux vaut lire la question avant de se mettre à compter.'
             }
         },
         'integer+:sub:5': {
@@ -633,7 +1149,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'Découpe en paires : 100 − 99 = 1, 98 − 97 = 1, et ainsi de suite. Il y a exactement cinquante paires, chacune donnant un.'
             }
         },
-        // ===================== УМНОЖЕНИЕ =====================
+        // ================= УМНОЖЕНИЕ =================
         'integer+:mul:1': {
             diamond: {
                 task: 'Combien de pattes ont en tout trois chats et deux oiseaux ?',
@@ -694,7 +1210,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'Cela fait 1200. Chaque zéro final naît d’une paire deux-et-cinq, et il y a ici exactement deux paires de ce genre.'
             }
         },
-        // ===================== ДЕЛЕНИЕ =====================
+        // ================== ДЕЛЕНИЕ ==================
         'integer+:div:1': {
             diamond: {
                 task: 'On a coupé une corde en quatre morceaux. Combien de coupes a-t-on faites ?',
@@ -733,9 +1249,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:div:4': {
             diamond: {
-                task: 'Combien de fois 8 tient-il dans 100, et que reste-t-il ?',
-                answer: '12 fois, reste 4',
-                why: 'Douze fois huit font 96, il manque quatre pour cent, et un treizième huit ne rentre plus.'
+                task: 'Qu’ont en commun 420 ÷ 70 et 42 ÷ 7 ?',
+                answer: 'La même réponse',
+                why: 'Les deux donnent six. La division montre combien de fois un nombre tient dans un autre, et les réduire tous deux dix fois n’y change rien. D’où l’astuce : avec des nombres ronds, on barre un zéro de chaque côté et on calcule les petits.'
             },
             legend: {
                 task: 'On a divisé un nombre par 5 et obtenu 5. Que donne le même nombre divisé par 25 ?',
@@ -745,19 +1261,263 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:div:5': {
             diamond: {
+                task: 'Des bonbons ont été partagés également entre des enfants, 8 chacun. On en apporte deux fois plus, avec les mêmes enfants. Combien chacun en a-t-il maintenant ?',
+                answer: '16 chacun',
+                why: 'Les enfants ne sont pas plus nombreux, mais les bonbons ont doublé — donc chaque part double aussi. Quand on partage entre le même nombre de personnes, la réponse grandit exactement comme grandit ce qu’on partage.'
+            },
+            legend: {
                 task: 'Comment diviser vite 300 par 25 ?',
                 answer: 'Douze',
                 why: 'Il y a quatre quarts dans une centaine, donc dans trois centaines il y en a 4 × 3 = 12. Diviser par 25 passe bien par les centaines.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
+        'integer-:add:1': {
+            diamond: {
+                task: 'Un ascenseur est monté de 5 étages depuis l’étage −3, puis descendu de 4. Où est-il ?',
+                answer: '−2',
+                why: 'De −3, cinq étages plus haut, c’est zéro, puis deux de plus : l’ascenseur est au deuxième. De là, quatre vers le bas, et le voilà de nouveau sous terre, à −2. On traverse zéro deux fois, et le compte ne repart jamais de zéro : il continue.'
             },
             legend: {
-                task: 'Une division a donné 8. Que devient le résultat si on double le dividende sans toucher au diviseur ?',
-                answer: 'Seize',
-                why: 'Le dividende a doublé, le diviseur n’a pas bougé — le résultat a donc doublé aussi, quels que soient les nombres.'
+                task: 'Après deux coups dans un jeu, il y a moins de points qu’avant. Les deux coups devaient-ils forcément retirer des points ?',
+                answer: 'Non, un seul suffit',
+                why: 'On a envie de dire « les deux », mais il suffit qu’un coup retire plus que l’autre n’ajoute : −9 et +4 font ensemble −5. Pour descendre, il faut un déséquilibre, pas que chaque pas aille vers le bas.'
+            }
+        },
+        'integer-:add:2': {
+            diamond: {
+                task: 'Il faisait 8 degrés, et dans la nuit il a fait 15 degrés de moins. Que montre le thermomètre au matin ?',
+                answer: '−7',
+                why: 'Huit degrés plus bas, c’est zéro, et il en reste sept à descendre. Zéro n’est pas un mur : le compte le traverse et continue, mais du côté du moins. D’où −7, que l’on dit aussi « sept degrés de gel ».'
+            },
+            legend: {
+                task: 'Un compte est à −8. Combien faut-il déposer pour arriver à 8 ?',
+                answer: '16',
+                why: 'Huit ne suffit pas — cela ne mène qu’à zéro. Le chemin se fait deux fois : huit jusqu’à zéro, puis huit encore au-delà. D’un nombre à son miroir, c’est toujours le double de la distance à zéro.'
+            }
+        },
+        'integer-:add:3': {
+            diamond: {
+                task: 'Un bathyscaphe était à −11 et est remonté de 10 mètres. A-t-il fait surface ?',
+                answer: 'Non, il manque un mètre',
+                why: 'De −11, dix mètres plus haut, cela fait −1, soit un mètre sous la surface. Quand deux nombres sont presque égaux, la réponse est minuscule, mais c’est le plus grand qui décide du côté : onze l’emporte sur dix.'
+            },
+            legend: {
+                task: 'Un thermomètre indique −30 et monte de 7 degrés par heure. Quelle indication sera la plus proche de zéro ?',
+                answer: '−2',
+                why: 'Après quatre heures il indique −2, après cinq il est déjà à +5 — zéro a été sauté. Des pas égaux tombent pile sur zéro seulement si la distance de départ se divise par le pas, et trente ne se divise pas par sept.'
+            }
+        },
+        'integer-:add:4': {
+            diamond: {
+                task: 'Comment écrire 24 + (−19) plus court, sans parenthèses ?',
+                answer: '24 − 19',
+                why: 'Ajouter un négatif revient à soustraire un positif : un pas vers le bas reste un pas vers le bas, quelle que soit l’écriture. Un plus et un moins côte à côte se replient en un seul moins, et les parenthèses deviennent inutiles.'
+            },
+            legend: {
+                task: 'Qu’est-ce qu’on peut ajouter à n’importe quel nombre sans le changer ?',
+                answer: 'Zéro',
+                why: 'Ajouter zéro, c’est ne pas bouger du tout. Tout autre nombre entraîne forcément à droite ou à gauche, et retrouver le nombre de départ devient impossible. Zéro est le seul à savoir faire cela.'
+            }
+        },
+        'integer-:add:5': {
+            diamond: {
+                task: '−97 + 95 et −95 + 97. Laquelle des deux tombe sous zéro ?',
+                answer: 'La première',
+                why: 'Le côté est donné par le nombre le plus éloigné de zéro. Dans la première c’est −97, et la réponse descend : −2. Dans la seconde c’est 97, et la réponse vaut 2. Les nombres fixent la taille, le signe du plus grand fixe le côté.'
+            },
+            legend: {
+                task: 'Un coup dans un jeu donne soit −7 points, soit +3. En combien de coups revenir exactement à zéro ?',
+                answer: 'Dix',
+                why: 'Les sept tirent vers le bas, les trois vers le haut, et ils ne peuvent s’égaliser qu’à vingt et un — le premier nombre divisible par sept et par trois. Cela fait trois coups à −7 et sept coups à +3, dix en tout. Moins, c’est impossible.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · ВЫЧИТАНИЕ =========
+        'integer-:sub:1': {
+            diamond: {
+                task: 'Anna est à −4 et Boris à 4. Chacun dépense 6. De combien leurs comptes diffèrent-ils maintenant ?',
+                answer: 'De 8',
+                why: 'Anna est à −10, Boris à −2. L’écart était de huit et il reste de huit : si l’on retire la même chose à deux nombres, tous deux se décalent pareillement et la distance entre eux ne bouge pas.'
+            },
+            legend: {
+                task: 'Kostia a 6 ans de plus qu’Olia. De combien d’années Olia est-elle plus âgée que Kostia ?',
+                answer: 'De −6',
+                why: 'Elle n’est pas plus âgée, elle est plus jeune — et c’est justement le cas où « de combien de plus » se répond avec un moins. On échange qui est comparé à qui, et la réponse se retourne, sa taille restant la même.'
+            }
+        },
+        'integer-:sub:2': {
+            diamond: {
+                task: 'Une mouette vole à 5 mètres, et un plongeur est 13 mètres plus bas qu’elle. Où est le plongeur ?',
+                answer: '−8',
+                why: 'Cinq mètres plus bas que la mouette, c’est la surface de l’eau, et il reste huit mètres à descendre. Zéro n’est ici ni le fond ni un mur : en dessous, on compte les mêmes mètres, avec un moins.'
+            },
+            legend: {
+                task: 'Le matin le thermomètre indiquait −5, le soir −12. Fait-il plus chaud ou plus froid ?',
+                answer: 'Plus froid de 7',
+                why: 'Les deux nombres sont sous zéro, et l’habituel « le plus grand chiffre gagne » ne marche pas : douze dépasse cinq, pourtant −12 est plus froid que −5. Plus on descend sous zéro, plus le nombre lui-même est petit.'
+            }
+        },
+        'integer-:sub:3': {
+            diamond: {
+                task: 'Petia avait −6 points. Il en a gagné 14, puis perdu 20. Combien en a-t-il maintenant ?',
+                answer: '−12',
+                why: 'Après le gain, il était à 8 — zéro a été franchi vers le haut. Après la perte, il est descendu douze en dessous. Zéro n’est ici ni une barrière ni un arrêt : le score le traverse de part en part, dans les deux sens.'
+            },
+            legend: {
+                task: 'Un mineur était à −13 et est descendu de 14 mètres de plus. Où est-il maintenant ?',
+                answer: '−27',
+                why: 'Les deux repères sont sous zéro, et la soustraction le fait descendre encore : −13 − 14 = −27. Quand on part du moins et qu’on continue vers le bas, les tailles s’ajoutent et le signe reste tel quel.'
+            }
+        },
+        'integer-:sub:4': {
+            diamond: {
+                task: 'De combien 20 − (−5) diffère-t-il de 20 − 5 ?',
+                answer: 'De 10',
+                why: 'Le premier donne 25, le second 15. On croirait qu’ils doivent différer de cinq, mais le moins devant la parenthèse retourne le signe : le cinq n’est pas retiré mais ajouté, et l’écart devient deux fois plus grand.'
+            },
+            legend: {
+                task: 'Les écritures −8 − (−3) et −8 + 3 donnent toujours la même réponse. Pourquoi ?',
+                answer: 'Deux moins font un plus',
+                why: 'Effacer une dette, c’est devenir plus riche exactement de cette dette. Le moins de l’opération et le moins du nombre s’annulent, et il ne reste que l’addition. Les deux donnent −5.'
+            }
+        },
+        'integer-:sub:5': {
+            diamond: {
+                task: 'Sans calculer précisément : −94 − (−86) donne-t-il environ −180 ou environ −8 ?',
+                answer: 'Environ −8',
+                why: 'Deux moins côte à côte se replient en un plus, ce qui donne −94 + 86. Les nombres sont presque égaux et s’annulent presque, d’où une réponse minuscule. Environ −180 arriverait s’ils s’additionnaient, mais ici ils se retranchent.'
+            },
+            legend: {
+                task: 'Trois comptes contiennent −71, −30 et 62. Quel est le plus grand écart entre deux d’entre eux ?',
+                answer: '133',
+                why: 'Les plus éloignés l’un de l’autre sont le plus riche et le plus endetté : de −71 à 62, il y a exactement 133. La plus grosse dette se révèle la plus utile — la retrancher revient à ajouter.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · УМНОЖЕНИЕ =========
+        'integer-:mul:1': {
+            diamond: {
+                task: 'Il fait 5 degrés de moins chaque heure. Il fait exactement zéro maintenant. Que montrera le thermomètre dans 4 heures ?',
+                answer: '−20',
+                why: 'Cinq degrés vers le bas, pris quatre fois, c’est précisément ce que veut dire multiplier : 5 × 4 = 20, et les vingt passent sous zéro. Quand la même chose se répète, la direction reste et la taille grandit.'
+            },
+            legend: {
+                task: 'Tous les comptes d’une banque ont été multipliés par −1. Qu’est-il arrivé à ceux qui devaient de l’argent ?',
+                answer: 'Ils sont devenus riches',
+                why: 'Multiplier par un laisse le nombre tel quel, et le moins le fait basculer de l’autre côté de zéro. Une dette de 500 devient 500 sur le compte : même taille, autre côté.'
+            }
+        },
+        'integer-:mul:2': {
+            diamond: {
+                task: '−4 × 8 donne un moins. Que suffit-il de changer pour obtenir un plus ?',
+                answer: 'N’importe quel signe',
+                why: 'Il y a un seul moins, donc la réponse en porte un aussi. Il suffit de l’enlever ou d’en ajouter un second — cela donne zéro moins ou deux, et les deux cas donnent un plus. Ce qui compte, c’est combien, pas où.'
+            },
+            legend: {
+                task: 'Un ascenseur descend de 3 étages à la fois. Où arrive-t-il après 4 descentes depuis l’étage 6 ?',
+                answer: 'À −6',
+                why: 'Quatre descentes de trois étages font 3 × 4 = 12 étages vers le bas. Du sixième, douze plus bas : six jusqu’au sol et six encore en dessous. Le zéro entre les deux n’est pas un arrêt, c’est un étage comme les autres.'
+            }
+        },
+        'integer-:mul:3': {
+            diamond: {
+                task: 'Un nombre a été multiplié par lui-même. Le résultat peut-il tomber sous zéro ?',
+                answer: 'Non, mêmes signes',
+                why: 'Les nombres sont ici identiques, donc leurs signes aussi : soit deux plus, soit deux moins. Cela fait zéro moins ou deux, et un nombre pair de moins donne toujours un plus.'
+            },
+            legend: {
+                task: '−7 × 8 = −56. Que valent 7 × (−8) et −7 × (−8) ?',
+                answer: '−56 et 56',
+                why: 'Les trois écritures calculent la même chose — sept fois huit. Il n’y a rien à recalculer, il reste à regarder les moins : un donne −56, deux donnent 56. La table s’apprend une fois, le signe s’ajoute à part.'
+            }
+        },
+        'integer-:mul:4': {
+            diamond: {
+                task: '3 × 9 = 27. Que vaut −3 × 90 ?',
+                answer: '−270',
+                why: 'Quatre-vingt-dix, c’est neuf avec un zéro, donc la réponse est dix fois plus grande. Le moins arrive à part, du seul nombre négatif. Les deux étapes ne se gênent pas : d’abord la taille, puis le côté.'
+            },
+            legend: {
+                task: 'Un plongeur descend de 6 mètres par minute et se trouve à −42. Où était-il il y a 3 minutes ?',
+                answer: 'À −24',
+                why: 'Il y a trois minutes, c’est −3 minutes, et une minute de descente, c’est −6 mètres. Ensemble cela fait +18, donc la profondeur était de dix-huit mètres moindre : −42 + 18 = −24. Voilà toute l’énigme du moins par moins : remonter le temps en descendant, c’est se retrouver plus haut.'
+            }
+        },
+        'integer-:mul:5': {
+            diamond: {
+                task: 'On a multiplié trois nombres et le résultat est sous zéro. Combien d’entre eux étaient sous zéro ?',
+                answer: 'Un ou trois',
+                why: 'Chaque moins retourne la réponse, donc seule compte la parité de leur nombre. Un compte impair laisse le moins, un compte pair l’enlève. Parmi trois, les comptes impairs sont un et trois.'
+            },
+            legend: {
+                task: 'Trois nombres différents, tous sous zéro, ont été multipliés et donnent −8. Lesquels sont-ce ?',
+                answer: '−1, −2 et −4',
+                why: 'Trois moins donnent un moins, le signe est donc correct, et il ne reste qu’à découper huit en trois morceaux différents. Un seul ensemble convient : un, deux et quatre. Les deux se répéteraient, et huit exigerait le un deux fois.'
+            }
+        },
+        // ========== ОТРИЦАТЕЛЬНЫЕ · ДЕЛЕНИЕ ==========
+        'integer-:div:1': {
+            diamond: {
+                task: 'En 4 heures il a fait 20 degrés de moins, autant chaque heure. De combien le thermomètre changeait-il par heure ?',
+                answer: 'De −5',
+                why: 'Vingt degrés vers le bas ont été partagés en quatre parts égales : 20 ÷ 4 = 5, et chaque part descend. Diviser découpe la taille, tandis que la direction de chaque morceau reste celle du tout.'
+            },
+            legend: {
+                task: 'Quelle différence y a-t-il entre −35 ÷ 1 et −35 ÷ 0 ?',
+                answer: 'La seconde n’en a pas',
+                why: 'Diviser par un laisse le nombre tel quel : −35. Diviser par zéro demande un nombre qui, multiplié par zéro, donnerait −35, et il n’en existe pas — zéro fois n’importe quoi fait zéro.'
+            }
+        },
+        'integer-:div:2': {
+            diamond: {
+                task: '−21 ÷ 7 tombe juste. Et 7 ÷ (−21) ?',
+                answer: 'Ne tombe pas juste',
+                why: 'Vingt et un se divise par sept, mais sept ne se divise pas par vingt et un. En division on n’échange pas les nombres : le signe est le même pour les deux, mais une seule tombe juste.'
+            },
+            legend: {
+                task: 'Quel nombre faut-il diviser par −6 pour obtenir −6 ?',
+                answer: '36',
+                why: 'On a envie de dire « trente-six avec un moins », mais deux moins donneraient un plus. Il faut exactement un moins, et le six l’a déjà, donc le premier nombre reste sans.'
+            }
+        },
+        'integer-:div:3': {
+            diamond: {
+                task: '−56 ÷ 8 = −7. Que vaut −56 ÷ (−7) ?',
+                answer: '8',
+                why: 'Le sept et le huit ont simplement échangé leurs rôles — c’est le même trio de nombres. La réponse devient huit, et les deux moins donnent un plus, elle reste donc sans signe.'
+            },
+            legend: {
+                task: 'Une dette de 48 a été partagée à parts égales entre 6 personnes. Qu’est devenu le compte de chacun ?',
+                answer: '−8',
+                why: 'Ce qu’on partage est une dette et non de l’argent, donc chacun reçoit une dette : −48 ÷ 6 = −8. Le signe passe entier dans la réponse — six personnes ne retournent rien, elles ne font que découper.'
+            }
+        },
+        'integer-:div:4': {
+            diamond: {
+                task: '−320 a été divisé par un nombre et a donné −80. Par quoi a-t-on divisé ?',
+                answer: 'Par 4',
+                why: 'Le moins est déjà sur le premier nombre et il est resté dans la réponse — le second n’a donc rien retourné et n’avait pas de moins. S’il avait été −4, deux moins donneraient un plus et la réponse serait 80.'
+            },
+            legend: {
+                task: 'Un câble descend dans l’eau, avec des repères tous les 7 mètres. Quel repère est le plus proche de −50 ?',
+                answer: '−49',
+                why: 'Les repères sont à −7, −14 et ainsi de suite, du même pas. Quarante-neuf est le dernier avant cinquante, et le suivant, −56, s’en éloigne à nouveau. Sous zéro, les multiples se suivent comme au-dessus.'
+            }
+        },
+        'integer-:div:5': {
+            diamond: {
+                task: 'Dans 540 ÷ (−30) on a obtenu −18. Comment vérifier cette réponse en une seule opération ?',
+                answer: 'Multiplier par −30',
+                why: 'Diviser et multiplier s’annulent, donc la réponse multipliée par le diviseur doit redonner le nombre de départ. Les deux moins s’effacent et 540 apparaît — cela concorde. Un tel contrôle attrape aussi bien une erreur de signe qu’une erreur de calcul.'
+            },
+            legend: {
+                task: 'Une dette de 960 est partagée entre des personnes. Elles sont plus d’une et moins de dix. Quelle est la plus grosse dette que l’une puisse recevoir ?',
+                answer: '−480',
+                why: 'Moins il y a de personnes, plus chacune reçoit, et le minimum est deux. Une dette reste une dette : 960 à deux, cela fait 480 de moins chacun. Une seule personne a été exclue — elle reprendrait simplement toute la dette.'
             }
         }
     },
     de: {
-        // ===================== СЛОЖЕНИЕ =====================
+        // ================= СЛОЖЕНИЕ =================
         'integer+:add:1': {
             diamond: {
                 task: 'Aus dem ersten Korb wurde ein Apfel in den zweiten gelegt — und jetzt sind es gleich viele. Wie viele Äpfel hatte der erste Korb mehr?',
@@ -796,9 +1556,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:add:4': {
             diamond: {
-                task: 'Wie rechnest du 99 + 99 + 99 schnell im Kopf, ohne schriftlich zu addieren?',
-                answer: '297',
-                why: 'Jede 99 ist hundert weniger eins. Drei Hunderter sind 300, davon die drei Einer weg: 300 − 3 = 297.'
+                task: 'Wie erkennt man die letzte Ziffer von 37 + 48, ohne alles auszurechnen?',
+                answer: '7 und 8 addieren',
+                why: 'Nur die Einer bestimmen die letzte Ziffer: 7 + 8 = 15, die Antwort endet also auf fünf. Die Zehner haben darauf gar keinen Einfluss — sie entscheiden nur über die Gesamtmenge. Darum rechnet man schriftlich von rechts nach links.'
             },
             legend: {
                 task: 'Wie viel ist 1 + 2 + 4 + 8 + 16 + 32 + 64?',
@@ -818,7 +1578,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'Der Erste gibt dreien die Hand, der Zweite den zwei übrigen, der Dritte dem Letzten: 3 + 2 + 1 = 6. Gezählt werden Paare, nicht Personen.'
             }
         },
-        // ===================== ВЫЧИТАНИЕ =====================
+        // ================= ВЫЧИТАНИЕ =================
         'integer+:sub:1': {
             diamond: {
                 task: 'In einer Schale lagen 10 Bonbons. Einige wurden gegessen, 4 blieben übrig. Dann wurden Bonbons nachgelegt, und es waren wieder 10. Wie viele wurden nachgelegt?',
@@ -862,9 +1622,9 @@ window.CHALLENGE_CONTENT = {
                 why: 'Nacheinander abziehen ist dasselbe wie die Summe abziehen: 1 + 2 + 3 + 4 = 10, und 100 − 10 = 90.'
             },
             legend: {
-                task: 'Die Differenz zweier Zahlen ist 15, ihre Summe 45. Welche sind es?',
-                answer: '30 und 15',
-                why: 'Die Summe ohne den Unterschied sind zweimal die kleinere Zahl: 45 − 15 = 30, also ist die kleinere 15 und die größere 15 + 15 = 30.'
+                task: 'In einem Bus fuhren 20 Leute. An einer Haltestelle stiegen 8 aus und 5 ein. An der nächsten 4 aus und 6 ein. Wie viele Haltestellen waren es?',
+                answer: 'Zwei',
+                why: 'Während man Leute zählt, vergisst man die Frage. All die Achten, Fünfen, Vieren und Sechsen haben mit der Antwort nichts zu tun — es sind genau so viele Haltestellen, wie genannt wurden. Die Frage zu lesen lohnt sich, bevor man zu rechnen beginnt.'
             }
         },
         'integer+:sub:5': {
@@ -879,7 +1639,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'Teile es in Paare: 100 − 99 = 1, 98 − 97 = 1, und so weiter. Es sind genau fünfzig Paare, jedes ergibt eins.'
             }
         },
-        // ===================== УМНОЖЕНИЕ =====================
+        // ================= УМНОЖЕНИЕ =================
         'integer+:mul:1': {
             diamond: {
                 task: 'Wie viele Beine haben drei Katzen und zwei Vögel zusammen?',
@@ -940,7 +1700,7 @@ window.CHALLENGE_CONTENT = {
                 why: 'Es ergibt 1200. Jede Null am Ende entsteht aus einem Paar aus Zwei und Fünf, und davon gibt es hier genau zwei.'
             }
         },
-        // ===================== ДЕЛЕНИЕ =====================
+        // ================== ДЕЛЕНИЕ ==================
         'integer+:div:1': {
             diamond: {
                 task: 'Ein Seil wurde in vier Stücke geschnitten. Wie viele Schnitte waren nötig?',
@@ -979,9 +1739,9 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:div:4': {
             diamond: {
-                task: 'Wie oft passt die 8 in 100, und was bleibt übrig?',
-                answer: '12-mal, Rest 4',
-                why: 'Zwölf Achten sind 96, bis hundert fehlen vier, und eine dreizehnte Acht passt nicht mehr hinein.'
+                task: 'Was haben 420 ÷ 70 und 42 ÷ 7 gemeinsam?',
+                answer: 'Dieselbe Antwort',
+                why: 'Beide ergeben sechs. Das Teilen zeigt, wie oft eine Zahl in eine andere passt, und beide um das Zehnfache zu verkleinern ändert daran nichts. Daher der Kniff: bei runden Zahlen streicht man je eine null und rechnet mit den kleinen.'
             },
             legend: {
                 task: 'Eine Zahl wurde durch 5 geteilt und ergab 5. Was kommt heraus, wenn man dieselbe Zahl durch 25 teilt?',
@@ -991,14 +1751,258 @@ window.CHALLENGE_CONTENT = {
         },
         'integer+:div:5': {
             diamond: {
+                task: 'Bonbons wurden gleichmäßig unter Kindern verteilt, je 8. Es kommen doppelt so viele Bonbons, die Kinder bleiben dieselben. Wie viele bekommt jedes jetzt?',
+                answer: 'Je 16',
+                why: 'Die Kinder wurden nicht mehr, die Bonbons aber doppelt so viele — also verdoppelt sich auch jeder Anteil. Wird unter derselben Anzahl geteilt, wächst die Antwort genau so, wie das wächst, was geteilt wird.'
+            },
+            legend: {
                 task: 'Wie teilst du 300 schnell durch 25?',
                 answer: 'Zwölf',
                 why: 'In hundert stecken vier Viertel, in dreihundert also 4 × 3 = 12. Durch 25 teilt man am leichtesten über die Hunderter.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
+        'integer-:add:1': {
+            diamond: {
+                task: 'Ein Aufzug fuhr von Etage −3 fünf Etagen hoch und dann vier hinunter. Wo ist er jetzt?',
+                answer: '−2',
+                why: 'Von −3 fünf hinauf ist null, dann noch zwei hinauf: der Aufzug steht im zweiten Stock. Von dort vier hinunter, und er ist wieder unter der Erde, auf −2. Die Null wird zweimal überquert, und beide Male beginnt die Zählung nicht neu, sondern läuft weiter.'
             },
             legend: {
-                task: 'Eine Division ergab 8. Was wird daraus, wenn man den Dividenden verdoppelt und den Divisor lässt?',
-                answer: 'Sechzehn',
-                why: 'Der Dividend wurde doppelt so groß, der Divisor blieb gleich — also wurde auch das Ergebnis genau doppelt so groß, egal welche Zahlen dastanden.'
+                task: 'Nach zwei Zügen im Spiel sind es weniger Punkte als vorher. Mussten beide Züge Punkte abziehen?',
+                answer: 'Nein, einer genügt',
+                why: 'Man möchte «beide» sagen, doch es genügt, wenn ein Zug mehr abzieht, als der andere gibt: −9 und +4 ergeben zusammen −5. Nach unten führt das Übergewicht, nicht jeder einzelne Schritt.'
+            }
+        },
+        'integer-:add:2': {
+            diamond: {
+                task: 'Es waren 8 Grad über null, über Nacht wurde es 15 Grad kälter. Was zeigt das Thermometer am Morgen?',
+                answer: '−7',
+                why: 'Acht hinunter ist null, und es bleiben noch sieben zu fallen. Die Null ist keine Wand: die Zählung geht durch sie hindurch weiter, nur eben ins Minus. Daher −7, in Worten «sieben Grad Frost».'
+            },
+            legend: {
+                task: 'Ein Konto steht bei −8. Wie viel muss eingezahlt werden, damit 8 daraus wird?',
+                answer: '16',
+                why: 'Acht reicht nicht — damit kommt man nur bis null. Der Weg wird zweimal gegangen: acht bis zur null und noch acht darüber hinaus. Von einer Zahl bis zu ihrem Spiegelbild ist es immer doppelt so weit wie bis zur null.'
+            }
+        },
+        'integer-:add:3': {
+            diamond: {
+                task: 'Ein Tauchboot war bei −11 und stieg 10 Meter auf. Ist es aufgetaucht?',
+                answer: 'Nein, ein Meter fehlt',
+                why: 'Von −11 zehn hinauf ergibt −1, also einen Meter unter der Oberfläche. Wenn zwei Zahlen fast gleich sind, fällt die Antwort winzig aus, doch die größere entscheidet trotzdem die Seite: elf hat zehn überwogen.'
+            },
+            legend: {
+                task: 'Ein Thermometer zeigt −30 und steigt um 7 Grad pro Stunde. Welcher Stand kommt der null am nächsten?',
+                answer: '−2',
+                why: 'Nach vier Stunden steht es bei −2, nach fünf schon bei +5 — die null wurde übersprungen. Gleiche Schritte treffen die null nur, wenn der Abstand am Anfang durch den Schritt teilbar ist, und dreißig ist nicht durch sieben teilbar.'
+            }
+        },
+        'integer-:add:4': {
+            diamond: {
+                task: 'Wie schreibt man 24 + (−19) kürzer, ohne Klammern?',
+                answer: '24 − 19',
+                why: 'Ein Negatives addieren ist dasselbe wie ein Positives subtrahieren: ein Schritt nach unten bleibt ein Schritt nach unten, wie man ihn auch schreibt. Plus und Minus nebeneinander fallen zu einem Minus zusammen, und die Klammern werden überflüssig.'
+            },
+            legend: {
+                task: 'Was kann man zu jeder Zahl addieren, ohne sie zu verändern?',
+                answer: 'Null',
+                why: 'Null addieren heißt, sich gar nicht zu bewegen. Jede andere Zahl zieht zwangsläufig nach rechts oder links, und die alte Zahl ist dann nicht mehr zu treffen. Nur die null kann das.'
+            }
+        },
+        'integer-:add:5': {
+            diamond: {
+                task: '−97 + 95 und −95 + 97. Welche der beiden landet unter null?',
+                answer: 'Die erste',
+                why: 'Die Seite bestimmt die Zahl, die weiter von der null entfernt ist. In der ersten ist das −97, und die Antwort geht nach unten: −2. In der zweiten ist es 97, und die Antwort ist 2. Die Zahlen bestimmen die Größe, das Vorzeichen der größeren die Seite.'
+            },
+            legend: {
+                task: 'Ein Zug im Spiel bringt entweder −7 Punkte oder +3. Nach wie vielen Zügen ist man genau bei null?',
+                answer: 'Zehn',
+                why: 'Die Siebenen ziehen nach unten, die Dreien nach oben, und ausgleichen können sie sich erst bei einundzwanzig — der ersten Zahl, die durch sieben und durch drei teilbar ist. Das sind drei Züge zu −7 und sieben Züge zu +3, zusammen zehn. Weniger geht nicht.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · ВЫЧИТАНИЕ =========
+        'integer-:sub:1': {
+            diamond: {
+                task: 'Anja steht bei −4, Boris bei 4. Beide geben 6 aus. Wie weit liegen ihre Konten jetzt auseinander?',
+                answer: 'Um 8',
+                why: 'Anja steht nun bei −10, Boris bei −2. Der Abstand war acht und blieb acht: nimmt man zweien dasselbe weg, verschieben sich beide gleich, und der Abstand zwischen ihnen bleibt unberührt.'
+            },
+            legend: {
+                task: 'Kostja ist 6 Jahre älter als Olja. Um wie viele Jahre ist Olja älter als Kostja?',
+                answer: 'Um −6',
+                why: 'Sie ist nicht älter, sondern jünger — und genau hier antwortet man auf «um wie viel mehr» mit einem Minus. Vertauscht man, wer mit wem verglichen wird, kippt die Antwort um, ihre Größe bleibt.'
+            }
+        },
+        'integer-:sub:2': {
+            diamond: {
+                task: 'Eine Möwe fliegt auf 5 Metern, ein Taucher ist 13 Meter tiefer als sie. Wo ist der Taucher?',
+                answer: '−8',
+                why: 'Fünf Meter unter der Möwe liegt die Wasseroberfläche, und es bleiben noch acht Meter nach unten. Die null ist hier weder Grund noch Wand: darunter zählt man dieselben Meter weiter, nur mit einem Minus.'
+            },
+            legend: {
+                task: 'Morgens zeigte das Thermometer −5, abends −12. Wurde es wärmer oder kälter?',
+                answer: 'Kälter um 7',
+                why: 'Beide Zahlen liegen unter null, und das gewohnte «die größere Ziffer gewinnt» gilt nicht: zwölf ist mehr als fünf, doch −12 ist kälter als −5. Je weiter hinunter von der null, desto kleiner die Zahl selbst.'
+            }
+        },
+        'integer-:sub:3': {
+            diamond: {
+                task: 'Petja hatte −6 Punkte. Er gewann 14, dann verlor er 20. Wie viele sind es jetzt?',
+                answer: '−12',
+                why: 'Nach dem Gewinn waren es 8 — die null wurde nach oben überquert. Nach dem Verlust ging es zwölf unter null. Die null ist hier keine Schranke und kein Halt: der Punktestand läuft mitten hindurch, in beide Richtungen.'
+            },
+            legend: {
+                task: 'Ein Bergmann war bei −13 und stieg weitere 14 Meter hinab. Wo ist er jetzt?',
+                answer: '−27',
+                why: 'Beide Marken liegen unter null, und das Subtrahieren bringt ihn noch tiefer: −13 − 14 = −27. Beginnt man im Minus und geht weiter nach unten, addieren sich die Größen, und das Vorzeichen bleibt.'
+            }
+        },
+        'integer-:sub:4': {
+            diamond: {
+                task: 'Um wie viel unterscheidet sich 20 − (−5) von 20 − 5?',
+                answer: 'Um 10',
+                why: 'Das erste ergibt 25, das zweite 15. Es sieht aus, als müssten sie sich um fünf unterscheiden, doch das Minus vor der Klammer dreht das Vorzeichen um: die Fünf wird nicht abgezogen, sondern addiert, und der Abstand fällt doppelt so groß aus.'
+            },
+            legend: {
+                task: 'Die Schreibweisen −8 − (−3) und −8 + 3 ergeben immer dasselbe. Warum ist das so?',
+                answer: 'Zwei Minus geben ein Plus',
+                why: 'Eine Schuld zu streichen macht genau um diese Schuld reicher. Das Minus der Rechenart und das Minus der Zahl löschen einander aus, und übrig bleibt das Addieren. Beide ergeben −5.'
+            }
+        },
+        'integer-:sub:5': {
+            diamond: {
+                task: 'Ohne genau zu rechnen: liegt −94 − (−86) bei etwa −180 oder bei etwa −8?',
+                answer: 'Bei etwa −8',
+                why: 'Zwei Minus nebeneinander fallen zu einem Plus zusammen, es ergibt sich −94 + 86. Die Zahlen sind fast gleich und löschen einander fast aus, daher ist die Antwort winzig. Etwa −180 käme heraus, wenn sie sich addierten, hier ziehen sie voneinander ab.'
+            },
+            legend: {
+                task: 'Auf drei Konten liegen −71, −30 und 62. Wie groß ist der größte Abstand zwischen zweien davon?',
+                answer: '133',
+                why: 'Am weitesten auseinander liegen der Reichste und der am tiefsten Verschuldete: von −71 bis 62 sind es genau 133. Die größte Schuld erweist sich als die nützlichste — sie abzuziehen heißt zu addieren.'
+            }
+        },
+        // ========= ОТРИЦАТЕЛЬНЫЕ · УМНОЖЕНИЕ =========
+        'integer-:mul:1': {
+            diamond: {
+                task: 'Jede Stunde wird es 5 Grad kälter. Jetzt ist es genau null. Was zeigt das Thermometer in 4 Stunden?',
+                answer: '−20',
+                why: 'Fünf Grad hinunter, viermal genommen, ist genau das, was Multiplizieren heißt: 5 × 4 = 20, und alle zwanzig gehen unter null. Wiederholt sich dasselbe viele Male, bleibt die Richtung und die Größe wächst.'
+            },
+            legend: {
+                task: 'Alle Konten einer Bank wurden mit −1 multipliziert. Was wurde aus denen, die Schulden hatten?',
+                answer: 'Sie wurden reich',
+                why: 'Das Multiplizieren mit eins lässt die Zahl, wie sie ist, und das Minus dreht sie auf die andere Seite der null. Eine Schuld von 500 wird zu 500 auf dem Konto: gleiche Größe, andere Seite.'
+            }
+        },
+        'integer-:mul:2': {
+            diamond: {
+                task: '−4 × 8 ergibt ein Minus. Was genügt zu ändern, damit ein Plus herauskommt?',
+                answer: 'Irgendein Vorzeichen',
+                why: 'Es gibt jetzt ein Minus, deshalb trägt auch die Antwort eines. Es genügt, es wegzunehmen oder ein zweites zu setzen — dann sind es null oder zwei, und beides ergibt ein Plus. Es zählt die Anzahl, nicht die Stelle.'
+            },
+            legend: {
+                task: 'Ein Aufzug fährt jeweils 3 Etagen hinunter. Wo ist er nach 4 Fahrten von Etage 6?',
+                answer: 'Auf −6',
+                why: 'Vier Fahrten zu drei Etagen sind 3 × 4 = 12 Etagen abwärts. Vom sechsten zwölf hinunter: sechs bis zum Boden und sechs weitere darunter. Die null dazwischen ist kein Halt, sondern eine Etage wie jede andere.'
+            }
+        },
+        'integer-:mul:3': {
+            diamond: {
+                task: 'Eine Zahl wurde mit sich selbst multipliziert. Kann dabei etwas unter null herauskommen?',
+                answer: 'Nein, gleiche Zeichen',
+                why: 'Die Zahlen sind hier dieselben, also auch ihre Vorzeichen: entweder zwei Plus oder zwei Minus. Das ergibt null Minus oder zwei, und eine gerade Anzahl gibt immer ein Plus.'
+            },
+            legend: {
+                task: '−7 × 8 = −56. Was ergeben 7 × (−8) und −7 × (−8)?',
+                answer: '−56 und 56',
+                why: 'Alle drei rechnen dasselbe — sieben mal acht. Es ist nichts neu zu rechnen, es bleiben nur die Minus: eines ergibt −56, zwei ergeben 56. Das Einmaleins lernt man einmal, das Vorzeichen kommt getrennt dazu.'
+            }
+        },
+        'integer-:mul:4': {
+            diamond: {
+                task: '3 × 9 = 27. Was ergibt −3 × 90?',
+                answer: '−270',
+                why: 'Neunzig ist neun mit einer null, also wird die Antwort zehnmal so groß. Das Minus kommt getrennt, von der einen negativen Zahl. Die zwei Schritte stören einander nicht: erst die Größe, dann die Seite.'
+            },
+            legend: {
+                task: 'Ein Taucher sinkt 6 Meter pro Minute und ist jetzt bei −42. Wo war er vor 3 Minuten?',
+                answer: 'Bei −24',
+                why: 'Vor drei Minuten ist −3 Minuten, und eine Minute Absinken ist −6 Meter. Zusammen ergeben sie +18, die Tiefe war also achtzehn Meter geringer: −42 + 18 = −24. Das ist das ganze Rätsel von Minus mal Minus: rückwärts in der Zeit auf dem Weg nach unten heißt weiter oben.'
+            }
+        },
+        'integer-:mul:5': {
+            diamond: {
+                task: 'Drei Zahlen wurden multipliziert, und es kam etwas unter null heraus. Wie viele davon waren unter null?',
+                answer: 'Eine oder drei',
+                why: 'Jedes Minus dreht die Antwort um, deshalb zählt nur, ob ihre Anzahl gerade ist. Eine ungerade Anzahl lässt das Minus stehen, eine gerade nimmt es weg. Von dreien sind eins und drei ungerade.'
+            },
+            legend: {
+                task: 'Drei verschiedene Zahlen, alle unter null, ergaben multipliziert −8. Welche sind es?',
+                answer: '−1, −2 und −4',
+                why: 'Drei Minus geben ein Minus, das Vorzeichen stimmt also, und es bleibt nur, die acht in drei verschiedene Teile zu zerlegen. Nur ein Satz passt: eins, zwei und vier. Zweien würden sich wiederholen, und acht bräuchte die eins zweimal.'
+            }
+        },
+        // ========== ОТРИЦАТЕЛЬНЫЕ · ДЕЛЕНИЕ ==========
+        'integer-:div:1': {
+            diamond: {
+                task: 'In 4 Stunden wurde es 20 Grad kälter, jede Stunde gleich viel. Um wie viel änderte sich das Thermometer pro Stunde?',
+                answer: 'Um −5',
+                why: 'Zwanzig Grad abwärts wurden in vier gleiche Teile zerlegt: 20 ÷ 4 = 5, und jeder Teil geht nach unten. Das Teilen zerlegt die Größe, während die Richtung jedes Stücks die des Ganzen bleibt.'
+            },
+            legend: {
+                task: 'Worin unterscheiden sich −35 ÷ 1 und −35 ÷ 0?',
+                answer: 'Die zweite hat keine',
+                why: 'Das Teilen durch eins lässt die Zahl, wie sie ist: −35. Das Teilen durch null verlangt eine Zahl, die mit null multipliziert −35 ergibt, und die gibt es nicht — null mal irgendetwas ist null.'
+            }
+        },
+        'integer-:div:2': {
+            diamond: {
+                task: '−21 ÷ 7 geht glatt auf. Und was wird aus 7 ÷ (−21)?',
+                answer: 'Geht nicht auf',
+                why: 'Einundzwanzig lässt sich durch sieben teilen, sieben durch einundzwanzig aber nicht. Beim Teilen tauschen die Zahlen nicht die Plätze: das Vorzeichen ist bei beiden gleich, glatt aufgehen tut nur eine.'
+            },
+            legend: {
+                task: 'Welche Zahl muss man durch −6 teilen, damit −6 herauskommt?',
+                answer: '36',
+                why: 'Man möchte «sechsunddreißig mit Minus» sagen, doch zwei Minus gäben ein Plus. Es wird genau ein Minus gebraucht, und die Sechs hat es schon, also bleibt die erste Zahl ohne.'
+            }
+        },
+        'integer-:div:3': {
+            diamond: {
+                task: '−56 ÷ 8 = −7. Was ergibt −56 ÷ (−7)?',
+                answer: '8',
+                why: 'Sieben und acht haben einfach die Rollen getauscht — es ist dasselbe Zahlentrio. Die Antwort wird zur acht, und die zwei Minus geben ein Plus, sie bleibt also ohne Vorzeichen.'
+            },
+            legend: {
+                task: 'Eine Schuld von 48 wurde gleichmäßig auf 6 Leute verteilt. Was wurde aus dem Konto jedes Einzelnen?',
+                answer: '−8',
+                why: 'Verteilt wird eine Schuld und kein Geld, also bekommt jeder eine Schuld: −48 ÷ 6 = −8. Das Vorzeichen geht ganz in die Antwort über — sechs Leute drehen nichts um, sie zerlegen nur.'
+            }
+        },
+        'integer-:div:4': {
+            diamond: {
+                task: '−320 wurde durch eine Zahl geteilt und ergab −80. Durch welche?',
+                answer: 'Durch 4',
+                why: 'Das Minus steht schon an der ersten Zahl und blieb in der Antwort — die zweite hat also nichts umgedreht und hatte kein Minus. Wäre sie −4 gewesen, gäben zwei Minus ein Plus und es käme 80 heraus.'
+            },
+            legend: {
+                task: 'Ein Seil führt ins Wasser, alle 7 Meter eine Marke. Welche Marke liegt am nächsten an −50?',
+                answer: '−49',
+                why: 'Die Marken sitzen bei −7, −14 und weiter im selben Schritt. Neunundvierzig ist die letzte vor fünfzig, und die nächste, −56, entfernt sich wieder. Unter null laufen die Vielfachen genauso wie darüber.'
+            }
+        },
+        'integer-:div:5': {
+            diamond: {
+                task: 'Bei 540 ÷ (−30) kam −18 heraus. Wie prüft man diese Antwort mit einem einzigen Schritt?',
+                answer: 'Mit −30 multiplizieren',
+                why: 'Teilen und Multiplizieren heben einander auf, die Antwort mal dem Teiler muss also die Ausgangszahl ergeben. Die zwei Minus löschen sich, es kommt 540 heraus — es stimmt. Eine solche Probe fängt sowohl ein falsches Vorzeichen als auch einen Rechenfehler.'
+            },
+            legend: {
+                task: 'Eine Schuld von 960 wird unter Leuten aufgeteilt. Es sind mehr als einer und weniger als zehn. Welche größte Schuld kann einen treffen?',
+                answer: '−480',
+                why: 'Je weniger Leute, desto mehr bekommt jeder, und am wenigsten sind zwei. Eine Schuld bleibt eine Schuld: 960 auf zwei sind je 480 im Minus. Einen Einzelnen hat man ausgeschlossen — er würde einfach die ganze Schuld übernehmen.'
             }
         }
     }

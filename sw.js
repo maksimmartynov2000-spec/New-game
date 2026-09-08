@@ -15,7 +15,7 @@
 
 // Версия сменена вместе с переводом картинок в WebP: старые PNG лежали в кеше
 // картинок под этими же именами, и без смены версии они остались бы там навсегда.
-const VERSION = 'kluch-v5';
+const VERSION = 'kluch-v6';
 const SHELL_CACHE = `${VERSION}-shell`;
 const IMAGE_CACHE = `${VERSION}-img`;
 
