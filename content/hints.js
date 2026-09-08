@@ -24,6 +24,13 @@
 //   взял одно из чисел      game a, b         review a, b, верный ответ
 //   делил на ноль           game —            review a
 //   ошибся на единицу       game —            review что выбрал, верный ответ
+//   промахнулся рядом       game —            review что выбрал, верный ответ
+//   оба разряда мимо        game —            review что выбрал, верный ответ,
+//                                                    единицы ответа, десятки ответа
+//   не умножил десятки      game меньший множитель, единицы большего
+//                           review меньший, единицы большего, их произведение,
+//                                  десятки большего, второе произведение, верный ответ
+//   нет решения зря         game делитель     review a, b, верный ответ
 
 window.HINT_CONTENT = {
     ru: {
@@ -90,6 +97,22 @@ window.HINT_CONTENT = {
         'ошибся на единицу': {
             game: 'Мимо на единицу — это спешка, а не незнание.',
             review: 'Ответ был рядом: %1 вместо %2. Так почти всегда выходит, когда последний шаг делают на автомате — досчитывай его про себя, это полсекунды.'
+        },
+        'промахнулся рядом': {
+            game: 'Ответ рядом — значит считал верно, а последний шаг сбился.',
+            review: 'Выбрано %1, верный ответ %2. Промах на два-три — это не незнание, а сбитый счёт: один шаг потерялся или посчитался дважды. Помогает досчитывать последний шаг про себя, а не держать всё молча в голове.'
+        },
+        'оба разряда мимо': {
+            game: 'Не сошлась ни одна цифра. Считай разряды по очереди.',
+            review: 'Выбрано %1, верный ответ %2: не сошлись ни единицы, ни десятки. Столбик считают справа налево и по одному разряду: сначала единицы — их должно быть %3, потом десятки — их %4. Когда считают оба разряда сразу, промахиваются в обоих.'
+        },
+        'не умножил десятки': {
+            game: 'Посчитано только %1 × %2. У второго числа есть ещё десятки.',
+            review: '%1 × %2 = %3 — это только единицы. Остаётся %1 × %4 = %5, и вместе получается %6. Двузначное умножают по частям и складывают: пропустишь вторую часть — потеряешь её целиком.'
+        },
+        'нет решения зря': {
+            game: 'Здесь делят не на ноль — на %1 делить можно.',
+            review: '%1 ÷ %2 = %3. Правило запрещает только деление НА ноль, то есть когда ноль стоит вторым. Здесь второе число %2, и ответ есть. Ноль в примере сам по себе ничего не запрещает — важно, на каком он месте.'
         }
     },
 
@@ -157,6 +180,22 @@ window.HINT_CONTENT = {
         'ошибся на единицу': {
             game: 'Off by one — that is hurry, not lack of knowledge.',
             review: 'The answer was right there: %1 instead of %2. That is what happens when the last step is done on autopilot — count it through to yourself, it takes half a second.'
+        },
+        'промахнулся рядом': {
+            game: 'The answer was close — the method held, the last step slipped.',
+            review: 'You picked %1, the answer is %2. Being off by two or three is not missing knowledge, it is a slipped count: one step got lost or counted twice. Counting the last step through to yourself catches it.'
+        },
+        'оба разряда мимо': {
+            game: 'Neither digit matched. Work through one place at a time.',
+            review: 'You picked %1, the answer is %2 — neither the ones nor the tens matched. Column arithmetic runs right to left, one place at a time: the ones come to %3, then the tens come to %4. Counting both places at once is how you miss both.'
+        },
+        'не умножил десятки': {
+            game: 'Only %1 × %2 was counted. The second number still has tens.',
+            review: '%1 × %2 = %3 — that is the ones only. What is left is %1 × %4 = %5, and together they make %6. A two-digit number is multiplied in parts and then added up: skip the second part and you lose all of it.'
+        },
+        'нет решения зря': {
+            game: 'Nothing here is divided by zero — dividing by %1 is allowed.',
+            review: '%1 ÷ %2 = %3. The rule forbids dividing BY zero, that is, when the zero stands second. Here the second number is %2, so there is an answer. A zero in the problem forbids nothing on its own — what matters is where it stands.'
         }
     },
 
@@ -224,6 +263,22 @@ window.HINT_CONTENT = {
         'ошибся на единицу': {
             game: 'Raté d’une unité — c’est la précipitation, pas l’ignorance.',
             review: 'La réponse était juste à côté : %1 au lieu de %2. Cela arrive presque toujours quand la dernière étape se fait en pilote automatique — refais-la dans ta tête, c’est une demi-seconde.'
+        },
+        'промахнулся рядом': {
+            game: 'La réponse était tout près — le calcul tenait, la dernière étape a glissé.',
+            review: 'Tu as choisi %1, la bonne réponse est %2. Se tromper de deux ou trois, ce n’est pas un manque de savoir, c’est un comptage qui dérape : une étape s’est perdue ou a été comptée deux fois. Recompter la dernière étape dans sa tête suffit.'
+        },
+        'оба разряда мимо': {
+            game: 'Aucun chiffre ne correspond. Prends les rangs un par un.',
+            review: 'Tu as choisi %1, la bonne réponse est %2 : ni les unités ni les dizaines ne tombent juste. On pose l’opération de droite à gauche, un rang à la fois : les unités font %3, puis les dizaines font %4. Compter les deux rangs d’un coup, c’est se tromper dans les deux.'
+        },
+        'не умножил десятки': {
+            game: 'Seul %1 × %2 a été calculé. Le deuxième nombre a encore des dizaines.',
+            review: '%1 × %2 = %3 — ce ne sont que les unités. Il reste %1 × %4 = %5, et ensemble cela fait %6. Un nombre à deux chiffres se multiplie par parties, puis on additionne : sauter la deuxième partie, c’est la perdre entièrement.'
+        },
+        'нет решения зря': {
+            game: 'Ici on ne divise pas par zéro — diviser par %1 est permis.',
+            review: '%1 ÷ %2 = %3. La règle interdit seulement de diviser PAR zéro, c’est-à-dire quand le zéro est le deuxième nombre. Ici le deuxième nombre est %2, donc il y a une réponse. Un zéro dans le calcul n’interdit rien en soi — ce qui compte, c’est sa place.'
         }
     },
 
@@ -291,6 +346,22 @@ window.HINT_CONTENT = {
         'ошибся на единицу': {
             game: 'Um eins daneben — das ist Eile, nicht Unwissen.',
             review: 'Die Antwort war ganz nah: %1 statt %2. So etwas passiert fast immer, wenn der letzte Schritt automatisch läuft — rechne ihn dir noch einmal vor, das dauert eine halbe Sekunde.'
+        },
+        'промахнулся рядом': {
+            game: 'Ganz nah dran — gerechnet war richtig, der letzte Schritt ist verrutscht.',
+            review: 'Gewählt wurde %1, richtig ist %2. Zwei oder drei daneben ist keine Wissenslücke, sondern ein verrutschtes Zählen: ein Schritt ging verloren oder wurde doppelt gezählt. Den letzten Schritt noch einmal nachzurechnen genügt.'
+        },
+        'оба разряда мимо': {
+            game: 'Keine Ziffer stimmt. Nimm die Stellen nacheinander.',
+            review: 'Gewählt wurde %1, richtig ist %2 — weder Einer noch Zehner stimmen. Schriftlich rechnet man von rechts nach links, eine Stelle nach der anderen: die Einer ergeben %3, dann die Zehner %4. Wer beide Stellen auf einmal rechnet, verfehlt beide.'
+        },
+        'не умножил десятки': {
+            game: 'Gerechnet wurde nur %1 × %2. Die zweite Zahl hat noch Zehner.',
+            review: '%1 × %2 = %3 — das sind nur die Einer. Es fehlt noch %1 × %4 = %5, zusammen ergibt das %6. Eine zweistellige Zahl multipliziert man in Teilen und addiert sie: lässt du den zweiten Teil aus, fehlt er ganz.'
+        },
+        'нет решения зря': {
+            game: 'Hier wird nicht durch null geteilt — durch %1 darf man teilen.',
+            review: '%1 ÷ %2 = %3. Die Regel verbietet nur das Teilen DURCH null, also wenn die null an zweiter Stelle steht. Hier steht dort %2, es gibt also eine Antwort. Eine null im Beispiel verbietet für sich nichts — es kommt darauf an, wo sie steht.'
         }
     }
 };

@@ -2301,6 +2301,63 @@ test('сокращение и переводы: ответ равен исход
     assert(bad.length === 0, `перевод меняет величину: ${bad.slice(0, 3).join('; ')}`);
 });
 
+group('Каждая обманка имеет имя');
+
+// Обманка, которую разбор не умеет назвать, бесполезна дважды: ученику нечего
+// сказать в подсказке, а репетитор видит в отчёте строку «другая ошибка», по
+// которой ничего не сделаешь. Замер до правки давал 31% таких по всему режиму
+// положительных чисел и 58% на вычитании первой звезды.
+//
+// Проверка идёт по ВЫДАЧЕ генератора, а не по списку случаев: если завтра
+// появится новая модель обманки, а имени ей не заведут, эта проверка упадёт
+// сама. Порог с запасом — остаются только честно неразбираемые промахи вроде
+// «3 − 2 = 1, выбрано 7», их доля около 0,7%.
+const UNNAMED_LIMIT = 3;
+
+test('в положительных числах разбор называет почти каждую обманку', () => {
+    const worst = [];
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        let total = 0, unnamed = 0;
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            const meta = { category: 'integer', opKey: op, isNegative: false, level: lvl };
+            for (let i = 0; i < 1500; i++) {
+                const p = G.generateProblem(op, lvl, false);
+                const correct = p.noSolution ? 'NO_SOLUTION' : p.answer;
+                const fakes = p.noSolution
+                    ? G.buildNoSolutionOptions(p.a, false)
+                    : G.buildDistractors(op, p.a, p.b, p.answer, false, 3, lvl);
+                fakes.forEach(f => {
+                    total++;
+                    if (G.classifyMistake(meta, p, correct, f) === 'другая ошибка') unnamed++;
+                });
+            }
+        }
+        const pct = unnamed / total * 100;
+        if (pct > UNNAMED_LIMIT) worst.push(`${op}: ${pct.toFixed(1)}%`);
+    });
+    assert(worst.length === 0, `«другая ошибка» выше ${UNNAMED_LIMIT}%: ${worst.join(', ')}`);
+});
+
+test('отрицательные этой правкой не задеты', () => {
+    // Виды «оба разряда мимо» и «промахнулся рядом» описывают разряды
+    // положительного столбика. В отрицательных своя арифметика разрядов, и
+    // ставить их там было бы выдумкой — там уже есть «ошибся в знаке».
+    const seen = new Set();
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            const meta = { category: 'integer', opKey: op, isNegative: true, level: lvl };
+            for (let i = 0; i < 600; i++) {
+                const p = G.generateProblem(op, lvl, true);
+                const fakes = G.buildDistractors(op, p.a, p.b, p.answer, true, 3, lvl);
+                fakes.forEach(f => seen.add(G.classifyMistake(meta, p, p.answer, f)));
+            }
+        }
+    });
+    ['оба разряда мимо', 'промахнулся рядом', 'нет решения зря'].forEach(kind => {
+        assert(!seen.has(kind), `в отрицательных появился вид «${kind}»`);
+    });
+});
+
 // ---------- итог ----------
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
