@@ -44,7 +44,7 @@ function load(topics) {
             return out;
         },
         COUNT_TIERS: [25, 60, 100, 150, 250],
-        ACCURACY_TIERS: [80, 85, 90, 95, 99],
+        ACCURACY_TIERS: [80, 85, 90, 93, 97],
         LADDER_MIN_SAMPLE: [25, 60, 100, 100, 100],
         TIER_NAMES: ['', 'Бронза', 'Серебро', 'Золото', 'Алмаз', 'Легенда'],
         TIER_ICONS: ['', '🥉', '🥈', '🥇', '💎', '👑'],
