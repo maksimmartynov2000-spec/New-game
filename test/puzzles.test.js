@@ -1,13 +1,13 @@
-// Тесты привязки пазлов к клеткам.
+// Тесты пазлов: чьи картинки, за что собираются и почему их больше не надо хранить.
 //
-// Зачем: коллекция — единственное, что ученик копит месяцами, и до этой правки она
-// СТИРАЛАСЬ В НОЛЬ, как только он собирал все двадцать картинок. Двадцать открытых
-// карточек парадоксов исчезали разом, а на экране снова горело 0/20. Первая половина
-// проверок сторожит именно это.
+// Зачем: коллекция — единственное, что ученик копит месяцами. Здесь уже стирали её
+// в ноль при полном сборе, здесь же отнимали кусочки за ошибку, и здесь счётчик
+// кусочков разошёлся с ответами на сотню с лишним штук. Каждая из этих бед жила
+// в отдельном хранимом числе.
 //
-// Вторая половина — про смысл: картинка закреплена за клеткой, поэтому коллекция
-// читается как карта пройденного. Но счёт кусочков остаётся общим, иначе слабый
-// ученик, сидящий на первой звезде, перестал бы получать картинки вовсе.
+// Теперь хранимого числа нет: картинка закреплена за клеткой и собирается за сто
+// верных ответов В ЭТОЙ КЛЕТКЕ, то есть вместе с золотом по количеству. Кусочки —
+// это остаток от деления, число сборов — частное. Расходиться нечему.
 //
 // Как запускать:  node test/puzzles.test.js
 
@@ -17,8 +17,6 @@ const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
-// index.html разрезан на файлы: метки срезов ищем по всему коду приложения,
-// а не только во встроенном скрипте (см. test/app-source.js).
 const SCRIPT = require('./app-source').appScript(HTML);
 
 function slice(startMark, endMark, what) {
@@ -27,28 +25,26 @@ function slice(startMark, endMark, what) {
     if (from < 0 || to < 0) throw new Error(`не найдены границы среза: ${what}`);
     return SCRIPT.slice(from, to);
 }
-function line(mark) {
-    const from = SCRIPT.indexOf(mark);
-    if (from < 0) throw new Error('не найдена строка: ' + mark);
-    return SCRIPT.slice(from, SCRIPT.indexOf('\n', from));
-}
 
-function load(collection) {
-    const state = { collection: collection.slice(), saves: 0 };
+// byTopic — то, из чего теперь выводится всё про пазл. collection — старые отметки.
+function load(byTopic, collection) {
+    const state = { collection: (collection || new Array(20).fill(false)).slice(), saves: 0 };
     const box = {
         console, Math, Number, Object, Array, String,
-        randInt: (a, b) => a,                      // без случайности: проверяем правило
+        PUZZLE_TOTAL: 100,
+        PUZZLE_IMAGE_SRCS: new Array(20).fill('x.jpg'),
+        Progress: { get: () => ({ byTopic: byTopic || {} }) },
         loadCollectionArray: () => state.collection.slice(),
         saveCollectionArray: (arr) => { state.saves++; state.collection = arr.slice(); },
-        updateCollectionBadge: () => {},
-        buildTopicKey: (m) => `${m.category}${m.isNegative ? '-' : '+'}:${m.opKey}:${m.level || 1}`,
-        PUZZLE_IMAGE_SRCS: new Array(20).fill('x.jpg')
+        buildTopicKey: (m) => `${m.category}${m.isNegative ? '-' : '+'}:${m.opKey}:${m.level || 1}`
     };
     const src = [
         slice('function parseTopicKey(key)', '// Ключ для ОТОБРАЖЕНИЯ', 'parseTopicKey'),
-        slice('const PUZZLE_CELL_OPS', 'function startNewPuzzle', 'выбор картинки'),
-        ';globalThis.R = { puzzleIndexForTopic, puzzleTopicForIndex, pickPuzzleImageIndex,'
-            + ' currentMissionTopicKey, PUZZLE_CELL_OPS };'
+        slice('function topicCorrect(topicKey)', 'function updateCollectionBadge', 'выводимые величины'),
+        slice('const PUZZLE_CELL_OPS', 'function setupPuzzleForCell', 'клетки и картинки'),
+        ';globalThis.R = { puzzleIndexForTopic, puzzleTopicForIndex, currentMissionTopicKey,'
+            + ' topicCorrect, puzzleFilledFor, puzzleTimesFor, collectionTimes,'
+            + ' collectionCollectedCount, PUZZLE_CELL_OPS };'
     ].join('\n');
     vm.createContext(box);
     vm.runInContext(src, box, { filename: 'index.html<пазлы>' });
@@ -67,51 +63,92 @@ function eq(a, b, msg) { if (a !== b) throw new Error(`${msg || 'не совпа
 function group(name) { console.log(`\n${name}`); }
 
 const NONE = new Array(20).fill(false);
-const ALL = new Array(20).fill(true);
 
-group('Кусочки не отнимаются');
+group('Кусочки считаются, а не хранятся');
 
-test('прогресс пазла никогда не идёт назад', () => {
-    // Было: +1 за верный, −2 за ошибку. Чистый прирост при точности p равен 3p − 2
-    // и обращается в ноль при p = 66,7% — ученик с точностью ниже двух третей не
-    // собирал пазл НИКОГДА. А мы сами признаём, что такие ученики есть: в заданиях
-    // стоит порог в 60%. Именно ему картинка и не доставалась.
-    //
-    // Проверяем правило, а не одну удалённую строку: счётчик кусочков имеет право
-    // только расти, обнуляться при сбросе и читаться из хранилища. Любое вычитание
-    // возвращает ту же дыру, каким бы способом его ни записали.
-    const writes = [...SCRIPT.matchAll(/puzzleFilled\s*(--|-=|\+\+|\+=|=)([^=][^;\n]*)?/g)]
-        .map(m => (m[1] + (m[2] || '')).trim());
-    const bad = writes.filter(w =>
-        w === '--' || w.startsWith('-=') || /^=\s*.*-/.test(w));
-    assert(bad.length === 0, `счётчик кусочков уменьшают: ${bad.join(' ; ')}`);
+test('кусочков ровно столько, сколько верных ответов в клетке', () => {
+    const box = load({ 'integer+:add:3': { correct: 37, wrong: 9 } });
+    eq(box.R.puzzleFilledFor('integer+:add:3'), 37);
 });
 
-test('ошибка пазла не касается', () => {
-    // Отдельно от правила выше: даже безобидная на вид строка в ветке неверного
-    // ответа означала бы, что наказание вернулось.
-    const body = slice("playSound('wrong')", 'renderLiveStats()', 'ветка неверного ответа');
-    const hit = body.match(/.*[Pp]uzzle.*/);
-    assert(!hit, hit ? `в ветке ошибки снова трогают пазл: ${hit[0].trim()}` : '');
+test('сотый ответ обнуляет картинку и начинает следующую', () => {
+    // Ровно сотня — это собранная картинка и пустая следующая, а не 100 из 100.
+    eq(load({ 'integer+:add:3': { correct: 100 } }).R.puzzleFilledFor('integer+:add:3'), 0);
+    eq(load({ 'integer+:add:3': { correct: 179 } }).R.puzzleFilledFor('integer+:add:3'), 79);
+    eq(load({ 'integer+:add:3': { correct: 200 } }).R.puzzleFilledFor('integer+:add:3'), 0);
+});
+
+test('картинка собрана столько раз, сколько в клетке сотен', () => {
+    const times = (n) => load({ 'integer+:mul:1': { correct: n } }).R.puzzleTimesFor('integer+:mul:1');
+    eq(times(0), 0, 'ноль');
+    eq(times(99), 0, 'девяносто девять');
+    eq(times(100), 1, 'сотня');
+    eq(times(250), 2, 'двести пятьдесят');
+});
+
+test('в клетке без ответов кусочков нет', () => {
+    const box = load({});
+    eq(box.R.puzzleFilledFor('integer+:div:5'), 0);
+    eq(box.R.puzzleTimesFor('integer+:div:5'), 0);
+});
+
+test('ответы соседней клетки в эту не капают', () => {
+    // Главное свойство правки: сто примеров «2 + 7» больше не собирают картинку
+    // деления на пятой звезде.
+    const box = load({ 'integer+:add:1': { correct: 99 } });
+    eq(box.R.puzzleFilledFor('integer+:div:5'), 0, 'деление 5★');
+    eq(box.R.puzzleFilledFor('integer+:add:1'), 99, 'сложение 1★');
+});
+
+test('ответы вне положительных чисел не собирают ничего', () => {
+    const box = load({ 'integer-:mul:3': { correct: 500 }, 'fraction+:add:2': { correct: 300 } });
+    eq(box.R.puzzleIndexForTopic('integer-:mul:3'), null, 'отрицательные');
+    eq(box.R.puzzleIndexForTopic('fraction+:add:2'), null, 'дроби');
+});
+
+test('число кусочков нигде не сохраняется', () => {
+    // Пока оно хранилось отдельно, оно умело разойтись с ответами — и разошлось
+    // у всех до одного. Проверяем правило, а не удалённую строку: писать прогресс
+    // пазла в хранилище больше нельзя никаким способом.
+    assert(!/setPuzzle\s*\(/.test(SCRIPT), 'прогресс пазла снова пишут в хранилище');
+    assert(!/savePuzzleProgress|loadPuzzleProgress/.test(SCRIPT),
+        'вернулось сохранение прогресса пазла');
+});
+
+group('Коллекция');
+
+test('уже собранную картинку не отнимают', () => {
+    // До этой правки картинки давались за ответы откуда угодно. Отметки старые,
+    // ответов в клетке может не быть вовсе — картинка всё равно остаётся.
+    const col = NONE.slice(); col[7] = true;
+    const box = load({}, col);
+    eq(box.R.collectionTimes()[7], 1, 'старая отметка');
+    eq(box.R.collectionCollectedCount(box.R.collectionTimes()), 1, 'всего собрано');
+});
+
+test('сотня ответов открывает картинку сразу, без отметки', () => {
+    const key = load({}, NONE).R.puzzleTopicForIndex(3);
+    const box = load({ [key]: { correct: 140 } }, NONE);
+    eq(box.R.collectionTimes()[3], 1);
+});
+
+test('повторные сборы видны числом', () => {
+    const key = load({}, NONE).R.puzzleTopicForIndex(12);
+    const box = load({ [key]: { correct: 320 } }, NONE);
+    eq(box.R.collectionTimes()[12], 3);
+});
+
+test('отметка и ответы не складываются, берётся большее', () => {
+    const col = NONE.slice(); col[5] = true;
+    const key = load({}, NONE).R.puzzleTopicForIndex(5);
+    eq(load({ [key]: { correct: 250 } }, col).R.collectionTimes()[5], 2, 'ответов больше');
+    eq(load({ [key]: { correct: 10 } }, col).R.collectionTimes()[5], 1, 'отметка больше');
 });
 
 group('Соответствие клеток и картинок');
 
-test('сотня кусочков записана одним и тем же числом в обоих файлах', () => {
-    // js/progress.js подключается раньше index.html и обязан работать сам по себе,
-    // поэтому число там своё. Разъедутся — выравнивание кусочков начнёт считать
-    // картинки не по той сотне, и ученик получит не то, что заработал.
-    const inHtml = SCRIPT.match(/const PUZZLE_TOTAL = PUZZLE_GRID \* PUZZLE_GRID;/);
-    assert(inHtml, 'в index.html не найдено объявление PUZZLE_TOTAL');
-    const grid = Number((SCRIPT.match(/const PUZZLE_GRID = (\d+)/) || [])[1]);
-    const progress = fs.readFileSync(path.join(ROOT, 'js', 'progress.js'), 'utf8');
-    const pieces = Number((progress.match(/const PUZZLE_PIECES = (\d+)/) || [])[1]);
-    eq(pieces, grid * grid, 'PUZZLE_PIECES и PUZZLE_TOTAL');
-});
-
-
 test('двадцать клеток положительных чисел ложатся на двадцать картинок', () => {
-    const box = load(NONE);
+    const box = load({});
     const seen = {};
     ['add', 'sub', 'mul', 'div'].forEach(op => {
         for (let lvl = 1; lvl <= 5; lvl++) {
@@ -125,110 +162,47 @@ test('двадцать клеток положительных чисел лож
 });
 
 test('обратное соответствие сходится', () => {
-    const box = load(NONE);
+    const box = load({});
     for (let i = 0; i < 20; i++) {
         eq(box.R.puzzleIndexForTopic(box.R.puzzleTopicForIndex(i)), i, `картинка ${i}`);
     }
 });
 
 test('у чужих разделов картинки не закреплены', () => {
-    const box = load(NONE);
+    const box = load({});
     eq(box.R.puzzleIndexForTopic('integer-:add:1'), null, 'отрицательные');
     eq(box.R.puzzleIndexForTopic('decimal+:mul:2'), null, 'десятичные');
     eq(box.R.puzzleIndexForTopic('fraction+:simplify:1'), null, 'дроби');
     eq(box.R.puzzleIndexForTopic(null), null, 'пусто');
 });
 
-group('Какую картинку собираем');
-
-test('своя клетка — своя картинка', () => {
-    const box = load(NONE);
-    const want = box.R.puzzleIndexForTopic('integer+:mul:3');
-    eq(box.R.pickPuzzleImageIndex('integer+:mul:3', -1), want);
-});
-
-test('своя собрана — берём соседнюю звезду того же действия', () => {
-    // Ученик застрял на своей звезде: картинки продолжают идти, и все «про умножение».
-    const col = NONE.slice();
-    const own = load(NONE).R.puzzleIndexForTopic('integer+:mul:3');
-    col[own] = true;
-    const box = load(col);
-    const got = box.R.pickPuzzleImageIndex('integer+:mul:3', -1);
-    const p = box.R.puzzleTopicForIndex(got).split(':');
-    eq(p[1], 'mul', 'действие должно остаться тем же');
-    assert(Math.abs(got - own) === 1, `ждали соседнюю звезду, получили ${got} при своей ${own}`);
-});
-
-test('соседняя ищется только внутри своего действия', () => {
-    // У умножения свободна лишь дальняя звезда, а рядом по номеру лежит чужое
-    // действие. Уходить туда нельзя: картинка должна быть «про умножение».
-    const box0 = load(NONE);
-    const own = box0.R.puzzleIndexForTopic('integer+:mul:1');
-    const col = NONE.slice();
-    for (let i = own; i < own + 4; i++) col[i] = true;      // 1★–4★ умножения собраны
-    const box = load(col);
-    const got = box.R.pickPuzzleImageIndex('integer+:mul:1', -1);
-    eq(box.R.puzzleTopicForIndex(got).split(':')[1], 'mul',
-        `ушли из своего действия: картинка ${got}`);
-    eq(got, own + 4, 'должна быть последняя свободная звезда умножения');
-});
-
-test('всё действие собрано — берём любую несобранную', () => {
-    const col = NONE.slice();
-    for (let i = 10; i < 15; i++) col[i] = true;      // всё умножение
-    const box = load(col);
-    const got = box.R.pickPuzzleImageIndex('integer+:mul:3', -1);
-    assert(got < 10 || got >= 15, `должны были уйти из умножения, получили ${got}`);
-    eq(col[got], false, 'картинка должна быть несобранной');
-});
-
-test('у чужого раздела выбор из несобранных, как раньше', () => {
-    const col = NONE.slice();
-    for (let i = 0; i < 19; i++) col[i] = true;
-    const box = load(col);
-    eq(box.R.pickPuzzleImageIndex('decimal+:mul:2', -1), 19);
-});
-
-group('Когда собрано всё');
-
-test('коллекция НЕ обнуляется', () => {
-    // Раньше здесь стирались все двадцать отметок разом, и ученик терял всё разом.
-    const box = load(ALL);
-    box.R.pickPuzzleImageIndex('integer+:add:2', 3);
-    eq(box.state.saves, 0, 'коллекцию трогать нельзя');
-    eq(box.state.collection.filter(Boolean).length, 20, 'должна остаться полной');
-});
-
-test('пазл собирается заново — картинкой своей клетки', () => {
-    const box = load(ALL);
-    const own = box.R.puzzleIndexForTopic('integer+:add:2');
-    eq(box.R.pickPuzzleImageIndex('integer+:add:2', 7), own);
-});
-
-test('без своей клетки берём любую, кроме только что законченной', () => {
-    const box = load(ALL);
-    const got = box.R.pickPuzzleImageIndex('decimal+:mul:2', 0);
-    assert(got !== 0, 'ту же самую картинку подряд не начинаем');
-});
-
 group('Клетка текущей миссии');
 
 test('берётся из выбора на экране миссии, пока примера ещё нет', () => {
-    const box = load(NONE);
+    const box = load({});
     box.exampleConfig = { category: 'integer', numberType: 'positive', operations: { sub: 4 } };
     eq(box.R.currentMissionTopicKey(), 'integer+:sub:4');
 });
 
 test('отрицательный режим не путается с положительным', () => {
-    const box = load(NONE);
+    const box = load({});
     box.exampleConfig = { category: 'integer', numberType: 'negative', operations: { sub: 4 } };
     eq(box.R.currentMissionTopicKey(), 'integer-:sub:4');
 });
 
 test('при нескольких действиях клетки нет', () => {
-    const box = load(NONE);
+    const box = load({});
     box.exampleConfig = { category: 'integer', numberType: 'positive', operations: { add: 1, sub: 2 } };
     eq(box.R.currentMissionTopicKey(), null);
+});
+
+test('без картинки мини-пазл прячется', () => {
+    // В отрицательных, дробях и смешанной миссии показывать нечего. Показать чужую
+    // картинку значило бы вернуть ровно то расхождение, от которого уходим.
+    const from = SCRIPT.indexOf('function setupPuzzleForCell');
+    const body = SCRIPT.slice(from, SCRIPT.indexOf('\n        }', from));
+    assert(/mini\.style\.display = \(idx === null\) \? 'none' : ''/.test(body),
+        'мини-пазл больше не прячется при отсутствии картинки');
 });
 
 group('Коллекция как карта');
@@ -241,7 +215,6 @@ function rule(selector) {
 }
 
 test('в ряду ровно пять картинок — по числу звёзд', () => {
-    // Ряд это действие, столбец это звезда. Другое число колонок ломает чтение.
     assert(/repeat\(5,\s*1fr\)/.test(rule('.collection-grid')),
         'сетка коллекции должна быть на пять колонок');
 });
@@ -254,13 +227,20 @@ test('картинки разложены по действиям', () => {
 });
 
 test('звезда подписана и у закрытых картинок', () => {
-    // Иначе непонятно, за что клетка, пока она не собрана.
     const from = SCRIPT.indexOf('function buildCollectionItem');
     const body = SCRIPT.slice(from, SCRIPT.indexOf('\n        }', from));
     const badgeAt = body.indexOf("badge.className = 'collection-cell'");
     const unlockedAt = body.indexOf('if (unlocked) {');
     assert(badgeAt > 0 && unlockedAt > 0 && badgeAt < unlockedAt,
         'метка звезды должна ставиться до проверки «собрана ли»');
+});
+
+test('число сборов показывается со второго раза', () => {
+    // «×1» на каждой плитке было бы шумом: собрана — и так видно по рамке.
+    const from = SCRIPT.indexOf('function buildCollectionItem');
+    const body = SCRIPT.slice(from, SCRIPT.indexOf('\n        }', from));
+    assert(/if \(times > 1\)/.test(body), 'значок должен появляться только при повторе');
+    assert(/collection-times/.test(STYLE), 'у значка нет оформления');
 });
 
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
