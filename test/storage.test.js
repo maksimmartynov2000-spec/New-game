@@ -900,6 +900,76 @@ test('у кого фантомных клеток нет — не меняетс
 });
 
 // ---------- итог ----------
+group('Выравнивание кусочков пазла');
+
+// До #160 за ошибку отнимали два кусочка, и у всех, кто играл раньше, кусочков
+// выдано меньше, чем было верных ответов. Сдвиг постоянный: картинка у такого
+// ученика заканчивается не на сотом ответе, а позже, и так навсегда. Снимаем его
+// один раз — но только вперёд и не выдавая собранных картинок.
+
+function seeded(env, puzzle, totals, extra) {
+    seed(env, Object.assign({ puzzle, totals }, extra || {}));
+    return env.Progress.get();
+}
+
+test('недоданные кусочки возвращаются', () => {
+    // 130 верных ответов, выдано 101 — двадцать девять съело старое правило.
+    const env = fresh();
+    const st = seeded(env, { idx: 3, filled: 1 },
+                      { correct: 130, wrong: 40, puzzlesCompleted: 1 });
+    eq(st.puzzle.filled, 30, 'кусочков');
+    eq(st.totals.puzzlesCompleted, 1, 'собранных картинок не прибавилось');
+});
+
+test('собранная картинка разом не выдаётся', () => {
+    // Набежало 111 — больше сотни в одну картинку не влезает. Остаток срезается:
+    // собранная картинка это ещё и карточка в коллекции, а её не зарабатывали.
+    const env = fresh();
+    const st = seeded(env, { idx: 7, filled: 2 },
+                      { correct: 1713, wrong: 300, puzzlesCompleted: 16 });
+    eq(st.puzzle.filled, 99, 'кусочков');
+    eq(st.totals.puzzlesCompleted, 16, 'собранных картинок не прибавилось');
+});
+
+test('у кого сходилось, не меняется ничего', () => {
+    const env = fresh();
+    const st = seeded(env, { idx: 2, filled: 36 },
+                      { correct: 136, wrong: 10, puzzlesCompleted: 1 });
+    eq(st.puzzle.filled, 36, 'кусочков');
+});
+
+test('кусочки не отнимаются, даже если их больше, чем должно', () => {
+    // Прогресс назад не ходит нигде, и здесь тоже не пойдёт.
+    const env = fresh();
+    const st = seeded(env, { idx: 2, filled: 95 },
+                      { correct: 90, wrong: 5, puzzlesCompleted: 0 });
+    eq(st.puzzle.filled, 95, 'кусочков');
+});
+
+test('второй раз не выравнивается', () => {
+    // Флаг не для красоты: ответ «почти» считается верным, но кусочка не даёт,
+    // и без флага каждая несокращённая дробь молча добавляла бы кусочек.
+    const env = fresh();
+    seeded(env, { idx: 3, filled: 1 }, { correct: 130, wrong: 40, puzzlesCompleted: 1 });
+    const again = seeded(env, { idx: 3, filled: 30 },
+                         { correct: 131, wrong: 40, puzzlesCompleted: 1 },
+                         { puzzleAligned: true });
+    eq(again.puzzle.filled, 30, 'кусочков');
+});
+
+test('отметка о выравнивании переживает слияние с сервером', () => {
+    // out собирается из пустого состояния, где отметки нет. Без явного переноса
+    // пришедшее с сервера состояние каждый раз выглядело бы невыровненным — и
+    // выравнивание срабатывало бы снова и снова.
+    const { Progress } = fresh();
+    const a = { schema: 2, playerCode: 'X', updatedAt: 100, puzzleAligned: true,
+                puzzle: { idx: 1, filled: 30 }, totals: { correct: 130, wrong: 0, puzzlesCompleted: 1 } };
+    const b = { schema: 2, playerCode: 'X', updatedAt: 200, puzzleAligned: false,
+                puzzle: { idx: 1, filled: 30 }, totals: { correct: 130, wrong: 0, puzzlesCompleted: 1 } };
+    eq(Progress._merge(a, b).puzzleAligned, true, 'a раньше b');
+    eq(Progress._merge(b, a).puzzleAligned, true, 'b раньше a');
+});
+
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
     console.log(`Все проверки пройдены: ${passed}`);
