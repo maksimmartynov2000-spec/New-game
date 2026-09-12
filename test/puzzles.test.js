@@ -97,6 +97,19 @@ test('ошибка пазла не касается', () => {
 
 group('Соответствие клеток и картинок');
 
+test('сотня кусочков записана одним и тем же числом в обоих файлах', () => {
+    // js/progress.js подключается раньше index.html и обязан работать сам по себе,
+    // поэтому число там своё. Разъедутся — выравнивание кусочков начнёт считать
+    // картинки не по той сотне, и ученик получит не то, что заработал.
+    const inHtml = SCRIPT.match(/const PUZZLE_TOTAL = PUZZLE_GRID \* PUZZLE_GRID;/);
+    assert(inHtml, 'в index.html не найдено объявление PUZZLE_TOTAL');
+    const grid = Number((SCRIPT.match(/const PUZZLE_GRID = (\d+)/) || [])[1]);
+    const progress = fs.readFileSync(path.join(ROOT, 'js', 'progress.js'), 'utf8');
+    const pieces = Number((progress.match(/const PUZZLE_PIECES = (\d+)/) || [])[1]);
+    eq(pieces, grid * grid, 'PUZZLE_PIECES и PUZZLE_TOTAL');
+});
+
+
 test('двадцать клеток положительных чисел ложатся на двадцать картинок', () => {
     const box = load(NONE);
     const seen = {};
