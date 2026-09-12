@@ -5830,7 +5830,11 @@
                 box.style.display = 'none';
                 return false;
             }
-            const note = (window.MAINTENANCE || {}).note || '';
+            // Записка лежит на четырёх языках. Голую строку тоже принимаем и
+            // показываем как есть: если файл однажды напишут второпях по-старому,
+            // ученик должен увидеть текст, а не пустоту. Строгость — в проверке.
+            const raw = (window.MAINTENANCE || {}).note || '';
+            const note = (typeof raw === 'string') ? raw : (raw[LANG] || raw.ru || '');
             document.getElementById('maintenanceWait').innerText = maintenanceWaitText(left);
             const noteEl = document.getElementById('maintenanceNote');
             noteEl.innerText = note;

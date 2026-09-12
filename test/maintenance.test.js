@@ -34,6 +34,8 @@ function load(flag, opts) {
     ['maintenanceScreen', 'maintenanceWait', 'maintenanceNote'].forEach(id => (byId[id] = el()));
     const box = {
         console, Math, Number, Date, Object, String,
+        // Язык ученика: записка на экране работ берётся по нему.
+        LANG: o.lang || 'ru',
         t: (x) => x,
         tf: function (x) { let r = x; for (let i = 1; i < arguments.length; i++) r = r.split('%' + i).join(String(arguments[i])); return r; },
         window: flag === undefined ? {} : { MAINTENANCE: flag },
@@ -120,6 +122,32 @@ test('начатую миссию не рвём', () => {
     const w = load({ until: inMinutes(20) }, { playing: true });
     eq(w.M.renderMaintenance(), false, 'заглушка перебила идущую миссию');
     eq(w.byId.maintenanceScreen.style.display, 'none');
+});
+
+test('записка написана на всех четырёх языках', () => {
+    // Заголовок экрана и «приходи через пять минут» переводятся сами, а записка —
+    // содержимое. Пока она была одной строкой, ученик на английском видел посреди
+    // экрана русский текст. И видел чаще всего остального: экран работ показывается
+    // всем и как раз после обновления.
+    const src = fs.readFileSync(path.join(ROOT, 'content', 'maintenance.js'), 'utf8');
+    const m = src.match(/note:\s*(\{[\s\S]*?\}|null)/);
+    assert(m, 'записки в файле не нашлось');
+    if (m[1] === 'null') return;                       // записку убрали совсем — это законно
+    ['ru', 'en', 'fr', 'de'].forEach(l =>
+        assert(new RegExp("\\b" + l + ":\\s*'").test(m[1]), `нет языка ${l}`));
+});
+
+test('на языке ученика берётся его строчка', () => {
+    const w = load({ until: inMinutes(10),
+                     note: { ru: 'Чиню статистику', en: 'Fixing stats' } }, { lang: 'en' });
+    w.M.renderMaintenance();
+    eq(w.byId.maintenanceNote.innerText, 'Fixing stats');
+});
+
+test('незнакомый язык откатывается на русский, а не на пустоту', () => {
+    const w = load({ until: inMinutes(10), note: { ru: 'Чиню статистику' } }, { lang: 'fr' });
+    w.M.renderMaintenance();
+    eq(w.byId.maintenanceNote.innerText, 'Чиню статистику');
 });
 
 test('строчка от репетитора показывается, а пустая прячется', () => {
