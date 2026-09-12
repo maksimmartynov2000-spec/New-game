@@ -618,6 +618,13 @@
             background: linear-gradient(transparent, rgba(2,3,8,0.9));
             color: #cbd5e1; font-size: 0.52rem; line-height: 1.1; text-align: center;
         }
+        /* Сколько раз картинка собрана. Правый верхний угол — там пусто у всех плиток,
+           а подпись звезды стоит внизу и с ней не спорит. */
+        .collection-item .collection-times {
+            position: absolute; top: 3px; right: 3px; padding: 1px 5px; border-radius: 999px;
+            background: rgba(2,3,8,0.82); border: 1px solid rgba(255,215,0,0.45);
+            color: var(--gold); font-size: 0.52rem; font-weight: 700; line-height: 1.3;
+        }
         .collection-item .item-caption {
             position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 5px 4px;
             background: linear-gradient(transparent, rgba(2,3,8,0.92));
@@ -2767,7 +2774,7 @@
         }
 
         // Базовый список всех 100 клеток — порядок их появления перемешивается заново
-        // для каждого нового пазла в shufflePuzzleFillOrder() (см. startNewPuzzle), поэтому
+        // для каждой новой картинки в shufflePuzzleFillOrder() (см. setupPuzzleForCell), поэтому
         // кусочки проявляются в случайных свободных местах, а не строчка за строчкой.
         let PUZZLE_FILL_ORDER = [];
         for (let r = 0; r < PUZZLE_GRID; r++) {
@@ -2854,9 +2861,11 @@
 
         let puzzleFilled = 0;
         let puzzleRenderedCount = 0;
-        let puzzleCompleteTriggered = false;
         let puzzlesCompletedCount = 0;
         let currentPuzzleImageIndex = -1;
+        // Клетка, картинку которой сейчас показываем. null — у клетки картинки нет
+        // и мини-пазл спрятан.
+        let puzzleCellKey = null;
         const miniUseRefs = [];
         const bigUseRefs = [];
 
@@ -3884,35 +3893,68 @@
         function saveCollectionArray(arr) {
             Progress.setCollection(PARADOX_COLLECTION_ID, arr);
         }
-        function collectionCollectedCount(arr) {
-            return arr.reduce((n, v) => n + (v ? 1 : 0), 0);
+        // ===== СКОЛЬКО КУСОЧКОВ СОБРАНО — ЭТО НЕ ХРАНИТСЯ, А СЧИТАЕТСЯ =====
+        //
+        // Картинка закреплена за клеткой, и собирается она ровно за сто верных ответов
+        // В ЭТОЙ ЖЕ КЛЕТКЕ — то есть вместе с золотом по количеству. Каждая следующая
+        // сотня собирает ту же картинку заново.
+        //
+        // Раз так, отдельный счётчик кусочков не нужен: верные ответы по клеткам и есть
+        // кусочки. Своего счётчика у пазла больше нет, и это не экономия, а главное в
+        // этой правке. Пока счётчик был отдельным, он умел разойтись с ответами — и
+        // разошёлся: у наших учеников накопилось отставание от 2 до 111 кусочков,
+        // которое пришлось выравнивать отдельной правкой. Выводимой величине разойтись
+        // не с чем.
+        function topicCorrect(topicKey) {
+            if (!topicKey) return 0;
+            return ((Progress.get().byTopic || {})[topicKey] || {}).correct || 0;
         }
-        function updateCollectionBadge() {
-            const arr = loadCollectionArray();
-            document.getElementById('puzzleCollectionBadge').innerText =
-                `🏆 ${collectionCollectedCount(arr)}/${PUZZLE_IMAGE_SRCS.length}`;
+        function puzzleFilledFor(topicKey) {
+            return topicCorrect(topicKey) % PUZZLE_TOTAL;
+        }
+        function puzzleTimesFor(topicKey) {
+            return Math.floor(topicCorrect(topicKey) / PUZZLE_TOTAL);
         }
 
-        // ===== ПРОГРЕСС ТЕКУЩЕГО ПАЗЛА =====
-        // Хранится только "какая картинка сейчас" и "сколько кусочков собрано" — форма
-        // кусочков и порядок их появления перегенерируются заново при каждой загрузке.
-        function savePuzzleProgress() {
-            Progress.setPuzzle(currentPuzzleImageIndex, puzzleFilled);
+        // Сколько раз собрана каждая картинка. Берём БОЛЬШЕЕ из двух: отметку в
+        // коллекции и счёт по ответам. Отметка нужна потому, что до этой правки
+        // картинки выдавались за ответы откуда угодно, и отнимать их теперь нельзя;
+        // счёт по ответам — потому что у клетки, где сотня ответов уже есть, картинка
+        // должна появиться сразу, а не ждать следующей сотни.
+        function collectionTimes() {
+            const stored = loadCollectionArray();
+            const out = [];
+            for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
+                out[i] = Math.max(stored[i] ? 1 : 0, puzzleTimesFor(puzzleTopicForIndex(i)));
+            }
+            return out;
         }
-        function loadPuzzleProgress() {
-            const p = Progress.getPuzzle();
-            if (!p || !Number.isInteger(p.idx) || p.idx < 0 || p.idx >= PUZZLE_IMAGE_SRCS.length) return null;
-            if (!Number.isInteger(p.filled) || p.filled < 0 || p.filled >= PUZZLE_TOTAL) return null;
-            return { idx: p.idx, filled: p.filled };
+        function collectionCollectedCount(times) {
+            return times.reduce((n, v) => n + (v ? 1 : 0), 0);
+        }
+        function updateCollectionBadge() {
+            document.getElementById('puzzleCollectionBadge').innerText =
+                `🏆 ${collectionCollectedCount(collectionTimes())}/${PUZZLE_IMAGE_SRCS.length}`;
         }
 
         // У каждой из двадцати клеток положительных чисел своя закреплённая картинка:
         // четыре действия по пять звёзд, ровно двадцать пазлов. Коллекция перестаёт
         // быть набором трофеев и становится картой пройденного — видно, откуда что.
         //
-        // Счёт при этом остаётся ОБЩИМ: сто верных ответов — картинка, откуда бы
-        // ответы ни пришли. Привязать к клетке ещё и счёт значило бы оставить без
-        // картинок слабого ученика, который сидит на первой звезде.
+        // Счёт тоже ПОКЛЕТОЧНЫЙ: картинка сложения на 3★ собирается за сто верных
+        // ответов именно в сложении на 3★, то есть ровно вместе с золотом по
+        // количеству. Каждая следующая сотня в той же клетке собирает ту же картинку
+        // заново — двадцать картинок конечны, а поводов их собрать сколько угодно.
+        //
+        // Раньше счёт был общим: сто ответов откуда угодно давали случайную несобранную
+        // картинку. Возражение против поклеточного счёта было в том, что при переходе
+        // в другую тему картинка окажется брошенной, — но оно верно только пока счётчик
+        // один. Когда у каждой клетки свой счёт, бросать нечего: ушёл в другую клетку,
+        // её картинка копится, первая ждёт на месте.
+        //
+        // Цена названа честно: у отрицательных, дробей и десятичных картинок нет, и
+        // ответы там больше не собирают ничего. Мини-пазл в таких клетках прячется —
+        // показывать картинку, к которой примеры не имеют отношения, было бы враньём.
         const PUZZLE_CELL_OPS = ['add', 'sub', 'mul', 'div'];
         const PUZZLE_CELL_LEVELS = 5;
 
@@ -3934,42 +3976,6 @@
                  + `:${(idx % PUZZLE_CELL_LEVELS) + 1}`;
         }
 
-        // Какую картинку собирать дальше. Своя клетка → ближайшая несобранная того же
-        // действия → любая несобранная. Когда собрано всё, коллекцию НЕ обнуляем:
-        // раньше она стиралась в ноль, и ученик, дошедший до конца, терял разом все
-        // двадцать открытых карточек. Вместо этого пазл просто собирается заново.
-        function pickPuzzleImageIndex(topicKey, avoidIndex) {
-            const total = PUZZLE_IMAGE_SRCS.length;
-            if (total <= 1) return 0;
-            const collection = loadCollectionArray();
-            const free = (i) => i >= 0 && i < total && !collection[i];
-
-            const own = puzzleIndexForTopic(topicKey);
-            if (own !== null && free(own)) return own;
-
-            // Ученик застрял на своей звезде, а картинки всё равно идут «про сложение».
-            if (own !== null) {
-                const base = Math.floor(own / PUZZLE_CELL_LEVELS) * PUZZLE_CELL_LEVELS;
-                for (let d = 1; d < PUZZLE_CELL_LEVELS; d++) {
-                    const near = [own - d, own + d];
-                    for (const cand of near) {
-                        if (cand >= base && cand < base + PUZZLE_CELL_LEVELS && free(cand)) return cand;
-                    }
-                }
-            }
-
-            const rest = [];
-            for (let i = 0; i < total; i++) if (free(i) && i !== avoidIndex) rest.push(i);
-            if (rest.length) return rest[randInt(0, rest.length - 1)];
-
-            // Собрано всё. Пересобираем картинку своей клетки, а если клетки нет —
-            // любую, кроме только что законченной.
-            if (own !== null) return own;
-            const any = [];
-            for (let i = 0; i < total; i++) if (i !== avoidIndex) any.push(i);
-            return any.length ? any[randInt(0, any.length - 1)] : 0;
-        }
-
         // Клетка текущей миссии. Пока пример не сгенерирован, берём её из выбора на
         // экране миссии — пазл заводится раньше первого примера.
         function currentMissionTopicKey() {
@@ -3983,10 +3989,34 @@
                 level: cfg.operations[ops[0]], isNegative: cfg.numberType === 'negative' });
         }
 
-        // Полностью переключает пазл на новую случайную картинку: новая форма кусочков,
-        // сброшенный прогресс. Игра при этом не останавливается — только сам пазл обновляется.
-        function startNewPuzzle() {
-            const idx = pickPuzzleImageIndex(currentMissionTopicKey(), currentPuzzleImageIndex);
+        // Готовит пазл под клетку: картинка клетки, свежая форма кусочков, прогресс
+        // из числа верных ответов. Вызывается при начале миссии и после того, как
+        // картинка собралась.
+        //
+        // Клетки без картинки (отрицательные, дроби, десятичные, смешанная миссия из
+        // нескольких действий) прячут мини-пазл целиком: показывать чужую картинку,
+        // пока решаешь не про неё, — то самое расхождение, ради ухода от которого всё
+        // и затевалось.
+        function setupPuzzleForCell(topicKey) {
+            const idx = puzzleIndexForTopic(topicKey);
+            const mini = document.getElementById('puzzleMiniBtn');
+            puzzleCellKey = (idx === null) ? null : topicKey;
+            if (mini) mini.style.display = (idx === null) ? 'none' : '';
+            if (idx === null) {
+                // Окно пазла открывается и из меню, поэтому мало спрятать мини-пазл:
+                // без очистки там осталась бы картинка прошлой миссии, к которой
+                // сегодняшние примеры отношения не имеют.
+                document.getElementById('miniPiecesGroup').innerHTML = '';
+                document.getElementById('bigPiecesGroup').innerHTML = '';
+                miniUseRefs.length = 0;
+                bigUseRefs.length = 0;
+                puzzleFilled = 0;
+                puzzleRenderedCount = 0;
+                document.getElementById('puzzleModalCount').innerText = '—';
+                setPuzzleCompleteVisible(false);
+                return;
+            }
+
             currentPuzzleImageIndex = idx;
             const imgEl = document.getElementById('puzzleFullImg');
             imgEl.setAttribute('href', PUZZLE_IMAGE_SRCS[idx]);
@@ -3999,36 +4029,10 @@
             document.getElementById('bigPiecesGroup').innerHTML = '';
             miniUseRefs.length = 0;
             bigUseRefs.length = 0;
-            puzzleFilled = 0;
             puzzleRenderedCount = 0;
-            puzzleCompleteTriggered = false;
-            document.getElementById('puzzleMiniCount').innerText = '0/100';
-            document.getElementById('puzzleModalCount').innerText = '0/100';
-            setPuzzleCompleteVisible(false);
-            savePuzzleProgress();
-        }
-
-        // Восстанавливает пазл после перезагрузки страницы: та же картинка, тот же прогресс.
-        // Форма кусочков и порядок их появления перегенерируются заново (визуал, не важно для
-        // "тот же ли это пазл") — важно только число собранных кусочков и какая это картинка.
-        function resumePuzzle(idx, filled) {
-            currentPuzzleImageIndex = idx;
-            const imgEl = document.getElementById('puzzleFullImg');
-            imgEl.setAttribute('href', PUZZLE_IMAGE_SRCS[idx]);
-            imgEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', PUZZLE_IMAGE_SRCS[idx]);
-
-            regeneratePieceShapes();
-            shufflePuzzleFillOrder();
-
-            document.getElementById('miniPiecesGroup').innerHTML = '';
-            document.getElementById('bigPiecesGroup').innerHTML = '';
-            miniUseRefs.length = 0;
-            bigUseRefs.length = 0;
-            puzzleRenderedCount = 0;
-            puzzleCompleteTriggered = false;
             setPuzzleCompleteVisible(false);
 
-            puzzleFilled = filled;
+            puzzleFilled = puzzleFilledFor(topicKey);
             renderPuzzleProgress();
         }
 
@@ -4044,9 +4048,7 @@
                 puzzleDomReady = true;
             }
             updateCollectionBadge();
-            const saved = loadPuzzleProgress();
-            if (saved) resumePuzzle(saved.idx, saved.filled);
-            else startNewPuzzle();
+            setupPuzzleForCell(currentMissionTopicKey());
         }
 
         function renderPuzzleProgress() {
@@ -4078,36 +4080,35 @@
             puzzleRenderedCount = puzzleFilled;
         }
 
+        // Верный ответ добавил кусочек в картинку СВОЕЙ клетки. Считать ничего не надо:
+        // ответ уже учтён в Progress.recordAnswer выше, и число кусочков из него выводится.
+        // Здесь остаётся только перерисовать и заметить сотую.
         function addPuzzlePiece() {
-            if (puzzleFilled >= PUZZLE_TOTAL) return;
-            puzzleFilled++;
-            renderPuzzleProgress();
-            savePuzzleProgress();
-            if (puzzleFilled === PUZZLE_TOTAL && !puzzleCompleteTriggered) {
-                puzzleCompleteTriggered = true;
-                onPuzzleComplete();
+            const key = currentProblemMeta ? buildTopicKey(currentProblemMeta) : null;
+            const idx = puzzleIndexForTopic(key);
+            if (idx === null) return;                    // у этой клетки картинки нет
+
+            const done = topicCorrect(key);
+            // Рисуем только если на экране картинка ИМЕННО этой клетки: в смешанной
+            // миссии пазл спрятан, но сотую в каждой клетке всё равно замечаем.
+            if (key === puzzleCellKey) {
+                puzzleFilled = done % PUZZLE_TOTAL;
+                renderPuzzleProgress();
             }
+            if (done > 0 && done % PUZZLE_TOTAL === 0) onPuzzleComplete(idx, key);
         }
 
-        // Кусочков за ошибку больше не отнимаем, и дело не в мягкости.
+        // Кусочков за ошибку не отнимаем, и дело не в мягкости.
         //
         // Было: +1 за верный, −2 за ошибку. Чистый прирост за ответ при точности p
         // равен 3p − 2, и он обращается в ноль при p = 66,7%. То есть ученик с
         // точностью ниже двух третей не собирал пазл НИКОГДА — кусочки уходили
-        // быстрее, чем приходили, и картинка стояла на месте вечно. А мы сами
-        // признаём, что такие ученики есть: в заданиях стоит порог в 60%, ниже
-        // которого «дело не в аккуратности, а в том, что тема не выучена». Именно
-        // ему картинка и не доставалась. Да и выше порога цена была велика: при 80%
-        // на одну картинку уходило 250 ответов вместо ста, при 70% — тысяча.
+        // быстрее, чем приходили, и картинка стояла на месте вечно.
         //
-        // Вдобавок это было единственное место в приложении, где прогресс шёл назад.
-        // Медали, звёзды, коллекция — всё берётся и остаётся, это правило мы держим
-        // сознательно. И ошибка уже стоит серии и точности; третье наказание лишнее.
-        //
-        // Теперь пазл собирается ровно за сто верных ответов — столько же, сколько
-        // стоит золото по количеству. У того, кто работает в одной теме, они придут
-        // вместе; у того, кто работает вширь, честно разойдутся, потому что меряют
-        // разное: пазл — сколько сделано вообще, медаль — сколько сделано здесь.
+        // Теперь отнимать нечего в принципе: кусочки не хранятся, а считаются из числа
+        // верных ответов, а оно только растёт. Прогресс назад не ходит нигде, и здесь
+        // это стало не правилом, которое надо соблюдать, а свойством, которое не надо
+        // сторожить.
 
         function openPuzzleModal() {
             document.getElementById('puzzleModal').classList.add('active');
@@ -4172,29 +4173,29 @@
             img.src = src;
         }
 
-        function onPuzzleComplete() {
+        function onPuzzleComplete(completedIndex, topicKey) {
             puzzlesCompletedCount++;
+            // Счётчик «пазлов собрано за всё время» так и остаётся хранимым и только
+            // растущим. Пересчитать его по клеткам задним числом было бы честнее, но у
+            // тех, кто собирал картинки по старому правилу, он бы от этого УМЕНЬШИЛСЯ.
             Progress.recordPuzzleCompleted();
-            const completedIndex = currentPuzzleImageIndex;
             const completedSrc = PUZZLE_IMAGE_SRCS[completedIndex];
             const completedPaths = PUZZLE_PIECE_PATHS.map(row => row.slice());
 
-            // Отмечаем картинку собранной. Когда собрано всё, коллекция остаётся полной
-            // и пазлы идут по второму кругу — см. pickPuzzleImageIndex.
             const collection = loadCollectionArray();
-            const wasCollected = !!collection[completedIndex];
             collection[completedIndex] = true;
             saveCollectionArray(collection);
             updateCollectionBadge();
 
-            // Сразу же запускаем новый случайный пазл — игра не останавливается,
-            // примеры продолжают идти как обычно.
-            startNewPuzzle();
+            // Та же картинка начинается заново: сотая по счёту клетка и есть новый
+            // ноль. Форма кусочков перегенерируется, чтобы собирать было не скучно.
+            setupPuzzleForCell(topicKey);
 
             lastCompletedSrc = completedSrc;
             lastCompletedPaths = completedPaths;
 
-            const collectedCount = collectionCollectedCount(collection);
+            const collectedCount = collectionCollectedCount(collectionTimes());
+            const times = puzzleTimesFor(topicKey);
 
             // Показываем, на какой парадокс была отсылка в только что собранной картинке
             const px = resolveParadoxes()[completedIndex];
@@ -4211,7 +4212,7 @@
                 src: completedSrc,
                 paths: completedPaths,
                 collectedCount,
-                repeat: wasCollected
+                times
             });
             // Сигнал всё-таки нужен сразу: иначе сотый кусочек встаёт, и внешне не
             // происходит ничего — ученик может не заметить, что вообще что-то случилось.
@@ -4231,8 +4232,10 @@
             fillParadoxCard('complete', resolveParadoxes()[item.index]);
             document.getElementById('puzzleCompleteStats').innerText =
                 tf('⏱️ Время: %1  |  ✅ %2  |  ❌ %3  |  🧩 Пазлов собрано: %4', formatTime(totalSeconds), correctCount, wrongCount, puzzlesCompletedCount);
-            document.getElementById('collectionAddedLine').innerText = item.repeat
-                ? tf('🏆 Коллекция собрана полностью (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length)
+            // Картинки повторяются: каждая новая сотня в клетке собирает ту же. Первый
+            // раз — про коллекцию, дальше — про то, сколько раз собрана именно эта.
+            document.getElementById('collectionAddedLine').innerText = (item.times > 1)
+                ? tf('🏆 Собрана снова: всего %1', item.times)
                 : tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length);
 
             const imgEl = document.getElementById('puzzleCompleteImg');
@@ -4315,7 +4318,7 @@
         }
 
         function renderCollectionGrid() {
-            const collection = loadCollectionArray();
+            const collection = collectionTimes();
             const wrap = document.getElementById('collectionGroups');
             wrap.innerHTML = '';
 
@@ -4338,7 +4341,7 @@
                 block.className = 'collection-group';
                 const title = document.createElement('div');
                 title.className = 'collection-group-title';
-                const done = group.items.filter(i => collection[i]).length;
+                const done = group.items.filter(i => collection[i] > 0).length;
                 title.innerText = group.op
                     ? `${OP_LABELS[group.op] || group.op} — ${done}/${group.items.length}`
                     : tf('Остальные — %1/%2', done, group.items.length);
@@ -4356,7 +4359,8 @@
 
         // Одна плитка коллекции.
         function buildCollectionItem(i, collection) {
-                const unlocked = !!collection[i];
+                const times = collection[i] || 0;
+                const unlocked = times > 0;
                 const item = document.createElement('div');
                 item.className = 'collection-item ' + (unlocked ? 'unlocked' : 'locked');
                 const img = document.createElement('img');
@@ -4364,8 +4368,17 @@
                 img.loading = 'lazy';
                 img.decoding = 'async';
                 const pxList = resolveParadoxes();
-                img.alt = collection[i] ? ((pxList[i] && pxList[i].name) || t('Парадокс')) : t('Ещё не открыто');
+                img.alt = unlocked ? ((pxList[i] && pxList[i].name) || t('Парадокс')) : t('Ещё не открыто');
                 item.appendChild(img);
+
+                // Сколько раз картинка собрана. Показываем со второго раза: «×1» на
+                // каждой плитке было бы шумом, а «×3» сразу говорит, где наработано.
+                if (times > 1) {
+                    const rep = document.createElement('div');
+                    rep.className = 'collection-times';
+                    rep.innerText = `×${times}`;
+                    item.appendChild(rep);
+                }
 
                 // Звезда подписана у всех клеток, включая закрытые: по ней видно, за что
                 // картинка, а спойлером это не является — название по-прежнему только
@@ -4432,7 +4445,7 @@
             const st = Progress.get();
 
             document.getElementById('menuPuzzleVal').innerText = `${puzzleFilled}/${PUZZLE_TOTAL}`;
-            const col = loadCollectionArray();
+            const col = collectionTimes();
             document.getElementById('menuCollectionVal').innerText =
                 `${collectionCollectedCount(col)}/${PUZZLE_IMAGE_SRCS.length}`;
 
