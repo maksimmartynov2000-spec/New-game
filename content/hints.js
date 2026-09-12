@@ -49,11 +49,11 @@ window.HINT_CONTENT = {
         },
         'ошибка в десятках:add': {
             game: 'Мимо ровно на десяток. Единицы верные — пересчитай десятки.',
-            review: '%1 + %2: единицы %3 + %4 = %5 — пишем %6, десяток уходит наверх. Промах ровно на десяток почти всегда значит, что этот десяток потеряли.'
+            review: '%1 + %2: единицы дают %3 + %4 = %5 — это %6 и ещё целый десяток сверх того. Промах ровно на десяток почти всегда значит, что про этот десяток забыли.'
         },
         'ошибка в десятках:sub': {
             game: 'Мимо ровно на десяток. Единицы верные — пересчитай десятки.',
-            review: '%1 − %2: единицы сошлись, а десяток при заёме потерялся. Промах ровно на десяток почти всегда значит именно это — проверь, сколько десятков осталось.'
+            review: '%1 − %2: единицы сошлись, а десяток, который занимали, потерялся по дороге. Промах ровно на десяток почти всегда значит именно это — проверь, сколько десятков осталось.'
         },
         'ошибка в десятках:mul': {
             game: 'Единицы сошлись, а десятки — нет: мимо на %1. Пересчитай %2 × %3.',
@@ -65,19 +65,19 @@ window.HINT_CONTENT = {
         },
         'ошибка в единицах:add': {
             game: 'Десятки сошлись. Посчитай отдельно %1 + %2.',
-            review: '%1 + %2: последние цифры дают %3 + %4 = %5 — значит ответ кончается на %6. Столбик считают справа налево, и первая цифра ответа появляется последней.'
+            review: '%1 + %2: последние цифры дают %3 + %4 = %5 — значит ответ кончается на %6. Последнюю цифру можно найти сразу, не считая всё остальное, и проверить её проще всего.'
         },
         'ошибка в единицах:sub': {
             game: 'Десятки сошлись. Проверь последнюю цифру.',
-            review: '%1 − %2: ответ кончается на %3. Столбик считают справа налево — последняя цифра готова первой, и её стоит проверить отдельно.'
+            review: '%1 − %2: ответ кончается на %3. Последнюю цифру можно найти отдельно от всего остального — это самая быстрая проверка.'
         },
         'не занял десяток': {
             game: 'Из %1 не вычесть %2. Займи десяток: %3 − %2.',
             review: '%1 − %2: из %3 число %4 не вычесть, поэтому берём десяток у соседа — %5 − %4 = %6, а десятков остаётся на один меньше.'
         },
         'таблица умножения': {
-            game: 'Посчитано %1 × %2. В примере %3 × %4 — разница целых %5.',
-            review: '%1 × %2 = %3, а %4 × %5 = %6. Соседние клетки таблицы отличаются на целый множитель, а не на единицу — поэтому промах здесь всегда крупный.'
+            game: 'Это %1 × %2, а в примере %3 × %4. Разница — целых %5.',
+            review: '%1 × %2 = %3, а %4 × %5 = %6. Соседние строчки таблицы отличаются сразу на целое число, а не на единицу — потому разница и вышла такой большой.'
         },
         'сложил вместо умножения': {
             game: '%1 × %2 — это %1, взятое %3, а не %1 + %2.',
@@ -85,43 +85,43 @@ window.HINT_CONTENT = {
         },
         'перепутал действие:add': {
             game: 'Это вычитание, а в примере сложение.',
-            review: 'С теми же числами знак решает всё: %1 + %2 = %3, а %1 − %2 = %4. Смотреть на знак стоит раньше, чем на числа.'
+            review: 'С теми же числами знак решает всё: %1 + %2 = %3, а %1 − %2 = %4. Сначала посмотри на знак, потом на числа.'
         },
         'перепутал действие:sub': {
             game: 'Это сложение, а в примере вычитание.',
-            review: 'С теми же числами знак решает всё: %1 − %2 = %3, а %1 + %2 = %4. Смотреть на знак стоит раньше, чем на числа.'
+            review: 'С теми же числами знак решает всё: %1 − %2 = %3, а %1 + %2 = %4. Сначала посмотри на знак, потом на числа.'
         },
         'перепутал действие:mul': {
             game: 'Это деление, а в примере умножение.',
-            review: 'С теми же числами знак решает всё: %1 × %2 = %3, а %1 ÷ %2 = %4. Смотреть на знак стоит раньше, чем на числа.'
+            review: 'С теми же числами знак решает всё: %1 × %2 = %3, а %1 ÷ %2 = %4. Сначала посмотри на знак, потом на числа.'
         },
         'перепутал действие:div': {
             game: 'Это умножение, а в примере деление.',
-            review: 'С теми же числами знак решает всё: %1 ÷ %2 = %3, а %1 × %2 = %4. Смотреть на знак стоит раньше, чем на числа.'
+            review: 'С теми же числами знак решает всё: %1 ÷ %2 = %3, а %1 × %2 = %4. Сначала посмотри на знак, потом на числа.'
         },
         'взял одно из чисел': {
             game: '%1 ÷ %2 — сколько раз %2 помещается в %1?',
-            review: 'Деление отвечает на вопрос «сколько раз одно помещается в другом». %1 ÷ %2 = %3 — столько раз %2 помещается в %1. Ответ всегда меньше делимого, поэтому само число примера ответом быть не может.'
+            review: 'Деление отвечает на вопрос «сколько раз одно помещается в другом». %1 ÷ %2 = %3 — столько раз %2 помещается в %1. Ответ всегда меньше %1, поэтому число из самого примера ответом быть не может.'
         },
         'делил на ноль': {
             game: 'На ноль не делят — верный ответ «нет решения».',
             review: '%1 ÷ 0 просит найти число, которое при умножении на 0 даст %1. Такого нет: ноль на что ни умножь — будет ноль. Поэтому ответа нет, и это правило, а не ловушка.'
         },
         'ошибся на единицу': {
-            game: 'Мимо на единицу — это спешка, а не незнание.',
-            review: 'Ответ был рядом: %1 вместо %2. Так почти всегда выходит, когда последний шаг делают на автомате — досчитывай его про себя, это полсекунды.'
+            game: 'Мимо всего на единицу. Досчитай последний шаг ещё раз.',
+            review: 'Ответ был рядом: %1 вместо %2. Последний шаг часто делают на автомате и теряют на нём единицу. Досчитать его отдельно — полсекунды.'
         },
         'ошибся на единицу:div': {
             game: 'Проверь умножением: %1 × %2 = %3, а %4 × %2 = %5.',
             review: '%1 × %2 = %3, а %4 × %2 = %5. Деление проверяют умножением — полсекунды, и промах на единицу виден сразу.'
         },
         'промахнулся рядом': {
-            game: 'Ответ рядом — значит считал верно, а последний шаг сбился.',
-            review: 'Выбрано %1, верный ответ %2. Промах на два-три — это не незнание, а сбитый счёт: один шаг потерялся или посчитался дважды. Помогает досчитывать последний шаг про себя, а не держать всё молча в голове.'
+            game: 'Ответ рядом — значит счёт верный, а последний шаг сбился.',
+            review: 'Выбрано %1, верный ответ %2. Промах на два-три — это не незнание, а сбитый счёт: один шаг потерялся или посчитался дважды. Помогает досчитать последний шаг вслух — тогда он не теряется.'
         },
         'оба разряда мимо': {
             game: 'Не сошлась ни одна цифра. Считай разряды по очереди.',
-            review: 'Выбрано %1, верный ответ %2: не сошлись ни единицы, ни десятки. Столбик считают справа налево и по одному разряду: сначала единицы — их должно быть %3, потом десятки — их %4. Когда считают оба разряда сразу, промахиваются в обоих.'
+            review: 'Выбрано %1, верный ответ %2: не сошлись ни единицы, ни десятки. Считать надо по одному разряду: сначала единицы — их должно быть %3, потом десятки — их %4. Когда берутся за оба сразу, промахиваются в обоих.'
         },
         'не умножил десятки': {
             game: 'Посчитано только %1 × %2. У второго числа есть ещё десятки.',
@@ -144,11 +144,11 @@ window.HINT_CONTENT = {
         },
         'ошибка в десятках:add': {
             game: 'Off by exactly ten. The units are right — count the tens again.',
-            review: '%1 + %2: the units give %3 + %4 = %5 — write %6 and carry the ten upstairs. Being off by exactly ten almost always means that ten got lost.'
+            review: '%1 + %2: the units give %3 + %4 = %5 — that is %6 and a whole ten on top. Being off by exactly ten almost always means that ten was forgotten.'
         },
         'ошибка в десятках:sub': {
             game: 'Off by exactly ten. The units are right — count the tens again.',
-            review: '%1 − %2: the units came out right, but a ten went missing in the borrow. Off by exactly ten almost always means just that — check how many tens are left.'
+            review: '%1 − %2: the units came out right, but the ten that was borrowed got lost on the way. Off by exactly ten almost always means just that — check how many tens are left.'
         },
         'ошибка в десятках:mul': {
             game: 'Units match, tens don\'t: off by %1. Redo %2 × %3.',
@@ -160,11 +160,11 @@ window.HINT_CONTENT = {
         },
         'ошибка в единицах:add': {
             game: 'The tens are right. Work out %1 + %2 on its own.',
-            review: '%1 + %2: the last digits give %3 + %4 = %5, so the answer ends in %6. A column is added right to left, and the first digit of the answer is the last one you get.'
+            review: '%1 + %2: the last digits give %3 + %4 = %5, so the answer ends in %6. The last digit can be found straight away, without working out the rest, and it is the easiest thing to check.'
         },
         'ошибка в единицах:sub': {
             game: 'The tens are right. Check the last digit.',
-            review: '%1 − %2: the answer ends in %3. A column is worked right to left — the last digit is ready first, and it is worth checking on its own.'
+            review: '%1 − %2: the answer ends in %3. The last digit can be found on its own, apart from everything else — that is the quickest check.'
         },
         'не занял десяток': {
             game: 'You cannot take %2 from %1. Borrow a ten: %3 − %2.',
@@ -172,7 +172,7 @@ window.HINT_CONTENT = {
         },
         'таблица умножения': {
             game: 'You worked out %1 × %2. The problem says %3 × %4 — a whole %5 apart.',
-            review: '%1 × %2 = %3, while %4 × %5 = %6. Neighbouring cells of the table differ by a whole factor, not by one — that is why a slip here is always a big one.'
+            review: '%1 × %2 = %3, while %4 × %5 = %6. Neighbouring rows of the table are a whole number apart, not one — that is why the gap here came out so big.'
         },
         'сложил вместо умножения': {
             game: '%1 × %2 means %1 taken %3, not %1 + %2.',
@@ -196,15 +196,15 @@ window.HINT_CONTENT = {
         },
         'взял одно из чисел': {
             game: '%1 ÷ %2 — how many times does %2 fit into %1?',
-            review: 'Division answers the question "how many times does one fit into the other". %1 ÷ %2 = %3 — that is how many times %2 fits into %1. The answer is always smaller than the dividend, so a number from the problem cannot be it.'
+            review: 'Division answers the question "how many times does one fit into the other". %1 ÷ %2 = %3 — that is how many times %2 fits into %1. The answer is always smaller than %1, so a number from the problem itself cannot be it.'
         },
         'делил на ноль': {
             game: 'You cannot divide by zero — the answer is "no solution".',
             review: '%1 ÷ 0 asks for a number that gives %1 when multiplied by 0. There is none: zero times anything is zero. So there is no answer, and that is a rule, not a trap.'
         },
         'ошибся на единицу': {
-            game: 'Off by one — that is hurry, not lack of knowledge.',
-            review: 'The answer was right there: %1 instead of %2. That is what happens when the last step is done on autopilot — count it through to yourself, it takes half a second.'
+            game: 'Off by just one. Count the last step again.',
+            review: 'The answer was right there: %1 instead of %2. The last step often goes on autopilot and loses a one. Counting it separately takes half a second.'
         },
         'ошибся на единицу:div': {
             game: 'Check by multiplying: %1 × %2 = %3, but %4 × %2 = %5.',
@@ -216,7 +216,7 @@ window.HINT_CONTENT = {
         },
         'оба разряда мимо': {
             game: 'Neither digit matched. Work through one place at a time.',
-            review: 'You picked %1, the answer is %2 — neither the ones nor the tens matched. Column arithmetic runs right to left, one place at a time: the ones come to %3, then the tens come to %4. Counting both places at once is how you miss both.'
+            review: 'You picked %1, the answer is %2 — neither the ones nor the tens matched. Work one place at a time: the ones come to %3, then the tens come to %4. Taking both at once is how you miss both.'
         },
         'не умножил десятки': {
             game: 'Only %1 × %2 was counted. The second number still has tens.',
@@ -239,11 +239,11 @@ window.HINT_CONTENT = {
         },
         'ошибка в десятках:add': {
             game: 'Raté de dix pile. Les unités sont bonnes — recompte les dizaines.',
-            review: '%1 + %2 : les unités donnent %3 + %4 = %5 — on écrit %6 et la dizaine monte. Se tromper de dix pile veut presque toujours dire que cette dizaine a été oubliée.'
+            review: '%1 + %2 : les unités donnent %3 + %4 = %5 — c’est %6 et une dizaine entière en plus. Se tromper de dix pile veut presque toujours dire que cette dizaine a été oubliée.'
         },
         'ошибка в десятках:sub': {
             game: 'Raté de dix pile. Les unités sont bonnes — recompte les dizaines.',
-            review: '%1 − %2 : les unités sont justes, mais une dizaine s’est perdue dans l’emprunt. Se tromper de dix pile veut presque toujours dire cela — vérifie combien de dizaines il reste.'
+            review: '%1 − %2 : les unités sont justes, mais la dizaine empruntée s’est perdue en route. Se tromper de dix pile veut presque toujours dire cela — vérifie combien de dizaines il reste.'
         },
         'ошибка в десятках:mul': {
             game: 'Les unités collent, pas les dizaines : raté de %1. Refais %2 × %3.',
@@ -255,11 +255,11 @@ window.HINT_CONTENT = {
         },
         'ошибка в единицах:add': {
             game: 'Les dizaines sont bonnes. Calcule à part %1 + %2.',
-            review: '%1 + %2 : les derniers chiffres donnent %3 + %4 = %5, donc le résultat se termine par %6. On pose l’addition de droite à gauche, et le premier chiffre du résultat sort en dernier.'
+            review: '%1 + %2 : les derniers chiffres donnent %3 + %4 = %5, donc le résultat se termine par %6. Le dernier chiffre se trouve tout de suite, sans calculer le reste, et c’est le plus facile à vérifier.'
         },
         'ошибка в единицах:sub': {
             game: 'Les dizaines sont bonnes. Vérifie le dernier chiffre.',
-            review: '%1 − %2 : le résultat se termine par %3. On pose l’opération de droite à gauche — le dernier chiffre est prêt en premier, et il mérite une vérification à part.'
+            review: '%1 − %2 : le résultat se termine par %3. Le dernier chiffre se trouve à part, indépendamment du reste — c’est la vérification la plus rapide.'
         },
         'не занял десяток': {
             game: 'De %1 on ne peut pas ôter %2. Emprunte une dizaine : %3 − %2.',
@@ -267,7 +267,7 @@ window.HINT_CONTENT = {
         },
         'таблица умножения': {
             game: 'Tu as fait %1 × %2. Le calcul demande %3 × %4 — %5 d’écart.',
-            review: '%1 × %2 = %3, alors que %4 × %5 = %6. Deux cases voisines de la table diffèrent d’un facteur entier, pas d’une unité — c’est pourquoi l’écart est toujours grand ici.'
+            review: '%1 × %2 = %3, alors que %4 × %5 = %6. Deux lignes voisines de la table sont séparées par un nombre entier, pas par une unité — voilà pourquoi l’écart est si grand.'
         },
         'сложил вместо умножения': {
             game: '%1 × %2, c’est %1 pris %3, pas %1 + %2.',
@@ -291,15 +291,15 @@ window.HINT_CONTENT = {
         },
         'взял одно из чисел': {
             game: '%1 ÷ %2 — combien de fois %2 tient dans %1 ?',
-            review: 'La division répond à la question « combien de fois l’un tient dans l’autre ». %1 ÷ %2 = %3 — c’est le nombre de fois que %2 tient dans %1. Le résultat est toujours plus petit que le dividende : un nombre du calcul ne peut donc pas être la réponse.'
+            review: 'La division répond à la question « combien de fois l’un tient dans l’autre ». %1 ÷ %2 = %3 — c’est le nombre de fois que %2 tient dans %1. Le résultat est toujours plus petit que %1 : un nombre du calcul lui-même ne peut donc pas être la réponse.'
         },
         'делил на ноль': {
             game: 'On ne divise pas par zéro — la réponse est « pas de solution ».',
             review: '%1 ÷ 0 demande un nombre qui, multiplié par 0, donnerait %1. Il n’existe pas : zéro multiplié par quoi que ce soit fait zéro. Il n’y a donc pas de réponse, et c’est une règle, pas un piège.'
         },
         'ошибся на единицу': {
-            game: 'Raté d’une unité — c’est la précipitation, pas l’ignorance.',
-            review: 'La réponse était juste à côté : %1 au lieu de %2. Cela arrive presque toujours quand la dernière étape se fait en pilote automatique — refais-la dans ta tête, c’est une demi-seconde.'
+            game: 'Raté d’une seule unité. Recompte la dernière étape.',
+            review: 'La réponse était juste à côté : %1 au lieu de %2. La dernière étape se fait souvent en pilote automatique, et c’est là qu’on perd une unité. La refaire à part prend une demi-seconde.'
         },
         'ошибся на единицу:div': {
             game: 'Vérifie par la multiplication : %1 × %2 = %3, mais %4 × %2 = %5.',
@@ -311,7 +311,7 @@ window.HINT_CONTENT = {
         },
         'оба разряда мимо': {
             game: 'Aucun chiffre ne correspond. Prends les rangs un par un.',
-            review: 'Tu as choisi %1, la bonne réponse est %2 : ni les unités ni les dizaines ne tombent juste. On pose l’opération de droite à gauche, un rang à la fois : les unités font %3, puis les dizaines font %4. Compter les deux rangs d’un coup, c’est se tromper dans les deux.'
+            review: 'Tu as choisi %1, la bonne réponse est %2 : ni les unités ni les dizaines ne tombent juste. Il faut prendre un rang à la fois : les unités font %3, puis les dizaines font %4. Compter les deux d’un coup, c’est se tromper dans les deux.'
         },
         'не умножил десятки': {
             game: 'Seul %1 × %2 a été calculé. Le deuxième nombre a encore des dizaines.',
@@ -334,11 +334,11 @@ window.HINT_CONTENT = {
         },
         'ошибка в десятках:add': {
             game: 'Genau zehn daneben. Die Einer stimmen — zähl die Zehner nach.',
-            review: '%1 + %2: die Einer ergeben %3 + %4 = %5 — %6 hinschreiben, der Zehner wandert nach oben. Genau zehn daneben heißt fast immer, dass dieser Zehner verloren ging.'
+            review: '%1 + %2: die Einer ergeben %3 + %4 = %5 — das sind %6 und ein ganzer Zehner obendrauf. Genau zehn daneben heißt fast immer, dass dieser Zehner vergessen wurde.'
         },
         'ошибка в десятках:sub': {
             game: 'Genau zehn daneben. Die Einer stimmen — zähl die Zehner nach.',
-            review: '%1 − %2: die Einer stimmen, aber beim Entbündeln ist ein Zehner verloren gegangen. Genau zehn daneben heißt fast immer genau das — prüfe, wie viele Zehner übrig bleiben.'
+            review: '%1 − %2: die Einer stimmen, aber der geliehene Zehner ist unterwegs verloren gegangen. Genau zehn daneben heißt fast immer genau das — prüfe, wie viele Zehner übrig bleiben.'
         },
         'ошибка в десятках:mul': {
             game: 'Einer stimmen, Zehner nicht: um %1 daneben. Rechne %2 × %3 neu.',
@@ -350,11 +350,11 @@ window.HINT_CONTENT = {
         },
         'ошибка в единицах:add': {
             game: 'Die Zehner stimmen. Rechne %1 + %2 getrennt.',
-            review: '%1 + %2: die letzten Ziffern ergeben %3 + %4 = %5, also endet das Ergebnis auf %6. Man rechnet von rechts nach links, und die erste Ziffer des Ergebnisses kommt zuletzt.'
+            review: '%1 + %2: die letzten Ziffern ergeben %3 + %4 = %5, also endet das Ergebnis auf %6. Die letzte Ziffer findet man sofort, ohne den Rest zu rechnen, und sie lässt sich am leichtesten prüfen.'
         },
         'ошибка в единицах:sub': {
             game: 'Die Zehner stimmen. Prüfe die letzte Ziffer.',
-            review: '%1 − %2: das Ergebnis endet auf %3. Man rechnet von rechts nach links — die letzte Ziffer ist zuerst fertig, und sie lohnt eine eigene Prüfung.'
+            review: '%1 − %2: das Ergebnis endet auf %3. Die letzte Ziffer findet man für sich allein, unabhängig vom Rest — das ist die schnellste Prüfung.'
         },
         'не занял десяток': {
             game: 'Von %1 lässt sich %2 nicht abziehen. Hol dir einen Zehner: %3 − %2.',
@@ -362,7 +362,7 @@ window.HINT_CONTENT = {
         },
         'таблица умножения': {
             game: 'Du hast %1 × %2 gerechnet. Gefragt ist %3 × %4 — ganze %5 Unterschied.',
-            review: '%1 × %2 = %3, aber %4 × %5 = %6. Benachbarte Felder des Einmaleins unterscheiden sich um einen ganzen Faktor, nicht um eins — deshalb ist der Fehler hier immer groß.'
+            review: '%1 × %2 = %3, aber %4 × %5 = %6. Benachbarte Zeilen des Einmaleins liegen gleich eine ganze Zahl auseinander, nicht eine Eins — deshalb ist der Abstand hier so groß.'
         },
         'сложил вместо умножения': {
             game: '%1 × %2 heißt die %1 %3 genommen, nicht %1 + %2.',
@@ -386,15 +386,15 @@ window.HINT_CONTENT = {
         },
         'взял одно из чисел': {
             game: '%1 ÷ %2 — wie oft passt %2 in %1?',
-            review: 'Division beantwortet die Frage „wie oft passt das eine in das andere“. %1 ÷ %2 = %3 — so oft passt %2 in %1. Das Ergebnis ist immer kleiner als der Dividend, eine Zahl aus der Aufgabe kann es also nicht sein.'
+            review: 'Division beantwortet die Frage „wie oft passt das eine in das andere“. %1 ÷ %2 = %3 — so oft passt %2 in %1. Das Ergebnis ist immer kleiner als %1, eine Zahl aus der Aufgabe selbst kann es also nicht sein.'
         },
         'делил на ноль': {
             game: 'Durch null teilt man nicht — richtig ist „keine Lösung“.',
             review: '%1 ÷ 0 sucht eine Zahl, die mit 0 multipliziert %1 ergibt. Die gibt es nicht: null mal irgendetwas bleibt null. Also gibt es keine Antwort, und das ist eine Regel, keine Falle.'
         },
         'ошибся на единицу': {
-            game: 'Um eins daneben — das ist Eile, nicht Unwissen.',
-            review: 'Die Antwort war ganz nah: %1 statt %2. So etwas passiert fast immer, wenn der letzte Schritt automatisch läuft — rechne ihn dir noch einmal vor, das dauert eine halbe Sekunde.'
+            game: 'Nur um eins daneben. Rechne den letzten Schritt noch einmal.',
+            review: 'Die Antwort war ganz nah: %1 statt %2. Der letzte Schritt läuft oft automatisch, und genau da geht die Eins verloren. Ihn getrennt nachzurechnen dauert eine halbe Sekunde.'
         },
         'ошибся на единицу:div': {
             game: 'Prüfe mit Mal: %1 × %2 = %3, aber %4 × %2 = %5.',
@@ -406,7 +406,7 @@ window.HINT_CONTENT = {
         },
         'оба разряда мимо': {
             game: 'Keine Ziffer stimmt. Nimm die Stellen nacheinander.',
-            review: 'Gewählt wurde %1, richtig ist %2 — weder Einer noch Zehner stimmen. Schriftlich rechnet man von rechts nach links, eine Stelle nach der anderen: die Einer ergeben %3, dann die Zehner %4. Wer beide Stellen auf einmal rechnet, verfehlt beide.'
+            review: 'Gewählt wurde %1, richtig ist %2 — weder Einer noch Zehner stimmen. Eine Stelle nach der anderen: die Einer ergeben %3, dann die Zehner %4. Wer beide auf einmal rechnet, verfehlt beide.'
         },
         'не умножил десятки': {
             game: 'Gerechnet wurde nur %1 × %2. Die zweite Zahl hat noch Zehner.',
