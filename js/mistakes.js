@@ -484,8 +484,27 @@ function hintArgs(kind, meta, problem, correct, chosen) {
             if (su < 10) return null;
             return { game: [], review: [a, b, u(a), u(b), su, su % 10] };
         }
-        if (u(a) >= u(b)) return null;      // заёма нет — заём и не при чём
-        return { game: [], review: [a, b] };
+        if (op === 'sub') {
+            if (u(a) >= u(b)) return null;  // заёма нет — заём и не при чём
+            return { game: [], review: [a, b] };
+        }
+        // Умножение и деление. Вид сюда попадает по совпадению последней цифры,
+        // поэтому промах всегда кратен десяти — но говорить о переносе и заёме,
+        // как в сложении, здесь нельзя: их тут нет. Слова другие.
+        if (typeof correct !== 'number' || typeof chosen !== 'number') return null;
+        if (op === 'div') {
+            // Деление проверяется умножением, и неверный ответ проверку не проходит.
+            // Про «ровно на десяток» говорим, только если промах и правда десяток:
+            // сейчас он такой всегда, но генератор нам ничего не обещал.
+            if (b === 0 || Math.abs(chosen - correct) !== 10) return null;
+            return { game: [chosen, b, chosen * b, a],
+                     review: [a, b, correct, chosen, chosen * b] };
+        }
+        if (op === 'mul') {
+            return { game: [Math.abs(chosen - correct), a, b],
+                     review: [a, b, correct, chosen] };
+        }
+        return null;
     }
     if (kind === 'ошибка в единицах') {
         // Столбик должен существовать. Если оба числа однозначные, единицы —
@@ -534,6 +553,14 @@ function hintArgs(kind, meta, problem, correct, chosen) {
         return { game: [], review: [a] };
     }
     if (kind === 'ошибся на единицу') {
+        // В делении вместо разговора о спешке показываем саму проверку: верный
+        // ответ на делитель даёт делимое, а выбранный — нет. Это самая частая
+        // клетка для этого вида, и проверка тут нагляднее любых уговоров.
+        if (op === 'div') {
+            if (b === 0 || typeof correct !== 'number' || typeof chosen !== 'number') return null;
+            const args = [correct, b, a, chosen, chosen * b];
+            return { game: args, review: args };
+        }
         return { game: [], review: [chosen, correct] };
     }
     if (kind === 'промахнулся рядом') {

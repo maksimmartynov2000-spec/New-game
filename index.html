@@ -4220,7 +4220,7 @@
         }
 
         // Собранные, но ещё не показанные пазлы. За одну миссию их обычно ноль или
-        // один: сотня кусочков минус два за ошибку — это около 140 ответов.
+        // один: картинка стоит сотни верных ответов, а миссия столько не длится.
         let pendingPuzzleReveals = [];
 
         // Показывает следующий отложенный пазл. Возвращает false, если показывать нечего.
@@ -9284,7 +9284,7 @@
             box.className = 'hint-review';
             const title = document.createElement('div');
             title.className = 'hint-review-title';
-            title.innerText = t('Где чаще всего спотыкался');
+            title.innerText = t('Самая частая ошибка');
             box.appendChild(title);
             const body = document.createElement('div');
             body.className = 'hint-review-text';
