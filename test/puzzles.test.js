@@ -243,6 +243,46 @@ test('число сборов показывается со второго ра�
     assert(/collection-times/.test(STYLE), 'у значка нет оформления');
 });
 
+// Пазл вставал на ПРОШЛУЮ клетку. Ученик уходил со «Сложения 3★», где собрано
+// двадцать кусочков, открывал «Умножение 1★», где не решено ничего, — и видел там
+// чужую картинку с двадцатью кусочками. Причина не в самом пазле: startGame зовёт
+// initPuzzle, тот спрашивает currentMissionTopicKey «в какой клетке мы играем», а
+// та отвечает по currentProblemMeta — последнему примеру ПРОШЛОЙ миссии, потому
+// что новый появится только в generateMath, которая вызывается следом.
+//
+// Хуже того, puzzleCellKey оставался прошлым до конца миссии, и addPuzzlePiece не
+// признавал своей ни одной клетки: ученик решал верно, а картинка не росла вовсе.
+// Ни один экран об этом не кричал — картинка просто стояла.
+test('новая миссия не наследует клетку прошлой', () => {
+    const start = slice('function startGame() {', 'function resizeCanvas', 'startGame');
+
+    const resetAt = start.indexOf('currentProblemMeta = null');
+    assert(resetAt > 0, 'startGame не обнуляет currentProblemMeta — пазл встанет на прошлую клетку');
+
+    // Порядок здесь и есть всё: обнулить ПОСЛЕ initPuzzle — то же самое, что не
+    // обнулять вовсе.
+    const initAt = start.indexOf('initPuzzle(');
+    assert(initAt > 0, 'startGame не зовёт initPuzzle — срез сломался');
+    assert(resetAt < initAt,
+        'currentProblemMeta обнуляется ПОСЛЕ initPuzzle — пазл всё равно возьмёт прошлую клетку');
+});
+
+// Запасной путь, на который падает currentMissionTopicKey, когда примера ещё нет.
+// Без него обнуление выше оставило бы пазл вообще без клетки.
+test('клетка миссии выводится из настроек, когда примера ещё нет', () => {
+    const box = { exampleConfig: { category: 'integer', numberType: 'positive', operations: { mul: 1 } },
+                  currentProblemMeta: null };
+    vm.createContext(box);
+    vm.runInContext(slice('function buildTopicKey', 'function parseTopicKey', 'buildTopicKey')
+        + slice('function currentMissionTopicKey', 'function setupPuzzleForCell', 'ключ клетки')
+        + ';globalThis.f = currentMissionTopicKey;', box);
+    eq(box.f(), 'integer+:mul:1', 'клетка не вывелась из настроек миссии');
+
+    // Смешанная миссия из нескольких действий картинки не имеет — и это правильно.
+    box.exampleConfig.operations = { mul: 1, add: 2 };
+    eq(box.f(), null, 'у смешанной миссии не должно быть клетки');
+});
+
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
 if (failed) {
     console.log('\nУпавшие проверки:');
