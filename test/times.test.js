@@ -32,8 +32,9 @@ function load() {
     vm.createContext(box);
     vm.runInContext(
         slice('function mulClassOf', '// Класс примера на деление', 'mulClassOf')
+        + 'const t = (x) => x;'
         + slice('const TIMES_GROUPS', 'function timesAccuracy', 'TIMES_GROUPS')
-        + ';globalThis.R = { mulClassOf, TIMES_GROUPS };', box);
+        + ';globalThis.R = { mulClassOf, TIMES_GROUPS, TIMES_TITLES };', box);
     return box.R;
 }
 
@@ -71,13 +72,17 @@ test('у каждой группы есть заливка в CSS', () => {
     eq(lost.join(', '), '', `группы без цвета: ${lost.join(', ')}`);
 });
 
-// Легенда подписывает группы не своими словами, а теми же, что стоят в разборе
-// статистики. Своя копия подписей разъехалась бы с ней на первой же правке.
-test('у каждой группы есть подпись в CLASS_TITLES.mul', () => {
+// Подписи у экрана свои, не из CLASS_TITLES: разбор в статистике читает репетитор,
+// и «ядро 6·7·8» там на месте, а ученику нужно «шестёрки, семёрки, восьмёрки».
+// Разбиение при этом общее, и вот его-то разъезд и страшен: добавят группу в
+// классификатор — клетка получит имя undefined и покажет его ученику.
+test('у каждой группы есть подпись для ученика', () => {
     const R = load();
-    const titles = slice('    mul: {', '};', 'CLASS_TITLES.mul');
-    const lost = R.TIMES_GROUPS.filter(g => !new RegExp(`\\b${g}:`).test(titles));
+    const lost = R.TIMES_GROUPS.filter(g => !R.TIMES_TITLES[g]);
     eq(lost.join(', '), '', `группы без подписи: ${lost.join(', ')}`);
+    // И наоборот: подпись, потерявшая свою группу, — мёртвый текст в словарях.
+    const extra = Object.keys(R.TIMES_TITLES).filter(g => R.TIMES_GROUPS.indexOf(g) < 0);
+    eq(extra.join(', '), '', `подписи без групп: ${extra.join(', ')}`);
 });
 
 // Подпись под таблицей — утверждение о предмете, а не украшение. Пересчитываем
@@ -93,15 +98,12 @@ test('числа в заметке — 55 примеров и шесть на з
     eq(facts.size, 55, 'разных примеров в таблице');
     eq(core.size, 6, 'примеров в ядре');
 
-    const note = slice('Клеток сто, но разных', '.');
-    const says = (n) => new RegExp('(^|\\D)' + n + '(\\D|$)').test(note);
-    assert(says(facts.size), `в заметке нет числа разных примеров ${facts.size}: ${note}`);
-    // Сами шесть примеров тоже перечислены поимённо — проверяем каждый.
-    const full = slice('Клеток сто, но разных', 'Остальное берётся');
-    [...core].forEach(k => {
-        const [a, b] = k.split('x');
-        assert(full.indexOf(`${a}×${b}`) >= 0, `в заметке нет примера ${a}×${b}: ${full}`);
-    });
+    // Подзаголовок экрана — то самое утверждение. Ищем его в разметке.
+    const sub = (HTML.match(/<p class="start-subtitle">([^<]*55[^<]*)<\/p>/) || [])[1];
+    assert(sub, 'подзаголовок с числом разных примеров не найден в разметке');
+    const says = (n) => new RegExp('(^|\\D)' + n + '(\\D|$)').test(sub);
+    assert(says(facts.size), `в подзаголовке нет числа разных примеров ${facts.size}: ${sub}`);
+    assert(/шесть|шести/.test(sub), `в подзаголовке не сказано про шесть трудных: ${sub}`);
 });
 
 // Серое значит «не мерили», а не «плохо». Порог живёт в коде одним числом, и
@@ -110,8 +112,8 @@ test('порог выборки назван в заметке тем же чи�
     const code = slice('const TIMES_MIN_SAMPLE', 'function timesAccuracyClass', 'порог');
     const n = Number((code.match(/TIMES_MIN_SAMPLE\s*=\s*(\d+)/) || [])[1]);
     assert(n > 0, 'порог выборки не найден');
-    const note = slice('Цвет — про приём целиком', 'Пока приём решён меньше %1');
-    assert(note.length > 0, 'заметка про приём не найдена');
+    const note = slice('Цвет — про группу целиком', 'Серое — решено меньше %1');
+    assert(note.length > 0, 'сноска про группу не найдена');
     assert(SCRIPT.indexOf('TIMES_MIN_SAMPLE)') > 0,
         'порог подставляется в заметку не из TIMES_MIN_SAMPLE — числа разойдутся');
 });

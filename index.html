@@ -1326,67 +1326,100 @@
 
         /* --- Таблица умножения --- */
         /* Экран отвечает на один вопрос: сколько тут на самом деле учить. Сто клеток
-           выглядят стеной, и ученик, глядя на них, заранее сдаётся. Но разных фактов
+           выглядят стеной, и ученик, глядя на них, заранее сдаётся. Но разных примеров
            в них 55, а по-настоящему трудных — шесть: 6×6, 6×7, 6×8, 7×7, 7×8, 8×8.
-           Всё остальное берётся приёмом: удвоением, пятёрками, девятками. Цвет здесь
-           и показывает это деление — не украшение, а само содержание экрана.
+           Всё остальное берётся приёмом. Цвет здесь и показывает это деление — не
+           украшение, а само содержание экрана.
            Группы берём те же, что считает mulClassOf: экран не заводит собственную
            классификацию, иначе он начал бы расходиться со статистикой и разбором. */
+
+        /* Сетке отдано всё, что можно отнять у обвязки. В первой версии таблица
+           лежала в .config-container внутри .modal-screen: 20 px паддинга экрана и
+           18 px паддинга карточки с каждой стороны съедали 76 px из 390, и клетка
+           выходила 26 px — цифры в ней читались с трудом. Кнопка «назад» стоит
+           absolute от края, а не от паддинга, поэтому сузить экран безопасно. */
+        #timesScreen { padding-left: 8px; padding-right: 8px; }
+        /* Полное название в две строки занимало пятую часть экрана. Здесь заголовок
+           мельче остальных: место нужнее таблице. */
+        #timesScreen .start-title { font-size: clamp(0.95rem, 4.4vw, 1.4rem); }
+        #timesScreen .start-subtitle { margin-bottom: 12px; }
+        .times-wrap { width: 100%; max-width: 520px; }
+
+        /* Переключатель видов — не две кнопки действия, а положение тумблера,
+           поэтому он лёгкий и по размеру текста, а не во всю ширину. Высоту
+           оставляем пальцевую: смотреть на него будут редко, а попадать — точно. */
+        .times-switch {
+            display: flex; gap: 6px; justify-content: center; margin-bottom: 12px;
+        }
+        .times-tab {
+            padding: 0 14px; min-height: 40px; border-radius: 10px; cursor: pointer;
+            font-family: inherit; font-size: 0.78rem; font-weight: bold;
+            color: #94a3b8; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .times-tab.selected {
+            color: var(--cyan); background: rgba(6,182,212,0.12);
+            border-color: rgba(6,182,212,0.5);
+        }
+        .times-tab:active { transform: scale(0.96); }
+
         .times-grid {
             display: grid; grid-template-columns: repeat(11, 1fr);
-            gap: 2px; width: 100%; margin-bottom: 12px;
+            gap: 2px; width: 100%; margin-bottom: 10px;
         }
         .times-cell {
             aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
-            border-radius: 4px; font-size: clamp(0.5rem, 2.1vw, 0.72rem);
+            border-radius: 5px; font-size: clamp(0.62rem, 2.9vw, 0.92rem);
             font-variant-numeric: tabular-nums; line-height: 1;
             background: rgba(255,255,255,0.04); color: #cbd5e1;
             border: 1px solid transparent;
         }
         /* Шапка — не клетки таблицы, а её поля: держим их приглушёнными, иначе
            одиннадцатая строка и одиннадцатый столбец читаются как часть ответов. */
-        .times-cell.times-head {
-            background: none; color: #64748b; font-weight: bold;
-        }
+        .times-cell.times-head { background: none; color: #64748b; font-weight: bold; }
         .times-cell.times-corner { background: none; }
-        .times-cell.times-pick {
-            border-color: #fff; color: #fff; font-weight: bold;
-        }
-        /* Шесть групп приёмов. Янтарь достаётся ядру — единственному, что учат
+        .times-cell.times-pick { border-color: #fff; color: #fff; font-weight: bold; }
+
+        /* Шесть групп приёмов. Янтарь достаётся тем шести примерам, что учат
            наизусть; остальное холодных тонов, потому что берётся приёмом. */
+        /* Заливки плотные, а не полупрозрачные. Прозрачное на почти чёрном фоне
+           обесцвечивается: янтарь уходил в бурый, красный в тёмно-вишнёвый, и на
+           клетке в треть сантиметра «почти» переставало отличаться от «сбиваюсь».
+           Плотный цвет этим не болеет и читается одинаково на любом экране. */
         .times-g-triv  { background: rgba(255,255,255,0.05); color: #64748b; }
-        .times-g-two   { background: rgba(34,211,238,0.16);  color: #a5f3fc; }
-        .times-g-five  { background: rgba(34,197,94,0.16);   color: #bbf7d0; }
-        .times-g-small { background: rgba(96,165,250,0.16);  color: #bfdbfe; }
-        .times-g-nine  { background: rgba(167,139,250,0.18); color: #ddd6fe; }
-        .times-g-core  { background: rgba(251,191,36,0.20);  color: #fde68a; }
+        .times-g-two   { background: #164e63; color: #a5f3fc; }
+        .times-g-five  { background: #14532d; color: #bbf7d0; }
+        .times-g-small { background: #1e3a8a; color: #bfdbfe; }
+        .times-g-nine  { background: #4c1d95; color: #ddd6fe; }
+        .times-g-core  { background: #b45309; color: #fff7ed; }
         /* Вид «как у меня»: те же клетки, но цвет говорит про долю верных.
            Серое — не «плохо», а «ещё не мерили»: разделять эти два состояния
            обязательно, иначе нерешённое читается как проваленное. */
-        .times-a-none { background: rgba(255,255,255,0.04); color: #475569; }
-        .times-a-low  { background: rgba(248,113,113,0.30); color: #fee2e2; }
-        .times-a-mid  { background: rgba(251,191,36,0.32);  color: #fffbeb; }
-        .times-a-high { background: rgba(34,197,94,0.28);   color: #f0fdf4; }
-        .times-legend {
-            display: flex; flex-wrap: wrap; gap: 6px 10px;
-            font-size: 0.68rem; color: #94a3b8; margin-bottom: 10px;
-        }
-        .times-legend span { display: flex; align-items: center; gap: 5px; }
-        .times-legend i {
-            width: 11px; height: 11px; border-radius: 3px; display: block;
-            flex: 0 0 auto;
-        }
+        .times-a-none { background: rgba(255,255,255,0.05); color: #475569; }
+        .times-a-low  { background: #991b1b; color: #fee2e2; }
+        .times-a-mid  { background: #a16207; color: #fef3c7; }
+        .times-a-high { background: #166534; color: #dcfce7; }
+
         /* Строка под таблицей: что за клетку ты сейчас нажал. Держим ей высоту
            заранее — иначе первое нажатие дёргает всю страницу вверх. */
         .times-pick-line {
-            min-height: 34px; font-size: 0.78rem; color: #e2e8f0;
-            line-height: 1.35; margin-bottom: 8px;
+            min-height: 42px; font-size: 0.82rem; color: #e2e8f0;
+            line-height: 1.4; margin-bottom: 6px;
         }
         .times-pick-line b { color: #fff; }
-        .times-note {
-            font-size: 0.72rem; color: #64748b; line-height: 1.45;
-            border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;
+        .times-pick-line .times-pick-hint { color: #64748b; }
+        /* Легенда нужна только там, где цвет — шкала. В «Приёмах» цвет всего лишь
+           делит таблицу на группы, и это видно без подписей: что за группа, скажет
+           нажатие на клетку. Шесть названий под сеткой были бы длиннее самой сетки. */
+        .times-legend {
+            display: flex; flex-wrap: wrap; gap: 4px 12px;
+            font-size: 0.7rem; color: #94a3b8; margin-bottom: 8px;
         }
+        .times-legend span { display: flex; align-items: center; gap: 5px; }
+        .times-legend i {
+            width: 11px; height: 11px; border-radius: 3px; display: block; flex: 0 0 auto;
+        }
+        .times-foot { font-size: 0.7rem; color: #64748b; line-height: 1.45; }
 
         /* --- Сворачиваемый раздел --- */
         /* Один механизм на все экраны: статистика, профиль, достижения. Треугольник
@@ -2007,22 +2040,22 @@
     </div>
 
     <!-- Таблица умножения: справочник и карта того, что уже знаешь. Открывается
-         из меню, ничего не запускает и никуда не ведёт — сюда заходят посмотреть. -->
+         из меню, ничего не запускает и никуда не ведёт — сюда заходят посмотреть.
+         Карточки .config-container здесь намеренно нет: её рамка и паддинг ничего
+         не сообщают, а сетке нужна ширина. -->
     <div class="modal-screen" id="timesScreen" style="z-index:230; display:none;">
         <button class="start-menu-btn" onclick="closeTimesScreen()" aria-label="Назад">◀️</button>
         <h1 class="start-title">✖️ Таблица умножения</h1>
-        <p class="start-subtitle" id="timesSubtitle"></p>
-        <div class="config-container">
-            <div class="config-section">
-                <div class="period-row" id="timesViewRow" style="margin-bottom:12px;">
-                    <button class="btn-period selected" data-view="groups">Приёмы</button>
-                    <button class="btn-period" data-view="mine">Как у меня</button>
-                </div>
-                <div class="times-grid" id="timesGrid"></div>
-                <div class="times-pick-line" id="timesPickLine"></div>
-                <div class="times-legend" id="timesLegend"></div>
-                <div class="times-note" id="timesNote"></div>
+        <p class="start-subtitle">Разных примеров тут 55, а трудных — шесть</p>
+        <div class="times-wrap">
+            <div class="times-switch" id="timesViewRow">
+                <button class="times-tab selected" data-view="groups">Приёмы</button>
+                <button class="times-tab" data-view="mine">Как у меня</button>
             </div>
+            <div class="times-grid" id="timesGrid"></div>
+            <div class="times-pick-line" id="timesPickLine"></div>
+            <div class="times-legend" id="timesLegend"></div>
+            <div class="times-foot" id="timesFoot"></div>
         </div>
     </div>
 
@@ -4662,8 +4695,8 @@
         // ===================== ТАБЛИЦА УМНОЖЕНИЯ =====================
         // Экран-справочник. Ничего не записывает и не запускает: сюда заходят
         // посмотреть, а не решать. Группы берутся у mulClassOf — того же кода,
-        // которым считается разбор в статистике, — чтобы «ядро 6·7·8» здесь и
-        // «ядро 6·7·8» там означали в точности одно и то же.
+        // которым считается разбор в статистике, — чтобы «шестёрки, семёрки,
+        // восьмёрки» здесь и «ядро 6·7·8» там означали в точности одно и то же.
         let timesView = 'groups';
         let timesPicked = null;      // 'a×b' — какую клетку ученик нажал
 
@@ -4671,6 +4704,20 @@
         // двузначных (round, twoPlain, twoCarry, tworound) сюда не попадают
         // никогда: там оба множителя не больше десяти.
         const TIMES_GROUPS = ['triv', 'two', 'five', 'small', 'nine', 'core'];
+
+        // Подписи здесь свои, не из CLASS_TITLES. Разбор в статистике читает
+        // репетитор, и «ядро 6·7·8» там на месте: это название приёма в его
+        // словаре. Ученику оно ничего не говорит и звучит чужеродно — ему надо
+        // «шестёрки, семёрки, восьмёрки», в один ряд с «пятёрками» и «девятками».
+        // Группы при этом те же самые: расходится только слово, не разбиение.
+        const TIMES_TITLES = {
+            triv:  t('без счёта'),
+            two:   t('удвоение'),
+            five:  t('пятёрки'),
+            small: t('тройки и четвёрки'),
+            nine:  t('девятки'),
+            core:  t('шестёрки, семёрки, восьмёрки')
+        };
 
         // Доля верных по группе — сложенная по всем звёздам положительного
         // умножения. Разбивать по звёздам здесь нечего: 7 × 8 это 7 × 8, на
@@ -4727,45 +4774,49 @@
                 }
             }
             grid.innerHTML = html;
-            renderTimesLegend(acc);
+            renderTimesFoot(acc);
             renderTimesPick(acc);
         }
 
-        function renderTimesLegend(acc) {
-            const box = document.getElementById('timesLegend');
-            const swatch = (cssClass, label) =>
-                `<span><i class="${cssClass}"></i>${label}</span>`;
-            if (timesView === 'mine') {
-                box.innerHTML = [
-                    swatch('times-a-high', t('знаю')),
-                    swatch('times-a-mid', t('почти')),
-                    swatch('times-a-low', t('сбиваюсь')),
-                    swatch('times-a-none', t('ещё не мерили'))
-                ].join('');
-                document.getElementById('timesNote').innerText =
-                    tf('Цвет — про приём целиком, а не про одну клетку: у 7 × 8 и 6 × 8 приём общий, и цвет у них будет один. Пока приём решён меньше %1 раз, клетка серая — на трёх ответах судить не о чем.', TIMES_MIN_SAMPLE);
+        // Легенда и сноска — только у вида «как у меня»: там цвет это шкала, и без
+        // ключа он нечитаем. В «Приёмах» цвет всего лишь делит таблицу на группы,
+        // а как называется группа — скажет нажатие на клетку.
+        function renderTimesFoot(acc) {
+            const legend = document.getElementById('timesLegend');
+            const foot = document.getElementById('timesFoot');
+            if (timesView !== 'mine') {
+                legend.innerHTML = '';
+                foot.innerText = '';
                 return;
             }
-            box.innerHTML = TIMES_GROUPS
-                .map(g => swatch('times-g-' + g, CLASS_TITLES.mul[g] || g)).join('');
-            document.getElementById('timesNote').innerText =
-                t('Клеток сто, но разных примеров в них 55: 7 × 8 и 8 × 7 — один и тот же. Учить наизусть надо шесть: 6×6, 6×7, 6×8, 7×7, 7×8, 8×8. Остальное берётся приёмом.');
+            const swatch = (cssClass, label) => `<span><i class="${cssClass}"></i>${label}</span>`;
+            legend.innerHTML = [
+                swatch('times-a-high', t('знаю')),
+                swatch('times-a-mid', t('почти')),
+                swatch('times-a-low', t('сбиваюсь')),
+                swatch('times-a-none', t('ещё не считали'))
+            ].join('');
+            // Ни одного ответа по умножению — таблица серая целиком, и молчащий
+            // экран читается как поломка. Говорим прямо, отчего он серый.
+            const solved = Object.keys(acc).some(k => acc[k].right + acc[k].wrong > 0);
+            foot.innerText = solved
+                ? tf('Цвет — про группу целиком, а не про одну клетку. Серое — решено меньше %1 раз.', TIMES_MIN_SAMPLE)
+                : t('Умножение ещё не решалось — клетки покрасятся, когда порешаешь.');
         }
 
         function renderTimesPick(acc) {
             const line = document.getElementById('timesPickLine');
             if (!timesPicked) {
-                line.innerText = t('Нажми на клетку — покажу, каким приёмом она берётся.');
+                line.innerHTML = `<span class="times-pick-hint">${t('Нажми на клетку — покажу, каким приёмом она берётся.')}</span>`;
                 return;
             }
             const [a, b] = timesPicked.split('×').map(Number);
             const cls = mulClassOf(a, b);
-            const name = CLASS_TITLES.mul[cls] || cls;
-            let html = `<b>${a} × ${b} = ${a * b}</b> — ${name}`;
+            let html = `<b>${a} × ${b} = ${a * b}</b> — ${TIMES_TITLES[cls] || cls}`;
             const stat = acc && acc[cls];
             if (stat && stat.right + stat.wrong >= TIMES_MIN_SAMPLE) {
                 const total = stat.right + stat.wrong;
-                html += `<br>${tf('этот приём: %1% верных из %2', Math.round(stat.right / total * 100), total)}`;
+                html += `<br><span class="times-pick-hint">${tf('эта группа: %1% верных из %2', Math.round(stat.right / total * 100), total)}</span>`;
             }
             line.innerHTML = html;
         }
@@ -4779,10 +4830,10 @@
         });
 
         document.getElementById('timesViewRow').addEventListener('click', (e) => {
-            const btn = e.target.closest('.btn-period');
+            const btn = e.target.closest('.times-tab');
             if (!btn) return;
             timesView = btn.dataset.view;
-            [...document.querySelectorAll('#timesViewRow .btn-period')]
+            [...document.querySelectorAll('#timesViewRow .times-tab')]
                 .forEach(b => b.classList.toggle('selected', b === btn));
             renderTimesTable();
         });
@@ -4792,8 +4843,6 @@
             openTimesScreen();
         }
         function openTimesScreen() {
-            document.getElementById('timesSubtitle').innerText =
-                t('Сто клеток — это меньше, чем кажется');
             timesPicked = null;
             renderTimesTable();
             document.getElementById('timesScreen').style.display = 'flex';
