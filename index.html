@@ -1407,12 +1407,21 @@
 
         /* Строка под таблицей: что за клетку ты сейчас нажал. Держим ей высоту
            заранее — иначе первое нажатие дёргает всю страницу вверх. */
+        /* Нажатая клетка разворачивается в карточку приёма: как эта группа берётся,
+           с разобранным примером. Держим ей высоту заранее — иначе первое нажатие
+           дёргает всю страницу вверх. */
         .times-pick-line {
             min-height: 42px; font-size: 0.82rem; color: #e2e8f0;
-            line-height: 1.4; margin-bottom: 6px;
+            line-height: 1.4; margin-bottom: 8px;
         }
         .times-pick-line b { color: #fff; }
-        .times-pick-line .times-pick-hint { color: #64748b; }
+        .times-pick-line .times-pick-hint { color: #64748b; margin-top: 4px; }
+        .times-pick-line.filled {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 10px; padding: 10px 12px;
+        }
+        .times-pick-name { color: #94a3b8; }
+        .times-pick-trick { color: #cbd5e1; margin-top: 6px; line-height: 1.5; }
         /* Легенда нужна только там, где цвет — шкала. В «Приёмах» цвет всего лишь
            делит таблицу на группы, и это видно без подписей: что за группа, скажет
            нажатие на клетку. Шесть названий под сеткой были бы длиннее самой сетки. */
@@ -4756,6 +4765,23 @@
             core:  t('шестёрки, семёрки, восьмёрки')
         };
 
+        // Сам приём, одной-двумя фразами с разобранным примером. Это то, чего в игре
+        // не было вовсе: подсказки появляются ПОСЛЕ ошибки, а объяснить приём до
+        // того, как ученик на нём споткнулся, было негде. Таблицу открывают когда
+        // угодно — здесь и место.
+        //
+        // Разобранный пример в каждом тексте обязателен. «Умножь на десять и отними
+        // одно число» — это правило, и оно не работает, пока не увидишь 70 − 7 = 63:
+        // ребёнок читает правило, кивает и не может им воспользоваться.
+        const TIMES_TRICKS = {
+            triv:  t('Считать нечего. На 1 — число не меняется, на 10 — дописываем ноль: 8 × 10 = 80. На 0 всегда ноль.'),
+            two:   t('Удвоить — это прибавить число само к себе: 7 × 2 — это 7 + 7 = 14.'),
+            five:  t('Умножь на 10 и возьми половину: 6 × 5 — это 60 пополам, то есть 30.'),
+            small: t('На 4 — удвой дважды: 7 × 4 — это 14, а потом 28. На 3 — удвой и прибавь число ещё раз: 7 + 7 = 14, и ещё 7 — будет 21.'),
+            nine:  t('Умножь на 10 и отними одно число: 7 × 9 — это 70 без 7, то есть 63.'),
+            core:  t('Приёма тут нет, эти шесть учат наизусть. Но можно опереться на соседа: 7 × 8 — это 7 × 7 и ещё одна семёрка, 49 + 7 = 56.')
+        };
+
         // Доля верных по группе — сложенная по всем звёздам положительного
         // умножения. Разбивать по звёздам здесь нечего: 7 × 8 это 7 × 8, на
         // какой бы звезде он ни попался.
@@ -4844,16 +4870,22 @@
         function renderTimesPick(acc) {
             const line = document.getElementById('timesPickLine');
             if (!timesPicked) {
+                line.classList.remove('filled');
                 line.innerHTML = `<span class="times-pick-hint">${t('Нажми на клетку — покажу, каким приёмом она берётся.')}</span>`;
                 return;
             }
+            line.classList.add('filled');
             const [a, b] = timesPicked.split('×').map(Number);
             const cls = mulClassOf(a, b);
-            let html = `<b>${a} × ${b} = ${a * b}</b> — ${TIMES_TITLES[cls] || cls}`;
+            let html = `<div class="times-pick-name"><b>${a} × ${b} = ${a * b}</b>`
+                + ` — ${TIMES_TITLES[cls] || cls}</div>`;
+            if (TIMES_TRICKS[cls]) {
+                html += `<div class="times-pick-trick">${TIMES_TRICKS[cls]}</div>`;
+            }
             const stat = acc && acc[cls];
             if (stat && stat.right + stat.wrong >= TIMES_MIN_SAMPLE) {
                 const total = stat.right + stat.wrong;
-                html += `<br><span class="times-pick-hint">${tf('эта группа: %1% верных из %2', Math.round(stat.right / total * 100), total)}</span>`;
+                html += `<div class="times-pick-hint">${tf('эта группа: %1% верных из %2', Math.round(stat.right / total * 100), total)}</div>`;
             }
             line.innerHTML = html;
         }
