@@ -905,6 +905,83 @@ test('у кого фантомных клеток нет — не меняетс
 // разойтись им не с чем. Что там проверялось и почему это больше не нужно — в
 // test/puzzles.test.js, группа «Кусочки считаются, а не хранятся».
 
+group('Серия верных подряд');
+
+// «Реши 10 подряд без ошибки» — это про ПОРЯДОК ответов, а из сумм порядок не
+// достать. Поэтому серия пишется в журнал: [5] — идущая сейчас, [6] — лучшая за день.
+
+function runSlot(env, topic) {
+    const day = env.Progress.get().daily[env.Progress.dayKey()] || {};
+    return (day.t || {})[topic] || [];
+}
+
+test('верные подряд копятся, ошибка сбрасывает', () => {
+    const env = fresh();
+    const K = 'integer+:sub:1';
+    ['correct', 'correct', 'correct'].forEach(() => env.Progress.recordAnswer(K, 'correct', 1200));
+    eq(runSlot(env, K)[5], 3, 'идущая серия');
+    eq(runSlot(env, K)[6], 3, 'лучшая серия');
+    env.Progress.recordAnswer(K, 'wrong', 1200);
+    eq(runSlot(env, K)[5], 0, 'ошибка обязана сбросить серию');
+    eq(runSlot(env, K)[6], 3, 'лучшая за день не отнимается');
+});
+
+test('вторая серия не затирает лучшую', () => {
+    const env = fresh();
+    const K = 'integer+:sub:1';
+    for (let i = 0; i < 5; i++) env.Progress.recordAnswer(K, 'correct', 1200);
+    env.Progress.recordAnswer(K, 'wrong', 1200);
+    for (let i = 0; i < 2; i++) env.Progress.recordAnswer(K, 'correct', 1200);
+    eq(runSlot(env, K)[5], 2, 'идущая — вторая серия');
+    eq(runSlot(env, K)[6], 5, 'лучшая — первая');
+});
+
+test('«почти» серию не рвёт', () => {
+    // Счёт верный, не сокращена запись. Во всех остальных местах приложения этот
+    // ответ считается верным — значит и здесь.
+    const env = fresh();
+    const K = 'fraction+:add:2';
+    env.Progress.recordAnswer(K, 'correct', 1200);
+    env.Progress.recordAnswer(K, 'almost', 1200);
+    env.Progress.recordAnswer(K, 'correct', 1200);
+    eq(runSlot(env, K)[5], 3);
+});
+
+test('серия считается по своей клетке, а не вперемешку', () => {
+    const env = fresh();
+    env.Progress.recordAnswer('integer+:add:1', 'correct', 1200);
+    env.Progress.recordAnswer('integer+:sub:1', 'wrong', 1200);
+    env.Progress.recordAnswer('integer+:add:1', 'correct', 1200);
+    eq(runSlot(env, 'integer+:add:1')[5], 2, 'чужая ошибка серию не рвёт');
+    eq(runSlot(env, 'integer+:sub:1')[5], 0);
+});
+
+test('серия переживает слияние двух устройств', () => {
+    const { Progress } = fresh();
+    const day = Progress.dayKey();
+    const mk = (run, best) => ({ schema: 2, playerCode: 'X', updatedAt: 1,
+        daily: { [day]: { c: 5, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 5, e: {}, te: {},
+                          t: { 'integer+:add:1': [5, 0, 0, 0, 5, run, best] } } } });
+    const m = Progress._merge(mk(2, 7), mk(4, 3));
+    eq(m.daily[day].t['integer+:add:1'][6], 7, 'лучшая берётся большая');
+    eq(m.daily[day].t['integer+:add:1'][5], 4, 'идущая тоже по максимуму');
+});
+
+test('запись из старой версии не ломается', () => {
+    // В журнале лежат дни с пятью числами в клетке — серии там просто нет.
+    const env = fresh();
+    const day = env.Progress.dayKey();
+    env.store['mathCitadelState_v3'] = JSON.stringify({
+        activeCode: 'ЯР7', passwords: {}, tokens: {}, access: null,
+        profiles: { 'ЯР7': { schema: 2, playerCode: 'ЯР7',
+            daily: { [day]: { c: 4, w: 0, a: 0, s: 0, p: 0, ms: 0, mc: 4, e: {}, te: {},
+                              t: { 'integer+:add:1': [4, 0, 0, 0, 4] } } } } }
+    });
+    env.Progress.init();
+    env.Progress.recordAnswer('integer+:add:1', 'correct', 1200);
+    eq(runSlot(env, 'integer+:add:1')[5], 1, 'серия начинается с нуля, а не падает');
+});
+
 group('Данные закрытых разделов у ученика не хранятся');
 
 // Разделы, которых ученик не видит, не должны и храниться: иначе его собственная
