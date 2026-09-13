@@ -1303,6 +1303,21 @@
             border: 1px solid rgba(6, 182, 212, 0.35);
         }
         .task-go:active { transform: scale(0.96); }
+        /* Кнопка красится в цвет своей роли — по той же формуле, что бирюзовая:
+           текст в полную силу, фон 10%, рамка 35%. Так три кнопки остаются одного
+           веса и ни одна не перетягивает взгляд. Смысл не в украшении: глаз идёт
+           справа налево от кнопки, которую собирается нажать, и цвет кнопки сразу
+           говорит, какого рода это дело, не заставляя читать строку целиком. */
+        .task-row.role-fix .task-go {
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.10);
+            border-color: rgba(251, 191, 36, 0.35);
+        }
+        .task-row.role-explore .task-go {
+            color: #a78bfa;
+            background: rgba(167, 139, 250, 0.10);
+            border-color: rgba(167, 139, 250, 0.35);
+        }
         .task-week-cap {
             margin-top: 10px; padding-top: 8px; font-size: 0.66rem; color: #64748b;
             text-transform: uppercase; letter-spacing: 0.04em;

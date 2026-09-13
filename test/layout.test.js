@@ -362,6 +362,59 @@ test('каждый id, который ищет код, есть в размет�
     eq(lost.join(', '), '', `код ищет элементы, которых нет в разметке: ${lost.join(', ')}`);
 });
 
+// Роль строки задания красит две вещи: полоску прогресса — итог строки — и кнопку
+// «Играть» — вход в неё. Цвета там заданы порознь, в разных правилах CSS, и ничто
+// в браузере не свяжет их обратно: покрасишь кнопку в янтарный, а полоску потом
+// подвинешь в оранжевый — страница отрисуется молча, и строка начнёт читаться как
+// два разных дела вместо одного. Проверка держит их равными.
+test('у каждой роли полоска и кнопка «Играть» одного цвета', () => {
+    // Токены из :root, чтобы var(--cyan) сравнивался с #fbbf24 на равных.
+    const tokens = {};
+    let m;
+    const tokenRe = /(--[a-z-]+)\s*:\s*(#[0-9a-fA-F]{6})/g;
+    while ((m = tokenRe.exec(STYLE))) tokens[m[1]] = m[2].toLowerCase();
+    assert(Object.keys(tokens).length > 3, 'токены цветов не нашлись — срез сломался');
+
+    function rgb(value) {
+        const v = value.trim();
+        const varMatch = v.match(/var\((--[a-z-]+)\)/);
+        if (varMatch) {
+            const hit = tokens[varMatch[1]];
+            assert(hit, `токен ${varMatch[1]} не объявлен`);
+            return rgb(hit);
+        }
+        const hex = v.match(/^#([0-9a-fA-F]{6})/);
+        if (hex) return [0, 2, 4].map(i => parseInt(hex[1].slice(i, i + 2), 16)).join(',');
+        const fn = v.match(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/);
+        assert(fn, `не разобрать цвет: ${value}`);
+        return `${fn[1]},${fn[2]},${fn[3]}`;
+    }
+
+    // Последнее объявление свойства в правиле — то, которое победит.
+    function prop(selector, name) {
+        const re = new RegExp(selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+            .replace(/\s+/g, '\\s+') + '\\s*\\{([^}]*)\\}');
+        const rule = STYLE.match(re);
+        if (!rule) return null;
+        const decls = [...rule[1].matchAll(new RegExp('(?:^|;)\\s*' + name + '\\s*:\\s*([^;}]+)', 'g'))];
+        return decls.length ? decls[decls.length - 1][1] : null;
+    }
+
+    const baseMeter = prop('.task-meter span', 'background');
+    const baseGo = prop('.task-go', 'color');
+    assert(baseMeter && baseGo, 'базовые правила полоски и кнопки не нашлись');
+
+    const roles = [...new Set([...STYLE.matchAll(/\.task-row\.(role-[a-z]+)\b/g)].map(r => r[1]))];
+    assert(roles.length === 3, `ролей найдено ${roles.length}, ожидалось 3`);
+
+    roles.forEach(role => {
+        const meter = prop(`.task-row.${role} .task-meter span`, 'background') || baseMeter;
+        const go = prop(`.task-row.${role} .task-go`, 'color') || baseGo;
+        eq(rgb(go), rgb(meter),
+            `у ${role} кнопка «Играть» (${go.trim()}) не того цвета, что полоска (${meter.trim()})`);
+    });
+});
+
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
 if (failed) {
     console.log('\nУпавшие проверки:');
