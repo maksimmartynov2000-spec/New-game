@@ -1524,6 +1524,31 @@
         .mistake-opt.is-wrong .mistake-opt-mark { color: #f87171; font-weight: bold; }
         .mistake-opt.is-almost .mistake-opt-mark { color: #fbbf24; font-weight: bold; }
 
+        /* --- Работа над ошибками --- */
+        /* Разбор показывает, что случилось. Работа даёт переделать. Это разные вещи,
+           и путать их нельзя: в разборе верный ответ подсвечен сразу, в работе он
+           скрыт, иначе «переделывать» нечего. Один и тот же список карточек, два
+           режима отрисовки. */
+        .mistake-mode-btn {
+            width: 100%; padding: 11px; margin-bottom: 12px; border-radius: 10px;
+            font-family: inherit; font-size: 0.8rem; font-weight: bold; cursor: pointer;
+            color: var(--cyan); background: rgba(6,182,212,0.10);
+            border: 1px solid rgba(6,182,212,0.35);
+        }
+        .mistake-mode-btn:active { transform: scale(0.98); }
+        /* Варианты в работе — кнопки, и выглядеть должны нажимаемыми: в разборе это
+           просто клетки, и отличить их на ощупь иначе невозможно. */
+        .mistake-opt.pickable { cursor: pointer; background: rgba(255,255,255,0.06); }
+        .mistake-opt.pickable:active { transform: scale(0.96); }
+        /* Исправленную карточку гасим: она сделана, и взгляд должен уходить на
+           оставшиеся. Совсем убирать нельзя — исчезающий список сбивает счёт. */
+        .mistake-card.fixed { opacity: 0.55; border-color: rgba(16,185,129,0.35); }
+        .mistake-work-note {
+            font-size: 0.7rem; color: #64748b; line-height: 1.45; margin-bottom: 12px;
+        }
+        .mistake-card .hint-review { margin: 10px 0 0; }
+
+
         @media (max-height: 600px) {
             .math-box { padding: 8px; max-width: 320px; }
             .math-question { font-size: 1.6rem; margin-bottom: 6px; }
@@ -2396,9 +2421,10 @@
     <!-- Разбор ошибок за миссию. Живёт только до ухода с экрана "Миссия выполнена!". -->
     <div class="modal-screen" id="mistakesScreen" style="z-index:250; display:none;">
         <button class="start-menu-btn" onclick="closeMistakesScreen()" aria-label="Назад">◀️</button>
-        <h1 class="start-title">📋 Разбор ошибок</h1>
+        <h1 class="start-title" id="mistakesTitle">📋 Разбор ошибок</h1>
         <p class="start-subtitle" id="mistakesSubtitle">—</p>
         <div class="config-container">
+            <button class="mistake-mode-btn" id="mistakesModeBtn" style="display:none;"></button>
             <div id="mistakesList"></div>
         </div>
     </div>
@@ -9657,14 +9683,177 @@
             wrap.appendChild(box);
         }
 
+        // ===================== РАБОТА НАД ОШИБКАМИ =====================
+        // Разбор отвечает на вопрос «что случилось». Работа над ошибками — на вопрос
+        // «а теперь сам». Это разные дела, поэтому режима два, а не один экран, где
+        // верный ответ и подсвечен, и предлагается выбрать.
+        //
+        // ПОВТОРНЫЕ ОТВЕТЫ В СТАТИСТИКУ НЕ ИДУТ — ни в точность, ни в скорость, ни в
+        // счётчик решённых, ни в разбор по классам. Причина простая: пример здесь уже
+        // виден вместе со своими вариантами, ученик его только что читал, и попадание
+        // со второго раза ничего не говорит о том, умеет он или нет. Засчитывать такое
+        // значит портить те самые цифры, ради которых лесенки и заводились. Отдельного
+        // «переключателя» для этого нет и не нужно: код ниже просто не зовёт Progress.
+        // Стережёт это mistakes-work.test.js.
+        let mistakesMode = 'review';
+        let mistakeWork = [];        // по одной записи на ошибку: что уже исправлено
+
+        // Порядок вариантов перемешиваем. Без этого работа над ошибками превращается
+        // в «вспомни, где стояла зелёная клетка»: разбор ученик только что пролистал,
+        // и место верного ответа помнится лучше самого ответа.
+        function shuffledOptionOrder(n) {
+            const order = [...Array(n).keys()];
+            for (let i = order.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [order[i], order[j]] = [order[j], order[i]];
+            }
+            return order;
+        }
+
+        function startMistakeWork() {
+            mistakesMode = 'work';
+            mistakeWork = sessionMistakes.map(m => ({
+                fixed: false,
+                tries: 0,
+                hinted: false,
+                order: shuffledOptionOrder(m.options.length)
+            }));
+            renderMistakesScreen();
+        }
+        function stopMistakeWork() {
+            mistakesMode = 'review';
+            renderMistakesScreen();
+        }
+
+        // Подпись над списком. Отдельной функцией, потому что её проверяет тест:
+        // на экране она собирается из трёх состояний, и каждое легко потерять.
+        function mistakeWorkSubtitle(work) {
+            const total = work.length;
+            const fixed = work.filter(w => w.fixed).length;
+            if (!total) return t('Ошибок не было');
+            if (fixed === total) return t('Все исправлены');
+            return tf('Исправлено: %1 из %2', fixed, total);
+        }
+
+        function refreshMistakeWorkHead() {
+            document.getElementById('mistakesSubtitle').innerText =
+                mistakeWorkSubtitle(mistakeWork);
+        }
+
+        // Нажатие на вариант в режиме работы. Ничего никуда не записывает: меняет
+        // только вид карточки.
+        function pickMistakeAnswer(idx, optKey, optEl) {
+            const w = mistakeWork[idx];
+            const m = sessionMistakes[idx];
+            if (!w || !m || w.fixed) return;
+            w.tries++;
+            const card = optEl.closest('.mistake-card');
+            if (optKey === m.correctKey) {
+                w.fixed = true;
+                optEl.classList.remove('pickable');
+                optEl.classList.add('is-correct');
+                optEl.querySelector('.mistake-opt-mark').innerText = t('✓ верно');
+                card.classList.add('fixed');
+                [...card.querySelectorAll('.mistake-opt')].forEach(o => o.classList.remove('pickable'));
+                playSound('correct');
+            } else {
+                optEl.classList.remove('pickable');
+                optEl.classList.add('is-wrong');
+                optEl.querySelector('.mistake-opt-mark').innerText = t('мимо');
+                playSound('wrong');
+                // Подсказку даём один раз и только после промаха: до него она
+                // отвечает на вопрос, которого ученик себе ещё не задал.
+                if (!w.hinted) {
+                    w.hinted = true;
+                    appendMistakeHint(card, m);
+                }
+            }
+            refreshMistakeWorkHead();
+        }
+
+        // Правило к этому конкретному примеру — из той же таблицы подсказок, что и
+        // сводная «самая частая ошибка» над списком. Своей копии текстов тут нет.
+        function appendMistakeHint(card, m) {
+            if (m.a === null || m.b === null) return;
+            const kind = m.isAlmost ? 'не сократил' : (m.kind || null);
+            if (!kind) return;
+            const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
+                { a: m.a, b: m.b }, m.correctVal, m.chosenVal);
+            if (!text) return;
+            const box = document.createElement('div');
+            box.className = 'hint-review';
+            const body = document.createElement('div');
+            body.className = 'hint-review-text';
+            body.innerText = text;
+            box.appendChild(body);
+            card.appendChild(box);
+        }
+
+        function renderMistakeWork(wrap) {
+            const note = document.createElement('div');
+            note.className = 'mistake-work-note';
+            note.innerText = t('Это тренировка: ответы здесь в статистику не идут.');
+            wrap.appendChild(note);
+
+            sessionMistakes.forEach((m, idx) => {
+                const w = mistakeWork[idx];
+                const card = document.createElement('div');
+                card.className = 'mistake-card';
+
+                const head = document.createElement('div');
+                head.className = 'mistake-head';
+                head.innerHTML = '<span class="mistake-topic"></span>';
+                head.querySelector('.mistake-topic').innerText =
+                    m.topic + (m.level ? ` · ${m.level}★` : '');
+                card.appendChild(head);
+
+                const q = document.createElement('div');
+                q.className = 'mistake-question';
+                q.innerHTML = m.questionHtml;
+                card.appendChild(q);
+
+                const grid = document.createElement('div');
+                grid.className = 'mistake-options';
+                w.order.forEach(oi => {
+                    const o = m.options[oi];
+                    const opt = document.createElement('div');
+                    opt.className = 'mistake-opt pickable';
+                    opt.innerHTML = '<span class="mistake-opt-val"></span><span class="mistake-opt-mark"></span>';
+                    opt.querySelector('.mistake-opt-val').innerHTML = o.html;
+                    opt.addEventListener('click', () => pickMistakeAnswer(idx, o.key, opt));
+                    grid.appendChild(opt);
+                });
+                card.appendChild(grid);
+                wrap.appendChild(card);
+            });
+        }
+
         function renderMistakesScreen() {
             const wrap = document.getElementById('mistakesList');
             const sub = document.getElementById('mistakesSubtitle');
+            const modeBtn = document.getElementById('mistakesModeBtn');
             wrap.innerHTML = '';
 
             if (!sessionMistakes.length) {
                 sub.innerText = t('Ошибок не было');
+                document.getElementById('mistakesTitle').innerText = t('📋 Разбор ошибок');
+                modeBtn.style.display = 'none';
                 wrap.innerHTML = t('<div class="menu-empty">Ни одной ошибки за миссию.<br>Так держать!</div>');
+                return;
+            }
+
+            document.getElementById('mistakesTitle').innerText = mistakesMode === 'work'
+                ? t('✏️ Работа над ошибками')
+                : t('📋 Разбор ошибок');
+            modeBtn.style.display = '';
+            modeBtn.innerText = mistakesMode === 'work'
+                ? t('◀ Вернуться к разбору')
+                : t('✏️ Прорешать заново');
+            modeBtn.onclick = mistakesMode === 'work' ? stopMistakeWork : startMistakeWork;
+
+            if (mistakesMode === 'work') {
+                refreshMistakeWorkHead();
+                renderMistakeWork(wrap);
                 return;
             }
             // "Почти" и настоящая ошибка — разные исходы, в подписи не сливаем их в одну цифру.
@@ -9733,6 +9922,8 @@
             if (maintenanceActive()) { renderMaintenance(); return; }
             gameActive = true;
             sessionMistakes = []; // новая миссия — разбор начинается с чистого листа
+            mistakesMode = 'review';   // и с разбора, а не с недоделанной прошлой работы
+            mistakeWork = [];
             // Отложенные пазлы тоже: показывать прошлый выигрыш вместе со статистикой
             // текущей миссии было бы враньём, а картинка и так лежит в коллекции.
             pendingPuzzleReveals = [];

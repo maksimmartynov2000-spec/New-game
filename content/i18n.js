@@ -12,6 +12,13 @@
 
 window.TRANSLATIONS = {
     en: {
+            "✏️ Работа над ошибками": "✏️ Fixing the mistakes",
+            "Все исправлены": "All fixed",
+            "Исправлено: %1 из %2": "Fixed: %1 of %2",
+            "мимо": "not it",
+            "Это тренировка: ответы здесь в статистику не идут.": "This is practice — answers here don't count towards your stats.",
+            "◀ Вернуться к разбору": "◀ Back to the review",
+            "✏️ Прорешать заново": "✏️ Solve them again",
             "без счёта": "no counting",
             "шестёрки, семёрки, восьмёрки": "sixes, sevens, eights",
             "ещё не считали": "not counted yet",
@@ -563,6 +570,13 @@ window.TRANSLATIONS = {
             " и ": " and "
     },
     fr: {
+            "✏️ Работа над ошибками": "✏️ Correction des erreurs",
+            "Все исправлены": "Tout est corrigé",
+            "Исправлено: %1 из %2": "Corrigés : %1 sur %2",
+            "мимо": "raté",
+            "Это тренировка: ответы здесь в статистику не идут.": "C'est un entraînement : les réponses ici ne comptent pas dans les statistiques.",
+            "◀ Вернуться к разбору": "◀ Retour à l'analyse",
+            "✏️ Прорешать заново": "✏️ Refaire les exercices",
             "без счёта": "sans calcul",
             "шестёрки, семёрки, восьмёрки": "les six, les sept, les huit",
             "ещё не считали": "pas encore compté",
@@ -1114,6 +1128,13 @@ window.TRANSLATIONS = {
             " и ": " et "
     },
     de: {
+            "✏️ Работа над ошибками": "✏️ Fehler berichtigen",
+            "Все исправлены": "Alles berichtigt",
+            "Исправлено: %1 из %2": "Berichtigt: %1 von %2",
+            "мимо": "daneben",
+            "Это тренировка: ответы здесь в статистику не идут.": "Das ist Übung: Antworten hier zählen nicht für die Statistik.",
+            "◀ Вернуться к разбору": "◀ Zurück zur Auswertung",
+            "✏️ Прорешать заново": "✏️ Noch einmal rechnen",
             "без счёта": "ohne Rechnen",
             "шестёрки, семёрки, восьмёрки": "Sechser, Siebener, Achter",
             "ещё не считали": "noch nicht gezählt",
