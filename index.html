@@ -1324,6 +1324,70 @@
             border-top: 1px solid rgba(255,255,255,0.08);
         }
 
+        /* --- Таблица умножения --- */
+        /* Экран отвечает на один вопрос: сколько тут на самом деле учить. Сто клеток
+           выглядят стеной, и ученик, глядя на них, заранее сдаётся. Но разных фактов
+           в них 55, а по-настоящему трудных — шесть: 6×6, 6×7, 6×8, 7×7, 7×8, 8×8.
+           Всё остальное берётся приёмом: удвоением, пятёрками, девятками. Цвет здесь
+           и показывает это деление — не украшение, а само содержание экрана.
+           Группы берём те же, что считает mulClassOf: экран не заводит собственную
+           классификацию, иначе он начал бы расходиться со статистикой и разбором. */
+        .times-grid {
+            display: grid; grid-template-columns: repeat(11, 1fr);
+            gap: 2px; width: 100%; margin-bottom: 12px;
+        }
+        .times-cell {
+            aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; font-size: clamp(0.5rem, 2.1vw, 0.72rem);
+            font-variant-numeric: tabular-nums; line-height: 1;
+            background: rgba(255,255,255,0.04); color: #cbd5e1;
+            border: 1px solid transparent;
+        }
+        /* Шапка — не клетки таблицы, а её поля: держим их приглушёнными, иначе
+           одиннадцатая строка и одиннадцатый столбец читаются как часть ответов. */
+        .times-cell.times-head {
+            background: none; color: #64748b; font-weight: bold;
+        }
+        .times-cell.times-corner { background: none; }
+        .times-cell.times-pick {
+            border-color: #fff; color: #fff; font-weight: bold;
+        }
+        /* Шесть групп приёмов. Янтарь достаётся ядру — единственному, что учат
+           наизусть; остальное холодных тонов, потому что берётся приёмом. */
+        .times-g-triv  { background: rgba(255,255,255,0.05); color: #64748b; }
+        .times-g-two   { background: rgba(34,211,238,0.16);  color: #a5f3fc; }
+        .times-g-five  { background: rgba(34,197,94,0.16);   color: #bbf7d0; }
+        .times-g-small { background: rgba(96,165,250,0.16);  color: #bfdbfe; }
+        .times-g-nine  { background: rgba(167,139,250,0.18); color: #ddd6fe; }
+        .times-g-core  { background: rgba(251,191,36,0.20);  color: #fde68a; }
+        /* Вид «как у меня»: те же клетки, но цвет говорит про долю верных.
+           Серое — не «плохо», а «ещё не мерили»: разделять эти два состояния
+           обязательно, иначе нерешённое читается как проваленное. */
+        .times-a-none { background: rgba(255,255,255,0.04); color: #475569; }
+        .times-a-low  { background: rgba(248,113,113,0.30); color: #fee2e2; }
+        .times-a-mid  { background: rgba(251,191,36,0.32);  color: #fffbeb; }
+        .times-a-high { background: rgba(34,197,94,0.28);   color: #f0fdf4; }
+        .times-legend {
+            display: flex; flex-wrap: wrap; gap: 6px 10px;
+            font-size: 0.68rem; color: #94a3b8; margin-bottom: 10px;
+        }
+        .times-legend span { display: flex; align-items: center; gap: 5px; }
+        .times-legend i {
+            width: 11px; height: 11px; border-radius: 3px; display: block;
+            flex: 0 0 auto;
+        }
+        /* Строка под таблицей: что за клетку ты сейчас нажал. Держим ей высоту
+           заранее — иначе первое нажатие дёргает всю страницу вверх. */
+        .times-pick-line {
+            min-height: 34px; font-size: 0.78rem; color: #e2e8f0;
+            line-height: 1.35; margin-bottom: 8px;
+        }
+        .times-pick-line b { color: #fff; }
+        .times-note {
+            font-size: 0.72rem; color: #64748b; line-height: 1.45;
+            border-top: 1px solid rgba(255,255,255,0.08); padding-top: 8px;
+        }
+
         /* --- Сворачиваемый раздел --- */
         /* Один механизм на все экраны: статистика, профиль, достижения. Треугольник
            везде значит одно и то же, и «свернул» переживает уход с экрана.
@@ -1751,6 +1815,7 @@
         <div class="menu-section-label">Разделы</div>
         <button class="menu-btn" onclick="startMenuGoCollection()">🧩 <span>Коллекция пазлов</span></button>
         <button class="menu-btn" onclick="startMenuGoSettings()">🧭 <span>Выбор миссии</span></button>
+        <button class="menu-btn" onclick="startMenuGoTimes()">✖️ <span>Таблица умножения</span></button>
         <button class="menu-btn" onclick="startMenuGoStats()">📊 <span>Статистика</span></button>
         <button class="menu-btn" onclick="startMenuGoAchievements()">🏅 <span>Достижения</span></button>
         <button class="menu-btn" onclick="startMenuGoProfile()">👤 <span>Профиль</span></button>
@@ -1938,6 +2003,26 @@
         <p class="start-subtitle" id="achievementsSubtitle">Медали по темам</p>
         <div class="config-container">
             <div id="ladderList"></div>
+        </div>
+    </div>
+
+    <!-- Таблица умножения: справочник и карта того, что уже знаешь. Открывается
+         из меню, ничего не запускает и никуда не ведёт — сюда заходят посмотреть. -->
+    <div class="modal-screen" id="timesScreen" style="z-index:230; display:none;">
+        <button class="start-menu-btn" onclick="closeTimesScreen()" aria-label="Назад">◀️</button>
+        <h1 class="start-title">✖️ Таблица умножения</h1>
+        <p class="start-subtitle" id="timesSubtitle"></p>
+        <div class="config-container">
+            <div class="config-section">
+                <div class="period-row" id="timesViewRow" style="margin-bottom:12px;">
+                    <button class="btn-period selected" data-view="groups">Приёмы</button>
+                    <button class="btn-period" data-view="mine">Как у меня</button>
+                </div>
+                <div class="times-grid" id="timesGrid"></div>
+                <div class="times-pick-line" id="timesPickLine"></div>
+                <div class="times-legend" id="timesLegend"></div>
+                <div class="times-note" id="timesNote"></div>
+            </div>
         </div>
     </div>
 
@@ -4573,6 +4658,149 @@
         function startMenuGoCollection() { closeStartMenu(); openCollectionModal(); }
         // Пункт ведёт на текущий экран выбора миссии — он уже под меню, просто закрываем.
         function startMenuGoSettings() { closeStartMenu(); }
+
+        // ===================== ТАБЛИЦА УМНОЖЕНИЯ =====================
+        // Экран-справочник. Ничего не записывает и не запускает: сюда заходят
+        // посмотреть, а не решать. Группы берутся у mulClassOf — того же кода,
+        // которым считается разбор в статистике, — чтобы «ядро 6·7·8» здесь и
+        // «ядро 6·7·8» там означали в точности одно и то же.
+        let timesView = 'groups';
+        let timesPicked = null;      // 'a×b' — какую клетку ученик нажал
+
+        // Шесть групп, которые вообще встречаются внутри 10×10. Классы для
+        // двузначных (round, twoPlain, twoCarry, tworound) сюда не попадают
+        // никогда: там оба множителя не больше десяти.
+        const TIMES_GROUPS = ['triv', 'two', 'five', 'small', 'nine', 'core'];
+
+        // Доля верных по группе — сложенная по всем звёздам положительного
+        // умножения. Разбивать по звёздам здесь нечего: 7 × 8 это 7 × 8, на
+        // какой бы звезде он ни попался.
+        function timesAccuracy() {
+            const byClass = (typeof Progress !== 'undefined' && Progress.getByClass)
+                ? Progress.getByClass() : {};
+            const acc = {};
+            Object.keys(byClass || {}).forEach(topicKey => {
+                const p = parseTopicKey(topicKey);
+                // Только целые положительные: 0,4 × 7 разбирается теми же группами,
+                // но к таблице умножения как к предмету заучивания отношения не имеет.
+                if (!p || p.op !== 'mul' || p.category !== 'integer' || p.sign !== '+') return;
+                const cells = byClass[topicKey] || {};
+                Object.keys(cells).forEach(cls => {
+                    const slot = cells[cls];
+                    if (!Array.isArray(slot)) return;
+                    const a = acc[cls] || (acc[cls] = { right: 0, wrong: 0 });
+                    a.right += slot[0] || 0;
+                    a.wrong += slot[1] || 0;
+                });
+            });
+            return acc;
+        }
+
+        // Меньше десяти ответов — это не «плохо знает», это «мы не знаем».
+        // Три ошибки из четырёх ничего не доказывают, а красная клетка на таком
+        // основании врёт ученику про него самого.
+        const TIMES_MIN_SAMPLE = 10;
+        function timesAccuracyClass(stat) {
+            if (!stat) return 'none';
+            const total = stat.right + stat.wrong;
+            if (total < TIMES_MIN_SAMPLE) return 'none';
+            const pct = stat.right / total * 100;
+            if (pct >= 93) return 'high';
+            if (pct >= 80) return 'mid';
+            return 'low';
+        }
+
+        function renderTimesTable() {
+            const grid = document.getElementById('timesGrid');
+            const acc = timesAccuracy();
+            let html = '<div class="times-cell times-head times-corner">×</div>';
+            for (let b = 1; b <= 10; b++) html += `<div class="times-cell times-head">${b}</div>`;
+            for (let a = 1; a <= 10; a++) {
+                html += `<div class="times-cell times-head">${a}</div>`;
+                for (let b = 1; b <= 10; b++) {
+                    const cls = mulClassOf(a, b);
+                    const tint = timesView === 'mine'
+                        ? 'times-a-' + timesAccuracyClass(acc[cls])
+                        : 'times-g-' + cls;
+                    const picked = timesPicked === `${a}×${b}` ? ' times-pick' : '';
+                    html += `<div class="times-cell ${tint}${picked}" data-a="${a}" data-b="${b}">${a * b}</div>`;
+                }
+            }
+            grid.innerHTML = html;
+            renderTimesLegend(acc);
+            renderTimesPick(acc);
+        }
+
+        function renderTimesLegend(acc) {
+            const box = document.getElementById('timesLegend');
+            const swatch = (cssClass, label) =>
+                `<span><i class="${cssClass}"></i>${label}</span>`;
+            if (timesView === 'mine') {
+                box.innerHTML = [
+                    swatch('times-a-high', t('знаю')),
+                    swatch('times-a-mid', t('почти')),
+                    swatch('times-a-low', t('сбиваюсь')),
+                    swatch('times-a-none', t('ещё не мерили'))
+                ].join('');
+                document.getElementById('timesNote').innerText =
+                    tf('Цвет — про приём целиком, а не про одну клетку: у 7 × 8 и 6 × 8 приём общий, и цвет у них будет один. Пока приём решён меньше %1 раз, клетка серая — на трёх ответах судить не о чем.', TIMES_MIN_SAMPLE);
+                return;
+            }
+            box.innerHTML = TIMES_GROUPS
+                .map(g => swatch('times-g-' + g, CLASS_TITLES.mul[g] || g)).join('');
+            document.getElementById('timesNote').innerText =
+                t('Клеток сто, но разных примеров в них 55: 7 × 8 и 8 × 7 — один и тот же. Учить наизусть надо шесть: 6×6, 6×7, 6×8, 7×7, 7×8, 8×8. Остальное берётся приёмом.');
+        }
+
+        function renderTimesPick(acc) {
+            const line = document.getElementById('timesPickLine');
+            if (!timesPicked) {
+                line.innerText = t('Нажми на клетку — покажу, каким приёмом она берётся.');
+                return;
+            }
+            const [a, b] = timesPicked.split('×').map(Number);
+            const cls = mulClassOf(a, b);
+            const name = CLASS_TITLES.mul[cls] || cls;
+            let html = `<b>${a} × ${b} = ${a * b}</b> — ${name}`;
+            const stat = acc && acc[cls];
+            if (stat && stat.right + stat.wrong >= TIMES_MIN_SAMPLE) {
+                const total = stat.right + stat.wrong;
+                html += `<br>${tf('этот приём: %1% верных из %2', Math.round(stat.right / total * 100), total)}`;
+            }
+            line.innerHTML = html;
+        }
+
+        document.getElementById('timesGrid').addEventListener('click', (e) => {
+            const cell = e.target.closest('.times-cell');
+            if (!cell || !cell.dataset.a) return;
+            const key = `${cell.dataset.a}×${cell.dataset.b}`;
+            timesPicked = timesPicked === key ? null : key;
+            renderTimesTable();
+        });
+
+        document.getElementById('timesViewRow').addEventListener('click', (e) => {
+            const btn = e.target.closest('.btn-period');
+            if (!btn) return;
+            timesView = btn.dataset.view;
+            [...document.querySelectorAll('#timesViewRow .btn-period')]
+                .forEach(b => b.classList.toggle('selected', b === btn));
+            renderTimesTable();
+        });
+
+        function startMenuGoTimes() {
+            closeStartMenu();
+            openTimesScreen();
+        }
+        function openTimesScreen() {
+            document.getElementById('timesSubtitle').innerText =
+                t('Сто клеток — это меньше, чем кажется');
+            timesPicked = null;
+            renderTimesTable();
+            document.getElementById('timesScreen').style.display = 'flex';
+        }
+        function closeTimesScreen() {
+            document.getElementById('timesScreen').style.display = 'none';
+        }
 
         function startMenuGoStats() {
             closeStartMenu();
