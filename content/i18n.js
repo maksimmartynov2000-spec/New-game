@@ -12,6 +12,8 @@
 
 window.TRANSLATIONS = {
     en: {
+            "2️⃣ Какое действие": "2️⃣ Which operation",
+            "Имя (необязательно)": "Name (optional)",
             "Ответ": "Answer",
             "%1 Задача за мастерство": "%1 Mastery problem",
             "Задача для этой темы ещё не написана — она появится в обновлении. Медаль уже твоя, её никто не отнимет.": "A problem for this topic hasn't been written yet — it will come in an update. The medal is already yours, nobody is taking it away.",
@@ -546,6 +548,8 @@ window.TRANSLATIONS = {
             " и ": " and "
     },
     fr: {
+            "2️⃣ Какое действие": "2️⃣ Quelle opération",
+            "Имя (необязательно)": "Prénom (facultatif)",
             "Ответ": "Réponse",
             "%1 Задача за мастерство": "%1 Défi de maîtrise",
             "Задача для этой темы ещё не написана — она появится в обновлении. Медаль уже твоя, её никто не отнимет.": "Le défi de ce sujet n’est pas encore écrit — il arrivera dans une mise à jour. La médaille est déjà à toi, personne ne te la reprend.",
@@ -1080,6 +1084,8 @@ window.TRANSLATIONS = {
             " и ": " et "
     },
     de: {
+            "2️⃣ Какое действие": "2️⃣ Welche Rechenart",
+            "Имя (необязательно)": "Name (optional)",
             "Ответ": "Antwort",
             "%1 Задача за мастерство": "%1 Meister-Aufgabe",
             "Задача для этой темы ещё не написана — она появится в обновлении. Медаль уже твоя, её никто не отнимет.": "Die Aufgabe zu diesem Thema ist noch nicht geschrieben — sie kommt mit einem Update. Die Medaille gehört schon dir, die nimmt dir keiner weg.",
