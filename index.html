@@ -2533,12 +2533,27 @@
         // Шаг 1 — выбор раздела, шаг 2 — всё остальное. Угловая кнопка меняет роль
         // вместе с шагом: с первого шага уходить некуда, кроме меню, со второго —
         // назад к разделам.
+        // Кнопка в углу: на первом шаге это меню, на втором — «назад». Когда первый
+        // шаг пропущен, назад некуда, и она снова меню. Держим это флажком, а не
+        // разбором нарисованного значка.
+        let configCornerIsMenu = true;
+
         function showConfigStep(step) {
+            // Открыт единственный раздел — выбирать не из чего, и первый шаг только
+            // мешает: лишнее нажатие по кнопке, у которой нет альтернативы. Раздел
+            // выбирается сам, ученик попадает сразу к действиям и звёздам.
+            const vis = visibleSectionButtons();
+            const skipFirst = vis.length <= 1;
+            if (step === 1 && skipFirst) {
+                if (vis[0] && !vis[0].classList.contains('selected')) { vis[0].click(); return; }
+                step = 2;
+            }
             document.getElementById('categoryStepScreen').style.display = step === 1 ? 'flex' : 'none';
             document.getElementById('restStepScreen').style.display = step === 1 ? 'none' : 'flex';
+            configCornerIsMenu = (step === 1) || skipFirst;
             const corner = document.getElementById('btnConfigCorner');
-            corner.innerText = step === 1 ? '☰' : '◀️';
-            corner.setAttribute('aria-label', step === 1 ? t('Меню') : t('Назад'));
+            corner.innerText = configCornerIsMenu ? '☰' : '◀️';
+            corner.setAttribute('aria-label', configCornerIsMenu ? t('Меню') : t('Назад'));
         }
 
         // Особые режимы дробей (Сокращение / В смешанное / В неправильную / Дробь от числа)
@@ -3527,23 +3542,28 @@
             }
         }
 
-        // Обновляет замки на кнопках разделов. Зовётся при каждом открытии выбора миссии:
-        // доступ мог измениться, пока ученик играл.
+        // Кнопки разделов. Закрытый раздел ученику НЕ ПОКАЗЫВАЕТСЯ вовсе — раньше он
+        // стоял здесь с замком и подписью «откроет репетитор».
+        //
+        // Замок честнее не был: он сообщал о существовании отрицательных чисел, дробей
+        // и десятичных ребёнку, которому до них ещё далеко, и превращал экран выбора в
+        // витрину недоступного. Репетитор открывает раздел тогда, когда до него дошли, —
+        // до этого момента его незачем и показывать.
+        //
+        // Прятать — это только про показ. Права доступа считаются ровно как считались
+        // (isSectionOpen), прогресс и ворота по звёздам не тронуты.
         function refreshSectionLocks() {
             document.querySelectorAll('.btn-category').forEach(btn => {
                 const secKey = sectionKeyOf(btn.getAttribute('data-value'), btn.getAttribute('data-sign'));
-                const open = isSectionOpen(secKey);
-                btn.classList.toggle('locked', !open);
-                let badge = btn.querySelector('.cat-lock');
-                if (!open && !badge) {
-                    badge = document.createElement('span');
-                    badge.className = 'cat-lock';
-                    badge.innerText = t('🔒 Откроет репетитор');
-                    btn.appendChild(badge);
-                } else if (open && badge) {
-                    badge.remove();
-                }
+                btn.style.display = isSectionOpen(secKey) ? '' : 'none';
             });
+        }
+
+        // Кнопки разделов, которые ученик сейчас видит.
+        function visibleSectionButtons() {
+            return [].slice.call(document.querySelectorAll('.btn-category'))
+                .filter(b => isSectionOpen(sectionKeyOf(b.getAttribute('data-value'),
+                                                        b.getAttribute('data-sign'))));
         }
 
         // Панель закрытого раздела. Открывается вместо игры, объясняет и не врёт:
@@ -4518,7 +4538,7 @@
 
         // ===================== МЕНЮ СТАРТОВОГО ЭКРАНА =====================
         document.getElementById('btnConfigCorner').addEventListener('click', () => {
-            if (document.getElementById('restStepScreen').style.display === 'none') openStartMenu();
+            if (configCornerIsMenu) openStartMenu();
             else showConfigStep(1);
         });
 
@@ -7774,13 +7794,15 @@
                 }
             }
 
-            // Показываем ВСЁ, включая нетронутое и закрытое. Раньше пустые разделы
-            // прятались — но то была защита от плоского списка карточек, где сотня
-            // конфигураций давала сотню карточек. В нынешней форме полная картина —
-            // это двадцать строк по пять чипов, один экран прокрутки. И по нему сразу
-            // видно, что вообще бывает и куда идти дальше.
+            // Показываем всё, ЧТО УЧЕНИКУ ВИДНО. Нетронутое — показываем: по нему
+            // видно, куда идти дальше. Закрытое — больше нет: раньше здесь стояли
+            // сплошные замки, и карта сообщала ребёнку о существовании разделов,
+            // до которых ему ещё далеко. Репетитору по-прежнему видно всё.
+            //
+            // Итоги в подзаголовке при этом считаются по всем разделам — см. выше.
             MAP_SECTIONS.forEach(sec => {
                 const secKey = `${sec.cat}${sec.sign}`;
+                if (!isSectionOpen(secKey)) return;   // закрытое ученику не рисуем
                 const liveOps = sec.ops;
 
                 const sum = sums[secKey];
@@ -8044,17 +8066,15 @@
 
             // Ввод кода — только ученику: репетитору открыто всё и без кодов.
             // Заодно показываем, что уже открыто, чтобы не гадать.
+            // Раньше здесь писали, что именно открыто, а если ничего — так и писали:
+            // «кроме целых положительных пока ничего не открыто». Эта строчка сама
+            // сообщала о существовании остальных разделов, то есть ровно то, что мы
+            // теперь прячем. Перечисляем только УЖЕ открытое, а про закрытое молчим.
             const sum = document.getElementById('accessSummary');
-            if (type !== 'linked') {
-                sum.innerText = '';
-            } else {
-                const opened = ['integer-', 'decimal+', 'fraction+']
-                    .filter(k => isSectionOpen(k))
-                    .map(k => tf('%1%2', SECTION_TITLES[k], grantSummary(k) && grantSummary(k) !== 'открыт полностью' ? ' (' + grantSummary(k) + ')' : ''));
-                sum.innerText = opened.length
-                    ? t('Открыто кодами: ') + opened.join(', ') + '.'
-                    : t('Кроме целых положительных пока ничего не открыто.');
-            }
+            const opened = (type !== 'linked') ? [] : ['integer-', 'decimal+', 'fraction+']
+                .filter(k => isSectionOpen(k))
+                .map(k => tf('%1%2', SECTION_TITLES[k], grantSummary(k) && grantSummary(k) !== 'открыт полностью' ? ' (' + grantSummary(k) + ')' : ''));
+            sum.innerText = opened.length ? t('Открыто кодами: ') + opened.join(', ') + '.' : '';
 
             // Заводить учеников может только сам репетитор (self) — сервер тоже это
             // проверяет (см. миграцию), но прятать кнопку у ученика правильнее, чем
