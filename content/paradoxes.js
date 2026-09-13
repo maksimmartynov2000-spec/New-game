@@ -63,20 +63,20 @@ window.PARADOX_CONTENT = {
             answer: 'Ответа нет и здесь — но заметь, что ты почему-то уверен в ответе. Вот эта уверенность и есть соглашение, о котором говорит парадокс.'
         },
         {
-            name: 'Парадокс Банаха — Тарского',
-            era: 'Банах и Тарский, 1924',
-            hook: 'Шар можно разрезать на 5 частей и собрать из них два таких же шара.',
-            body: 'Не растягивая и не раздувая: части только поворачивают и передвигают, как детали пазла. Из одного шара получаются два, каждый ровно такого же размера, как исходный.\n\nПодвох в слове «части». Это не ломтики и не куски — это бесконечно рваная пыль из точек, у которой попросту нет объёма. Ножа, который так режет, не существует; такие части можно только описать словами. Поэтому апельсин так не удвоить, а математический шар — да.',
-            probe: 'Почему то же самое нельзя проделать с настоящим апельсином?',
-            answer: 'У апельсина конечное число атомов, а у частей есть вес и объём. Фокус работает только там, где точек бесконечно много и их можно рассыпать как угодно мелко.'
+            name: 'Верёвка вокруг Земли',
+            era: 'Уильям Уистон, 1702',
+            hook: 'Верёвка обвязана вокруг всей планеты. Добавь метр — и под неё пролезет кошка.',
+            body: 'Представь верёвку, натянутую по экватору вплотную к земле, — сорок тысяч километров. Теперь добавь к ней ровно один метр и приподними верёвку так, чтобы она отошла от земли везде одинаково. На сколько она поднимется? Кажется, что на неразличимую малость: метр на сорок тысяч километров — это же ничто.\n\nОна поднимется на шестнадцать сантиметров. По всей планете, от Африки до Тихого океана. Под неё свободно пролезет кошка. И самое неожиданное впереди: ответ не зависит от того, что обвязывать. Апельсин, Землю, Солнце — добавь метр, и зазор получится тот же самый.',
+            probe: 'Почему у апельсина и у Земли выходит один и тот же зазор?',
+            answer: 'Длина круга — это его радиус, умноженный на 6,28. Прибавили к длине метр — радиус вырос на метр, делённый на 6,28, то есть на 16 сантиметров. Размер самого круга в этот расчёт не входит вообще.'
         },
         {
-            name: 'Рог Гавриила',
-            era: 'Эванджелиста Торричелли, 1641',
-            hook: 'Фигура с бесконечной поверхностью и конечным объёмом.',
-            body: 'Представь бесконечно длинную воронку, которая сужается, но никогда не сходит на нет. Посчитали объём — получилось конечное число, влезает в ведро. Посчитали площадь поверхности — бесконечность.\n\nВыходит забавное: залить воронку краской изнутри можно одним ведром, и вся внутренняя поверхность окажется покрашена. А покрасить её снаружи кистью невозможно — краски не хватит никогда. Разгадка в том, что у настоящего слоя краски есть толщина, а у математической поверхности её нет.',
-            probe: 'Что будет с длинной узкой полоской бумаги, если каждый раз отрезать половину оставшегося?',
-            answer: 'Бумага не кончится никогда, а суммарная длина отрезанного не превысит исходной. Бесконечное число кусочков помещается в конечную полоску.'
+            name: 'Бесконечная шоколадка',
+            era: 'Уильям Хупер, 1774',
+            hook: 'Отрезали дольку, съели — а шоколадка снова целая.',
+            body: 'Шоколадку разрезают тремя разрезами на четыре куска и перекладывают их местами. Куски снова складываются в прямоугольник — и при этом одна долька оказывается лишней. Её съедают, а шоколадка на вид такая же, как была. Так можно продолжать сколько угодно.\n\nПодвох в том, что новый прямоугольник чуть-чуть не такой. Разрез идёт не точно по краям долек, и после перекладывания шоколадка становится на волосок ниже — ровно на съеденную дольку, размазанную по всей длине. Глаз такую разницу не ловит. Весы поймают сразу.',
+            probe: 'Что будет с шоколадкой, если повторить фокус десять раз подряд?',
+            answer: 'Она заметно похудеет. Каждый раз недостача размазывается по длине и становится невидимой, но никуда не девается и копится. После десяти долек разницу видно уже без всяких весов.'
         },
         {
             name: 'Парадокс брадобрея',
@@ -98,9 +98,9 @@ window.PARADOX_CONTENT = {
             name: 'Кот Шрёдингера',
             era: 'Эрвин Шрёдингер, 1935',
             hook: 'Кот в ящике жив и мёртв одновременно — пока не заглянешь.',
-            body: 'В закрытом ящике кот, счётчик и ампула с ядом. Распадётся атом — ампула разобьётся. Атом по законам квантовой физики находится в двух состояниях сразу: и распался, и нет. Значит, и кот получается сразу и живой, и мёртвый.\n\nШрёдингер придумал это как насмешку: он показывал, что странности мельчайших частиц нельзя без оглядки переносить на большие предметы. Насмешка прижилась и стала главной картинкой квантовой физики. Кот, впрочем, всегда был против.',
+            body: 'В закрытом ящике кот, счётчик и ампула с ядом. Распадётся атом — счётчик щёлкнет, ампула разобьётся. А теперь главное: пока на атом никто не смотрит, он ведёт себя так, будто распался и не распался сразу. С мельчайшими частицами это правда так: пустишь одну частицу на две щели — она пройдёт через обе разом и сама с собой сложится, как две волны на воде, и след на экране это покажет. Выходит, и кот сразу живой и мёртвый.\n\nШрёдингер придумал это как насмешку: переносить странности мельчайших частиц на кота — значит зайти слишком далеко. Насмешка прижилась и стала главной картинкой квантовой физики. Кот, впрочем, всегда был против.',
             probe: 'Почему в жизни мы не видим предметов в двух состояниях сразу?',
-            answer: 'Большой предмет непрерывно «трогает» окружающий мир — воздух, свет, тепло. Каждое такое касание и есть измерение, поэтому выбор происходит мгновенно и без нас.'
+            answer: 'Большой предмет всё время касается окружающего мира — воздуха, света, тепла. Каждое такое касание работает как взгляд, и выбор происходит мгновенно, ещё до того, как посмотрим мы. Спрятать кота от мира целиком невозможно.'
         },
         {
             name: 'Парадокс береговой линии',
@@ -114,9 +114,9 @@ window.PARADOX_CONTENT = {
             name: 'Парадокс Симпсона',
             era: 'Эдвард Симпсон, 1951',
             hook: 'Лекарство помогает мужчинам, помогает женщинам — и не помогает людям.',
-            body: 'Лекарство проверили на мужчинах — помогло чаще, чем старое. Проверили на женщинах — тоже помогло чаще. Сложили всех вместе — и оказалось, что старое лекарство лучше. Ошибки в подсчётах нет.\n\nВсё дело в том, что группы разного размера. Новое лекарство давали в основном тяжёлым больным, старое — в основном лёгким. При сложении перевешивает не эффект лекарства, а то, кого чем лечили. Поэтому сложенные числа иногда врут ровно наоборот, и разбивать данные на группы приходится всегда.',
-            probe: 'Где ещё встречается такая ловушка?',
-            answer: 'Везде, где считают средние по разным по составу группам: средние зарплаты, средние оценки классов, средний чек. Целое может двигаться не туда, куда движутся все его части.'
+            body: 'Новое лекарство дали десяти лёгким больным — выздоровели девять. Старое дали сотне лёгких — выздоровели восемьдесят. Новое лучше. Потом новое дали сотне тяжёлых — выздоровели пятьдесят; старое дали десяти тяжёлым — выздоровели четверо. Новое снова лучше.\n\nА теперь сложим всех вместе. Новое: 59 выздоровевших из 110. Старое: 84 из 110. Старое лучше — и ошибки в подсчётах нет. Просто новое лекарство почти всегда давали тяжёлым, а старое — лёгким. В общей сумме сравниваются уже не лекарства, а больные.',
+            probe: 'Как надо было проверять, чтобы сравнение вышло честным?',
+            answer: 'Давать оба лекарства поровну и лёгким, и тяжёлым. Тогда единственным отличием между группами останется само лекарство — а сейчас их отличает ещё и то, кто в них попал.'
         },
         {
             name: 'Парадокс кучи',
@@ -127,20 +127,20 @@ window.PARADOX_CONTENT = {
             answer: 'Числа не существует — и это не отговорка, а точный ответ. У размытых понятий нет границы, есть только середина, в которой все согласны.'
         },
         {
-            name: 'Парадокс неожиданной контрольной',
-            era: 'обсуждается с 1940-х',
-            hook: 'Учитель обещал внезапную контрольную на неделе. Логика доказала: её не будет.',
-            body: 'Учитель говорит: на этой неделе будет контрольная, и в тот день вы этого не будете знать заранее. Ученик рассуждает: в пятницу нельзя — если до четверга её не было, к пятнице все всё поймут. Значит, пятница отпадает. Тогда и в четверг нельзя — по той же причине, ведь пятница уже вычеркнута. Так вычёркивается вся неделя.\n\nУченик спокоен, а в среду приходит контрольная — и она действительно неожиданная. Рассуждение выглядит железным, но где-то ломается: похоже, ученик не имел права опираться на обещание, которое сам же и опроверг.',
-            probe: 'На каком шаге рассуждение перестаёт работать?',
-            answer: 'Единого ответа нет до сих пор. Чаще всего указывают на первый: «пятница отпадает» верно только для того, кто верит обещанию, — а поверив выводу, ученик перестаёт ему верить.'
+            name: 'Броня для самолётов',
+            era: 'Абрахам Вальд, 1943',
+            hook: 'Самолёты возвращались с пробоинами в крыльях. Броню поставили в другом месте.',
+            body: 'На войне считали пробоины у вернувшихся самолётов. Больше всего их было в крыльях и хвосте, а возле моторов и кабины — почти не было. Решение напрашивалось само: укреплять крылья, туда ведь попадают чаще всего.\n\nВальд сказал наоборот: броню надо ставить туда, где пробоин нет. Считали-то только тех, кто вернулся. Попадание в крыло самолёт переживал — потому и прилетел с дырками. А те, кому попали в мотор, не вернулись и в подсчёт не попали вовсе. Пустые места на схеме означали не «сюда не попадают», а «отсюда не возвращаются».',
+            probe: 'Тренер говорит: «Все мои чемпионы тренировались по шесть часов в день — значит, метод работает». Кого он забыл посчитать?',
+            answer: 'Тех, кто тренировался по шесть часов и чемпионом не стал. Их никто не спросил: до интервью они не дошли. Считать только дошедших — это и есть смотреть на вернувшиеся самолёты.'
         },
         {
-            name: 'Санкт-Петербургский парадокс',
-            era: 'Даниил Бернулли, 1738',
-            hook: 'Игра с бесконечным средним выигрышем. Никто не отдаст за неё и сотни.',
-            body: 'Бросаем монету, пока не выпадет орёл. Выпал с первого раза — платим 2 рубля, со второго — 4, с третьего — 8, и так далее, удваивая. Посчитай средний выигрыш: половина случаев даёт 2, четверть даёт 4, восьмая часть даёт 8 — каждый кусочек добавляет по рублю, и кусочков бесконечно много. Средний выигрыш бесконечен.\n\nЗначит, за вход стоило бы отдать любые деньги. Но никто в здравом уме не отдаст и ста рублей — и правильно сделает: огромные выигрыши требуют невероятного везения, а почти всегда получаешь 2 или 4. Отсюда родилась мысль, что важен не сам выигрыш, а насколько он меняет твою жизнь.',
-            probe: 'Какой выигрыш ты получишь чаще всего?',
-            answer: 'Двойку — в половине случаев. В трёх случаях из четырёх выигрыш не больше четырёх рублей. «Бесконечное среднее» держится на исчезающе редких огромных выплатах.'
+            name: 'Кубики по кругу',
+            era: 'Брэдли Эфрон, 1970',
+            hook: 'Синий бьёт жёлтый, жёлтый бьёт красный, красный бьёт синий.',
+            body: 'Три игральных кубика с необычными числами на гранях. Бросаем два, выигрывает тот, у кого выпало больше. Синий выигрывает у жёлтого гораздо чаще, чем проигрывает. Жёлтый так же уверенно обыгрывает красный. Значит, синий должен обыгрывать красный и подавно — но красный бьёт синий.\n\nСамого сильного кубика просто нет. Мы привыкли: если Аня выше Бори, а Боря выше Веры, то Аня выше Веры. С ростом так и работает, потому что у каждого одно число. А у кубика чисел шесть, и «выигрывает чаще» зависит от того, какие грани встают против каких. По кругу это вполне может замкнуться.',
+            probe: 'Тебе предлагают выбрать кубик первым. Это выгодно?',
+            answer: 'Нет, это ловушка. На любой кубик найдётся тот, который его бьёт, и соперник возьмёт именно его. Здесь выгоднее выбирать вторым — редкий случай, когда право первого хода мешает.'
         },
         {
             name: 'Треугольник Пенроуза',
@@ -167,12 +167,12 @@ window.PARADOX_CONTENT = {
             answer: 'В среднем 33 × 33 × 33 ≈ 36 тысяч. А в слове «Гамлет» уже шесть букв — и нулей в ответе становится вдвое больше.'
         },
         {
-            name: 'Парадокс близнецов',
-            era: 'Поль Ланжевен, 1911',
-            hook: 'Один брат слетал к звёздам и вернулся моложе второго.',
-            body: 'Два брата-близнеца. Один остаётся на Земле, второй улетает на ракете почти со скоростью света, разворачивается у далёкой звезды и возвращается. При встрече он оказывается заметно моложе брата — не выглядит моложе, а прожил меньше.\n\nСтранность в том, что движение относительно: с точки зрения летевшего это Земля улетала и вернулась. Почему же не наоборот? Потому что братья не равноправны: разворачивался и испытывал перегрузки только один. Этот разворот и разрывает симметрию. И это не выдумка — часы на спутниках приходится подводить именно из-за таких эффектов.',
-            probe: 'Почему нельзя сказать, что это Земля улетела и вернулась?',
-            answer: 'Потому что Земля не тормозила и не разворачивалась. Тот, кто менял скорость, и есть путешественник, — а такое изменение чувствуется без всяких сравнений.'
+            name: 'Парадокс дружбы',
+            era: 'Скотт Фелд, 1991',
+            hook: 'У твоих друзей друзей больше, чем у тебя. Почти у каждого.',
+            body: 'Возьми свой класс. Выпиши, у кого сколько друзей, а потом для каждого посчитай, сколько друзей в среднем у его друзей. Почти у всех второе число окажется больше первого. Дело не в тебе и не в них: так выходит почти в любой компании.\n\nПричина в том, кого мы вообще считаем. Общительный попадает в списки друзей ко многим, и когда ты перебираешь своих друзей, он встречается тебе снова и снова. Замкнутый попадёт в два списка и почти никому не встретится. Получается, ты сравниваешь себя не с обычным человеком, а с тем, кого чаще встречают.',
+            probe: 'Почему в спортзале почти все кажутся спортивнее тебя?',
+            answer: 'Потому что те, кто ходит каждый день, попадаются тебе на глаза каждый раз, а те, кто ходит раз в месяц, — почти никогда. Зал набит теми, кто ходит много, хотя среди всех записавшихся таких меньшинство.'
         },
         {
             name: 'Парадокс лжеца',
@@ -193,7 +193,7 @@ window.PARADOX_CONTENT = {
             answer: '111.111… — exactly 111 and 1/9. An endless sum can land on a finite number, as long as the pieces shrink fast enough.'
         },
         {
-            name: "Hilbert's Grand Hotel",
+            name: 'Hilbert\'s Grand Hotel',
             era: 'David Hilbert, 1924',
             hook: 'A hotel with infinitely many rooms, all occupied. There is room for anyone.',
             body: 'A guest arrives and there are no free rooms. The clerk asks every resident to move one room up: room 1 into room 2, room 2 into room 3, and so on. Everybody still has a room, and room 1 is now empty.\n\nA bus with a hundred guests? Ask everyone to move a hundred rooms up. An infinite bus? Ask everyone to move into double their room number, and every odd room falls free. In infinity, "completely full" and "plenty of space" get along just fine, because it never ends.',
@@ -225,20 +225,20 @@ window.PARADOX_CONTENT = {
             answer: 'There is no answer here either — but notice that you feel certain anyway. That certainty is exactly the agreement the paradox is talking about.'
         },
         {
-            name: 'The Banach–Tarski Paradox',
-            era: 'Banach and Tarski, 1924',
-            hook: 'A ball can be cut into 5 pieces and reassembled into two identical balls.',
-            body: 'Nothing gets stretched or added: the pieces are only rotated and shifted, like jigsaw parts. One ball goes in, two come out, each exactly the size of the original.\n\nThe catch is the word "pieces". These are not slices or chunks — they are infinitely shredded dust of points, with no volume at all. No knife cuts like that; such pieces can only be described in words. That is why you cannot double an orange, but you can double a mathematical ball.',
-            probe: 'Why does the same trick fail on a real orange?',
-            answer: 'An orange has a finite number of atoms, and its pieces have weight and volume. The trick only works where there are infinitely many points that can be scattered as finely as you like.'
+            name: 'The rope around the Earth',
+            era: 'William Whiston, 1702',
+            hook: 'A rope is tied around the whole planet. Add one metre and a cat fits underneath.',
+            body: 'Picture a rope stretched around the equator, lying flat on the ground — forty thousand kilometres of it. Now add exactly one metre and lift the rope so that it stands the same height above the ground everywhere. How high does it rise? It feels as if it must be nothing at all: one metre against forty thousand kilometres.\n\nIt rises by sixteen centimetres. All the way round, from Africa to the Pacific. A cat squeezes under it easily. And the strangest part is still ahead: the answer does not depend on what you tie the rope around. An orange, the Earth, the Sun — add a metre and the gap comes out the same.',
+            probe: 'Why do an orange and the Earth give exactly the same gap?',
+            answer: 'The length of a circle is its radius multiplied by 6.28. Add a metre to the length and the radius grows by one metre divided by 6.28 — that is sixteen centimetres. The size of the circle never enters the sum at all.'
         },
         {
-            name: "Gabriel's Horn",
-            era: 'Evangelista Torricelli, 1641',
-            hook: 'A shape with infinite surface and finite volume.',
-            body: 'Picture an infinitely long funnel that narrows forever but never quite closes. Work out its volume and you get a finite number — it fits in a bucket. Work out its surface area and you get infinity.\n\nWhich leads somewhere funny: you can fill the funnel from the inside with a single bucket of paint, and its whole inner surface ends up painted. But painting it from the outside with a brush is impossible — no amount of paint would ever do. The answer is that real paint has thickness, and a mathematical surface has none.',
-            probe: 'What happens to a long strip of paper if you keep cutting off half of what is left?',
-            answer: 'The paper never runs out, and everything you cut off never adds up to more than the original strip. Infinitely many pieces fit inside a finite one.'
+            name: 'The endless chocolate bar',
+            era: 'William Hooper, 1774',
+            hook: 'A square was cut off and eaten — and the bar is whole again.',
+            body: 'A chocolate bar is cut three times into four pieces, and the pieces are swapped around. They fit back together into a rectangle — and one square is left over. You eat it, and the bar looks exactly as it did. You can keep going as long as you like.\n\nThe catch is that the new rectangle is not quite the same. The cut does not run exactly along the edges of the squares, and after the swap the bar is a hair shorter — shorter by exactly the square you ate, spread out along its whole length. The eye cannot catch a difference like that. Scales catch it at once.',
+            probe: 'What happens to the bar if you repeat the trick ten times in a row?',
+            answer: 'It gets noticeably thinner. Each time the loss is spread along the length and becomes invisible, but it does not go anywhere and it adds up. After ten squares you can see the difference without any scales.'
         },
         {
             name: 'The Barber Paradox',
@@ -257,12 +257,12 @@ window.PARADOX_CONTENT = {
             answer: 'The second. There you act freely, but everything you do is already written into history — you do not change the past, you were always part of it.'
         },
         {
-            name: "Schrödinger's Cat",
+            name: 'Schrödinger’s cat',
             era: 'Erwin Schrödinger, 1935',
             hook: 'The cat in the box is alive and dead at once — until you look.',
-            body: 'Inside a sealed box: a cat, a detector and a vial of poison. If an atom decays, the vial breaks. By the laws of quantum physics the atom is in both states at once — decayed and not. So the cat comes out both alive and dead.\n\nSchrödinger meant it as mockery: he was showing that the strangeness of tiny particles cannot simply be carried over to large objects. The mockery stuck and became the signature image of quantum physics. The cat, for its part, always objected.',
-            probe: 'Why do we never see everyday objects in two states at once?',
-            answer: 'A large object is constantly touched by the world around it — air, light, heat. Every such touch is a measurement, so the choice is made instantly and without us.'
+            body: 'Inside a closed box there is a cat, a counter and a vial of poison. If an atom decays, the counter clicks and the vial breaks. And here is the point: as long as nobody looks at the atom, it behaves as though it had both decayed and not decayed at once. With the smallest particles this really is so: send one particle at two slits and it goes through both at once and adds up with itself, like two waves on water, and the trace on the screen shows it. So the cat comes out alive and dead at once.\n\nSchrödinger meant it as mockery: carrying the oddities of the tiniest particles over to a cat goes too far. The mockery caught on and became the main picture of quantum physics. The cat, for its part, was always against it.',
+            probe: 'Why do we never see everyday things in two states at once?',
+            answer: 'A large object is touching the world around it all the time — air, light, warmth. Every one of those touches works like a look, and the choice happens instantly, long before we get there. There is no way to hide a cat from the world completely.'
         },
         {
             name: 'The Coastline Paradox',
@@ -273,12 +273,12 @@ window.PARADOX_CONTENT = {
             answer: 'No. For straight lines the measurements quickly settle on one number. Length keeps growing only for ragged lines, where the small bends repeat the big ones.'
         },
         {
-            name: "Simpson's Paradox",
+            name: 'Simpson’s paradox',
             era: 'Edward Simpson, 1951',
-            hook: 'A drug helps men, helps women — and does not help people.',
-            body: 'A drug was tested on men: it worked more often than the old one. Tested on women: again more often. Put everyone together and the old drug comes out better. Nobody miscounted.\n\nIt happens because the groups are different sizes. The new drug went mostly to seriously ill patients, the old one mostly to mild cases. When you add everything up, what wins is not the effect of the drug but who was given which. That is why combined numbers sometimes lie in exactly the opposite direction, and why data has to be split into groups.',
-            probe: 'Where else does this trap show up?',
-            answer: 'Anywhere averages are taken over groups of different make-up: average salaries, average class grades, average spend. The whole can move the opposite way from every one of its parts.'
+            hook: 'The medicine helps men, it helps women — and it does not help people.',
+            body: 'The new medicine was given to ten mild cases: nine recovered. The old one was given to a hundred mild cases: eighty recovered. The new one is better. Then the new one went to a hundred severe cases: fifty recovered; the old one went to ten severe cases and four recovered. The new one is better again.\n\nNow add everyone up. New medicine: 59 recovered out of 110. Old medicine: 84 out of 110. The old one wins — and there is no mistake in the arithmetic. The new medicine simply went to the severe cases almost every time, and the old one to the mild ones. In the grand total you are no longer comparing medicines, you are comparing patients.',
+            probe: 'How should the test have been run for the comparison to be fair?',
+            answer: 'Give both medicines to equal numbers of mild and severe cases. Then the only difference between the groups is the medicine itself — while right now they also differ in who ended up in them.'
         },
         {
             name: 'The Sorites Paradox',
@@ -289,20 +289,20 @@ window.PARADOX_CONTENT = {
             answer: 'There is no such number — and that is not a dodge, it is the exact answer. Vague words have no boundary, only a middle everyone agrees on.'
         },
         {
-            name: 'The Unexpected Exam Paradox',
-            era: 'debated since the 1940s',
-            hook: 'The teacher promised a surprise test this week. Logic proved it cannot happen.',
-            body: 'The teacher says: there will be a test this week, and on the day it happens you will not have known it in advance. A student reasons: it cannot be Friday — if nothing has happened by Thursday evening, everyone will know. So Friday is out. Then Thursday is out too, for the same reason, since Friday has already been crossed off. The whole week gets crossed off this way.\n\nThe student relaxes — and on Wednesday the test arrives, genuinely unexpected. The reasoning looks airtight but breaks somewhere. The usual suspect: the student had no right to lean on a promise he had just proved impossible.',
-            probe: 'At which step does the reasoning stop working?',
-            answer: 'There is still no agreed answer. Most often the very first step is blamed: "Friday is out" only holds for someone who believes the promise — and by believing his own conclusion, the student stops believing it.'
+            name: 'Armour for the bombers',
+            era: 'Abraham Wald, 1943',
+            hook: 'The planes came home with holes in the wings. The armour went somewhere else.',
+            body: 'During the war they counted the bullet holes on the planes that came back. Most of them were in the wings and the tail; around the engines and the cockpit there were almost none. The answer looked obvious: armour the wings, that is where they get hit.\n\nWald said the opposite: put the armour where there are no holes. They had only counted the planes that returned. A hit in the wing was something a plane could survive — that is why it landed full of holes. The ones hit in the engine never came back and were never counted at all. The empty spots on the diagram did not mean «nobody gets hit here», they meant «nobody comes back from here».',
+            probe: 'A coach says: «Every one of my champions trained six hours a day, so the method works.» Who did he forget to count?',
+            answer: 'Everyone who trained six hours a day and never became a champion. Nobody asked them — they never made it to the interview. Counting only those who arrived is exactly the same as looking at the planes that came home.'
         },
         {
-            name: 'The St. Petersburg Paradox',
-            era: 'Daniel Bernoulli, 1738',
-            hook: 'A game with an infinite average payout. Nobody would pay a hundred for it.',
-            body: 'Flip a coin until heads comes up. Heads on the first flip pays 2 coins, on the second 4, on the third 8, doubling each time. Work out the average payout: half the time you get 2, a quarter of the time 4, an eighth of the time 8 — every slice adds one coin, and there are infinitely many slices. The average payout is infinite.\n\nSo you ought to pay any price to play. But nobody sane would hand over even a hundred coins — and they are right: the huge payouts need unbelievable luck, while you almost always walk away with 2 or 4. This is where the idea came from that what matters is not the size of a win but how much it changes your life.',
-            probe: 'Which payout will you get most often?',
-            answer: 'Two — half the time. In three cases out of four the payout is no more than four. The "infinite average" rests on vanishingly rare huge payouts.'
+            name: 'Dice that beat each other in a circle',
+            era: 'Bradley Efron, 1970',
+            hook: 'Blue beats yellow, yellow beats red, red beats blue.',
+            body: 'Three dice with unusual numbers on their faces. Roll two of them and the higher number wins. Blue beats yellow far more often than it loses. Yellow beats red just as confidently. So blue ought to beat red by an even wider margin — and this is where it all breaks: red beats blue.\n\nThere is simply no strongest die. We are used to this: if Anna is taller than Boris and Boris is taller than Vera, then Anna is taller than Vera. Height works that way because everyone has one number. A die has six, and which one wins more often depends on how the faces line up against each other. That can close into a circle.',
+            probe: 'You are offered the first pick of a die. Is that a good deal?',
+            answer: 'No, it is a trap. For every die there is another one that beats it, and your opponent will pick that one. Here it pays to choose second — a rare case where going first gets in your way.'
         },
         {
             name: 'The Penrose Triangle',
@@ -329,12 +329,12 @@ window.PARADOX_CONTENT = {
             answer: 'About 26 × 26 × 26 ≈ 17,600 on average. "Hamlet" already has six letters — and the answer gains twice as many zeros.'
         },
         {
-            name: 'The Twin Paradox',
-            era: 'Paul Langevin, 1911',
-            hook: 'One brother flew to the stars and came back younger than the other.',
-            body: 'Two twin brothers. One stays on Earth, the other flies off in a rocket at nearly the speed of light, turns around at a distant star and comes home. At the reunion he is noticeably younger — not younger-looking, but genuinely fewer years lived.\n\nThe odd part is that motion is relative: from the traveller\'s point of view it was Earth that flew away and came back. So why not the other way round? Because the brothers are not equals: only one of them turned around and felt the forces of it. That turn is what breaks the symmetry. And this is no fantasy — clocks on satellites have to be adjusted for exactly these effects.',
-            probe: 'Why can we not say that it was Earth that flew away and returned?',
-            answer: 'Because Earth never braked or turned around. The one who changed speed is the traveller — and such a change is felt directly, without comparing anything.'
+            name: 'The friendship paradox',
+            era: 'Scott Feld, 1991',
+            hook: 'Your friends have more friends than you do. Almost everyone does.',
+            body: 'Take your class. Write down how many friends each person has, and then work out, for each one, the average number of friends their friends have. For almost everyone the second number comes out larger. It is not about you and not about them: it happens in almost any group.\n\nThe reason is who gets counted. A sociable person turns up on many friend lists, so when you go through your own friends you meet them again and again. A quiet person is on two lists and hardly ever turns up. So you are not comparing yourself with an ordinary person — you are comparing yourself with the one people meet most often.',
+            probe: 'Why does almost everyone at the gym look fitter than you?',
+            answer: 'Because the people who come every day are in front of you every single time, and the ones who come once a month almost never are. The gym is full of people who train a lot, even though among everyone who signed up they are the minority.'
         },
         {
             name: 'The Liar Paradox',
@@ -387,20 +387,20 @@ window.PARADOX_CONTENT = {
             answer: 'Là non plus il n’y a pas de réponse — mais remarque que tu te sens sûr de toi malgré tout. Cette certitude est précisément l’accord dont parle le paradoxe.'
         },
         {
-            name: 'Le paradoxe de Banach-Tarski',
-            era: 'Banach et Tarski, 1924',
-            hook: 'On peut découper une boule en 5 morceaux et en reconstituer deux boules identiques.',
-            body: 'Rien n’est étiré ni ajouté : les morceaux sont seulement tournés et déplacés, comme des pièces de puzzle. Une boule entre, deux sortent, chacune exactement de la taille de la première.\n\nLe piège est dans le mot « morceaux ». Ce ne sont ni des tranches ni des blocs, mais une poussière de points infiniment déchiquetée, qui n’a tout simplement pas de volume. Aucun couteau ne coupe ainsi ; ces morceaux ne peuvent qu’être décrits par des mots. Voilà pourquoi on ne double pas une orange, mais bien une boule mathématique.',
-            probe: 'Pourquoi la même astuce échoue-t-elle sur une vraie orange ?',
-            answer: 'Une orange a un nombre fini d’atomes, et ses morceaux ont un poids et un volume. L’astuce ne marche que là où les points sont infiniment nombreux et peuvent être éparpillés aussi finement qu’on veut.'
+            name: 'La corde autour de la Terre',
+            era: 'William Whiston, 1702',
+            hook: 'Une corde fait le tour de la planète. Ajoute un mètre et un chat passe dessous.',
+            body: 'Imagine une corde tendue le long de l’équateur, posée à même le sol — quarante mille kilomètres. Ajoute maintenant exactement un mètre et soulève la corde pour qu’elle s’écarte du sol partout de la même hauteur. De combien monte-t-elle ? On dirait que ce doit être imperceptible : un mètre contre quarante mille kilomètres, ce n’est rien.\n\nElle monte de seize centimètres. Sur toute la planète, de l’Afrique au Pacifique. Un chat se faufile dessous sans peine. Et le plus étonnant reste à venir : la réponse ne dépend pas de ce qu’on entoure. Une orange, la Terre, le Soleil — ajoute un mètre et l’écart est le même.',
+            probe: 'Pourquoi une orange et la Terre donnent-elles exactement le même écart ?',
+            answer: 'La longueur d’un cercle, c’est son rayon multiplié par 6,28. On ajoute un mètre à la longueur, et le rayon grandit d’un mètre divisé par 6,28 — soit seize centimètres. La taille du cercle n’entre jamais dans ce calcul.'
         },
         {
-            name: 'La trompette de Gabriel',
-            era: 'Evangelista Torricelli, 1641',
-            hook: 'Une figure à surface infinie et à volume fini.',
-            body: 'Imagine un entonnoir infiniment long qui se rétrécit sans jamais se refermer. Calcule son volume : tu obtiens un nombre fini, il tient dans un seau. Calcule sa surface : tu obtiens l’infini.\n\nD’où une drôle de conséquence : on peut remplir l’entonnoir de peinture avec un seul seau, et toute sa surface intérieure se retrouve peinte. Mais le peindre au pinceau par l’extérieur est impossible — aucune quantité de peinture ne suffira jamais. L’explication : une vraie couche de peinture a une épaisseur, une surface mathématique n’en a aucune.',
-            probe: 'Qu’arrive-t-il à une longue bande de papier si tu coupes chaque fois la moitié de ce qui reste ?',
-            answer: 'Le papier ne s’épuise jamais, et tout ce que tu as coupé ne dépasse jamais la bande de départ. Une infinité de morceaux tient dans une longueur finie.'
+            name: 'La tablette de chocolat sans fin',
+            era: 'William Hooper, 1774',
+            hook: 'On a coupé un carré, on l’a mangé — et la tablette est de nouveau entière.',
+            body: 'On coupe une tablette de chocolat en quatre morceaux par trois traits, puis on échange les morceaux de place. Ils se remettent en rectangle — et il reste un carré en trop. On le mange, et la tablette a l’air exactement pareille. On peut recommencer autant qu’on veut.\n\nLe piège, c’est que le nouveau rectangle n’est pas tout à fait le même. La coupe ne suit pas exactement le bord des carrés, et après l’échange la tablette est plus basse d’un cheveu — d’exactement le carré mangé, étalé sur toute la longueur. L’œil ne voit pas une différence pareille. La balance la voit tout de suite.',
+            probe: 'Que devient la tablette si on répète le tour dix fois de suite ?',
+            answer: 'Elle maigrit nettement. Chaque fois le manque s’étale sur la longueur et devient invisible, mais il ne disparaît pas et il s’accumule. Après dix carrés, la différence se voit sans balance.'
         },
         {
             name: 'Le paradoxe du barbier',
@@ -422,9 +422,9 @@ window.PARADOX_CONTENT = {
             name: 'Le chat de Schrödinger',
             era: 'Erwin Schrödinger, 1935',
             hook: 'Le chat dans la boîte est vivant et mort à la fois — tant qu’on ne regarde pas.',
-            body: 'Dans une boîte fermée : un chat, un détecteur et une fiole de poison. Si un atome se désintègre, la fiole se brise. Or, selon la physique quantique, l’atome est dans les deux états à la fois — désintégré et non désintégré. Le chat serait donc à la fois vivant et mort.\n\nSchrödinger avait imaginé cela comme une moquerie : il montrait qu’on ne peut pas transposer sans réfléchir l’étrangeté des particules aux gros objets. La moquerie est restée et est devenue l’image emblématique de la physique quantique. Le chat, lui, a toujours protesté.',
-            probe: 'Pourquoi ne voit-on jamais un objet ordinaire dans deux états à la fois ?',
-            answer: 'Un gros objet est sans cesse touché par le monde autour de lui : air, lumière, chaleur. Chacun de ces contacts est une mesure, donc le choix se fait instantanément et sans nous.'
+            body: 'Dans une boîte fermée : un chat, un compteur et une ampoule de poison. Si un atome se désintègre, le compteur claque et l’ampoule se brise. Or tant que personne ne regarde l’atome, il se comporte comme s’il s’était désintégré et pas désintégré à la fois. Avec les particules minuscules c’est vraiment le cas : lance-en une sur deux fentes, elle passe par les deux et s’additionne avec elle-même comme deux vagues, et la trace sur l’écran le montre. Le chat est donc vivant et mort à la fois.\n\nSchrödinger avait imaginé ça par moquerie : transporter ces bizarreries sur un chat, c’est aller trop loin. La moquerie a pris et est devenue l’image principale de la physique quantique. Le chat, lui, a toujours été contre.',
+            probe: 'Pourquoi ne voit-on jamais les objets de tous les jours dans deux états à la fois ?',
+            answer: 'Un grand objet touche le monde autour de lui en permanence — l’air, la lumière, la chaleur. Chacun de ces contacts agit comme un regard, et le choix se fait instantanément, bien avant nous. Impossible de cacher complètement un chat au monde.'
         },
         {
             name: 'Le paradoxe du littoral',
@@ -437,10 +437,10 @@ window.PARADOX_CONTENT = {
         {
             name: 'Le paradoxe de Simpson',
             era: 'Edward Simpson, 1951',
-            hook: 'Un médicament aide les hommes, aide les femmes — et n’aide pas les gens.',
-            body: 'On teste un médicament sur des hommes : il marche plus souvent que l’ancien. Sur des femmes : plus souvent aussi. On additionne tout le monde et c’est l’ancien qui l’emporte. Personne ne s’est trompé dans les calculs.\n\nTout vient de la taille des groupes. Le nouveau médicament a surtout été donné aux malades graves, l’ancien surtout aux cas légers. En additionnant, ce qui l’emporte n’est pas l’effet du médicament mais le choix de qui a reçu quoi. Voilà pourquoi les chiffres agrégés mentent parfois dans le sens exactement inverse, et pourquoi il faut toujours découper les données par groupes.',
-            probe: 'Où retrouve-t-on ce piège ?',
-            answer: 'Partout où l’on fait des moyennes sur des groupes de composition différente : salaires moyens, notes moyennes des classes, panier moyen. Le tout peut aller dans le sens opposé à chacune de ses parties.'
+            hook: 'Le médicament aide les hommes, il aide les femmes — et il n’aide pas les gens.',
+            body: 'On a donné le nouveau médicament à dix malades légers : neuf ont guéri. L’ancien à cent malades légers : quatre-vingts ont guéri. Le nouveau est meilleur. Puis le nouveau à cent malades graves : cinquante ont guéri ; l’ancien à dix malades graves, quatre ont guéri. Le nouveau est encore meilleur.\n\nMaintenant additionnons tout le monde. Nouveau : 59 guéris sur 110. Ancien : 84 sur 110. L’ancien gagne — et il n’y a aucune erreur de calcul. C’est simplement que le nouveau est allé presque toujours aux malades graves, et l’ancien aux malades légers. Dans le total, on ne compare plus des médicaments, on compare des malades.',
+            probe: 'Comment fallait-il mener l’essai pour que la comparaison soit honnête ?',
+            answer: 'Donner les deux médicaments à autant de malades légers que de malades graves. Alors la seule différence entre les groupes serait le médicament lui-même — alors qu’aujourd’hui ils diffèrent aussi par qui s’y trouve.'
         },
         {
             name: 'Le paradoxe du tas',
@@ -451,20 +451,20 @@ window.PARADOX_CONTENT = {
             answer: 'Ce nombre n’existe pas — et ce n’est pas une esquive, c’est la réponse exacte. Les mots vagues n’ont pas de frontière, seulement un milieu sur lequel tout le monde s’accorde.'
         },
         {
-            name: 'Le paradoxe de l’examen surprise',
-            era: 'débattu depuis les années 1940',
-            hook: 'Le professeur a promis un contrôle surprise cette semaine. La logique a prouvé qu’il n’aura pas lieu.',
-            body: 'Le professeur annonce : il y aura un contrôle cette semaine, et le jour venu vous ne l’aurez pas su à l’avance. Un élève raisonne : ce ne peut pas être vendredi — si rien n’a eu lieu jeudi soir, tout le monde le saura. Vendredi est donc éliminé. Alors jeudi l’est aussi, pour la même raison, puisque vendredi est déjà barré. Toute la semaine y passe.\n\nL’élève est tranquille — et le mercredi le contrôle tombe, réellement inattendu. Le raisonnement semble en acier mais casse quelque part. Le suspect habituel : l’élève n’avait pas le droit de s’appuyer sur une promesse qu’il venait lui-même de déclarer impossible.',
-            probe: 'À quelle étape le raisonnement cesse-t-il de fonctionner ?',
-            answer: 'Il n’y a toujours pas de réponse admise par tous. On accuse le plus souvent la première étape : « vendredi est éliminé » ne vaut que pour qui croit la promesse — et en croyant sa propre conclusion, l’élève cesse d’y croire.'
+            name: 'Le blindage des bombardiers',
+            era: 'Abraham Wald, 1943',
+            hook: 'Les avions rentraient troués aux ailes. Le blindage est allé ailleurs.',
+            body: 'Pendant la guerre, on comptait les impacts sur les avions rentrés. Il y en avait surtout dans les ailes et la queue ; autour des moteurs et de la cabine, presque aucun. La solution semblait évidente : blinder les ailes, c’est là qu’on est touché.\n\nWald a dit l’inverse : il faut blinder là où il n’y a pas d’impacts. On ne comptait que les avions revenus. Un coup dans l’aile, un avion y survit — c’est pour ça qu’il s’est posé troué. Ceux qui prenaient un coup dans le moteur ne rentraient pas et n’étaient comptés nulle part. Les zones vides du schéma ne voulaient pas dire « on n’est pas touché ici », mais « d’ici on ne revient pas ».',
+            probe: 'Un entraîneur dit : « Tous mes champions s’entraînaient six heures par jour, donc la méthode marche. » Qui a-t-il oublié de compter ?',
+            answer: 'Tous ceux qui se sont entraînés six heures par jour sans devenir champions. Personne ne les a interrogés : ils ne sont pas arrivés jusqu’à l’interview. Ne compter que ceux qui sont arrivés, c’est exactement regarder les avions rentrés.'
         },
         {
-            name: 'Le paradoxe de Saint-Pétersbourg',
-            era: 'Daniel Bernoulli, 1738',
-            hook: 'Un jeu au gain moyen infini. Personne n’en donnerait cent pièces.',
-            body: 'On lance une pièce jusqu’à obtenir face. Face au premier lancer rapporte 2 pièces, au deuxième 4, au troisième 8, en doublant à chaque fois. Calcule le gain moyen : une fois sur deux tu gagnes 2, une fois sur quatre 4, une fois sur huit 8 — chaque tranche ajoute une pièce, et les tranches sont infiniment nombreuses. Le gain moyen est infini.\n\nIl faudrait donc payer n’importe quel prix pour jouer. Mais personne de sensé ne donnerait cent pièces — et il a raison : les gros gains exigent une chance invraisemblable, alors qu’on repart presque toujours avec 2 ou 4. C’est de là qu’est née l’idée que ce qui compte n’est pas la taille du gain, mais ce qu’il change dans ta vie.',
-            probe: 'Quel gain obtiendras-tu le plus souvent ?',
-            answer: 'Deux — une fois sur deux. Dans trois cas sur quatre, le gain ne dépasse pas quatre. La « moyenne infinie » repose sur des gains énormes et infiniment rares.'
+            name: 'Les dés qui se battent en rond',
+            era: 'Bradley Efron, 1970',
+            hook: 'Le bleu bat le jaune, le jaune bat le rouge, le rouge bat le bleu.',
+            body: 'Trois dés avec des nombres inhabituels sur les faces. On en lance deux, le plus grand nombre gagne. Le bleu bat le jaune bien plus souvent qu’il ne perd. Le jaune bat le rouge tout aussi sûrement. Donc le bleu devrait écraser le rouge — et c’est là que tout casse : le rouge bat le bleu.\n\nIl n’y a tout simplement pas de dé le plus fort. On a l’habitude : si Anna est plus grande que Boris et Boris plus grand que Vera, alors Anna est plus grande que Vera. Avec la taille ça marche parce que chacun n’a qu’un seul nombre. Un dé en a six, et « gagne plus souvent » dépend de la façon dont les faces se retrouvent l’une en face de l’autre. Ça peut très bien boucler.',
+            probe: 'On te propose de choisir ton dé en premier. C’est avantageux ?',
+            answer: 'Non, c’est un piège. Pour chaque dé il en existe un qui le bat, et l’adversaire prendra celui-là. Ici il vaut mieux choisir en second — un cas rare où le droit de jouer en premier dérange.'
         },
         {
             name: 'Le triangle de Penrose',
@@ -491,12 +491,12 @@ window.PARADOX_CONTENT = {
             answer: 'Environ 26 × 26 × 26 × 26 ≈ 457 000 en moyenne. « Hamlet » a six lettres — et la réponse gagne encore des zéros.'
         },
         {
-            name: 'Le paradoxe des jumeaux',
-            era: 'Paul Langevin, 1911',
-            hook: 'Un frère est parti vers les étoiles et revient plus jeune que l’autre.',
-            body: 'Deux frères jumeaux. L’un reste sur Terre, l’autre part en fusée presque à la vitesse de la lumière, fait demi-tour près d’une étoile lointaine et revient. Aux retrouvailles, il est nettement plus jeune — pas d’apparence : il a réellement vécu moins d’années.\n\nL’étrangeté vient de ce que le mouvement est relatif : du point de vue du voyageur, c’est la Terre qui est partie et revenue. Pourquoi pas l’inverse, alors ? Parce que les frères ne sont pas à égalité : un seul a fait demi-tour et en a subi les forces. Ce demi-tour brise la symétrie. Et ce n’est pas une fable : les horloges des satellites doivent être corrigées pour exactement ces effets.',
-            probe: 'Pourquoi ne peut-on pas dire que c’est la Terre qui est partie et revenue ?',
-            answer: 'Parce que la Terre n’a ni freiné ni fait demi-tour. Celui qui a changé de vitesse est le voyageur — et un tel changement se ressent directement, sans rien comparer.'
+            name: 'Le paradoxe de l’amitié',
+            era: 'Scott Feld, 1991',
+            hook: 'Tes amis ont plus d’amis que toi. Presque tout le monde est dans ce cas.',
+            body: 'Prends ta classe. Note combien d’amis a chacun, puis calcule pour chacun combien d’amis ont ses amis en moyenne. Chez presque tout le monde le second nombre sera plus grand. Ce n’est ni ta faute ni la leur : ça sort comme ça dans presque n’importe quel groupe.\n\nLa raison, c’est qui on compte. Une personne sociable figure sur beaucoup de listes d’amis, alors quand tu passes tes amis en revue, elle revient encore et encore. Une personne discrète figure sur deux listes et n’apparaît presque jamais. Tu ne te compares donc pas à quelqu’un d’ordinaire, mais à celui qu’on croise le plus souvent.',
+            probe: 'Pourquoi presque tout le monde a-t-il l’air plus sportif que toi à la salle ?',
+            answer: 'Parce que ceux qui viennent tous les jours sont devant toi à chaque fois, et ceux qui viennent une fois par mois presque jamais. La salle est pleine de gens qui s’entraînent beaucoup, alors que parmi tous les inscrits ils sont une minorité.'
         },
         {
             name: 'Le paradoxe du menteur',
@@ -549,20 +549,20 @@ window.PARADOX_CONTENT = {
             answer: 'Auch hier gibt es keine Antwort — aber achte darauf, dass du dir trotzdem sicher bist. Diese Sicherheit ist genau die Übereinkunft, von der das Paradoxon spricht.'
         },
         {
-            name: 'Das Banach-Tarski-Paradoxon',
-            era: 'Banach und Tarski, 1924',
-            hook: 'Eine Kugel lässt sich in 5 Teile zerlegen und zu zwei gleich großen Kugeln zusammensetzen.',
-            body: 'Nichts wird gedehnt oder hinzugefügt: die Teile werden nur gedreht und verschoben, wie Puzzlestücke. Eine Kugel hinein, zwei heraus, jede genau so groß wie die ursprüngliche.\n\nDer Haken steckt im Wort „Teile“. Das sind keine Scheiben und keine Brocken, sondern unendlich zerfetzter Staub aus Punkten, der schlicht kein Volumen hat. So schneidet kein Messer; solche Teile lassen sich nur in Worten beschreiben. Deshalb verdoppelt man keine Orange, eine mathematische Kugel aber schon.',
-            probe: 'Warum funktioniert derselbe Trick bei einer echten Orange nicht?',
-            answer: 'Eine Orange hat endlich viele Atome, und ihre Teile haben Gewicht und Volumen. Der Trick geht nur dort, wo unendlich viele Punkte beliebig fein verstreut werden können.'
+            name: 'Das Seil um die Erde',
+            era: 'William Whiston, 1702',
+            hook: 'Ein Seil liegt um die ganze Erde. Gib einen Meter dazu, und eine Katze passt darunter.',
+            body: 'Stell dir ein Seil vor, das entlang des Äquators gespannt ist und überall auf dem Boden aufliegt — vierzigtausend Kilometer. Jetzt kommt genau ein Meter dazu, und das Seil wird so angehoben, dass es überall gleich weit über dem Boden schwebt. Wie hoch steigt es? Es fühlt sich an, als müsste es fast nichts sein: ein Meter gegen vierzigtausend Kilometer.\n\nEs steigt um sechzehn Zentimeter. Rund um die ganze Erde, von Afrika bis zum Pazifik. Eine Katze schlüpft mühelos darunter durch. Und das Seltsamste kommt noch: die Antwort hängt gar nicht davon ab, worum man das Seil legt. Eine Orange, die Erde, die Sonne — gib einen Meter dazu, und der Abstand ist derselbe.',
+            probe: 'Warum ergeben eine Orange und die Erde genau denselben Abstand?',
+            answer: 'Der Umfang eines Kreises ist sein Radius mal 6,28. Kommt ein Meter zum Umfang dazu, wächst der Radius um einen Meter geteilt durch 6,28 — das sind sechzehn Zentimeter. Die Größe des Kreises kommt in dieser Rechnung überhaupt nicht vor.'
         },
         {
-            name: 'Gabriels Horn',
-            era: 'Evangelista Torricelli, 1641',
-            hook: 'Eine Figur mit unendlicher Oberfläche und endlichem Volumen.',
-            body: 'Stell dir einen unendlich langen Trichter vor, der immer enger wird, sich aber nie ganz schließt. Rechne sein Volumen aus: eine endliche Zahl, es passt in einen Eimer. Rechne seine Oberfläche aus: unendlich.\n\nDaraus folgt etwas Komisches: Man kann den Trichter mit einem einzigen Eimer Farbe von innen füllen, und die gesamte Innenfläche ist gestrichen. Ihn von außen mit dem Pinsel zu streichen ist dagegen unmöglich — keine Menge Farbe reicht je aus. Die Auflösung: echte Farbe hat eine Dicke, eine mathematische Fläche hat keine.',
-            probe: 'Was passiert mit einem langen Papierstreifen, wenn du jedes Mal die Hälfte des Rests abschneidest?',
-            answer: 'Das Papier geht nie aus, und alles Abgeschnittene wird zusammen nie länger als der Streifen am Anfang. Unendlich viele Stücke passen in eine endliche Länge.'
+            name: 'Die unendliche Tafel Schokolade',
+            era: 'William Hooper, 1774',
+            hook: 'Ein Stück abgeschnitten, aufgegessen — und die Tafel ist wieder ganz.',
+            body: 'Eine Tafel Schokolade wird mit drei Schnitten in vier Teile zerlegt, und die Teile werden getauscht. Sie fügen sich wieder zu einem Rechteck — und ein Stück bleibt übrig. Man isst es, und die Tafel sieht genauso aus wie vorher. So lässt sich beliebig weitermachen.\n\nDer Haken ist, dass das neue Rechteck nicht ganz dasselbe ist. Der Schnitt läuft nicht genau an den Kanten der Stücke entlang, und nach dem Tausch ist die Tafel um ein Haar niedriger — genau um das gegessene Stück, verteilt über die ganze Länge. So einen Unterschied sieht das Auge nicht. Die Waage sieht ihn sofort.',
+            probe: 'Was wird aus der Tafel, wenn man den Trick zehnmal hintereinander wiederholt?',
+            answer: 'Sie wird deutlich dünner. Jedes Mal verteilt sich der Verlust über die Länge und wird unsichtbar, aber er verschwindet nicht und summiert sich. Nach zehn Stücken sieht man den Unterschied auch ohne Waage.'
         },
         {
             name: 'Das Barbier-Paradoxon',
@@ -583,10 +583,10 @@ window.PARADOX_CONTENT = {
         {
             name: 'Schrödingers Katze',
             era: 'Erwin Schrödinger, 1935',
-            hook: 'Die Katze in der Kiste ist zugleich lebendig und tot — solange niemand hineinsieht.',
-            body: 'In einer verschlossenen Kiste: eine Katze, ein Zähler und ein Fläschchen Gift. Zerfällt ein Atom, zerbricht das Fläschchen. Nach den Gesetzen der Quantenphysik ist das Atom in beiden Zuständen zugleich — zerfallen und nicht zerfallen. Also ist auch die Katze zugleich lebendig und tot.\n\nSchrödinger meinte das als Spott: Er zeigte, dass man die Seltsamkeit winziger Teilchen nicht bedenkenlos auf große Dinge übertragen darf. Der Spott blieb und wurde zum Wahrzeichen der Quantenphysik. Die Katze war stets dagegen.',
-            probe: 'Warum sehen wir Alltagsdinge nie in zwei Zuständen zugleich?',
-            answer: 'Ein großes Ding wird ununterbrochen von der Welt berührt — Luft, Licht, Wärme. Jede dieser Berührungen ist eine Messung, deshalb fällt die Entscheidung sofort und ohne uns.'
+            hook: 'Die Katze in der Kiste ist lebendig und tot zugleich — solange niemand hineinsieht.',
+            body: 'In einer geschlossenen Kiste sitzen eine Katze, ein Zählrohr und eine Ampulle mit Gift. Zerfällt ein Atom, klickt das Zählrohr und die Ampulle zerbricht. Solange aber niemand das Atom ansieht, verhält es sich, als wäre es zerfallen und nicht zerfallen zugleich. Bei winzigen Teilchen ist das wirklich so: schickt man eines auf zwei Spalte, geht es durch beide und überlagert sich mit sich selbst wie zwei Wellen — die Spur auf dem Schirm zeigt es. Also ist auch die Katze lebendig und tot zugleich.\n\nSchrödinger meinte es als Spott: das auf eine Katze zu übertragen, geht zu weit. Der Spott setzte sich durch und wurde zum Hauptbild der Quantenphysik. Die Katze war allerdings immer dagegen.',
+            probe: 'Warum sehen wir Alltagsdinge nie in zwei Zuständen auf einmal?',
+            answer: 'Ein großer Gegenstand berührt die Welt um sich herum ununterbrochen — Luft, Licht, Wärme. Jede dieser Berührungen wirkt wie ein Blick, und die Entscheidung fällt sofort, lange bevor wir hinsehen. Eine Katze völlig vor der Welt zu verbergen, geht nicht.'
         },
         {
             name: 'Das Küstenlinienparadoxon',
@@ -597,12 +597,12 @@ window.PARADOX_CONTENT = {
             answer: 'Nein. Bei geraden Linien nähern sich die Messungen rasch einer Zahl. Ohne Ende wächst nur die Länge zerklüfteter Linien, bei denen die kleinen Bögen die großen wiederholen.'
         },
         {
-            name: 'Simpsons Paradoxon',
+            name: 'Das Simpson-Paradoxon',
             era: 'Edward Simpson, 1951',
-            hook: 'Ein Medikament hilft Männern, hilft Frauen — und hilft Menschen nicht.',
-            body: 'Ein Medikament wurde an Männern geprüft: es half öfter als das alte. An Frauen geprüft: ebenfalls öfter. Zählt man alle zusammen, ist plötzlich das alte besser. Verrechnet hat sich niemand.\n\nDas liegt an den unterschiedlich großen Gruppen. Das neue Mittel bekamen vor allem Schwerkranke, das alte vor allem leichte Fälle. Beim Zusammenzählen gewinnt nicht die Wirkung des Medikaments, sondern die Frage, wer womit behandelt wurde. Deshalb lügen zusammengefasste Zahlen manchmal genau andersherum, und deshalb muss man Daten immer nach Gruppen aufteilen.',
-            probe: 'Wo begegnet einem diese Falle sonst noch?',
-            answer: 'Überall, wo über unterschiedlich zusammengesetzte Gruppen gemittelt wird: Durchschnittslöhne, Klassendurchschnitte, durchschnittlicher Einkauf. Das Ganze kann sich in die Gegenrichtung bewegen wie jeder seiner Teile.'
+            hook: 'Das Medikament hilft Männern, es hilft Frauen — und es hilft Menschen nicht.',
+            body: 'Das neue Medikament bekamen zehn leichte Fälle: neun wurden gesund. Das alte bekamen hundert leichte Fälle: achtzig wurden gesund. Das neue ist besser. Dann bekamen hundert schwere Fälle das neue: fünfzig wurden gesund; das alte ging an zehn schwere Fälle, vier wurden gesund. Das neue ist wieder besser.\n\nJetzt zählen wir alle zusammen. Neu: 59 Genesene von 110. Alt: 84 von 110. Das alte gewinnt — und in der Rechnung steckt kein Fehler. Das neue Medikament ging nämlich fast immer an die schweren Fälle und das alte an die leichten. In der Gesamtsumme vergleicht man keine Medikamente mehr, sondern Kranke.',
+            probe: 'Wie hätte man prüfen müssen, damit der Vergleich ehrlich ist?',
+            answer: 'Beide Medikamente an gleich viele leichte und schwere Fälle geben. Dann wäre der einzige Unterschied zwischen den Gruppen das Medikament selbst — jetzt unterscheiden sie sich auch darin, wer hineingeraten ist.'
         },
         {
             name: 'Das Sorites-Paradoxon',
@@ -613,20 +613,20 @@ window.PARADOX_CONTENT = {
             answer: 'Diese Zahl gibt es nicht — und das ist keine Ausrede, sondern die genaue Antwort. Vage Wörter haben keine Grenze, nur eine Mitte, über die sich alle einig sind.'
         },
         {
-            name: 'Das Paradoxon der unerwarteten Prüfung',
-            era: 'diskutiert seit den 1940er-Jahren',
-            hook: 'Der Lehrer versprach eine überraschende Prüfung in dieser Woche. Die Logik bewies: sie kommt nicht.',
-            body: 'Der Lehrer sagt: In dieser Woche gibt es eine Prüfung, und an dem Tag werdet ihr es vorher nicht gewusst haben. Ein Schüler überlegt: Freitag geht nicht — wenn bis Donnerstagabend nichts war, wissen es alle. Freitag fällt also weg. Dann fällt auch Donnerstag weg, aus demselben Grund, denn Freitag ist schon gestrichen. So wird die ganze Woche gestrichen.\n\nDer Schüler ist beruhigt — und am Mittwoch kommt die Prüfung, tatsächlich unerwartet. Die Überlegung wirkt wasserdicht, bricht aber irgendwo. Der übliche Verdacht: Der Schüler durfte sich nicht auf ein Versprechen stützen, das er selbst gerade widerlegt hatte.',
-            probe: 'An welchem Schritt hört die Überlegung auf zu funktionieren?',
-            answer: 'Eine allgemein anerkannte Antwort gibt es bis heute nicht. Meist wird der erste Schritt beschuldigt: „Freitag fällt weg“ gilt nur für den, der dem Versprechen glaubt — und indem der Schüler seinem eigenen Schluss glaubt, glaubt er ihm nicht mehr.'
+            name: 'Panzerung für die Bomber',
+            era: 'Abraham Wald, 1943',
+            hook: 'Die Flugzeuge kamen mit Löchern in den Flügeln zurück. Die Panzerung kam woandershin.',
+            body: 'Im Krieg zählte man die Einschüsse an den zurückgekehrten Flugzeugen. Die meisten saßen in den Flügeln und im Leitwerk; um die Motoren und die Kanzel herum fast keine. Die Lösung schien auf der Hand zu liegen: die Flügel panzern, dort wird ja am häufigsten getroffen.\n\nWald sagte das Gegenteil: panzern muss man dort, wo keine Löcher sind. Gezählt wurden nur die Flugzeuge, die zurückkamen. Einen Treffer im Flügel überstand eine Maschine — deshalb landete sie voller Löcher. Wer einen Treffer im Motor abbekam, kam nicht zurück und tauchte in keiner Zählung auf. Die leeren Stellen auf der Skizze hießen nicht «hier wird nicht getroffen», sondern «von hier kommt keiner zurück».',
+            probe: 'Ein Trainer sagt: «Alle meine Champions haben sechs Stunden am Tag trainiert, also funktioniert die Methode.» Wen hat er zu zählen vergessen?',
+            answer: 'Alle, die sechs Stunden am Tag trainiert haben und keine Champions geworden sind. Die hat niemand gefragt — sie sind nie beim Interview angekommen. Nur die Angekommenen zu zählen heißt genau, auf die zurückgekehrten Flugzeuge zu schauen.'
         },
         {
-            name: 'Das Sankt-Petersburg-Paradoxon',
-            era: 'Daniel Bernoulli, 1738',
-            hook: 'Ein Spiel mit unendlichem durchschnittlichem Gewinn. Niemand gibt hundert dafür.',
-            body: 'Wirf eine Münze, bis Kopf fällt. Kopf beim ersten Wurf zahlt 2 Münzen, beim zweiten 4, beim dritten 8, jedes Mal doppelt so viel. Rechne den durchschnittlichen Gewinn aus: in der Hälfte der Fälle 2, in einem Viertel 4, in einem Achtel 8 — jedes Stück steuert eine Münze bei, und es sind unendlich viele Stücke. Der Durchschnitt ist unendlich.\n\nMan müsste also jeden Preis für den Einsatz zahlen. Aber niemand bei Verstand gibt auch nur hundert Münzen — und das zu Recht: die riesigen Gewinne brauchen unglaubliches Glück, während man fast immer mit 2 oder 4 nach Hause geht. Daraus entstand der Gedanke, dass nicht die Höhe des Gewinns zählt, sondern wie sehr er dein Leben verändert.',
-            probe: 'Welchen Gewinn bekommst du am häufigsten?',
-            answer: 'Zwei — in der Hälfte der Fälle. In drei von vier Fällen ist der Gewinn höchstens vier. Der „unendliche Durchschnitt“ hängt an verschwindend seltenen Riesenauszahlungen.'
+            name: 'Würfel, die sich im Kreis schlagen',
+            era: 'Bradley Efron, 1970',
+            hook: 'Blau schlägt Gelb, Gelb schlägt Rot, Rot schlägt Blau.',
+            body: 'Drei Würfel mit ungewöhnlichen Zahlen auf den Seiten. Man wirft zwei davon, die größere Zahl gewinnt. Blau gewinnt gegen Gelb viel öfter, als es verliert. Gelb schlägt Rot genauso sicher. Also müsste Blau Rot erst recht schlagen — und genau hier bricht alles zusammen: Rot schlägt Blau.\n\nEinen stärksten Würfel gibt es schlicht nicht. Wir sind es gewohnt: Ist Anna größer als Boris und Boris größer als Vera, dann ist Anna größer als Vera. Bei der Größe klappt das, weil jeder nur eine Zahl hat. Ein Würfel hat sechs, und «gewinnt öfter» hängt davon ab, welche Seiten einander gegenüberstehen. Das kann sich durchaus im Kreis schließen.',
+            probe: 'Du darfst deinen Würfel zuerst wählen. Ist das ein Vorteil?',
+            answer: 'Nein, das ist eine Falle. Zu jedem Würfel gibt es einen, der ihn schlägt, und den nimmt der Gegner. Hier lohnt es sich, als Zweiter zu wählen — ein seltener Fall, in dem das erste Zugrecht stört.'
         },
         {
             name: 'Das Penrose-Dreieck',
@@ -653,12 +653,12 @@ window.PARADOX_CONTENT = {
             answer: 'Im Mittel etwa 26 hoch 5, also rund 12 Millionen. „Hamlet“ hat sechs Buchstaben — und die Antwort bekommt gleich weitere Nullen.'
         },
         {
-            name: 'Das Zwillingsparadoxon',
-            era: 'Paul Langevin, 1911',
-            hook: 'Ein Bruder flog zu den Sternen und kam jünger zurück als der andere.',
-            body: 'Zwei Zwillingsbrüder. Einer bleibt auf der Erde, der andere fliegt mit fast Lichtgeschwindigkeit los, dreht bei einem fernen Stern um und kehrt zurück. Beim Wiedersehen ist er deutlich jünger — nicht dem Aussehen nach, sondern er hat wirklich weniger Jahre gelebt.\n\nDas Seltsame: Bewegung ist relativ, aus Sicht des Reisenden ist die Erde weggeflogen und zurückgekommen. Warum also nicht umgekehrt? Weil die Brüder nicht gleichberechtigt sind: nur einer hat gewendet und die Kräfte dabei gespürt. Dieses Wenden bricht die Symmetrie. Und das ist keine Erfindung — die Uhren auf Satelliten müssen genau wegen solcher Effekte nachgestellt werden.',
-            probe: 'Warum kann man nicht sagen, die Erde sei weggeflogen und zurückgekommen?',
-            answer: 'Weil die Erde weder gebremst noch gewendet hat. Wer seine Geschwindigkeit geändert hat, ist der Reisende — und so eine Änderung spürt man unmittelbar, ganz ohne Vergleich.'
+            name: 'Das Freundschaftsparadoxon',
+            era: 'Scott Feld, 1991',
+            hook: 'Deine Freunde haben mehr Freunde als du. Fast jeder hat das.',
+            body: 'Nimm deine Klasse. Schreib auf, wie viele Freunde jeder hat, und rechne dann für jeden aus, wie viele Freunde seine Freunde im Schnitt haben. Bei fast allen ist die zweite Zahl größer. Es liegt nicht an dir und nicht an ihnen: so kommt es in fast jeder Gruppe heraus.\n\nDer Grund liegt darin, wen man zählt. Ein geselliger Mensch steht auf vielen Freundeslisten, und wenn du deine Freunde durchgehst, begegnet er dir immer wieder. Ein stiller Mensch steht auf zwei Listen und taucht fast nie auf. Du vergleichst dich also nicht mit einem gewöhnlichen Menschen, sondern mit dem, den man am häufigsten trifft.',
+            probe: 'Warum wirken im Fitnessstudio fast alle sportlicher als du?',
+            answer: 'Weil die, die jeden Tag kommen, dir jedes Mal vor Augen sind, und die, die einmal im Monat kommen, fast nie. Das Studio ist voll von Leuten, die viel trainieren — obwohl sie unter allen Angemeldeten die Minderheit sind.'
         },
         {
             name: 'Das Lügner-Paradoxon',

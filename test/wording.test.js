@@ -23,6 +23,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const { ROOT, CODE_FILES, inlineScript } = require('./app-source');
 
@@ -176,6 +177,25 @@ test('в подсказках нет мужского рода вовсе', () =
         const hit = m[1].match(re);
         if (hit) bad.push(`«${hit[0]}» в «${m[1].slice(0, 50)}»`);
     }
+    assert(bad.length === 0, bad.join('; '));
+});
+
+test('в крючках парадоксов нет мужского рода', () => {
+    // Тело карточки — рассказ, и мужской род там законен: «Пенроуз назвал»,
+    // «брат вернулся моложе». А крючок — обращение к тому, кто карточку открыл,
+    // подлежащее в нём опущено: «Отрезал дольку, съел» девочка прочитает про себя
+    // в мужском роде. Я сам занёс туда такую строчку и поймал только перечитыванием.
+    const box = { window: {} };
+    vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'content', 'paradoxes.js'), 'utf8'), box);
+    const VERBS = 'отрезал|съел|считал|посчитал|решал|решил|сложил|вычел|умножил|разделил'
+        + '|поделил|перепутал|забыл|потерял|пропустил|ошибся|промахнулся|выбрал|взял'
+        + '|нашёл|занял|сделал|успел|начал|добавил|представил|повторил';
+    const re = new RegExp('(?<![а-яё])(?:' + VERBS + ')(?![а-яё])', 'i');
+    const bad = [];
+    (box.window.PARADOX_CONTENT.ru || []).forEach(px => {
+        const hit = px.hook.match(re);
+        if (hit) bad.push(`«${hit[0]}» в крючке «${px.name}»`);
+    });
     assert(bad.length === 0, bad.join('; '));
 });
 
