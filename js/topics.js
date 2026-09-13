@@ -147,15 +147,21 @@ function displayTopicKey(key) {
     const p = parseTopicKey(key);
     return `${p.category}${p.sign || ''}:${p.op}`;
 }
+// Разделитель — стрелка, а не точка. Точка предполагает вещи одного рода, как
+// «Москва · 15:40 · +3°», и адрес темы читался ею как список равных. А это не
+// список: раздел, действие и звезда сужают друг друга — где, что и насколько
+// трудно. Стрелка это и показывает, и заодно освобождает точку для того, чтобы
+// отделять сам адрес от чисел рядом с ним: «… → 1★ · 12 ошибок».
+const TOPIC_SEP = ' → ';
 function topicLabel(key) {
     const p = parseTopicKey(key);
     const op = (OP_LABELS[p.op] || p.op).replace(/^\S+\s/, '');
-    return `${categoryLabel(p.category, p.sign)} · ${op}`;
+    return `${categoryLabel(p.category, p.sign)}${TOPIC_SEP}${op}`;
 }
 // То же самое, но с уровнем — для достижений, где уровень и есть суть темы.
 function topicLabelWithLevel(key) {
     const p = parseTopicKey(key);
-    return topicLabel(key) + (p.level ? ` · ${p.level}★` : '');
+    return topicLabel(key) + (p.level ? `${TOPIC_SEP}${p.level}★` : '');
 }
 
 // ===================== РАБОТА С ЖУРНАЛОМ ПО ДНЯМ =====================
