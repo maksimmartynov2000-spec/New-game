@@ -3032,26 +3032,32 @@
         // Картинки лежат отдельными файлами в папке images/ рядом с этим HTML — так сам файл
         // игры остаётся лёгким, а картинки браузер грузит по одной, как обычные файлы сайта
         // (с кэшированием), а не одним гигантским текстовым блоком.
+        // Имя файла здесь — обещание, а не просто путь: service worker отдаёт
+        // картинки из кеша и по сети за ними больше не ходит. Заменить картинку,
+        // оставив ей прежнее имя, значит показать половине детей старую (так и
+        // случилось в #173 с «Бесконечной шоколадкой»). Новая картинка — новое имя;
+        // номера просто продолжаются дальше, дырки в нумерации это и есть следы
+        // замен. Сверяет test/images.test.js по слепку содержимого.
         const PUZZLE_IMAGE_SRCS = [
             'images/IMG_2427.webp',
             'images/IMG_2428.webp',
             'images/IMG_2429.webp',
             'images/IMG_2430.webp',
             'images/IMG_2431.webp',
-            'images/IMG_2432.webp',
-            'images/IMG_2433.webp',
+            'images/IMG_2448.webp',
+            'images/IMG_2449.webp',
             'images/IMG_2434.webp',
             'images/IMG_2436.webp',
             'images/IMG_2437.webp',
             'images/IMG_2438.webp',
             'images/IMG_2439.webp',
             'images/IMG_2440.webp',
-            'images/IMG_2441.webp',
-            'images/IMG_2442.webp',
+            'images/IMG_2450.webp',
+            'images/IMG_2451.webp',
             'images/IMG_2443.webp',
             'images/IMG_2444.webp',
             'images/IMG_2445.webp',
-            'images/IMG_2446.webp',
+            'images/IMG_2452.webp',
             'images/IMG_2447.webp'
         ];
 
