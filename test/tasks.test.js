@@ -195,15 +195,38 @@ test('точность не засчитывается на малой выбо�
     eq(enough.done, true, 'не засчитали честные 100%');
 });
 
-test('«без единой ошибки» не засчитывается при ошибке', () => {
+test('«подряд без ошибки» считает серию, а не сумму за день', () => {
+    // Раньше здесь показывали число верных за день, а засчитывали при нуле ошибок.
+    // После первой же ошибки задание становилось невыполнимым, а полоска продолжала
+    // набираться до «10 из 10» и не превращалась в «готово». Семь ошибок и полная
+    // полоса — это был настоящий снимок с телефона.
     const task = { kind: 'clean', need: 10 };
-    eq(T.evalTask(task, { correct: 12, wrong: 1, days: 1, cells: 1 }).done, false, 'ошибка была');
-    eq(T.evalTask(task, { correct: 12, wrong: 0, days: 1, cells: 1 }).done, true, 'ошибок не было');
+    const agg = (o) => Object.assign({ correct: 0, wrong: 0, days: 1, cells: 1, run: 0, best: 0 }, o);
+    eq(T.evalTask(task, agg({ correct: 12, wrong: 7, run: 1, best: 3 })).have, 1,
+        'полоска должна показывать идущую серию');
+    eq(T.evalTask(task, agg({ correct: 12, wrong: 7, run: 1, best: 3 })).done, false,
+        'серии не было — засчитывать нечего');
+    eq(T.evalTask(task, agg({ correct: 12, wrong: 0, run: 12, best: 12 })).done, true,
+        'двенадцать подряд — задание сделано');
 });
 
-test('«без единой ошибки» не даётся за ноль решённых', () => {
+test('полоска падает в ноль сразу после ошибки', () => {
+    // Это и есть главное: ученик видит, что серия сбилась, а не набирает дальше
+    // счётчик, который уже ничего не даст.
+    const agg = { correct: 9, wrong: 1, days: 1, cells: 1, run: 0, best: 9 };
+    eq(T.evalTask({ kind: 'clean', need: 10 }, agg).have, 0);
+});
+
+test('сделанное задание не разавтоматится от следующей ошибки', () => {
+    // Серия сбита, но десять подряд уже были — «готово» обязано остаться.
+    const agg = { correct: 15, wrong: 1, days: 1, cells: 1, run: 2, best: 10 };
+    eq(T.evalTask({ kind: 'clean', need: 10 }, agg).done, true);
+});
+
+test('«подряд без ошибки» не даётся за ноль решённых', () => {
     // Ноль из нуля — не подвиг.
-    eq(T.evalTask({ kind: 'clean', need: 10 }, { correct: 0, wrong: 0, days: 0, cells: 0 }).done, false);
+    eq(T.evalTask({ kind: 'clean', need: 10 },
+        { correct: 0, wrong: 0, days: 0, cells: 0, run: 0, best: 0 }).done, false);
 });
 
 group('Неделя');

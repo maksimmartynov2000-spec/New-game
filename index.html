@@ -5914,7 +5914,9 @@
         // Свод по диапазону дней: сколько верно, сколько мимо, сколько дней занимался
         // и сколько разных клеток трогал. На этом же своде проверяются все задания.
         function taskAggregate(daily, fromKey, toKey, cellKey) {
-            const out = { correct: 0, wrong: 0, days: 0, cells: 0 };
+            // run — серия верных подряд, идущая прямо сейчас; best — лучшая за период.
+            // Обе берутся из журнала по клетке: из сумм порядок ответов не достать.
+            const out = { correct: 0, wrong: 0, days: 0, cells: 0, run: 0, best: 0 };
             const seen = {};
             let key = fromKey;
             for (let guard = 0; guard < 400; guard++) {
@@ -5927,7 +5929,12 @@
                     });
                     if (cellKey) {
                         const v = (day.t || {})[cellKey];
-                        if (v) { out.correct += v[0] || 0; out.wrong += v[1] || 0; }
+                        if (v) {
+                            out.correct += v[0] || 0;
+                            out.wrong += v[1] || 0;
+                            out.run = v[5] || 0;                       // серия на конец этого дня
+                            out.best = Math.max(out.best, v[6] || 0);
+                        }
                     } else {
                         out.correct += day.c || 0;
                         out.wrong += day.w || 0;
@@ -5947,9 +5954,19 @@
             if (task.kind === 'cells')    return { have: agg.cells, need: task.need, done: agg.cells >= task.need };
             if (task.kind === 'days')     return { have: agg.days, need: task.need, done: agg.days >= task.need };
             if (task.kind === 'clean') {
-                // «Без ошибок» имеет смысл только на длинной серии ответов: ноль из нуля
-                // не подвиг. Поэтому засчитывается и число решённых, и отсутствие промахов.
-                return { have: agg.correct, need: task.need, done: agg.correct >= task.need && agg.wrong === 0 };
+                // Считается СЕРИЯ подряд, а не сумма за день.
+                //
+                // Было иначе, и это врало на собственном экране: показывали число верных
+                // за день, а засчитывали только при нуле ошибок за тот же день. После
+                // первой же ошибки задание становилось невыполнимым — а полоска
+                // продолжала набираться и доходила до «10 из 10», не превращаясь в
+                // «готово». Максим прислал снимок: семь ошибок и полная полоса.
+                //
+                // Полоску рисуем по идущей серии — после ошибки она честно падает в
+                // ноль, и это видно сразу, вместе с «Подряд» строчкой ниже. А засчитываем
+                // по лучшей серии за день: выполненное задание не должно разавтоматиться
+                // от следующей ошибки.
+                return { have: agg.run, need: task.need, done: agg.best >= task.need };
             }
             if (task.kind === 'accuracy') {
                 const pct = attempts > 0 ? Math.round(agg.correct / attempts * 100) : 0;
@@ -6013,7 +6030,7 @@
             if (task.kind === 'accuracy') return tf('Подтяни точность до %1%', task.need);
             // «Набело» и «без единой ошибки» — одно и то же, сказанное дважды, причём
             // «набело» ребёнок может и не знать: слово из мира черновиков.
-            if (task.kind === 'clean')    return tf('Реши %1 без единой ошибки', task.need);
+            if (task.kind === 'clean')    return tf('Реши %1 подряд без ошибки', task.need);
             if (task.kind === 'count')    return tf('Реши %1 примеров', task.need);
             // Задание на верные ответы без медали бывает теперь только недельным:
             // дневную добивку на верные убрали — она повторяла дневную цель.
