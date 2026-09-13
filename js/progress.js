@@ -182,6 +182,99 @@ const Progress = (() => {
         return daily;
     }
 
+    // =====================================================================
+    //  ДАННЫЕ ЗАКРЫТЫХ РАЗДЕЛОВ У УЧЕНИКА НЕ ХРАНЯТСЯ
+    // ---------------------------------------------------------------------
+    //  Ученик видит только те разделы, которые ему открыл репетитор, — и данных
+    //  из остальных у него не остаётся. Это правило, а не разовая чистка: флажок
+    //  «уже почистили» здесь дырявый, потому что слияние состояний берёт максимум
+    //  и объединение, то есть сознательно устроено так, чтобы НИЧЕГО не терять.
+    //  Один телефон с несвежей копией вернул бы всё обратно.
+    //
+    //  Поэтому чистка стоит в двух местах — на локальном состоянии и на том, что
+    //  пришло с сервера, ДО слияния. Тогда грязным данным неоткуда взяться.
+    //
+    //  Цена названа вслух: если репетитор откроет раздел, ученик там позанимается,
+    //  а потом раздел закроют — эта работа сотрётся. Раньше бы сохранилась.
+    //
+    //  Правило доступа здесь повторено (в index.html оно же зовётся isSectionOpen).
+    //  Повтор осознанный: этот файл подключается раньше экранов и звать их функции
+    //  не может. Что оба места считают одинаково, сторожит проверка в storage.test.js.
+    // =====================================================================
+    const BASE_SECTION_KEY = 'integer+';
+    const ALL_SECTION_KEYS = ['integer+', 'integer-', 'decimal+', 'fraction+'];
+
+    function sectionKept(s, secKey) {
+        if (secKey === BASE_SECTION_KEY) return true;
+        if (!s || (s.accountType || 'self') !== 'linked') return true;
+        // Про этого ученика мы ещё ничего не знаем — не запирать же его.
+        if (!access || typeof access !== 'object') return true;
+        const g = access[secKey];
+        if (g === 'all') return true;
+        return !!(g && typeof g === 'object' && Object.keys(g).length > 0);
+    }
+
+    // Раздел ключа темы: 'integer-:mul:3' → 'integer-'.
+    function sectionOfKey(key) {
+        const at = String(key).indexOf(':');
+        return at > 0 ? key.slice(0, at) : '';
+    }
+
+    function dropClosedSections(s) {
+        if (!s) return s;
+        const closed = ALL_SECTION_KEYS.filter(k => !sectionKept(s, k));
+        if (!closed.length) return s;
+        const isClosed = (key) => closed.indexOf(sectionOfKey(key)) >= 0;
+
+        // Счётчики за всё время уменьшаем ровно на то, что уносим. Обычно прогресс
+        // у нас назад не ходит, и это единственное место, где ходит: убранные
+        // ответы не должны остаться в общем счёте, иначе цифры разойдутся с темами.
+        Object.keys(s.byTopic || {}).forEach(key => {
+            if (!isClosed(key)) return;
+            const t = s.byTopic[key] || {};
+            s.totals.correct = Math.max(0, (s.totals.correct || 0) - (t.correct || 0));
+            s.totals.wrong = Math.max(0, (s.totals.wrong || 0) - (t.wrong || 0));
+            delete s.byTopic[key];
+        });
+        [s.errorKinds, s.byClass].forEach(map => {
+            Object.keys(map || {}).forEach(key => { if (isClosed(key)) delete map[key]; });
+        });
+        Object.keys(s.unlocks || {}).forEach(key => { if (isClosed(key)) delete s.unlocks[key]; });
+
+        Object.keys(s.daily || {}).forEach(dk => {
+            const day = s.daily[dk];
+            if (!day || typeof day !== 'object') return;
+            Object.keys(day.t || {}).forEach(key => {
+                if (!isClosed(key)) return;
+                const slot = day.t[key] || [];
+                day.c = Math.max(0, (day.c || 0) - (slot[0] || 0));
+                day.w = Math.max(0, (day.w || 0) - (slot[1] || 0));
+                day.a = Math.max(0, (day.a || 0) - (slot[2] || 0));
+                day.ms = Math.max(0, (day.ms || 0) - (slot[3] || 0));
+                day.mc = Math.max(0, (day.mc || 0) - (slot[4] || 0));
+                delete day.t[key];
+            });
+            // Плоская карта видов ошибок за день считает все разделы вместе,
+            // поэтому вычитаем из неё ровно то, что записано по клеткам.
+            Object.keys(day.te || {}).forEach(key => {
+                if (!isClosed(key)) return;
+                Object.keys(day.te[key] || {}).forEach(kind => {
+                    if (!day.e || !(kind in day.e)) return;
+                    day.e[kind] -= day.te[key][kind] || 0;
+                    if (day.e[kind] <= 0) delete day.e[kind];
+                });
+                delete day.te[key];
+            });
+        });
+
+        // Последняя настройка примеров: чтобы «Играть» не возвращало в закрытый раздел.
+        if (s.config && s.config.category) {
+            const sec = s.config.category + (s.config.numberType === 'negative' ? '-' : '+');
+            if (closed.indexOf(sec) >= 0) s.config = null;
+        }
+        return s;
+    }
+
     let state = emptyState();
     let dirty = false;
 
@@ -777,6 +870,9 @@ const Progress = (() => {
                 tokens = (envelope.tokens && typeof envelope.tokens === 'object') ? envelope.tokens : {};
                 access = (envelope.access && typeof envelope.access === 'object') ? envelope.access : null;
                 state = (envelope.activeCode && profiles[envelope.activeCode]) || emptyState();
+                // Строго здесь, а не в normalize() выше: там access ещё не прочитан,
+                // и чистка решила бы, что ученику открыто всё.
+                dropClosedSections(state);
             } else {
                 const legacy = migrateFromV2() || migrateFromV1();
                 state = legacy || emptyState();
@@ -819,6 +915,7 @@ const Progress = (() => {
         getAccess() { return access; },
         setAccess(a) {
             access = (a && typeof a === 'object') ? a : null;
+            dropClosedSections(state);
             localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
         },
         // При смене профиля чужой доступ надо забыть немедленно, не дожидаясь
@@ -1108,8 +1205,10 @@ const Progress = (() => {
             if (!auth) return; // подтвердить личность нечем — ждём входа
             if (!dirty && !force) return;
             try {
-                const remote = normalize(await remoteDriver.read(state.playerCode, auth));
-                state = mergeState(remote, state);
+                // Чистим обе стороны до слияния. Слияние берёт максимум и
+                // объединение — почистить только одну сторону значит не почистить.
+                const remote = dropClosedSections(normalize(await remoteDriver.read(state.playerCode, auth)));
+                state = mergeState(remote, dropClosedSections(state));
                 profiles[state.playerCode] = state; // merge вернул новый объект — обновляем кэш
                 localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 await remoteDriver.write(state.playerCode, auth, state);

@@ -222,7 +222,7 @@ group('Выбор миссии: угловая кнопка и раскладк�
 // было две разные кнопки ухода, в разных местах и разного вида. Теперь угловая
 // кнопка одна и меняет роль вместе с шагом. Проверяется именно СМЕНА РОЛИ: забыть
 // её — значит получить «назад», открывающее меню, и наоборот.
-function configSteps() {
+function configSteps(sectionsVisible) {
     const vm = require('vm');
     const from = SCRIPT.indexOf('function showConfigStep(step) {');
     const to = SCRIPT.indexOf('\n        }', from) + '\n        }'.length;
@@ -232,13 +232,51 @@ function configSteps() {
         restStepScreen: { style: { display: 'none' } },
         btnConfigCorner: { innerText: '☰', attrs: {}, setAttribute(k, v) { this.attrs[k] = v; } }
     };
-    const box = { console, t: (x) => x, document: { getElementById: (id) => nodes[id] || null } };
+    // Сколько разделов ученик видит — от этого зависит, есть ли первый шаг вообще.
+    const clicks = [];
+    const buttons = [];
+    for (let i = 0; i < (sectionsVisible === undefined ? 4 : sectionsVisible); i++) {
+        buttons.push({ picked: false,
+                       classList: { contains() { return buttons[0].picked; } },
+                       click() { this.picked = true; clicks.push(i); box.showConfigStep(2); } });
+    }
+    const box = { console, t: (x) => x, configCornerIsMenu: true,
+                  visibleSectionButtons: () => buttons,
+                  document: { getElementById: (id) => nodes[id] || null } };
     box.globalThis = box;
     vm.createContext(box);
     vm.runInContext(SCRIPT.slice(from, to) + '\n;globalThis.showConfigStep = showConfigStep;',
                     box, { filename: 'index.html<шаги выбора>' });
-    return { nodes, go: box.showConfigStep };
+    return { nodes, clicks, go: box.showConfigStep, menu: () => box.configCornerIsMenu };
 }
+
+test('единственный доступный раздел выбирается сам, первого шага нет', () => {
+    // Ученику, у которого открыты только положительные, нечего решать на первом
+    // шаге: там одна кнопка без альтернативы. Раздел берётся сам.
+    const c = configSteps(1);
+    c.go(1);
+    eq(c.clicks.length, 1, 'единственный раздел должен выбраться сам');
+    eq(c.nodes.categoryStepScreen.style.display, 'none', 'первый шаг показывать нечего');
+    eq(c.nodes.restStepScreen.style.display, 'flex', 'сразу второй шаг');
+});
+
+test('когда первого шага нет, угловая кнопка ведёт в меню, а не в пустоту', () => {
+    // Иначе «назад» со второго шага упирается в экран, которого нет.
+    const c = configSteps(1);
+    c.go(1);
+    eq(c.nodes.btnConfigCorner.innerText, '☰');
+    eq(c.menu(), true, 'кнопка должна остаться меню');
+});
+
+test('когда разделов несколько, первый шаг на месте', () => {
+    const c = configSteps(3);
+    c.go(1);
+    eq(c.clicks.length, 0, 'выбирать за ученика нельзя — есть из чего');
+    eq(c.nodes.categoryStepScreen.style.display, 'flex');
+    eq(c.menu(), true, 'на первом шаге кнопка — меню');
+    c.go(2);
+    eq(c.menu(), false, 'на втором шаге кнопка — «назад»');
+});
 
 test('на первом шаге в углу меню, на втором — «назад»', () => {
     const c = configSteps();

@@ -82,6 +82,9 @@ function loadScreen(opts) {
             const cfg = u[`${secKey}:${op}:${lvl}`];
             return cfg ? cfg.open !== false : (o.openByDefault !== false);
         },
+        // Закрытые разделы на карте ученику не рисуются. По умолчанию в тестах
+        // открыто всё — иначе половина проверок мерила бы скрытие, а не карту.
+        isSectionOpen: (secKey) => (o.closedSections || []).indexOf(secKey) < 0,
         renderAchievementsScreen: () => sandboxRef.rerender()
     };
     const sandboxRef = sandbox;
@@ -375,6 +378,25 @@ test('итог считает все сто звёзд, а не только н�
     const s = screen({ daily: {}, unlocks: UNLOCKS });
     assert(/из 100/.test(s.subtitle), `в итоге не все звёзды: ${s.subtitle}`);
     assert(/Звёзд взято: 3/.test(s.subtitle), `неверное число взятых: ${s.subtitle}`);
+});
+
+test('закрытый раздел ученику на карте не рисуется', () => {
+    // Раньше он стоял здесь со сплошными замками и сообщал ребёнку о существовании
+    // разделов, до которых ему ещё далеко. Репетитору по-прежнему видно всё.
+    const all = screen({ daily: {}, unlocks: UNLOCKS });
+    const hidden = screen({ daily: {}, unlocks: UNLOCKS,
+                            closedSections: ['integer-', 'decimal+', 'fraction+'] });
+    assert(hidden.sections().length < all.sections().length,
+        `закрытые разделы всё ещё нарисованы: ${hidden.sections().length} из ${all.sections().length}`);
+    assert(hidden.sections().length > 0, 'положительные обязаны остаться');
+});
+
+test('итог в подзаголовке считает все звёзды, даже скрытые', () => {
+    // Иначе число прыгало бы от того, что кому открыто, и «звёзд взято» перестало
+    // бы значить одно и то же у разных учеников.
+    const hidden = screen({ daily: {}, unlocks: UNLOCKS,
+                            closedSections: ['integer-', 'decimal+', 'fraction+'] });
+    assert(/из 100/.test(hidden.subtitle), `в итоге не все звёзды: ${hidden.subtitle}`);
 });
 
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);

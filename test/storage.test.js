@@ -905,6 +905,134 @@ test('у кого фантомных клеток нет — не меняетс
 // разойтись им не с чем. Что там проверялось и почему это больше не нужно — в
 // test/puzzles.test.js, группа «Кусочки считаются, а не хранятся».
 
+group('Данные закрытых разделов у ученика не хранятся');
+
+// Разделы, которых ученик не видит, не должны и храниться: иначе его собственная
+// статистика считает то, чего для него не существует. Правило, а не разовая чистка —
+// флажок «уже почистили» тут дырявый, потому что слияние берёт максимум и объединение
+// и один телефон с несвежей копией вернул бы всё обратно.
+
+function student(extra) {
+    return Object.assign({
+        accountType: 'linked', ownerCode: 'MAKS',
+        totals: { correct: 150, wrong: 30, puzzlesCompleted: 1 },
+        byTopic: { 'integer+:add:1': { correct: 100, wrong: 20 },
+                   'integer-:mul:3': { correct: 50, wrong: 10 } },
+        errorKinds: { 'integer+:add:1': { 'ошибка в десятках': 3 },
+                      'integer-:mul:3': { 'ошибся в знаке': 7 } },
+        byClass: { 'integer+:add:1': { '1': [10, 2, 0, 3000] },
+                   'integer-:mul:3': { '1': [5, 1, 0, 2000] } },
+        unlocks: { 'integer+:add:1:c2': '2026-09-01', 'integer-:mul:3:c1': '2026-09-02' },
+        daily: { '2026-09-01': { c: 30, w: 6, a: 0, s: 60, p: 0, ms: 9000, mc: 30,
+                 t: { 'integer+:add:1': [20, 4, 0, 6000, 20],
+                      'integer-:mul:3': [10, 2, 0, 3000, 10] },
+                 e: { 'ошибка в десятках': 3, 'ошибся в знаке': 7 },
+                 te: { 'integer+:add:1': { 'ошибка в десятках': 3 },
+                       'integer-:mul:3': { 'ошибся в знаке': 7 } } } }
+    }, extra || {});
+}
+
+function withAccess(env, grant) {
+    env.store['mathCitadelState_v3'] = JSON.stringify({
+        activeCode: 'ЯР7', profiles: { 'ЯР7': student() },
+        passwords: {}, tokens: {}, access: grant
+    });
+    env.Progress.init();
+    return env.Progress.get();
+}
+
+test('ответы из закрытого раздела не остаются', () => {
+    const st = withAccess(fresh(), {});
+    assert(!st.byTopic['integer-:mul:3'], 'клетка закрытого раздела осталась');
+    assert(st.byTopic['integer+:add:1'], 'положительные трогать нельзя');
+});
+
+test('общий счётчик уменьшается ровно на унесённое', () => {
+    // Единственное место, где прогресс идёт назад, и это решение Максима: те ответы
+    // были тестовыми. Оставить их в общем счёте значило бы разойтись с темами.
+    const st = withAccess(fresh(), {});
+    eq(st.totals.correct, 100, 'верных');
+    eq(st.totals.wrong, 20, 'ошибок');
+});
+
+test('разбор ошибок, разбор по типам и ступени уходят вместе с разделом', () => {
+    const st = withAccess(fresh(), {});
+    assert(!st.errorKinds['integer-:mul:3'], 'виды ошибок остались');
+    assert(!st.byClass['integer-:mul:3'], 'разбор по типам остался');
+    assert(!st.unlocks['integer-:mul:3:c1'], 'ступень осталась');
+    assert(st.unlocks['integer+:add:1:c2'], 'ступень положительных трогать нельзя');
+});
+
+test('журнал дня пересчитывается, а не просто чистится', () => {
+    // День складывает все разделы вместе. Убрать клетку и не вычесть её из итогов
+    // дня значит оставить в статистике ответы, которых больше нет.
+    const st = withAccess(fresh(), {});
+    const d = st.daily['2026-09-01'];
+    eq(d.c, 20, 'верных за день');
+    eq(d.w, 4, 'ошибок за день');
+    eq(d.mc, 20, 'ответов со временем');
+    eq(d.ms, 6000, 'время');
+    assert(!d.t['integer-:mul:3'], 'клетка осталась в журнале');
+    assert(!d.e['ошибся в знаке'], 'вид ошибки закрытого раздела остался в дне');
+    eq(d.e['ошибка в десятках'], 3, 'вид ошибки положительных трогать нельзя');
+});
+
+test('открытый раздел не трогается', () => {
+    const st = withAccess(fresh(), { 'integer-': 'all' });
+    assert(st.byTopic['integer-:mul:3'], 'открытый раздел унесли');
+    eq(st.totals.correct, 150, 'счётчик трогать было незачем');
+});
+
+test('раздел, открытый частично, тоже не трогается', () => {
+    const st = withAccess(fresh(), { 'integer-': { mul: [3] } });
+    assert(st.byTopic['integer-:mul:3'], 'частично открытый раздел унесли');
+});
+
+test('у репетитора не уносится ничего', () => {
+    const env = fresh();
+    env.store['mathCitadelState_v3'] = JSON.stringify({
+        activeCode: 'MAKS', profiles: { 'MAKS': student({ accountType: 'self' }) },
+        passwords: {}, tokens: {}, access: {}
+    });
+    env.Progress.init();
+    const st = env.Progress.get();
+    assert(st.byTopic['integer-:mul:3'], 'у репетитора закрытых разделов не бывает');
+    eq(st.totals.correct, 150);
+});
+
+test('про кого ничего не знаем — не запираем', () => {
+    // Запись о доступе не заведена: это «мы ещё не решили», а не «закрыто всё».
+    const st = withAccess(fresh(), null);
+    assert(st.byTopic['integer-:mul:3'], 'ученика без записи о доступе обчистили');
+});
+
+test('последняя настройка из закрытого раздела не остаётся', () => {
+    // Иначе кнопка «Играть» вернула бы ученика туда, куда он больше не ходит.
+    const env = fresh();
+    env.store['mathCitadelState_v3'] = JSON.stringify({
+        activeCode: 'ЯР7',
+        profiles: { 'ЯР7': student({ config: { category: 'integer', numberType: 'negative',
+                                               operations: { mul: 3 } } }) },
+        passwords: {}, tokens: {}, access: {}
+    });
+    env.Progress.init();
+    eq(env.Progress.get().config, null);
+});
+
+test('правило доступа здесь и на экране считает одинаково', () => {
+    // В index.html оно же зовётся isSectionOpen. Повтор осознанный — этот файл
+    // подключается раньше экранов, — но разъехаться этим двум местам нельзя.
+    const SRC = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const from = SRC.indexOf('function isSectionOpen(secKey) {');
+    const body = SRC.slice(from, SRC.indexOf('\n        }', from));
+    assert(/g === 'all'/.test(body) && /Object\.keys\(g\)\.length > 0/.test(body),
+        'правило на экране изменилось — проверь sectionKept в js/progress.js');
+    const P = fs.readFileSync(path.join(ROOT, 'js', 'progress.js'), 'utf8');
+    const kept = P.slice(P.indexOf('function sectionKept(s, secKey) {'));
+    assert(/g === 'all'/.test(kept) && /Object\.keys\(g\)\.length > 0/.test(kept),
+        'правило в хранилище изменилось — проверь isSectionOpen в index.html');
+});
+
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
     console.log(`Все проверки пройдены: ${passed}`);
