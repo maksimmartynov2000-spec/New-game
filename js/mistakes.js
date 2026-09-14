@@ -814,7 +814,25 @@ function trickPick(meta, problem) {
                 const other = a;                     // остаётся только 7 × 7
                 return { key: 'mul:core7', args: [other, other * 10, other * 3] };
             }
-            default: return null;                    // двузначные — своего приёма пока нет
+            // Двузначные. У «круглых» круглый множитель есть всегда (проверено
+            // прогоном генератора), поэтому приём «убери ноль» безопасен; у двузначных
+            // без нуля второй множитель всегда однозначный, и там работает разбиение.
+            case 'round':
+            case 'tworound': {
+                // Ноль снимаем ровно у ОДНОГО множителя, даже если круглые оба:
+                // 30 × 20 превращается в 3 × 20, и «допиши ноль» остаётся правдой.
+                if (a % 10 === 0) return { key: 'mul:round', args: [a / 10, b] };
+                if (b % 10 === 0) return { key: 'mul:round', args: [a, b / 10] };
+                return null;
+            }
+            case 'twoPlain':
+            case 'twoCarry': {
+                const two = hi, one = lo;                // lo здесь всегда однозначный
+                const tens = Math.floor(two / 10) * 10, units = two % 10;
+                if (!tens || !units) return null;        // разбивать нечего
+                return { key: 'mul:twoSplit', args: [tens, one, units] };
+            }
+            default: return null;
         }
     }
 

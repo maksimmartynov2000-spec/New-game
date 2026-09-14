@@ -446,6 +446,8 @@ window.HINT_CONTENT = {
 //   mul:core6    множитель, он же × 3
 //   mul:core8    множитель, он же × 10, он же × 2
 //   mul:core7    множитель, он же × 10, он же × 3
+//   mul:round    круглый множитель без нуля, второй как есть
+//   mul:twoSplit десятки двузначного, однозначный множитель, единицы двузначного
 //   div:general  делитель, делимое
 //   div:round    делимое без нуля, делитель без нуля
 // Остальные ключи подстановок не имеют.
@@ -465,6 +467,8 @@ window.TRICK_CONTENT = {
         "mul:core6": "Умножь на 3 и удвой: %1 × 3 = %2",
         "mul:core8": "Умножь на 10 и отними %1 дважды: %2 − %3",
         "mul:core7": "Умножь на 10 и отними %1 трижды: %2 − %3",
+        "mul:round": "Убери ноль, потом верни: %1 × %2",
+        "mul:twoSplit": "Разбей: %1 × %2 и %3 × %2",
         "div:general": "На что умножить %1, чтобы вышло %2?",
         "div:round": "Убери по нулю: %1 ÷ %2",
         "div:zeroTop": "Делить нечего — ноль",
@@ -485,6 +489,8 @@ window.TRICK_CONTENT = {
         "mul:core6": "Times 3, then double: %1 × 3 = %2",
         "mul:core8": "Times 10, then take away %1 twice: %2 − %3",
         "mul:core7": "Times 10, then take away %1 three times: %2 − %3",
+        "mul:round": "Drop the zero, put it back at the end: %1 × %2",
+        "mul:twoSplit": "Split it: %1 × %2 and %3 × %2",
         "div:general": "What times %1 makes %2?",
         "div:round": "Drop a zero from each: %1 ÷ %2",
         "div:zeroTop": "Nothing to share — zero",
@@ -505,6 +511,8 @@ window.TRICK_CONTENT = {
         "mul:core6": "Par 3, puis double : %1 × 3 = %2",
         "mul:core8": "Par 10, puis enlève %1 deux fois : %2 − %3",
         "mul:core7": "Par 10, puis enlève %1 trois fois : %2 − %3",
+        "mul:round": "Enlève le zéro, remets-le à la fin : %1 × %2",
+        "mul:twoSplit": "Découpe : %1 × %2 et %3 × %2",
         "div:general": "Par quoi multiplier %1 pour obtenir %2 ?",
         "div:round": "Enlève un zéro des deux : %1 ÷ %2",
         "div:zeroTop": "Rien à partager — zéro",
@@ -525,6 +533,8 @@ window.TRICK_CONTENT = {
         "mul:core6": "Mal 3, dann verdoppeln: %1 × 3 = %2",
         "mul:core8": "Mal 10, dann %1 zweimal abziehen: %2 − %3",
         "mul:core7": "Mal 10, dann %1 dreimal abziehen: %2 − %3",
+        "mul:round": "Streiche die Null, häng sie am Ende wieder an: %1 × %2",
+        "mul:twoSplit": "Zerlege: %1 × %2 und %3 × %2",
         "div:general": "Womit muss man %1 malnehmen, damit %2 herauskommt?",
         "div:round": "Streiche bei beiden eine Null: %1 ÷ %2",
         "div:zeroTop": "Nichts zu teilen — null",

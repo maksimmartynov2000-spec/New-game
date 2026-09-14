@@ -1329,8 +1329,8 @@
            режим существует ровно затем, чтобы ученику не приходилось сперва ошибиться.
            Включается им самим и стоит денег: ответы отсюда в статистику не идут. */
         .train-toggle {
-            width: 100%; display: flex; align-items: center; gap: 11px;
-            padding: 12px 14px; border-radius: 12px; cursor: pointer; text-align: left;
+            width: 100%; display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: 10px; cursor: pointer; text-align: left;
             font-family: inherit; color: #cbd5e1;
             background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
         }
@@ -1342,24 +1342,37 @@
         /* Флажок — не декорация: включённый режим меняет то, куда пойдут ответы,
            и это должно быть видно раньше, чем ученик нажмёт «Начать миссию». */
         .train-box {
-            flex: 0 0 auto; width: 22px; height: 22px; border-radius: 6px;
+            flex: 0 0 auto; width: 19px; height: 19px; border-radius: 5px;
             border: 2px solid rgba(255,255,255,0.25);
             display: flex; align-items: center; justify-content: center;
-            font-size: 0.8rem; line-height: 1; color: #0b1120;
+            font-size: 0.7rem; line-height: 1; color: #0b1120;
         }
         .train-toggle.on .train-box { background: #fbbf24; border-color: #fbbf24; }
-        .train-text { display: grid; gap: 2px; min-width: 0; }
-        .train-text b { font-size: 0.84rem; font-weight: bold; }
-        .train-text span { font-size: 0.7rem; color: #64748b; line-height: 1.4; }
+        /* Подпись в одну строку и мелко. Длинное объяснение здесь читал бы разве что
+           взрослый: ученику нужно знать цену режима, а не читать про неё абзац. */
+        .train-text { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+        .train-text b { font-size: 0.82rem; font-weight: bold; }
+        .train-text span { font-size: 0.68rem; color: #64748b; }
         .train-toggle.on .train-text span { color: #a1834a; }
 
-        /* Строка приёма под примером. Держим ей место всегда, пока режим включён:
-           у примеров без приёма подсказки нет, и без запаса по высоте страница
-           дёргалась бы на каждом втором примере. */
+        /* Строка приёма — над карточкой, в пустой зоне. Держим ей место всегда,
+           пока режим включён: у примеров без приёма подсказки нет, и без запаса по
+           высоте карточка прыгала бы на каждом втором примере. */
         .train-hint {
-            min-height: 34px; display: flex; align-items: center; justify-content: center;
-            text-align: center; padding: 0 10px; margin-bottom: 8px;
-            font-size: 0.84rem; line-height: 1.35; color: #fde68a;
+            position: relative; z-index: 2;
+            min-height: 40px; display: flex; align-items: center; justify-content: center;
+            text-align: center; padding: 8px 14px; margin-bottom: 10px;
+            width: 100%; max-width: min(94vw, 520px);
+            font-size: 0.86rem; line-height: 1.35; color: #fde68a;
+            background: rgba(251,191,36,0.10); border: 1px solid rgba(251,191,36,0.3);
+            border-radius: 12px;
+        }
+        /* На низком экране карточка и так впритык — подсказке лишняя рамка ни к чему. */
+        @media (max-height: 600px) {
+            .train-hint {
+                min-height: 26px; padding: 3px 10px; margin-bottom: 6px;
+                font-size: 0.78rem; background: none; border: none;
+            }
         }
 
         /* --- Таблица умножения --- */
@@ -2385,8 +2398,8 @@
                 <button class="train-toggle" id="trainToggle" aria-pressed="false">
                     <span class="train-box" id="trainBox"></span>
                     <span class="train-text">
-                        <b>Играть с подсказками</b>
-                        <span>Покажу, как считать. В статистику такая миссия не пойдёт — только в дневную цель.</span>
+                        <b>💡 С подсказками</b>
+                        <span>не идёт в статистику</span>
                     </span>
                 </button>
             </div>
@@ -2421,6 +2434,11 @@
 
     <div class="game-space">
         <canvas id="cityCanvas"></canvas>
+        <!-- Подсказка стоит НАД карточкой, а не внутри неё. Между примером и
+             вариантами ответа — самый ходовой путь взгляда, и лишняя строка там
+             разрывает его ровно в момент решения. Сверху же пустое место, и
+             подсказка ничего не сдвигает. -->
+        <div class="train-hint" id="trainHint" style="display:none;"></div>
         <div class="math-box" id="mainMathBox">
             <div class="stats-counter-row">
                 <div>✅ Верно: <span id="stat-correct" style="color:#10b981;">0</span></div>
@@ -2453,7 +2471,6 @@
                 <div class="timer-bar" id="timerBar"></div>
             </div>
             <div class="math-question" id="mathQuestion">Загрузка…</div>
-            <div class="train-hint" id="trainHint" style="display:none;"></div>
             <div class="answers-grid" id="answersGrid"></div>
         </div>
     </div>
