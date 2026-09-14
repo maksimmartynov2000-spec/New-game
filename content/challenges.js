@@ -88,12 +88,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: 'Как узнать последнюю цифру у 37 + 48, не считая целиком?',
                 answer: 'Сложить 7 и 8',
-                why: 'Последнюю цифру задают только единицы: 7 + 8 = 15, значит ответ кончается на пять. Десятки на неё не влияют совсем — они решают лишь, сколько выйдет всего. Столбик потому и считают справа налево.'
+                why: 'Последнюю цифру задают только единицы: 7 + 8 = 15, значит ответ кончается на пять. Десятки на неё не влияют совсем.'
             },
             legend: {
-                task: 'Сколько будет 1 + 2 + 4 + 8 + 16 + 32 + 64?',
-                answer: '127',
-                why: 'Каждое следующее число равно сумме всех предыдущих плюс один, поэтому вся сумма — это 128 без единицы.'
+                task: 'Сколько цифр нужно, чтобы пронумеровать книгу от 1 до 20?',
+                answer: '31',
+                why: 'С 1 по 9 — девять страниц и девять цифр. С 10 по 20 страниц одиннадцать, и на каждой уже по две цифры — это ещё 22. Вместе 9 + 22 = 31. Страниц двадцать, а цифр больше: двузначные берут по две.'
             }
         },
         'integer+:add:5': {
@@ -179,38 +179,38 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Лист бумаги сложили пополам три раза. Сколько получилось слоёв?',
                 answer: 'Восемь',
-                why: 'Каждое сложение удваивает: 2, 4, 8. Не 3 и не 6 — удвоение растёт быстрее, чем сложение.'
+                why: 'Один раз сложил — два слоя. Второй — четыре. Третий — восемь. Каждый раз не прибавляется два, а удваивается то, что есть.'
             }
         },
         'integer+:mul:2': {
             diamond: {
                 task: 'Сколько будет 2 × 17 × 5?',
                 answer: '170',
-                why: 'Переставь множители: 2 × 5 = 10, и остаётся 10 × 17. Искать удобную пару выгоднее, чем считать по порядку.'
+                why: 'Переставь числа: 2 × 5 = 10, и остаётся 10 × 17. Искать удобную пару выгоднее, чем считать по порядку.'
             },
             legend: {
                 task: 'Сколько будет 5 × 4 × 2 × 0 × 3?',
                 answer: 'Ноль',
-                why: 'Один-единственный ноль в цепочке обнуляет всё произведение, сколько бы больших чисел рядом ни стояло.'
+                why: 'Один-единственный ноль в цепочке обнуляет всё, сколько бы больших чисел рядом ни стояло.'
             }
         },
         'integer+:mul:3': {
             diamond: {
                 task: 'У пяти человек по два кармана, и в каждом кармане по три монеты. Сколько всего монет?',
                 answer: '30',
-                why: 'Карманов 5 × 2 = 10, в каждом по три: 10 × 3 = 30. Три множителя можно перемножать в любом порядке.'
+                why: 'Карманов 5 × 2 = 10, в каждом по три: 10 × 3 = 30. Три числа можно перемножать в любом порядке.'
             },
             legend: {
-                task: 'Что больше: 12 × 8 или 16 × 6?',
+                task: 'Что больше: 18 × 8 или 9 × 16?',
                 answer: 'Поровну',
-                why: 'Оба дают 96. Во втором один множитель вырос, зато другой уменьшился ровно так же — произведение не изменилось.'
+                why: 'Оба дают 144. Первое число уменьшили вдвое, второе вдвое увеличили — и они погасили друг друга. Вдвое меньше на вдвое больше всегда даёт то же самое.'
             }
         },
         'integer+:mul:4': {
             diamond: {
                 task: 'Сколько будет 25 × 4? А 25 × 8?',
                 answer: '100 и 200',
-                why: 'Четыре четвертака — это ровно сотня, а восемь — вдвое больше. Числа 25 и 4 стоит запомнить как пару: они дают круглое.'
+                why: 'Четыре раза по 25 — это ровно сотня. Восемь раз — вдвое больше, 200. Пару 25 и 4 стоит запомнить: вместе они дают 100.'
             },
             legend: {
                 task: 'Как быстро умножить 18 на 5, не считая столбиком?',
@@ -222,12 +222,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: 'Как умножить 99 на 7 в уме?',
                 answer: '693',
-                why: 'Считай 99 как сотню без единицы: 100 × 7 = 700, потом вычти семь лишних — 700 − 7 = 693.'
+                why: 'Считай 99 как сотню без единицы: 100 × 7 = 700. Но семёрок взяли на одну больше, чем нужно, — вычти лишнюю семёрку: 700 − 7 = 693.'
             },
             legend: {
                 task: 'Сколько нулей будет в конце у 2 × 5 × 4 × 5 × 6?',
                 answer: 'Два',
-                why: 'Получается 1200. Каждый ноль в конце рождается парой «два и пять», а таких пар здесь ровно две.'
+                why: 'Нули в конце дают пары: 2 × 5 = 10 — первый ноль, 4 × 5 = 20 — второй. Проверка: 2 × 5 × 4 × 5 × 6 = 1200.'
             }
         },
         // ================== ДЕЛЕНИЕ ==================
@@ -240,14 +240,14 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Что больше: 100 ÷ 4 или 100 ÷ 5?',
                 answer: '100 ÷ 4',
-                why: 'Это 25 против 20. Чем на большее число делят, тем меньше достаётся каждому — с делителем результат идёт в обратную сторону.'
+                why: 'Раздели сотню конфет на четверых — каждому по 25. Позови пятого, и каждому достанется меньше, по 20 конфет. Конфет столько же, а людей больше: чем на большее число делят, тем меньше выходит каждому.'
             }
         },
         'integer+:div:2': {
             diamond: {
                 task: 'Двенадцать конфет раздали детям поровну, каждому досталось по три. Сколько было детей?',
                 answer: 'Четверо',
-                why: 'Деление отвечает и на вопрос «сколько раз по три помещается в двенадцати» — а это и есть число детей.'
+                why: 'Деление отвечает на такой вопрос: сколько троек помещается в двенадцати? Четыре — значит и детей четверо.'
             },
             legend: {
                 task: 'Половина числа равна 8. Чему равна его четверть?',
@@ -264,31 +264,31 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Шесть котов съедают шесть рыбок за шесть минут. За сколько минут шесть котов съедят двенадцать рыбок?',
                 answer: 'За двенадцать',
-                why: 'Каждый кот ест свою рыбку шесть минут, значит вторую съест ещё за шесть. Число котов здесь вообще ни при чём.'
+                why: 'Шесть котов и шесть рыбок — значит каждому досталось по одной, и ест он её шесть минут. Дай каждому вторую рыбку: на неё уйдут ещё шесть. Котов может быть хоть сто — пока у каждого своя рыбка, время считают по одному коту.'
             }
         },
         'integer+:div:4': {
             diamond: {
-                task: 'Что общего у 420 ÷ 70 и 42 ÷ 7?',
-                answer: 'Ответ один и тот же',
-                why: 'Оба дают шесть. Деление показывает, во сколько раз одно число больше другого, а если уменьшить оба в десять раз, это не сдвинется. Отсюда и приём: у круглых чисел можно вычеркнуть по нулю и считать маленькие.'
+                task: '420 ÷ 70 = 6. А сколько будет 42 ÷ 7?',
+                answer: 'Тоже шесть',
+                why: 'Оба числа уменьшили в десять раз — а сколько раз семёрка помещается в сорока двух, от этого не изменилось. У круглых чисел можно вычеркнуть по нулю и считать маленькие.'
             },
             legend: {
                 task: 'Число разделили на 5 и получили 5. Что получится, если это же число разделить на 25?',
                 answer: 'Единица',
-                why: 'Само число 25, но можно и не считать: делитель вырос в пять раз, значит результат во столько же раз уменьшился.'
+                why: 'Если разделили на 5 и вышло 5, то само число — 25. А 25 разделить на 25 — это один раз, то есть единица.'
             }
         },
         'integer+:div:5': {
             diamond: {
                 task: 'Конфеты разделили поровну между детьми, каждому досталось по 8. Конфет привезли вдвое больше, детей столько же. Сколько теперь у каждого?',
                 answer: 'По 16',
-                why: 'Детей не прибавилось, а конфет стало вдвое больше — значит и каждому достанется вдвое больше. Когда делят на одно и то же число людей, ответ растёт ровно так же, как растёт то, что делят.'
+                why: 'Детей столько же, а конфет вдвое больше — значит и каждому достанется вдвое больше: по 16.'
             },
             legend: {
                 task: 'Как быстро разделить 300 на 25?',
                 answer: 'Двенадцать',
-                why: 'В сотне четыре четвертака, значит в трёх сотнях их 4 × 3 = 12. Делить на 25 удобно через сотни.'
+                why: 'В сотне 25 помещается четыре раза. В трёхстах — втрое больше: 4 × 3 = 12.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
@@ -578,12 +578,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: 'How can you tell the last digit of 37 + 48 without adding it all up?',
                 answer: 'Add 7 and 8',
-                why: 'Only the ones set the last digit: 7 + 8 = 15, so the answer ends in five. The tens have no say in it at all — they only decide how much there is altogether. That is why written addition is worked from right to left.'
+                why: 'Only the ones set the last digit: 7 + 8 = 15, so the answer ends in five. The tens have no effect on it at all.'
             },
             legend: {
-                task: 'How much is 1 + 2 + 4 + 8 + 16 + 32 + 64?',
-                answer: '127',
-                why: 'Each next number equals all the previous ones plus one, so the whole sum is 128 minus a single unit.'
+                task: 'How many digits does it take to number a book from 1 to 20?',
+                answer: '31',
+                why: 'From 1 to 9 there are nine pages and nine digits. From 10 to 20 there are eleven pages, and each already takes two digits — another 22. Together 9 + 22 = 31. Twenty pages, but more digits: the two-digit ones take two apiece.'
             }
         },
         'integer+:add:5': {
@@ -669,38 +669,38 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'A sheet of paper was folded in half three times. How many layers are there?',
                 answer: 'Eight',
-                why: 'Every fold doubles it: 2, 4, 8. Not 3 and not 6 — doubling grows faster than adding.'
+                why: 'One fold — two layers. A second — four. A third — eight. Each time it does not gain two, it doubles what is already there.'
             }
         },
         'integer+:mul:2': {
             diamond: {
                 task: 'What is 2 × 17 × 5?',
                 answer: '170',
-                why: 'Reorder the factors: 2 × 5 = 10, and 10 × 17 is left. Hunting for a handy pair beats multiplying in the order given.'
+                why: 'Reorder the numbers: 2 × 5 = 10, and 10 × 17 is left. Looking for a handy pair beats counting in order.'
             },
             legend: {
                 task: 'How much is 5 × 4 × 2 × 0 × 3?',
                 answer: 'Zero',
-                why: 'A single zero in the chain wipes out the whole product, no matter how big the other numbers are.'
+                why: 'A single zero in the chain wipes everything out, however many big numbers stand beside it.'
             }
         },
         'integer+:mul:3': {
             diamond: {
                 task: 'Five people each have two pockets, and each pocket holds three coins. How many coins are there in all?',
                 answer: '30',
-                why: 'Pockets: 5 × 2 = 10, three coins in each: 10 × 3 = 30. Three factors can be multiplied in any order.'
+                why: 'Pockets: 5 × 2 = 10, three in each: 10 × 3 = 30. Three numbers can be multiplied in any order.'
             },
             legend: {
-                task: 'Which is bigger: 12 × 8 or 16 × 6?',
+                task: 'Which is bigger: 18 × 8 or 9 × 16?',
                 answer: 'Equal',
-                why: 'Both make 96. In the second one factor grew, but the other shrank by exactly as much — the product did not change.'
+                why: 'Both make 144. The first number was halved, the second was doubled — and they cancelled each other out. Half of one times double the other always gives the same.'
             }
         },
         'integer+:mul:4': {
             diamond: {
                 task: 'How much is 25 × 4? And 25 × 8?',
                 answer: '100 and 200',
-                why: 'Four quarters make exactly a hundred, and eight make twice that. 25 and 4 are worth remembering as a pair: they give a round number.'
+                why: 'Four times 25 is exactly a hundred. Eight times is twice that, 200. The pair 25 and 4 is worth remembering: together they give 100.'
             },
             legend: {
                 task: 'How do you multiply 18 by 5 quickly, without doing it on paper?',
@@ -712,12 +712,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: 'How do you multiply 99 by 7 in your head?',
                 answer: '693',
-                why: 'Treat 99 as a hundred minus one: 100 × 7 = 700, then take off the seven extra — 700 − 7 = 693.'
+                why: 'Treat 99 as a hundred minus one: 100 × 7 = 700. But that took one seven more than needed — subtract the extra seven: 700 − 7 = 693.'
             },
             legend: {
                 task: 'How many zeros will there be at the end of 2 × 5 × 4 × 5 × 6?',
                 answer: 'Two',
-                why: 'It makes 1200. Every zero at the end is born from a pair of two and five, and there are exactly two such pairs here.'
+                why: 'The zeros at the end come from pairs: 2 × 5 = 10 — the first zero, 4 × 5 = 20 — the second. Check: 2 × 5 × 4 × 5 × 6 = 1200.'
             }
         },
         // ================== ДЕЛЕНИЕ ==================
@@ -730,14 +730,14 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Which is bigger: 100 ÷ 4 or 100 ÷ 5?',
                 answer: '100 ÷ 4',
-                why: 'That is 25 against 20. The bigger the number you divide by, the less each one gets — with the divisor the result goes the other way.'
+                why: 'Share a hundred sweets among four — 25 each. Call a fifth one over, and each gets less, 20 sweets. The same sweets, more people: the bigger the number you divide by, the less each one gets.'
             }
         },
         'integer+:div:2': {
             diamond: {
                 task: 'Twelve sweets were shared equally among children, and each got three. How many children were there?',
                 answer: 'Four',
-                why: 'Division also answers “how many times three fits into twelve” — and that is the number of children.'
+                why: 'Division answers this question: how many threes fit into twelve? Four — so there were four children.'
             },
             legend: {
                 task: 'Half of a number is 8. What is a quarter of it?',
@@ -754,31 +754,31 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Six cats eat six fish in six minutes. How many minutes will six cats need to eat twelve fish?',
                 answer: 'Twelve',
-                why: 'Each cat eats its own fish in six minutes, so it needs six more for a second one. The number of cats does not matter at all.'
+                why: 'Six cats and six fish — so each got one, and eats it in six minutes. Give each a second fish: that takes six more. There could be a hundred cats — as long as each has a fish of its own, the time is counted for one cat.'
             }
         },
         'integer+:div:4': {
             diamond: {
-                task: 'What do 420 ÷ 70 and 42 ÷ 7 have in common?',
-                answer: 'The same answer',
-                why: 'Both give six. Division shows how many times one number fits into another, and shrinking both tenfold does not change that. Hence the trick: with round numbers a zero can be crossed off each and the small ones counted.'
+                task: '420 ÷ 70 = 6. And how much is 42 ÷ 7?',
+                answer: 'Six as well',
+                why: 'Both numbers were made ten times smaller — and how many times seven fits into forty-two did not change from that. With round numbers you can cross off a zero from each and count the small ones.'
             },
             legend: {
                 task: 'A number was divided by 5 and gave 5. What comes out if the same number is divided by 25?',
                 answer: 'One',
-                why: 'The number itself is 25, but you need not work it out: the divisor grew five times, so the result shrank by the same five.'
+                why: 'If dividing by 5 gave 5, the number itself is 25. And 25 divided by 25 goes once — that is one.'
             }
         },
         'integer+:div:5': {
             diamond: {
                 task: 'Sweets were shared evenly among some children, 8 each. Twice as many sweets arrive, the same children. How many does each get now?',
                 answer: '16 each',
-                why: 'The children did not increase, but the sweets doubled — so each share doubles too. When the same number of people is sharing, the answer grows exactly as what is being shared grows.'
+                why: 'The same children, twice as many sweets — so each one gets twice as much: 16 each.'
             },
             legend: {
                 task: 'How do you divide 300 by 25 quickly?',
                 answer: 'Twelve',
-                why: 'There are four quarters in a hundred, so in three hundreds there are 4 × 3 = 12. Dividing by 25 is easiest through hundreds.'
+                why: '25 fits into a hundred four times. Into three hundred — three times as often: 4 × 3 = 12.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
@@ -1068,12 +1068,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: 'Comment connaître le dernier chiffre de 37 + 48 sans tout calculer ?',
                 answer: 'Ajouter 7 et 8',
-                why: 'Seules les unités fixent le dernier chiffre : 7 + 8 = 15, donc la réponse se termine par cinq. Les dizaines n’y changent rien — elles décident seulement du total. C’est pour cela qu’on pose l’opération de droite à gauche.'
+                why: 'Seules les unités fixent le dernier chiffre : 7 + 8 = 15, donc la réponse se termine par cinq. Les dizaines n’y changent rien du tout.'
             },
             legend: {
-                task: 'Combien font 1 + 2 + 4 + 8 + 16 + 32 + 64 ?',
-                answer: '127',
-                why: 'Chaque nombre suivant vaut la somme de tous les précédents plus un, donc le total, c’est 128 moins une unité.'
+                task: 'Combien de chiffres faut-il pour numéroter un livre de 1 à 20 ?',
+                answer: '31',
+                why: 'De 1 à 9, neuf pages et neuf chiffres. De 10 à 20, onze pages, et chacune prend déjà deux chiffres — encore 22. En tout 9 + 22 = 31. Vingt pages, mais plus de chiffres : celles à deux chiffres en prennent deux chacune.'
             }
         },
         'integer+:add:5': {
@@ -1159,38 +1159,38 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'On a plié une feuille en deux, trois fois de suite. Combien de couches obtient-on ?',
                 answer: 'Huit',
-                why: 'Chaque pli double : 2, 4, 8. Ni 3 ni 6 — doubler grandit plus vite qu’ajouter.'
+                why: 'Un pli — deux couches. Un deuxième — quatre. Un troisième — huit. À chaque fois, on n’ajoute pas deux, on double ce qu’on a déjà.'
             }
         },
         'integer+:mul:2': {
             diamond: {
                 task: 'Combien font 2 × 17 × 5 ?',
                 answer: '170',
-                why: 'Réordonne les facteurs : 2 × 5 = 10, il reste 10 × 17. Chercher une paire commode vaut mieux que multiplier dans l’ordre.'
+                why: 'Réordonne les nombres : 2 × 5 = 10, il reste 10 × 17. Chercher une paire commode vaut mieux que calculer dans l’ordre.'
             },
             legend: {
                 task: 'Combien font 5 × 4 × 2 × 0 × 3 ?',
                 answer: 'Zéro',
-                why: 'Un seul zéro dans la chaîne annule tout le produit, quels que soient les grands nombres à côté.'
+                why: 'Un seul zéro dans la chaîne annule tout, quel que soit le nombre de grands nombres à côté.'
             }
         },
         'integer+:mul:3': {
             diamond: {
                 task: 'Cinq personnes ont chacune deux poches, et chaque poche contient trois pièces. Combien de pièces en tout ?',
                 answer: '30',
-                why: 'Les poches font 5 × 2 = 10, avec trois pièces chacune : 10 × 3 = 30. Trois facteurs se multiplient dans l’ordre qu’on veut.'
+                why: 'Les poches font 5 × 2 = 10, trois dans chacune : 10 × 3 = 30. Trois nombres se multiplient dans l’ordre qu’on veut.'
             },
             legend: {
-                task: 'Qu’est-ce qui est plus grand : 12 × 8 ou 16 × 6 ?',
+                task: 'Qu’est-ce qui est plus grand : 18 × 8 ou 9 × 16 ?',
                 answer: 'Égaux',
-                why: 'Tous deux font 96. Dans le second, un facteur a grandi, mais l’autre a diminué d’autant — le produit n’a pas bougé.'
+                why: 'Les deux font 144. Le premier nombre a été divisé par deux, le second multiplié par deux — ils se sont annulés. Deux fois moins par deux fois plus donne toujours la même chose.'
             }
         },
         'integer+:mul:4': {
             diamond: {
                 task: 'Combien font 25 × 4 ? Et 25 × 8 ?',
                 answer: '100 et 200',
-                why: 'Quatre quarts font exactement cent, et huit en font le double. 25 et 4 méritent d’être retenus ensemble : ils donnent un compte rond.'
+                why: 'Quatre fois 25, c’est exactement cent. Huit fois, c’est le double, 200. La paire 25 et 4 mérite d’être retenue : ensemble ils donnent 100.'
             },
             legend: {
                 task: 'Comment multiplier vite 18 par 5, sans poser l’opération ?',
@@ -1202,12 +1202,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: 'Comment multiplier 99 par 7 de tête ?',
                 answer: '693',
-                why: 'Prends 99 comme cent moins un : 100 × 7 = 700, puis retire les sept en trop — 700 − 7 = 693.'
+                why: 'Prends 99 comme cent moins un : 100 × 7 = 700. Mais on a pris un sept de trop — retire ce sept en trop : 700 − 7 = 693.'
             },
             legend: {
                 task: 'Combien de zéros y aura-t-il à la fin de 2 × 5 × 4 × 5 × 6 ?',
                 answer: 'Deux',
-                why: 'Cela fait 1200. Chaque zéro final naît d’une paire deux-et-cinq, et il y a ici exactement deux paires de ce genre.'
+                why: 'Les zéros de la fin viennent des paires : 2 × 5 = 10 — premier zéro, 4 × 5 = 20 — deuxième. Vérification : 2 × 5 × 4 × 5 × 6 = 1200.'
             }
         },
         // ================== ДЕЛЕНИЕ ==================
@@ -1220,14 +1220,14 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Qu’est-ce qui est plus grand : 100 ÷ 4 ou 100 ÷ 5 ?',
                 answer: '100 ÷ 4',
-                why: 'C’est 25 contre 20. Plus le diviseur est grand, moins chacun reçoit — avec le diviseur, le résultat va dans l’autre sens.'
+                why: 'Partage cent bonbons entre quatre — 25 chacun. Appelle un cinquième, et chacun en reçoit moins, 20 bonbons. Autant de bonbons, plus de monde : plus le diviseur est grand, moins chacun reçoit.'
             }
         },
         'integer+:div:2': {
             diamond: {
                 task: 'Douze bonbons ont été partagés également entre des enfants, chacun en a reçu trois. Combien y avait-il d’enfants ?',
                 answer: 'Quatre',
-                why: 'La division répond aussi à « combien de fois trois tient dans douze » — et c’est justement le nombre d’enfants.'
+                why: 'La division répond à cette question : combien de fois trois tient dans douze ? Quatre — donc il y avait quatre enfants.'
             },
             legend: {
                 task: 'La moitié d’un nombre vaut 8. Combien vaut son quart ?',
@@ -1244,31 +1244,31 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Six chats mangent six poissons en six minutes. En combien de minutes six chats mangeront-ils douze poissons ?',
                 answer: 'En douze',
-                why: 'Chaque chat mange son poisson en six minutes, il lui en faut donc six de plus pour un second. Le nombre de chats n’y change rien.'
+                why: 'Six chats et six poissons — chacun en a donc eu un, et il le mange en six minutes. Donne à chacun un deuxième poisson : il y passera six minutes de plus. Il pourrait y avoir cent chats — tant que chacun a son poisson, on compte le temps sur un seul chat.'
             }
         },
         'integer+:div:4': {
             diamond: {
-                task: 'Qu’ont en commun 420 ÷ 70 et 42 ÷ 7 ?',
-                answer: 'La même réponse',
-                why: 'Les deux donnent six. La division montre combien de fois un nombre tient dans un autre, et les réduire tous deux dix fois n’y change rien. D’où l’astuce : avec des nombres ronds, on barre un zéro de chaque côté et on calcule les petits.'
+                task: '420 ÷ 70 = 6. Et combien font 42 ÷ 7 ?',
+                answer: 'Six aussi',
+                why: 'Les deux nombres ont été réduits dix fois — et cela n’a rien changé au nombre de fois où sept tient dans quarante-deux. Avec des nombres ronds, on barre un zéro de chaque côté et on calcule les petits.'
             },
             legend: {
                 task: 'On a divisé un nombre par 5 et obtenu 5. Que donne le même nombre divisé par 25 ?',
                 answer: 'Un',
-                why: 'Le nombre est 25, mais inutile de le calculer : le diviseur a été multiplié par cinq, donc le résultat a été divisé par cinq.'
+                why: 'Si diviser par 5 a donné 5, le nombre lui-même vaut 25. Et 25 divisé par 25 tient une fois — donc un.'
             }
         },
         'integer+:div:5': {
             diamond: {
                 task: 'Des bonbons ont été partagés également entre des enfants, 8 chacun. On en apporte deux fois plus, avec les mêmes enfants. Combien chacun en a-t-il maintenant ?',
                 answer: '16 chacun',
-                why: 'Les enfants ne sont pas plus nombreux, mais les bonbons ont doublé — donc chaque part double aussi. Quand on partage entre le même nombre de personnes, la réponse grandit exactement comme grandit ce qu’on partage.'
+                why: 'Autant d’enfants, deux fois plus de bonbons — donc chacun en reçoit deux fois plus : 16 chacun.'
             },
             legend: {
                 task: 'Comment diviser vite 300 par 25 ?',
                 answer: 'Douze',
-                why: 'Il y a quatre quarts dans une centaine, donc dans trois centaines il y en a 4 × 3 = 12. Diviser par 25 passe bien par les centaines.'
+                why: '25 tient quatre fois dans cent. Dans trois cents — trois fois plus : 4 × 3 = 12.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
@@ -1558,12 +1558,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: 'Wie erkennt man die letzte Ziffer von 37 + 48, ohne alles auszurechnen?',
                 answer: '7 und 8 addieren',
-                why: 'Nur die Einer bestimmen die letzte Ziffer: 7 + 8 = 15, die Antwort endet also auf fünf. Die Zehner haben darauf gar keinen Einfluss — sie entscheiden nur über die Gesamtmenge. Darum rechnet man schriftlich von rechts nach links.'
+                why: 'Nur die Einer bestimmen die letzte Ziffer: 7 + 8 = 15, die Antwort endet also auf fünf. Die Zehner haben darauf gar keinen Einfluss.'
             },
             legend: {
-                task: 'Wie viel ist 1 + 2 + 4 + 8 + 16 + 32 + 64?',
-                answer: '127',
-                why: 'Jede nächste Zahl ist so groß wie alle vorherigen zusammen plus eins, also ist die ganze Summe 128 weniger eins.'
+                task: 'Wie viele Ziffern braucht man, um ein Buch von 1 bis 20 zu nummerieren?',
+                answer: '31',
+                why: 'Von 1 bis 9 sind es neun Seiten und neun Ziffern. Von 10 bis 20 sind es elf Seiten, und jede braucht schon zwei Ziffern — noch einmal 22. Zusammen 9 + 22 = 31. Zwanzig Seiten, aber mehr Ziffern: die zweistelligen nehmen je zwei.'
             }
         },
         'integer+:add:5': {
@@ -1649,38 +1649,38 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Ein Blatt Papier wurde dreimal in der Mitte gefaltet. Wie viele Lagen sind es?',
                 answer: 'Acht',
-                why: 'Jede Faltung verdoppelt: 2, 4, 8. Nicht 3 und nicht 6 — Verdoppeln wächst schneller als Addieren.'
+                why: 'Einmal gefaltet — zwei Lagen. Ein zweites Mal — vier. Ein drittes — acht. Jedes Mal kommen nicht zwei dazu, sondern es verdoppelt sich, was schon da ist.'
             }
         },
         'integer+:mul:2': {
             diamond: {
                 task: 'Wie viel ist 2 × 17 × 5?',
                 answer: '170',
-                why: 'Stelle die Faktoren um: 2 × 5 = 10, es bleibt 10 × 17. Ein bequemes Paar zu suchen ist besser, als der Reihe nach zu rechnen.'
+                why: 'Stelle die Zahlen um: 2 × 5 = 10, es bleibt 10 × 17. Ein bequemes Paar zu suchen ist besser, als der Reihe nach zu rechnen.'
             },
             legend: {
                 task: 'Wie viel ist 5 × 4 × 2 × 0 × 3?',
                 answer: 'Null',
-                why: 'Eine einzige Null in der Kette macht das ganze Produkt zunichte, egal wie groß die anderen Zahlen sind.'
+                why: 'Eine einzige Null in der Kette macht alles zunichte, wie viele große Zahlen auch daneben stehen.'
             }
         },
         'integer+:mul:3': {
             diamond: {
                 task: 'Fünf Leute haben je zwei Taschen, und in jeder Tasche sind drei Münzen. Wie viele Münzen sind es insgesamt?',
                 answer: '30',
-                why: 'Taschen: 5 × 2 = 10, in jeder drei: 10 × 3 = 30. Drei Faktoren darf man in beliebiger Reihenfolge multiplizieren.'
+                why: 'Taschen: 5 × 2 = 10, in jeder drei: 10 × 3 = 30. Drei Zahlen darf man in beliebiger Reihenfolge multiplizieren.'
             },
             legend: {
-                task: 'Was ist größer: 12 × 8 oder 16 × 6?',
+                task: 'Was ist größer: 18 × 8 oder 9 × 16?',
                 answer: 'Gleich',
-                why: 'Beide ergeben 96. Beim zweiten ist ein Faktor gewachsen, dafür der andere genauso geschrumpft — das Produkt blieb gleich.'
+                why: 'Beide ergeben 144. Die erste Zahl wurde halbiert, die zweite verdoppelt — sie haben sich gegenseitig aufgehoben. Halb so viel mal doppelt so viel ergibt immer dasselbe.'
             }
         },
         'integer+:mul:4': {
             diamond: {
                 task: 'Wie viel ist 25 × 4? Und 25 × 8?',
                 answer: '100 und 200',
-                why: 'Vier Viertel ergeben genau hundert, acht das Doppelte. 25 und 4 merkt man sich am besten als Paar: sie geben eine runde Zahl.'
+                why: 'Viermal 25 ist genau hundert. Achtmal ist doppelt so viel, 200. Das Paar 25 und 4 merkt man sich am besten: zusammen geben sie 100.'
             },
             legend: {
                 task: 'Wie multiplizierst du 18 mit 5 schnell im Kopf?',
@@ -1692,12 +1692,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: 'Wie multiplizierst du 99 mit 7 im Kopf?',
                 answer: '693',
-                why: 'Nimm 99 als hundert weniger eins: 100 × 7 = 700, dann die sieben zu viel weg — 700 − 7 = 693.'
+                why: 'Nimm 99 als hundert weniger eins: 100 × 7 = 700. Dabei hast du eine Sieben zu viel genommen — zieh diese Sieben ab: 700 − 7 = 693.'
             },
             legend: {
                 task: 'Wie viele Nullen stehen am Ende von 2 × 5 × 4 × 5 × 6?',
                 answer: 'Zwei',
-                why: 'Es ergibt 1200. Jede Null am Ende entsteht aus einem Paar aus Zwei und Fünf, und davon gibt es hier genau zwei.'
+                why: 'Die Nullen am Ende kommen von Paaren: 2 × 5 = 10 — die erste Null, 4 × 5 = 20 — die zweite. Probe: 2 × 5 × 4 × 5 × 6 = 1200.'
             }
         },
         // ================== ДЕЛЕНИЕ ==================
@@ -1710,14 +1710,14 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Was ist größer: 100 ÷ 4 oder 100 ÷ 5?',
                 answer: '100 ÷ 4',
-                why: 'Das sind 25 gegen 20. Je größer die Zahl, durch die man teilt, desto weniger bekommt jeder — beim Teiler läuft das Ergebnis andersherum.'
+                why: 'Teile hundert Bonbons unter vier — je 25. Hol einen fünften dazu, und jeder bekommt weniger, je 20 Bonbons. Gleich viele Bonbons, mehr Leute: je größer die Zahl, durch die man teilt, desto weniger bekommt jeder.'
             }
         },
         'integer+:div:2': {
             diamond: {
                 task: 'Zwölf Bonbons wurden gleichmäßig unter Kindern verteilt, jedes bekam drei. Wie viele Kinder waren es?',
                 answer: 'Vier',
-                why: 'Das Teilen beantwortet auch die Frage, wie oft drei in zwölf passt — und genau das ist die Anzahl der Kinder.'
+                why: 'Das Teilen beantwortet diese Frage: wie oft passt drei in zwölf? Viermal — also waren es vier Kinder.'
             },
             legend: {
                 task: 'Die Hälfte einer Zahl ist 8. Wie groß ist ihr Viertel?',
@@ -1734,31 +1734,31 @@ window.CHALLENGE_CONTENT = {
             legend: {
                 task: 'Sechs Katzen fressen sechs Fische in sechs Minuten. In wie vielen Minuten fressen sechs Katzen zwölf Fische?',
                 answer: 'In zwölf',
-                why: 'Jede Katze frisst ihren Fisch in sechs Minuten, für den zweiten braucht sie noch einmal sechs. Die Anzahl der Katzen spielt gar keine Rolle.'
+                why: 'Sechs Katzen und sechs Fische — jede bekam also einen und frisst ihn in sechs Minuten. Gib jeder einen zweiten Fisch: dafür braucht sie noch einmal sechs. Es könnten hundert Katzen sein — solange jede ihren eigenen Fisch hat, zählt man die Zeit an einer Katze.'
             }
         },
         'integer+:div:4': {
             diamond: {
-                task: 'Was haben 420 ÷ 70 und 42 ÷ 7 gemeinsam?',
-                answer: 'Dieselbe Antwort',
-                why: 'Beide ergeben sechs. Das Teilen zeigt, wie oft eine Zahl in eine andere passt, und beide um das Zehnfache zu verkleinern ändert daran nichts. Daher der Kniff: bei runden Zahlen streicht man je eine null und rechnet mit den kleinen.'
+                task: '420 ÷ 70 = 6. Und wie viel ist 42 ÷ 7?',
+                answer: 'Auch sechs',
+                why: 'Beide Zahlen wurden zehnmal kleiner — daran, wie oft sieben in zweiundvierzig passt, ändert das nichts. Bei runden Zahlen darf man je eine Null streichen und mit den kleinen rechnen.'
             },
             legend: {
                 task: 'Eine Zahl wurde durch 5 geteilt und ergab 5. Was kommt heraus, wenn man dieselbe Zahl durch 25 teilt?',
                 answer: 'Eins',
-                why: 'Die Zahl ist 25, aber rechnen muss man das nicht: der Teiler wurde fünfmal so groß, also wurde das Ergebnis fünfmal so klein.'
+                why: 'Wenn Teilen durch 5 genau 5 ergab, ist die Zahl selbst 25. Und 25 durch 25 passt einmal — also eins.'
             }
         },
         'integer+:div:5': {
             diamond: {
                 task: 'Bonbons wurden gleichmäßig unter Kindern verteilt, je 8. Es kommen doppelt so viele Bonbons, die Kinder bleiben dieselben. Wie viele bekommt jedes jetzt?',
                 answer: 'Je 16',
-                why: 'Die Kinder wurden nicht mehr, die Bonbons aber doppelt so viele — also verdoppelt sich auch jeder Anteil. Wird unter derselben Anzahl geteilt, wächst die Antwort genau so, wie das wächst, was geteilt wird.'
+                why: 'Gleich viele Kinder, doppelt so viele Bonbons — also bekommt jedes doppelt so viel: je 16.'
             },
             legend: {
                 task: 'Wie teilst du 300 schnell durch 25?',
                 answer: 'Zwölf',
-                why: 'In hundert stecken vier Viertel, in dreihundert also 4 × 3 = 12. Durch 25 teilt man am leichtesten über die Hunderter.'
+                why: 'In hundert passt 25 viermal. In dreihundert dreimal so oft: 4 × 3 = 12.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
