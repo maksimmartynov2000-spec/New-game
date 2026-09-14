@@ -12,6 +12,8 @@
 
 window.TRANSLATIONS = {
     en: {
+            "Играть с подсказками": "Play with hints",
+            "Покажу, как считать. В статистику такая миссия не пойдёт — только в дневную цель.": "I'll show you how to work it out. A mission like this won't count towards your stats — only towards the daily goal.",
             "Считать нечего. На 1 — число не меняется, на 10 — дописываем ноль: 8 × 10 = 80. На 0 всегда ноль.": "Nothing to work out. Times 1 leaves the number alone; times 10 adds a zero: 8 × 10 = 80. Times 0 is always zero.",
             "Удвоить — это прибавить число само к себе: 7 × 2 — это 7 + 7 = 14.": "Doubling is adding the number to itself: 7 × 2 is 7 + 7 = 14.",
             "Умножь на 10 и возьми половину: 6 × 5 — это 60 пополам, то есть 30.": "Times 10, then halve it: 6 × 5 is 60 halved, so 30.",
@@ -576,6 +578,8 @@ window.TRANSLATIONS = {
             " и ": " and "
     },
     fr: {
+            "Играть с подсказками": "Jouer avec des indices",
+            "Покажу, как считать. В статистику такая миссия не пойдёт — только в дневную цель.": "Je te montre comment calculer. Une mission comme ça ne compte pas dans les statistiques — seulement dans l'objectif du jour.",
             "Считать нечего. На 1 — число не меняется, на 10 — дописываем ноль: 8 × 10 = 80. На 0 всегда ноль.": "Rien à calculer. Par 1, le nombre ne change pas ; par 10, on ajoute un zéro : 8 × 10 = 80. Par 0, c’est toujours zéro.",
             "Удвоить — это прибавить число само к себе: 7 × 2 — это 7 + 7 = 14.": "Doubler, c’est ajouter le nombre à lui-même : 7 × 2, c’est 7 + 7 = 14.",
             "Умножь на 10 и возьми половину: 6 × 5 — это 60 пополам, то есть 30.": "Multiplie par 10 et prends la moitié : 6 × 5, c’est 60 en deux, donc 30.",
@@ -1140,6 +1144,8 @@ window.TRANSLATIONS = {
             " и ": " et "
     },
     de: {
+            "Играть с подсказками": "Mit Tipps spielen",
+            "Покажу, как считать. В статистику такая миссия не пойдёт — только в дневную цель.": "Ich zeige dir, wie man rechnet. So eine Mission zählt nicht für die Statistik — nur für das Tagesziel.",
             "Считать нечего. На 1 — число не меняется, на 10 — дописываем ноль: 8 × 10 = 80. На 0 всегда ноль.": "Da gibt es nichts zu rechnen. Mal 1 bleibt die Zahl gleich, mal 10 hängst du eine Null an: 8 × 10 = 80. Mal 0 ist immer null.",
             "Удвоить — это прибавить число само к себе: 7 × 2 — это 7 + 7 = 14.": "Verdoppeln heißt, die Zahl zu sich selbst zu addieren: 7 × 2 ist 7 + 7 = 14.",
             "Умножь на 10 и возьми половину: 6 × 5 — это 60 пополам, то есть 30.": "Mal 10 rechnen und halbieren: 6 × 5 ist 60 zur Hälfte, also 30.",

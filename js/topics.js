@@ -175,7 +175,9 @@ function shiftDayKey(key, deltaDays) {
     return Progress.dayKey(dt);
 }
 function isActiveDay(d) {
-    return !!d && (((d.c || 0) + (d.w || 0)) > 0 || (d.s || 0) > 0);
+    // Режим обучения тоже делает день занятым: ребёнок занимался, и серия дней
+    // от того, что он просил подсказки, рваться не должна.
+    return !!d && (((d.c || 0) + (d.w || 0) + (d.tr || 0)) > 0 || (d.s || 0) > 0);
 }
 
 // Суммирует дни журнала за период [fromKey, toKey] включительно.
