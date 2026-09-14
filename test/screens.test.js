@@ -65,8 +65,15 @@ const SCREENS = [
     { name: 'достижения',     open: `renderAchievementsScreen(); document.getElementById('achievementsScreen').style.display='flex';`, must: '#ladderList' },
     { name: 'профиль',        open: `renderProfileScreen(); document.getElementById('profileScreen').style.display='flex';`, must: '#profileList' },
     { name: 'коллекция',      open: `openCollectionModal();`, must: '#collectionGrid, #collectionModal' },
-    { name: 'экзамен',        open: `examOpen('add');`, must: '#examQuestion' },
-    { name: 'экзамен: итог',  open: `examOpen('add'); exam.best = 3; examFinish();`, must: '#examResultCap' },
+    // Экзамен перед началом стучится на сервер — проверить связь. В проверке сети нет,
+    // и настоящий запрос висел бы до потолка в шесть секунд, а экран бы не открылся.
+    // Подменяем проверку: здесь смотрят разметку экзамена, а не его связь с сервером
+    // (это отдельно проверяет exam.test.js).
+    { name: 'экзамен',        open: `(async () => { examOnline = async () => true; await examOpen('add'); })()`,
+                              must: '#examQuestion' },
+    { name: 'экзамен: итог',  open: `(async () => { examOnline = async () => true; examSave = async () => ({});
+                                     await examOpen('add'); exam.best = 3; await examFinish(); })()`,
+                              must: '#examResultCap' },
     { name: 'окно открытой звезды', open: `pendingStarUnlock = { key: 'integer+:add:2', level: 3 }; advanceMissionReveals();`, must: '#starUnlock' },
     { name: 'серия и заморозки', open: `document.querySelector('.daily-streak').click();`, must: '.dlg-card' }
 ];
@@ -348,6 +355,49 @@ const SCREENS = [
         const same = roles.filter(r => paint[r].mark === paint.plain.mark);
         record('цвет роли отличается от обычной строки',
                same.length === 0 ? null : `как у обычной строки: ${same.join(', ')}`);
+    }
+
+    // Счёт задания и перенос адреса. Адрес — единственное место, где написано, в какой
+    // клетке выполнять задание, и на узком экране он в одну строку не влезает. Раньше
+    // счёт стоял с ним в одной строке жёстко: адрес разрывался посередине («Положительные
+    // → Сложение →   0 / 20», а «1★» уезжало на вторую строку), и число висело внутри
+    // адреса. Теперь строка переносится целиком: адрес наверху, счёт под ним справа.
+    //
+    // Проверять это можно только измерением: раскладку задаёт перенос флексбокса,
+    // и по тексту правил её не видно.
+    console.log('\nСчёт не влезает внутрь перенесённого адреса');
+    {
+        errors.length = 0;
+        const m = await page.evaluate(`(() => {
+            const host = document.createElement('div');
+            // Ширина заведомо мала для адреса со счётом — ровно тот случай, из-за
+            // которого проверка и заведена.
+            host.style.cssText = 'position:fixed;left:-9999px;top:0;width:190px';
+            document.body.appendChild(host);
+            const sub = document.createElement('div');
+            sub.className = 'task-sub';
+            sub.innerHTML = '<span class="task-where">Положительные → Сложение → 1★</span>'
+                          + '<span class="task-count">0 / 20</span>';
+            host.appendChild(sub);
+            const where = sub.querySelector('.task-where');
+            const count = sub.querySelector('.task-count');
+            const lines = where.getClientRects();
+            const w = where.getBoundingClientRect();
+            const c = count.getBoundingClientRect();
+            const res = { lines: lines.length, whereBottom: w.bottom, whereTop: w.top,
+                          countTop: c.top, firstLineBottom: lines.length ? lines[0].bottom : w.bottom,
+                          wrapped: w.height > 1.6 * (lines.length ? lines[0].height : w.height) };
+            host.remove();
+            return res;
+        })()`);
+        record('строка адреса со счётом действительно не влезает в одну строку',
+               m.lines >= 1 ? null : 'адрес не отрисовался — проверка меряет пустоту');
+        // Главное: счёт стоит НИЖЕ адреса, а не внутри его строк.
+        record('счёт стоит под адресом, а не внутри него',
+               m.countTop >= m.whereBottom - 1
+                   ? null
+                   : `счёт начинается на ${Math.round(m.whereBottom - m.countTop)} px выше низа адреса —`
+                     + ' значит, он снова висит в одной строке с переносом');
     }
 
     // Языки: перевод не должен ронять отрисовку — в словарях легко потерять подстановку.

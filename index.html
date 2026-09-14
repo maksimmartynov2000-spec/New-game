@@ -1259,8 +1259,12 @@
         .task-text { font-size: 0.8rem; color: #e2e8f0; line-height: 1.35; }
         /* Адрес слева, счёт справа. Раньше они стояли в одну строку через те же точки,
            что и части адреса, и «0 из 13» читалось как продолжение «Умножение · 1★». */
+        /* flex-wrap здесь делает всю работу и обходится без измерений в коде: строка
+           раскладывается по ЕСТЕСТВЕННОЙ ширине адреса, поэтому счёт уезжает на свою
+           строку ровно тогда, когда адрес перестал помещаться в одну. Раньше он в этом
+           случае оставался на первой строке и висел в пустоте сбоку от переноса. */
         .task-sub {
-            display: flex; align-items: baseline; gap: 8px;
+            display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px;
             font-size: 0.68rem; color: #94a3b8; margin-top: 3px;
         }
         /* Адрес переносится, а не обрезается. Здесь стояло многоточие, и на телефоне
@@ -1268,7 +1272,9 @@
            «1…»: звезду не видно, а развернуть её негде — задание переставало
            называть клетку, ради которой оно и заведено. Лишняя строка дешевле. */
         .task-where { flex: 1 1 auto; min-width: 0; }
-        .task-count { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: #cbd5e1; }
+        /* margin-left: auto держит счёт у правого края и в одну строку с адресом,
+           и когда он съехал на свою. */
+        .task-count { flex: 0 0 auto; margin-left: auto; font-variant-numeric: tabular-nums; color: #cbd5e1; }
         /* Полоска прогресса. «7 из 12» приходится читать, а долю видно сразу — и именно
            доля отвечает на вопрос «мне ещё долго?». Тонкая нарочно: она подсказка, а не
            главный герой строки. */
@@ -3639,6 +3645,33 @@
                     const retry = await supabaseClient.rpc('session_save', { p_token: fresh, p_state: state });
                     if (retry.error) throw retry.error;
                     if (!retry.data || !retry.data.ok) throw new Error((retry.data && retry.data.error) || 'save_failed');
+                },
+                // Прощальная запись: один запрос, помеченный keepalive, — такой браузер
+                // обязан дослать даже после того, как страницу убили. Мимо supabase-js
+                // намеренно: его клиент шлёт обычный fetch, а флага keepalive в нём не
+                // предусмотрено. Смысл вызова тот же — та же функция session_save с тем
+                // же токеном.
+                writeKeepalive(code, auth, state) {
+                    // Обменивать пароль на токен уже некогда: страница уходит.
+                    if (!auth.token) return false;
+                    const body = JSON.stringify({ p_token: auth.token, p_state: state });
+                    // keepalive не пропускает тела больше 64 КиБ — и роняет запрос молча.
+                    // Слишком большой слепок не отправляем вовсе: он доедет при следующем
+                    // запуске целиком, а половина записи хуже, чем никакой.
+                    if (new TextEncoder().encode(body).length > 60000) return false;
+                    try {
+                        fetch(SUPABASE_URL + '/rest/v1/rpc/session_save', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                apikey: SUPABASE_ANON_KEY,
+                                Authorization: 'Bearer ' + SUPABASE_ANON_KEY
+                            },
+                            body,
+                            keepalive: true
+                        }).catch(() => { /* страница уже уходит — жаловаться некому */ });
+                        return true;
+                    } catch (e) { return false; }
                 }
             });
         }
@@ -6073,7 +6106,7 @@
                 okText: t('Пройти экзамен'),
                 cancelText: t('Не сейчас')
             });
-            if (go) examOpen(op);
+            if (go) await examOpen(op);
         }
 
         // Список попыток экзамена — только на чужом экране, у репетитора. Ученику он
@@ -6149,8 +6182,43 @@
 
         let exam = null;
 
-        function examOpen(op) {
+        // Связь проверяется ДО начала, а не после. Экзамен сдаётся один раз в день, а
+        // звёзды открывает только сервер: без связи ребёнок прошёл бы четыре захода,
+        // двадцать четыре примера, и получил бы «результат не сохранился» — единственная
+        // за день попытка потрачена впустую. Проверяем тем же вызовом, каким потом
+        // сохраняется результат: если не прошёл он, не пройдёт и сохранение.
+        //
+        // Потолок по времени обязателен. Запрос без него — это застывший экран:
+        // на плохой связи запрос не падает, а висит, и ребёнок, нажавший «Пройти
+        // экзамен», смотрит, как ничего не происходит. Не ответили за шесть секунд —
+        // считаем, что связи нет, и говорим это словами.
+        const EXAM_PROBE_MS = 6000;
+
+        async function examOnline() {
+            if (!supabaseClient) return false;
+            const code = Progress.getCode();
+            if (!code || !Progress.authFor(code)) return false;
+            try {
+                const res = await Promise.race([
+                    callAuthed('session_my_access', {}),
+                    new Promise(resolve => setTimeout(() => resolve(null), EXAM_PROBE_MS))
+                ]);
+                return !!(res && !res.error && res.data && res.data.ok);
+            } catch (e) { return false; }
+        }
+
+        async function examOpen(op) {
             if (maintenanceActive()) { renderMaintenance(); return; }
+            // Проверка обычно мгновенная, но на плохой связи тянется до шести секунд —
+            // и всё это время экран не меняется. Говорим, что происходит.
+            showToast(t('Проверяем связь…'));
+            if (!(await examOnline())) {
+                await showNotice({
+                    title: t('Экзамен нужен со связью'),
+                    text: t('Результат экзамена открывает звёзды, а для этого нужен интернет. Сейчас связи нет — попробуй, когда она появится. Попытка не потрачена.')
+                });
+                return;
+            }
             exam = { op, level: EXAM_START_LEVEL, round: 0, asked: 0, right: 0,
                      best: 0, low: 1, high: EXAM_MAX_GRANT, problem: null, answer: null,
                      timer: null, left: EXAM_SECONDS, done: false };
@@ -6264,17 +6332,40 @@
             // срежет, но показывать ученику одно, а открывать другое — нельзя.
             const level = Math.min(exam.best, EXAM_MAX_GRANT);
 
-            document.getElementById('examResultCap').innerText = level
-                ? tf('🔓 Открыто до %1★', level)
-                : t('Пока начнём с первой звезды');
-            document.getElementById('examResultText').innerText = level
-                ? tf('Результат: %1★. Все звёзды до неё открыты — проходи их когда захочешь, ради пазлов и задач.', level)
-                : t('Ничего страшного: начнём с самого начала, а экзамен можно пересдать завтра.');
+            const cap = document.getElementById('examResultCap');
+            const text = document.getElementById('examResultText');
+            const note = document.getElementById('examResultNote');
+
+            // Порядок здесь принципиален. Раньше «🔓 Открыто до 3★» писалось ДО ответа
+            // сервера, и если связь пропадала посреди экзамена, экран поздравлял
+            // звёздами, которых не открыл: заголовок обещал, а приписка под ним
+            // сообщала, что ничего не сохранилось. Пока сервер не ответил — не
+            // обещаем ничего.
+            cap.innerText = t('Считаем результат…');
+            text.innerText = '';
+            note.innerText = '';
+            note.style.display = 'none';
 
             const saved = await examSave(level);
-            const note = document.getElementById('examResultNote');
-            note.innerText = saved.error ? saved.error : '';
-            note.style.display = saved.error ? '' : 'none';
+            if (saved.error) {
+                // Результат называем — он честно заработан и был виден по ходу, — но
+                // про открытые звёзды молчим: их нет.
+                cap.innerText = t('Результат не сохранён');
+                text.innerText = level
+                    ? tf('Результат: %1★, но записать его не вышло. Пройди экзамен ещё раз, когда будет связь.', level)
+                    : t('Записать результат не вышло. Попробуй ещё раз позже.');
+                note.innerText = saved.error;
+                note.style.display = '';
+                refreshSectionLocks();
+                return;
+            }
+
+            cap.innerText = level
+                ? tf('🔓 Открыто до %1★', level)
+                : t('Пока начнём с первой звезды');
+            text.innerText = level
+                ? tf('Результат: %1★. Все звёзды до неё открыты — проходи их когда захочешь, ради пазлов и задач.', level)
+                : t('Ничего страшного: начнём с самого начала, а экзамен можно пересдать завтра.');
             refreshSectionLocks();
         }
 
@@ -10770,11 +10861,28 @@
             finishChallenge();
         });
 
-        // На телефоне вкладку часто закрывают не кнопкой, а свайпом, и события выгрузки
-        // при этом может не быть вовсе. visibilitychange срабатывает надёжнее всего —
-        // ловим момент, когда приложение уходит в фон, и отправляем накопленное.
+        // Уход в фон и закрытие вкладки.
+        //
+        // Сначала пробуем прощальную запись — один запрос с keepalive, который браузер
+        // обязан дослать даже после смерти страницы. Обычный flush() здесь часто не
+        // успевает: это три шага по сети, а времени у уходящей страницы нет. Если
+        // прощальная запись не годится (нет токена, слепок великоват, слияния давно не
+        // было) — остаётся обычный flush: он может не успеть, но локальная копия уже на
+        // диске и доедет при следующем запуске.
+        //
+        // visibilitychange и pagehide часто приходят парой, а на части телефонов —
+        // только один из двух. Слушаем оба и защищаемся от двойной отправки по времени.
+        let lastHideSaveAt = 0;
+        function saveOnHide() {
+            const now = Date.now();
+            if (now - lastHideSaveAt < 2000) return;
+            lastHideSaveAt = now;
+            if (Progress.farewell && Progress.farewell()) return;
+            Progress.flush();
+        }
+        window.addEventListener('pagehide', saveOnHide);
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') { Progress.flush(); return; }
+            if (document.visibilityState === 'hidden') { saveOnHide(); return; }
             // Вернулись из фона — перечитываем доступ. Репетитор открывает звезду со
             // своего устройства, и без этого правка доезжала бы только при следующем
             // запуске приложения: открыл при ученике, а у него ничего не изменилось.
