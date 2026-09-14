@@ -1263,7 +1263,11 @@
             display: flex; align-items: baseline; gap: 8px;
             font-size: 0.68rem; color: #94a3b8; margin-top: 3px;
         }
-        .task-where { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Адрес переносится, а не обрезается. Здесь стояло многоточие, и на телефоне
+           с кнопкой «Играть» строка «Положительные → Сложение → 1★» кончалась на
+           «1…»: звезду не видно, а развернуть её негде — задание переставало
+           называть клетку, ради которой оно и заведено. Лишняя строка дешевле. */
+        .task-where { flex: 1 1 auto; min-width: 0; }
         .task-count { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: #cbd5e1; }
         /* Полоска прогресса. «7 из 12» приходится читать, а долю видно сразу — и именно
            доля отвечает на вопрос «мне ещё долго?». Тонкая нарочно: она подсказка, а не
