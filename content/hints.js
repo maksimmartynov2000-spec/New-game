@@ -418,3 +418,126 @@ window.HINT_CONTENT = {
         }
     }
 };
+
+// ===================== ПРИЁМЫ: ПОДСКАЗКА ДО ОТВЕТА =====================
+// Всё выше — подсказки ПОСЛЕ ошибки. Здесь другое: как считать, ДО того как
+// ученик ошибся. Показываются только в режиме обучения, который он включает сам.
+//
+// Правила, по которым они написаны (и по которым их надо править):
+//   — одна строка: она висит рядом с примером, пока идёт таймер;
+//   — что делать, а не что происходит: повелительное наклонение;
+//   — числами его примера, а не выдуманными;
+//   — останавливаемся ЗА ШАГ ДО ОТВЕТА: последний ход ученик делает сам,
+//     иначе он не решает, а списывает;
+//   — где приёма нет, нет и подсказки: «без перехода», «без заёма», ×1 и ×0
+//     сюда не входят намеренно.
+//
+// Ключ — действие и приём. Порядок подстановок ОДИНАКОВ во всех языках:
+//   add:1        единицы первого, единицы второго
+//   add:2        круглое, сколько не хватает, второе число
+//   add:h        сотня, сколько не хватает, второе число
+//   sub:borrow   единицы первого + 10, единицы второго, их разность
+//   sub:h        хвост до сотни, сама сотня, что останется вычесть
+//   mul:two      второй множитель
+//   mul:five     второй множитель × 10
+//   mul:small4   второй множитель × 2
+//   mul:small3   второй множитель × 2
+//   mul:nine     множитель, он же × 10, он же
+//   mul:core6    множитель, он же × 3
+//   mul:core8    множитель, он же × 10, он же × 2
+//   mul:core7    множитель, он же × 10, он же × 3
+//   mul:round    круглый множитель без нуля, второй как есть
+//   mul:twoSplit десятки двузначного, однозначный множитель, единицы двузначного
+//   div:general  делитель, делимое
+//   div:round    делимое без нуля, делитель без нуля
+// Остальные ключи подстановок не имеют.
+window.TRICK_CONTENT = {
+    ru: {
+        "add:1": "%1 и %2 дают десяток",
+        "add:2": "До %1 не хватает %2 — возьми из %3",
+        "add:h": "До %1 не хватает %2 — возьми из %3",
+        "sub:borrow": "Займи десяток: %1 − %2 = %3",
+        "sub:h": "Отними %1 — дойдёшь до %2. Потом ещё %3",
+        "mul:triv10": "Допиши ноль",
+        "mul:two": "Удвой: %1 + %1",
+        "mul:five": "Умножь на 10 и пополам: сначала %1",
+        "mul:small4": "Удвой дважды: сначала %1",
+        "mul:small3": "Удвой и прибавь ещё раз: сначала %1",
+        "mul:nine": "Умножь на 10 и отними %1: %2 − %3",
+        "mul:core6": "Умножь на 3 и удвой: %1 × 3 = %2",
+        "mul:core8": "Умножь на 10 и отними %1 дважды: %2 − %3",
+        "mul:core7": "Умножь на 10 и отними %1 трижды: %2 − %3",
+        "mul:round": "Убери ноль, потом верни: %1 × %2",
+        "mul:twoSplit": "Разбей: %1 × %2 и %3 × %2",
+        "div:general": "На что умножить %1, чтобы вышло %2?",
+        "div:round": "Убери по нулю: %1 ÷ %2",
+        "div:zeroTop": "Делить нечего — ноль",
+        "div:byZero": "На ноль делить нельзя",
+    },
+    en: {
+        "add:1": "%1 and %2 make a ten",
+        "add:2": "To reach %1 you need %2 — take them from %3",
+        "add:h": "To reach %1 you need %2 — take them from %3",
+        "sub:borrow": "Borrow a ten: %1 − %2 = %3",
+        "sub:h": "Take off %1 — that gets you to %2. Then %3 more",
+        "mul:triv10": "Times ten — add a zero",
+        "mul:two": "Double it: %1 + %1",
+        "mul:five": "Times 10, then halve: start with %1",
+        "mul:small4": "Double it twice: start with %1",
+        "mul:small3": "Double it and add one more: start with %1",
+        "mul:nine": "Times 10, then take away %1: %2 − %3",
+        "mul:core6": "Times 3, then double: %1 × 3 = %2",
+        "mul:core8": "Times 10, then take away %1 twice: %2 − %3",
+        "mul:core7": "Times 10, then take away %1 three times: %2 − %3",
+        "mul:round": "Drop the zero, put it back at the end: %1 × %2",
+        "mul:twoSplit": "Split it: %1 × %2 and %3 × %2",
+        "div:general": "What times %1 makes %2?",
+        "div:round": "Drop a zero from each: %1 ÷ %2",
+        "div:zeroTop": "Nothing to share — zero",
+        "div:byZero": "You can't divide by zero",
+    },
+    fr: {
+        "add:1": "%1 et %2 font une dizaine",
+        "add:2": "Pour aller à %1 il manque %2 — prends-les dans %3",
+        "add:h": "Pour aller à %1 il manque %2 — prends-les dans %3",
+        "sub:borrow": "Emprunte une dizaine : %1 − %2 = %3",
+        "sub:h": "Enlève %1 — tu arrives à %2. Puis encore %3",
+        "mul:triv10": "Par dix — ajoute un zéro",
+        "mul:two": "Double : %1 + %1",
+        "mul:five": "Par 10, puis la moitié : d’abord %1",
+        "mul:small4": "Double deux fois : d’abord %1",
+        "mul:small3": "Double et ajoute encore une fois : d’abord %1",
+        "mul:nine": "Par 10, puis enlève %1 : %2 − %3",
+        "mul:core6": "Par 3, puis double : %1 × 3 = %2",
+        "mul:core8": "Par 10, puis enlève %1 deux fois : %2 − %3",
+        "mul:core7": "Par 10, puis enlève %1 trois fois : %2 − %3",
+        "mul:round": "Enlève le zéro, remets-le à la fin : %1 × %2",
+        "mul:twoSplit": "Découpe : %1 × %2 et %3 × %2",
+        "div:general": "Par quoi multiplier %1 pour obtenir %2 ?",
+        "div:round": "Enlève un zéro des deux : %1 ÷ %2",
+        "div:zeroTop": "Rien à partager — zéro",
+        "div:byZero": "On ne divise pas par zéro",
+    },
+    de: {
+        "add:1": "%1 und %2 ergeben einen Zehner",
+        "add:2": "Bis %1 fehlen %2 — nimm sie aus %3",
+        "add:h": "Bis %1 fehlen %2 — nimm sie aus %3",
+        "sub:borrow": "Borge dir einen Zehner: %1 − %2 = %3",
+        "sub:h": "Nimm %1 weg — so kommst du auf %2. Dann noch %3",
+        "mul:triv10": "Mal zehn — häng eine Null an",
+        "mul:two": "Verdopple: %1 + %1",
+        "mul:five": "Mal 10, dann halbieren: zuerst %1",
+        "mul:small4": "Verdopple zweimal: zuerst %1",
+        "mul:small3": "Verdopple und nimm es noch einmal dazu: zuerst %1",
+        "mul:nine": "Mal 10, dann %1 abziehen: %2 − %3",
+        "mul:core6": "Mal 3, dann verdoppeln: %1 × 3 = %2",
+        "mul:core8": "Mal 10, dann %1 zweimal abziehen: %2 − %3",
+        "mul:core7": "Mal 10, dann %1 dreimal abziehen: %2 − %3",
+        "mul:round": "Streiche die Null, häng sie am Ende wieder an: %1 × %2",
+        "mul:twoSplit": "Zerlege: %1 × %2 und %3 × %2",
+        "div:general": "Womit muss man %1 malnehmen, damit %2 herauskommt?",
+        "div:round": "Streiche bei beiden eine Null: %1 ÷ %2",
+        "div:zeroTop": "Nichts zu teilen — null",
+        "div:byZero": "Durch null darf man nicht teilen",
+    }
+};

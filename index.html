@@ -1263,7 +1263,11 @@
             display: flex; align-items: baseline; gap: 8px;
             font-size: 0.68rem; color: #94a3b8; margin-top: 3px;
         }
-        .task-where { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        /* Адрес переносится, а не обрезается. Здесь стояло многоточие, и на телефоне
+           с кнопкой «Играть» строка «Положительные → Сложение → 1★» кончалась на
+           «1…»: звезду не видно, а развернуть её негде — задание переставало
+           называть клетку, ради которой оно и заведено. Лишняя строка дешевле. */
+        .task-where { flex: 1 1 auto; min-width: 0; }
         .task-count { flex: 0 0 auto; font-variant-numeric: tabular-nums; color: #cbd5e1; }
         /* Полоска прогресса. «7 из 12» приходится читать, а долю видно сразу — и именно
            доля отвечает на вопрос «мне ещё долго?». Тонкая нарочно: она подсказка, а не
@@ -1322,6 +1326,57 @@
             margin-top: 10px; padding-top: 8px; font-size: 0.66rem; color: #64748b;
             text-transform: uppercase; letter-spacing: 0.04em;
             border-top: 1px solid rgba(255,255,255,0.08);
+        }
+
+        /* --- Режим обучения --- */
+        /* Подсказка до ответа. Всё остальное в игре объясняет ПОСЛЕ промаха — этот
+           режим существует ровно затем, чтобы ученику не приходилось сперва ошибиться.
+           Включается им самим и стоит денег: ответы отсюда в статистику не идут. */
+        .train-toggle {
+            width: 100%; display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: 10px; cursor: pointer; text-align: left;
+            font-family: inherit; color: #cbd5e1;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+        }
+        .train-toggle.on {
+            color: #fde68a; background: rgba(251,191,36,0.10);
+            border-color: rgba(251,191,36,0.4);
+        }
+        .train-toggle:active { transform: scale(0.99); }
+        /* Флажок — не декорация: включённый режим меняет то, куда пойдут ответы,
+           и это должно быть видно раньше, чем ученик нажмёт «Начать миссию». */
+        .train-box {
+            flex: 0 0 auto; width: 19px; height: 19px; border-radius: 5px;
+            border: 2px solid rgba(255,255,255,0.25);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; line-height: 1; color: #0b1120;
+        }
+        .train-toggle.on .train-box { background: #fbbf24; border-color: #fbbf24; }
+        /* Подпись в одну строку и мелко. Длинное объяснение здесь читал бы разве что
+           взрослый: ученику нужно знать цену режима, а не читать про неё абзац. */
+        .train-text { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; min-width: 0; }
+        .train-text b { font-size: 0.82rem; font-weight: bold; }
+        .train-text span { font-size: 0.68rem; color: #64748b; }
+        .train-toggle.on .train-text span { color: #a1834a; }
+
+        /* Строка приёма — над карточкой, в пустой зоне. Держим ей место всегда,
+           пока режим включён: у примеров без приёма подсказки нет, и без запаса по
+           высоте карточка прыгала бы на каждом втором примере. */
+        .train-hint {
+            position: relative; z-index: 2;
+            min-height: 40px; display: flex; align-items: center; justify-content: center;
+            text-align: center; padding: 8px 14px; margin-bottom: 10px;
+            width: 100%; max-width: min(94vw, 520px);
+            font-size: 0.86rem; line-height: 1.35; color: #fde68a;
+            background: rgba(251,191,36,0.10); border: 1px solid rgba(251,191,36,0.3);
+            border-radius: 12px;
+        }
+        /* На низком экране карточка и так впритык — подсказке лишняя рамка ни к чему. */
+        @media (max-height: 600px) {
+            .train-hint {
+                min-height: 26px; padding: 3px 10px; margin-bottom: 6px;
+                font-size: 0.78rem; background: none; border: none;
+            }
         }
 
         /* --- Таблица умножения --- */
@@ -1407,12 +1462,21 @@
 
         /* Строка под таблицей: что за клетку ты сейчас нажал. Держим ей высоту
            заранее — иначе первое нажатие дёргает всю страницу вверх. */
+        /* Нажатая клетка разворачивается в карточку приёма: как эта группа берётся,
+           с разобранным примером. Держим ей высоту заранее — иначе первое нажатие
+           дёргает всю страницу вверх. */
         .times-pick-line {
             min-height: 42px; font-size: 0.82rem; color: #e2e8f0;
-            line-height: 1.4; margin-bottom: 6px;
+            line-height: 1.4; margin-bottom: 8px;
         }
         .times-pick-line b { color: #fff; }
-        .times-pick-line .times-pick-hint { color: #64748b; }
+        .times-pick-line .times-pick-hint { color: #64748b; margin-top: 4px; }
+        .times-pick-line.filled {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.09);
+            border-radius: 10px; padding: 10px 12px;
+        }
+        .times-pick-name { color: #94a3b8; }
+        .times-pick-trick { color: #cbd5e1; margin-top: 6px; line-height: 1.5; }
         /* Легенда нужна только там, где цвет — шкала. В «Приёмах» цвет всего лишь
            делит таблицу на группы, и это видно без подписей: что за группа, скажет
            нажатие на клетку. Шесть названий под сеткой были бы длиннее самой сетки. */
@@ -2332,6 +2396,16 @@
                     <div class="config-section-title">3️⃣ Сложность</div>
                     <div id="difficultyList"></div>
                 </div>
+
+                <!-- Переключатель стоит последним, уже под выбором сложности: он про то,
+                     КАК решать выбранное, и до выбора клетки ему нечего включать. -->
+                <button class="train-toggle" id="trainToggle" aria-pressed="false">
+                    <span class="train-box" id="trainBox"></span>
+                    <span class="train-text">
+                        <b>💡 С подсказками</b>
+                        <span>не идёт в статистику</span>
+                    </span>
+                </button>
             </div>
             <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">🚀 Начать миссию</button>
         </div>
@@ -2364,6 +2438,11 @@
 
     <div class="game-space">
         <canvas id="cityCanvas"></canvas>
+        <!-- Подсказка стоит НАД карточкой, а не внутри неё. Между примером и
+             вариантами ответа — самый ходовой путь взгляда, и лишняя строка там
+             разрывает его ровно в момент решения. Сверху же пустое место, и
+             подсказка ничего не сдвигает. -->
+        <div class="train-hint" id="trainHint" style="display:none;"></div>
         <div class="math-box" id="mainMathBox">
             <div class="stats-counter-row">
                 <div>✅ Верно: <span id="stat-correct" style="color:#10b981;">0</span></div>
@@ -2867,6 +2946,68 @@
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
             const valid = !!exampleConfig.category && !!exampleConfig.numberType && allHaveDifficulty;
             if (valid) btn.classList.add('ready'); else btn.classList.remove('ready');
+            // Клетка могла смениться — предложение режима должно идти следом.
+            syncTrainSuggestion();
+        }
+
+        // ===================== РЕЖИМ ОБУЧЕНИЯ =====================
+        // Игра с подсказками. Приём показывается ДО ответа — это единственное место,
+        // где ученику объясняют, как считать, не дожидаясь ошибки.
+        //
+        // ЦЕНА РЕЖИМА: ответы не идут ни в точность, ни в скорость, ни в счёт решённых,
+        // ни в лесенки, ни в пазл, ни в разбор по классам. Пример решён с подсказкой на
+        // экране, и засчитывать такое значит портить те самые цифры, ради которых
+        // лесенки и заведены. Исключение одно — дневная цель и серия дней: ребёнок
+        // занимался, а режим, который рвёт серию, никто не включит.
+        //
+        // Переключатель живёт на экране выбора миссии и в миссии не меняется: иначе
+        // половина ответов считалась бы, половина нет, и правило стало бы невыполнимым.
+        let trainWanted = false;    // что выбрано на экране выбора
+        let trainActive = false;    // с чем реально запущена текущая миссия
+
+        // Порог, до которого режим предлагается сам. Клетка, где решено меньше двадцати,
+        // для ученика новая — именно там подсказки и нужны. Прятать переключатель по
+        // этому же признаку я не стал: невидимая кнопка заставляет объяснять ребёнку,
+        // почему её нет, а видимая объясняет себя сама.
+        const TRAIN_SUGGEST_BELOW = 20;
+
+        function trainSuggestedFor(topicKey) {
+            if (!topicKey) return false;
+            return topicCorrect(topicKey) < TRAIN_SUGGEST_BELOW;
+        }
+
+        function renderTrainToggle() {
+            const btn = document.getElementById('trainToggle');
+            if (!btn) return;
+            btn.classList.toggle('on', trainWanted);
+            btn.setAttribute('aria-pressed', trainWanted ? 'true' : 'false');
+            document.getElementById('trainBox').innerText = trainWanted ? '✓' : '';
+        }
+
+        // Предлагаем режим сам, когда клетка новая. Вызывается при каждом изменении
+        // выбора: пока ученик не трогал переключатель руками, он следует за клеткой.
+        let trainTouched = false;
+        function syncTrainSuggestion() {
+            if (trainTouched) return;
+            trainWanted = trainSuggestedFor(currentMissionTopicKey());
+            renderTrainToggle();
+        }
+
+        document.getElementById('trainToggle').addEventListener('click', () => {
+            trainWanted = !trainWanted;
+            trainTouched = true;
+            renderTrainToggle();
+        });
+
+        // Приём для текущего примера. Пусто — значит приёма у него нет, и строка
+        // остаётся пустой: выдумывать правило там, где его нет, нельзя.
+        function renderTrainHint() {
+            const el = document.getElementById('trainHint');
+            if (!el) return;
+            if (!trainActive) { el.style.display = 'none'; el.innerText = ''; return; }
+            el.style.display = '';
+            el.innerText = (typeof trickHint === 'function')
+                ? trickHint(currentProblemMeta, currentProblem) : '';
         }
 
         function finishConfig() {
@@ -4756,6 +4897,23 @@
             core:  t('шестёрки, семёрки, восьмёрки')
         };
 
+        // Сам приём, одной-двумя фразами с разобранным примером. Это то, чего в игре
+        // не было вовсе: подсказки появляются ПОСЛЕ ошибки, а объяснить приём до
+        // того, как ученик на нём споткнулся, было негде. Таблицу открывают когда
+        // угодно — здесь и место.
+        //
+        // Разобранный пример в каждом тексте обязателен. «Умножь на десять и отними
+        // одно число» — это правило, и оно не работает, пока не увидишь 70 − 7 = 63:
+        // ребёнок читает правило, кивает и не может им воспользоваться.
+        const TIMES_TRICKS = {
+            triv:  t('Считать нечего. На 1 — число не меняется, на 10 — дописываем ноль: 8 × 10 = 80. На 0 всегда ноль.'),
+            two:   t('Удвоить — это прибавить число само к себе: 7 × 2 — это 7 + 7 = 14.'),
+            five:  t('Умножь на 10 и возьми половину: 6 × 5 — это 60 пополам, то есть 30.'),
+            small: t('На 4 — удвой дважды: 7 × 4 — это 14, а потом 28. На 3 — удвой и прибавь число ещё раз: 7 + 7 = 14, и ещё 7 — будет 21.'),
+            nine:  t('Умножь на 10 и отними одно число: 7 × 9 — это 70 без 7, то есть 63.'),
+            core:  t('Приёма тут нет, эти шесть учат наизусть. Но можно опереться на соседа: 7 × 8 — это 7 × 7 и ещё одна семёрка, 49 + 7 = 56.')
+        };
+
         // Доля верных по группе — сложенная по всем звёздам положительного
         // умножения. Разбивать по звёздам здесь нечего: 7 × 8 это 7 × 8, на
         // какой бы звезде он ни попался.
@@ -4844,16 +5002,22 @@
         function renderTimesPick(acc) {
             const line = document.getElementById('timesPickLine');
             if (!timesPicked) {
+                line.classList.remove('filled');
                 line.innerHTML = `<span class="times-pick-hint">${t('Нажми на клетку — покажу, каким приёмом она берётся.')}</span>`;
                 return;
             }
+            line.classList.add('filled');
             const [a, b] = timesPicked.split('×').map(Number);
             const cls = mulClassOf(a, b);
-            let html = `<b>${a} × ${b} = ${a * b}</b> — ${TIMES_TITLES[cls] || cls}`;
+            let html = `<div class="times-pick-name"><b>${a} × ${b} = ${a * b}</b>`
+                + ` — ${TIMES_TITLES[cls] || cls}</div>`;
+            if (TIMES_TRICKS[cls]) {
+                html += `<div class="times-pick-trick">${TIMES_TRICKS[cls]}</div>`;
+            }
             const stat = acc && acc[cls];
             if (stat && stat.right + stat.wrong >= TIMES_MIN_SAMPLE) {
                 const total = stat.right + stat.wrong;
-                html += `<br><span class="times-pick-hint">${tf('эта группа: %1% верных из %2', Math.round(stat.right / total * 100), total)}</span>`;
+                html += `<div class="times-pick-hint">${tf('эта группа: %1% верных из %2', Math.round(stat.right / total * 100), total)}</div>`;
             }
             line.innerHTML = html;
         }
@@ -5198,7 +5362,7 @@
                 }
                 out.streak++;
                 // Заморозка начисляется на пятый, десятый и так далее день с целью.
-                if ((d[k].c || 0) >= target && ++goalDays % FREEZE_EVERY === 0
+                if (dayGoalDone(d[k]) >= target && ++goalDays % FREEZE_EVERY === 0
                     && out.freezes < FREEZE_MAX) out.freezes++;
                 prev = k;
             });
@@ -5218,9 +5382,17 @@
         // Сегодняшний счёт считаем по верным ответам — тем же числом, что двигает
         // лесенку количества и цель миссии. Иначе «сделано» на трёх экранах означало бы
         // три разные вещи.
+        // Сколько сделано за день для ЦЕЛИ. Верные ответы плюс верные ответы в режиме
+        // обучения: в статистику последние не идут, но день ими занят по-настоящему.
+        // Одна функция на все места, где спрашивают «цель закрыта?» — иначе полоска,
+        // огонёк и заморозки начали бы отвечать по-разному.
+        function dayGoalDone(day) {
+            return ((day && day.c) || 0) + ((day && day.tr) || 0);
+        }
+
         function dailyProgress(daily, todayKey, goal) {
             const day = (daily || {})[todayKey];
-            const done = (day && day.c) || 0;
+            const done = dayGoalDone(day);
             const target = goal || DAILY_GOAL;
             return { done, goal: target, complete: done >= target,
                      ratio: Math.min(1, target > 0 ? done / target : 0) };
@@ -9295,7 +9467,10 @@
             document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('selected'));
             document.getElementById('fracSpecialBlock').style.display = 'none';
             renderDifficultyList();   // сама спрячет блок сложности, раз режимов не выбрано
-            updateConfigValidity();   // и погасит кнопку "Начать миссию"
+            // Выбор сброшен — значит и решение ученика про подсказки больше не его
+            // решение про ЭТУ клетку. Считаем предложение заново.
+            trainTouched = false;
+            updateConfigValidity();   // и погасит кнопку "Начать миссию", и пересчитает режим
             showConfigStep(1);
         }
 
@@ -9937,6 +10112,9 @@
             // прошлым до конца миссии, и addPuzzlePiece не признавал своей ни одну
             // клетку: ученик решал верно, а картинка не росла вовсе.
             currentProblemMeta = null;
+            // Режим фиксируется на всю миссию. Менять его по ходу нельзя: тогда часть
+            // ответов попала бы в статистику, а часть нет.
+            trainActive = trainWanted;
             resizeCanvas();
             initPuzzle();
             generateMath();
@@ -9973,6 +10151,9 @@
             // здесь же удобно запомнить сам пример — разбору ошибки нужны его числа,
             // а не только тема и сложность.
             currentProblem = problem;
+            // Здесь же и подсказка режима обучения: и пример, и его клетка к этому
+            // моменту известны, а воронка одна на все виды примеров.
+            renderTrainHint();
             return problem;
         }
 
@@ -10278,7 +10459,9 @@
             // верный он или нет. «Почти» (посчитал верно, забыл сократить) в целых
             // числах не бывает, поэтому здесь достаточно isCorrect.
             const struct = structuralClassOf(currentProblemMeta, currentProblem);
-            if (topicKey && struct) Progress.recordClass(topicKey, struct, isCorrect, elapsedMs);
+            if (topicKey && struct && !trainActive) {
+                Progress.recordClass(topicKey, struct, isCorrect, elapsedMs);
+            }
 
             // Тот же потолок, что и в хранилище: отложенный телефон не должен
             // записываться как «думал пять минут».
@@ -10287,7 +10470,10 @@
             if (isCorrect) {
                 correctCount++;
                 document.getElementById('stat-correct').innerText = correctCount;
-                Progress.recordAnswer(topicKey, 'correct', elapsedMs);
+                // Режим обучения: пишем ровно один счётчик — дневную цель. Ни лесенок,
+                // ни пазла, ни времени: пример решён с подсказкой на экране.
+                if (trainActive) Progress.recordTrainingAnswer();
+                else Progress.recordAnswer(topicKey, 'correct', elapsedMs);
 
                 state.combo++;
                 const badge = document.getElementById('comboBadge');
@@ -10301,15 +10487,20 @@
                 buildSparks(12, 'var(--cyan)');
 
                 triggerAnniversaryEffects(correctCount);
-                addPuzzlePiece();
+                if (!trainActive) addPuzzlePiece();
 
                 // Проверяем награды до перехода к следующему примеру, чтобы плашка
                 // о новом достижении успела показаться поверх текущего экрана.
                 // Лесенки считаем только для текущей темы: продвинуться можно лишь там,
                 // где ученик прямо сейчас решает, а перебирать все сто тем на каждый
                 // ответ было бы работой впустую.
-                const fresh = evaluateTopicLadders(topicKey);
-                announceAchievements(fresh);
+                // Медали в режиме обучения не берутся: лесенки считают по записям,
+                // которых мы не сделали, но звать их незачем — и незачем показывать
+                // ученику плашку о достижении, которого не случилось.
+                if (!trainActive) {
+                    const fresh = evaluateTopicLadders(topicKey);
+                    announceAchievements(fresh);
+                }
 
                 generateMath();
                 return;
@@ -10340,14 +10531,18 @@
                 if (clickedBtn) clickedBtn.classList.add('btn-almost');
                 spawnRewardText(t('Почти! Не забудь сократить'), clickX, clickY, '#f59e0b', false);
                 buildSparks(10, '#f59e0b');
-                Progress.recordAnswer(topicKey, 'almost', elapsedMs);
-                Progress.recordMistakeKind(topicKey, 'не сократил');   // код, а не текст: переводить нельзя
+                if (!trainActive) {
+                    Progress.recordAnswer(topicKey, 'almost', elapsedMs);
+                    Progress.recordMistakeKind(topicKey, 'не сократил');   // код, а не текст: переводить нельзя
+                }
                 // Пропускаем штраф за пазл и не портим статистику "Ошибки" — это не ошибка в счёте.
             } else {
                 wrongCount++;
                 document.getElementById('stat-wrong').innerText = wrongCount;
-                Progress.recordAnswer(topicKey, 'wrong', elapsedMs);
-                Progress.recordMistakeKind(topicKey, mistakeKind);
+                if (!trainActive) {
+                    Progress.recordAnswer(topicKey, 'wrong', elapsedMs);
+                    Progress.recordMistakeKind(topicKey, mistakeKind);
+                }
 
                 // Серия обрывается ошибкой целиком: «подряд» значит подряд, половинить
                 // счётчик верных ответов было бы ровно тем же враньём, что и множитель.

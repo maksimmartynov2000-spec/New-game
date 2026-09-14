@@ -34,7 +34,7 @@ function load() {
         slice('function mulClassOf', '// Класс примера на деление', 'mulClassOf')
         + 'const t = (x) => x;'
         + slice('const TIMES_GROUPS', 'function timesAccuracy', 'TIMES_GROUPS')
-        + ';globalThis.R = { mulClassOf, TIMES_GROUPS, TIMES_TITLES };', box);
+        + ';globalThis.R = { mulClassOf, TIMES_GROUPS, TIMES_TITLES, TIMES_TRICKS };', box);
     return box.R;
 }
 
@@ -116,6 +116,33 @@ test('порог выборки назван в заметке тем же чи�
     assert(note.length > 0, 'сноска про группу не найдена');
     assert(SCRIPT.indexOf('TIMES_MIN_SAMPLE)') > 0,
         'порог подставляется в заметку не из TIMES_MIN_SAMPLE — числа разойдутся');
+});
+
+// Название группы говорит, КАК она называется. Приём говорит, КАК ЕЮ СЧИТАТЬ — и
+// это единственное место в игре, где приём объясняют ДО ошибки, а не после неё.
+// Появись новая группа без приёма — ученик нажмёт на клетку и получит пустоту.
+test('у каждой группы есть объяснение приёма', () => {
+    const R = load();
+    const lost = R.TIMES_GROUPS.filter(g => !R.TIMES_TRICKS[g] || R.TIMES_TRICKS[g].length < 20);
+    eq(lost.join(', '), '', `группы без объяснения: ${lost.join(', ')}`);
+    const extra = Object.keys(R.TIMES_TRICKS).filter(g => R.TIMES_GROUPS.indexOf(g) < 0);
+    eq(extra.join(', '), '', `объяснения без групп: ${extra.join(', ')}`);
+});
+
+// Правило без разобранного примера не работает: ребёнок читает «умножь на десять и
+// отними одно число», кивает и не может этим воспользоваться. Пример обязателен, и
+// проверка смотрит, что в тексте вообще есть счёт, а не одни слова.
+test('в каждом объяснении разобран пример', () => {
+    const R = load();
+    const noSum = R.TIMES_GROUPS.filter(g => !/\d+\s*[×+−-]\s*\d+/.test(R.TIMES_TRICKS[g] || ''));
+    eq(noSum.join(', '), '', `объяснения без разобранного примера: ${noSum.join(', ')}`);
+});
+
+// Объяснение можно завести и забыть показать: тексты лежат отдельно от отрисовки.
+test('приём действительно попадает на экран', () => {
+    const render = slice('function renderTimesPick', 'document.getElementById(\'timesGrid\')', 'отрисовка');
+    assert(render.indexOf('TIMES_TRICKS') > 0, 'renderTimesPick не читает TIMES_TRICKS');
+    assert(render.indexOf('times-pick-trick') > 0, 'приём не попадает в разметку карточки');
 });
 
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);

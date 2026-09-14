@@ -712,3 +712,158 @@ function showHintFreeze(text, onDone, extra) {
         done();
     }
 }
+
+// ===================== ПРИЁМЫ: ПОДСКАЗКА ДО ОТВЕТА =====================
+// Всё выше отвечает на вопрос «что ты сделал не так». Здесь — на вопрос «как это
+// считать», и отвечает ДО ответа. Работает только в режиме обучения.
+//
+// Группы берутся у structuralClassOf — того же кода, которым считается разбор в
+// статистике. Своей классификации тут нет: разойдись они, и подсказка начала бы
+// объяснять не тот приём, по которому ученика потом посчитают.
+function resolveTricks() {
+    const all = (typeof window !== 'undefined' && window.TRICK_CONTENT) || null;
+    if (!all) return null;
+    const lang = (typeof LANG === 'string' && LANG) || 'ru';
+    return all[lang] || all.ru || null;
+}
+
+// Какой приём показать и с какими числами. Возвращает { key, args } либо null,
+// если приёма у этого примера нет — «без перехода», «без заёма», ×1 и ×0.
+//
+// Вторая ось важнее основного класса. 68 + 57 — это и «полный переход», и «через
+// сотню»; обе подсказки верны, но первая доведёт только до семидесяти, а трудность
+// здесь — сотня. Строка одна, и достаётся она более трудному.
+function trickPick(meta, problem) {
+    if (!meta || !problem) return null;
+    const struct = (typeof structuralClassOf === 'function')
+        ? structuralClassOf(meta, problem) : null;
+    if (!struct) return null;
+    const a = problem.a, b = problem.b;
+    if (typeof a !== 'number' || typeof b !== 'number') return null;
+    const op = meta.opKey;
+    const u = (n) => Math.abs(n) % 10;
+
+    if (op === 'add') {
+        // Достраиваем до круглого БОЛЬШЕЕ число, а не первое. У 25 + 80 от двадцати
+        // пяти до сотни не хватает 75 — и ученику пришлось бы считать 80 − 75, что
+        // тяжелее самого примера. От восьмидесяти не хватает 20, и это уже приём.
+        const big = Math.max(a, b), small = Math.min(a, b);
+        if (struct.extra === 'h') {
+            const hundred = (Math.floor(big / 100) + 1) * 100;
+            const need = hundred - big;
+            // Добирать нужно из второго числа — если его не хватает, приём не работает.
+            if (need > 0 && need < small) return { key: 'add:h', args: [hundred, need, small] };
+        }
+        if (struct.cls === '1') return { key: 'add:1', args: [u(a), u(b)] };
+        if (struct.cls === '2') {
+            const round = (Math.floor(big / 10) + 1) * 10;
+            const need = round - big;
+            if (need > 0 && need < small) return { key: 'add:2', args: [round, need, small] };
+        }
+        return null;                      // «без перехода» — приёма нет
+    }
+
+    if (op === 'sub') {
+        if (struct.extra === 'h') {
+            const tail = a % 100;
+            const hundred = a - tail;
+            // Спуск до сотни работает, только если хвост есть и его хватает вычесть.
+            if (tail > 0 && tail < b) return { key: 'sub:h', args: [tail, hundred, b - tail] };
+        }
+        if (struct.cls === '1' || struct.cls === '2') {
+            const top = u(a) + 10, low = u(b);
+            return { key: 'sub:borrow', args: [top, low, top - low] };
+        }
+        return null;                      // «без заёма» — приёма нет
+    }
+
+    if (op === 'mul') {
+        if (a < 0 || b < 0 || problem.triple) return null;
+        const lo = Math.min(a, b), hi = Math.max(a, b);
+        switch (struct.cls) {
+            case 'triv':
+                // Приём есть только у десятки. ×1 и ×0 — не приём, а определение.
+                return (hi === 10 && lo > 0) ? { key: 'mul:triv10', args: [] } : null;
+            case 'two':  return { key: 'mul:two', args: [hi] };
+            case 'five': {
+                const other = (b === 5) ? a : b;
+                return { key: 'mul:five', args: [other * 10] };
+            }
+            case 'small': {
+                const other = hi;
+                return (lo === 4)
+                    ? { key: 'mul:small4', args: [other * 2] }
+                    : { key: 'mul:small3', args: [other * 2] };
+            }
+            case 'nine': {
+                const other = (b === 9) ? a : b;
+                return { key: 'mul:nine', args: [other, other * 10, other] };
+            }
+            case 'core': {
+                // Порядок выбора: шестёрка, потом восьмёрка, потом семёрка. Так
+                // каждому факту достаётся самый короткий путь — 7 × 8 это 70 − 14,
+                // а не 80 − 24.
+                if (a === 6 || b === 6) {
+                    const other = (b === 6) ? a : b;
+                    return { key: 'mul:core6', args: [other, other * 3] };
+                }
+                if (a === 8 || b === 8) {
+                    const other = (b === 8) ? a : b;
+                    return { key: 'mul:core8', args: [other, other * 10, other * 2] };
+                }
+                const other = a;                     // остаётся только 7 × 7
+                return { key: 'mul:core7', args: [other, other * 10, other * 3] };
+            }
+            // Двузначные. У «круглых» круглый множитель есть всегда (проверено
+            // прогоном генератора), поэтому приём «убери ноль» безопасен; у двузначных
+            // без нуля второй множитель всегда однозначный, и там работает разбиение.
+            case 'round':
+            case 'tworound': {
+                // Ноль снимаем ровно у ОДНОГО множителя, даже если круглые оба:
+                // 30 × 20 превращается в 3 × 20, и «допиши ноль» остаётся правдой.
+                if (a % 10 === 0) return { key: 'mul:round', args: [a / 10, b] };
+                if (b % 10 === 0) return { key: 'mul:round', args: [a, b / 10] };
+                return null;
+            }
+            case 'twoPlain':
+            case 'twoCarry': {
+                const two = hi, one = lo;                // lo здесь всегда однозначный
+                const tens = Math.floor(two / 10) * 10, units = two % 10;
+                if (!tens || !units) return null;        // разбивать нечего
+                return { key: 'mul:twoSplit', args: [tens, one, units] };
+            }
+            default: return null;
+        }
+    }
+
+    if (op === 'div') {
+        if (b === 0) return { key: 'div:byZero', args: [] };
+        if (a === 0) return { key: 'div:zeroTop', args: [] };
+        // ÷1, ÷10 и a ÷ a — приёма нет, как и у ×1. «На что умножить 1, чтобы вышло 8?»
+        // не подсказка, а издёвка; а «убери ноль» у 40 ÷ 10 просто выдаёт ответ.
+        if (struct.cls === 'triv') return null;
+        // «Убери по нулю» работает, только если ноль есть у обоих: 210 ÷ 7 так не берётся.
+        if (a % 10 === 0 && b % 10 === 0) return { key: 'div:round', args: [a / 10, b / 10] };
+        return { key: 'div:general', args: [b, a] };
+    }
+    return null;
+}
+
+// Готовая строка для экрана. Пустая означает «приёма нет» — это законный исход,
+// а не сбой: молчание лучше выдуманного правила.
+function trickHint(meta, problem) {
+    try {
+        const pick = trickPick(meta, problem);
+        if (!pick) return '';
+        const table = resolveTricks();
+        const tpl = table && table[pick.key];
+        if (!tpl) return '';
+        let out = tpl;
+        pick.args.forEach((v, i) => { out = out.split('%' + (i + 1)).join(String(v)); });
+        // Осталась неподставленная %N — шаблон и аргументы разъехались. Показывать
+        // такое ученику нельзя, как и в подсказках по ошибкам.
+        return /%\d/.test(out) ? '' : out;
+    } catch (e) {
+        return '';
+    }
+}

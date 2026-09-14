@@ -12,6 +12,14 @@
 
 window.TRANSLATIONS = {
     en: {
+            "💡 С подсказками": "💡 With hints",
+            "не идёт в статистику": "doesn't count towards stats",
+            "Считать нечего. На 1 — число не меняется, на 10 — дописываем ноль: 8 × 10 = 80. На 0 всегда ноль.": "Nothing to work out. Times 1 leaves the number alone; times 10 adds a zero: 8 × 10 = 80. Times 0 is always zero.",
+            "Удвоить — это прибавить число само к себе: 7 × 2 — это 7 + 7 = 14.": "Doubling is adding the number to itself: 7 × 2 is 7 + 7 = 14.",
+            "Умножь на 10 и возьми половину: 6 × 5 — это 60 пополам, то есть 30.": "Times 10, then halve it: 6 × 5 is 60 halved, so 30.",
+            "На 4 — удвой дважды: 7 × 4 — это 14, а потом 28. На 3 — удвой и прибавь число ещё раз: 7 + 7 = 14, и ещё 7 — будет 21.": "Times 4 — double it twice: 7 × 4 is 14, then 28. Times 3 — double it and add the number once more: 7 + 7 = 14, plus 7 makes 21.",
+            "Умножь на 10 и отними одно число: 7 × 9 — это 70 без 7, то есть 63.": "Times 10, then take one of the number away: 7 × 9 is 70 without 7, so 63.",
+            "Приёма тут нет, эти шесть учат наизусть. Но можно опереться на соседа: 7 × 8 — это 7 × 7 и ещё одна семёрка, 49 + 7 = 56.": "There's no trick here — these six you learn by heart. But you can lean on a neighbour: 7 × 8 is 7 × 7 and one more seven, 49 + 7 = 56.",
             "✏️ Работа над ошибками": "✏️ Fixing the mistakes",
             "Все исправлены": "All fixed",
             "Исправлено: %1 из %2": "Fixed: %1 of %2",
@@ -570,6 +578,14 @@ window.TRANSLATIONS = {
             " и ": " and "
     },
     fr: {
+            "💡 С подсказками": "💡 Avec indices",
+            "не идёт в статистику": "ne compte pas dans les stats",
+            "Считать нечего. На 1 — число не меняется, на 10 — дописываем ноль: 8 × 10 = 80. На 0 всегда ноль.": "Rien à calculer. Par 1, le nombre ne change pas ; par 10, on ajoute un zéro : 8 × 10 = 80. Par 0, c’est toujours zéro.",
+            "Удвоить — это прибавить число само к себе: 7 × 2 — это 7 + 7 = 14.": "Doubler, c’est ajouter le nombre à lui-même : 7 × 2, c’est 7 + 7 = 14.",
+            "Умножь на 10 и возьми половину: 6 × 5 — это 60 пополам, то есть 30.": "Multiplie par 10 et prends la moitié : 6 × 5, c’est 60 en deux, donc 30.",
+            "На 4 — удвой дважды: 7 × 4 — это 14, а потом 28. На 3 — удвой и прибавь число ещё раз: 7 + 7 = 14, и ещё 7 — будет 21.": "Par 4 — double deux fois : 7 × 4, c’est 14, puis 28. Par 3 — double et ajoute le nombre encore une fois : 7 + 7 = 14, et encore 7 — ça fait 21.",
+            "Умножь на 10 и отними одно число: 7 × 9 — это 70 без 7, то есть 63.": "Multiplie par 10 et enlève une fois le nombre : 7 × 9, c’est 70 sans 7, donc 63.",
+            "Приёма тут нет, эти шесть учат наизусть. Но можно опереться на соседа: 7 × 8 — это 7 × 7 и ещё одна семёрка, 49 + 7 = 56.": "Ici pas de méthode, ces six-là s’apprennent par cœur. Mais tu peux t’appuyer sur le voisin : 7 × 8, c’est 7 × 7 et encore un sept, 49 + 7 = 56.",
             "✏️ Работа над ошибками": "✏️ Correction des erreurs",
             "Все исправлены": "Tout est corrigé",
             "Исправлено: %1 из %2": "Corrigés : %1 sur %2",
@@ -1128,6 +1144,14 @@ window.TRANSLATIONS = {
             " и ": " et "
     },
     de: {
+            "💡 С подсказками": "💡 Mit Tipps",
+            "не идёт в статистику": "zählt nicht für die Statistik",
+            "Считать нечего. На 1 — число не меняется, на 10 — дописываем ноль: 8 × 10 = 80. На 0 всегда ноль.": "Da gibt es nichts zu rechnen. Mal 1 bleibt die Zahl gleich, mal 10 hängst du eine Null an: 8 × 10 = 80. Mal 0 ist immer null.",
+            "Удвоить — это прибавить число само к себе: 7 × 2 — это 7 + 7 = 14.": "Verdoppeln heißt, die Zahl zu sich selbst zu addieren: 7 × 2 ist 7 + 7 = 14.",
+            "Умножь на 10 и возьми половину: 6 × 5 — это 60 пополам, то есть 30.": "Mal 10 rechnen und halbieren: 6 × 5 ist 60 zur Hälfte, also 30.",
+            "На 4 — удвой дважды: 7 × 4 — это 14, а потом 28. На 3 — удвой и прибавь число ещё раз: 7 + 7 = 14, и ещё 7 — будет 21.": "Mal 4 — zweimal verdoppeln: 7 × 4 ist 14, dann 28. Mal 3 — verdoppeln und die Zahl noch einmal dazu: 7 + 7 = 14, und noch 7 — macht 21.",
+            "Умножь на 10 и отними одно число: 7 × 9 — это 70 без 7, то есть 63.": "Mal 10 rechnen und die Zahl einmal abziehen: 7 × 9 ist 70 ohne 7, also 63.",
+            "Приёма тут нет, эти шесть учат наизусть. Но можно опереться на соседа: 7 × 8 — это 7 × 7 и ещё одна семёрка, 49 + 7 = 56.": "Hier gibt es keinen Trick, diese sechs lernt man auswendig. Aber du kannst dich am Nachbarn festhalten: 7 × 8 ist 7 × 7 und noch eine Sieben, 49 + 7 = 56.",
             "✏️ Работа над ошибками": "✏️ Fehler berichtigen",
             "Все исправлены": "Alles berichtigt",
             "Исправлено: %1 из %2": "Berichtigt: %1 von %2",
