@@ -1953,7 +1953,10 @@
     <!-- Регистрация. Ни почты, ни повтора пароля: почта — лишние данные ребёнка и лишний
          экран, а повтор дети проваливают чаще, чем он что-то спасает. Вместо повтора —
          глазик «показать». -->
-    <div class="modal-screen" id="registerScreen" style="z-index:211; display:none;">
+    <!-- z-index выше профиля (230): в профиле стоит кнопка «Сохранить прогресс», и с
+         прежними 211 регистрация открывалась ПОД ним. Кнопка выглядела мёртвой, а при
+         закрытии профиля из-под него неожиданно появлялась форма. -->
+    <div class="modal-screen" id="registerScreen" style="z-index:240; display:none;">
         <h1 class="start-title" style="font-size:clamp(1.15rem, 5vw, 1.6rem);">Новый игрок</h1>
 
         <div style="width:100%; max-width:420px; text-align:center;">
@@ -3881,6 +3884,12 @@
 
         // Полный доступ: репетитор, а также любой, про кого мы ещё ничего не знаем.
         function hasFullAccess() {
+            // Гостю открыты только положительные целые. Он записан как 'self' — так проще
+            // всему остальному коду, — но «self» исторически означало репетитора, которому
+            // открыто всё. Из-за этого гостю показывались отрицательные, десятичные и
+            // дроби: целых три раздела, до которых он не дошёл и которые мы нарочно
+            // прячем, чтобы экран не был витриной недоступного.
+            if (Progress.isGuest()) return false;
             if (Progress.getAccountType() !== 'linked') return true;
             return Progress.getAccess() === null;
         }
@@ -4375,7 +4384,17 @@
             updateCollectionBadge();
         }
 
+        // Откуда пришли в регистрацию: со стартового экрана или из профиля. Нужно, чтобы
+        // «У меня уже есть аккаунт» вернуло туда же, откуда позвали, а не выбросило на
+        // вход человека, который просто хотел сохранить прогресс из профиля.
+        let registerCameFromProfile = false;
+
         function openRegisterScreen() {
+            registerCameFromProfile =
+                document.getElementById('profileScreen').style.display === 'flex';
+            // Профиль прячем: две формы одна поверх другой читаются как сбой, даже
+            // когда порядок слоёв правильный.
+            if (registerCameFromProfile) document.getElementById('profileScreen').style.display = 'none';
             document.getElementById('regErrorMsg').style.display = 'none';
             document.getElementById('regLoadingMsg').style.display = 'none';
             document.getElementById('registerScreen').style.display = 'flex';
@@ -4385,7 +4404,14 @@
 
         function closeRegisterScreen() {
             document.getElementById('registerScreen').style.display = 'none';
-            // Гость мог зайти сюда из игры — тогда за спиной не экран входа, а сама игра.
+            if (registerCameFromProfile) {
+                registerCameFromProfile = false;
+                renderProfileScreen();
+                document.getElementById('profileScreen').style.display = 'flex';
+                return;
+            }
+            // Пришли со стартового экрана — туда и возвращаемся. Но только если человек
+            // и правда не вошёл: у гостя код есть, и выбрасывать его на вход незачем.
             if (!Progress.getCode()) document.getElementById('codeScreen').style.display = 'flex';
         }
 
@@ -11334,6 +11360,33 @@
         // подставляем прошлый выбор режимов/сложности, ученик/репетитор выбирает
         // заново каждый раз (Progress.setConfig() всё ещё сохраняет последний выбор
         // в state — это часть схемы синхронизации, но на экран он больше не влияет).
+        // Половина обновления. index.html и вынесенные js/*.js — разные файлы, и браузер
+        // может взять одни из сети, а другие из кеша: на медленной связи это случается.
+        // Тогда разметка новая, а код старый, и приложение ломается в неожиданном месте —
+        // например, застревает на «Загрузка…» без единой кнопки.
+        //
+        // Проверяем самое дешёвое: те функции из вынесенных файлов, без которых запуск
+        // не имеет смысла. Не нашлись — перезагружаем страницу ОДИН раз (флаг в
+        // sessionStorage), и сеть отдаёт всё заново. Второй раз не перезагружаем никогда:
+        // бесконечный цикл перезагрузок хуже любой поломки.
+        (function guardHalfUpdate() {
+            // Проверяем через typeof в этой же области видимости, а не через window[...]:
+            // Progress объявлен как const и свойством window не становится, поэтому
+            // поиск по window всегда «не находил» бы его и гнал на перезагрузку.
+            const missing = [];
+            if (typeof Progress === 'undefined') missing.push('Progress');
+            if (typeof buildTopicKey === 'undefined') missing.push('buildTopicKey');
+            if (typeof generateProblem === 'undefined') missing.push('generateProblem');
+            if (typeof renderStatsScreen === 'undefined') missing.push('renderStatsScreen');
+            if (!missing.length) return;
+            let already = false;
+            try { already = sessionStorage.getItem('kluchReloadedOnce') === '1'; } catch (e) { already = true; }
+            console.warn('Загрузилась половина обновления, не хватает: ' + missing.join(', '));
+            if (already) return;
+            try { sessionStorage.setItem('kluchReloadedOnce', '1'); } catch (e) { /* приватное окно */ }
+            location.reload();
+        })();
+
         refreshSectionLocks();
         renderDailyBar();
         renderConfigTasks();
