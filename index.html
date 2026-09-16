@@ -2353,8 +2353,8 @@
                 </div>
                 <!-- Виден только гостю: единственное, что ему здесь по-настоящему нужно. -->
                 <div id="guestUpgradeRow" style="display:none; margin-top:10px;">
-                    <button class="btn-auth-second" onclick="openRegisterScreen()">Создать аккаунт и сохранить прогресс</button>
-                    <div class="config-hint" style="margin-top:8px;">Прогресс переедет целиком — ничего собирать заново не придётся.</div>
+                    <button class="btn-auth-second" onclick="openRegisterScreen()">Сохранить прогресс</button>
+                    <div class="config-hint" style="margin-top:8px;">Всё собранное переедет с тобой.</div>
                 </div>
 
                 <!-- Логин можно скопировать и записать. Пароль — нельзя: на устройстве он
@@ -2364,7 +2364,7 @@
                 <div id="ownAccountRow" style="display:none; margin-top:10px;">
                     <button class="menu-btn" onclick="copyOwnCode()">📋 <span>Скопировать логин</span></button>
                     <button class="menu-btn" style="margin-top:8px;" onclick="changeOwnPassword()">🔑 <span>Сменить пароль</span></button>
-                    <div class="config-hint" style="margin-top:8px;">Пароль нигде не хранится в читаемом виде — его нельзя посмотреть, только задать новый.</div>
+                    <div class="config-hint" style="margin-top:8px;">Пароль посмотреть нельзя — только задать новый.</div>
                 </div>
                 <input id="profileLabelInput" type="text" placeholder="Имя (необязательно)"
                        style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
@@ -4483,7 +4483,7 @@
                 // Про пароль предупреждаем здесь, а не подсказкой под полями: восстановления
                 // у нас нет, и сказать об этом надо — но в тот момент, когда пароль уже
                 // придуман и его есть смысл запоминать, а не когда его ещё набирают.
-                showToast(tf('Аккаунт «%1» готов. Запомни пароль — восстановить его нельзя.', code));
+                showToast(tf('Готово! Запомни пароль — его не восстановить.', code));
             } catch (e) {
                 loadingEl.style.display = 'none';
                 errEl.innerText = t('Не получилось создать аккаунт. Попробуй позже.');
@@ -4502,15 +4502,15 @@
             // нужно, и только при отказе спрашиваем всерьёз.
             if (Progress.isGuest()) {
                 const save = await askConfirm({
-                    title: t('Прогресс не сохранён'),
-                    text: t('Ты играешь без аккаунта: всё собранное есть только на этом устройстве. Если выйти — оно исчезнет.'),
+                    title: t('Прогресс пропадёт'),
+                    text: t('Ты играешь без аккаунта — всё собранное есть только здесь.'),
                     okText: t('Создать аккаунт'),
                     cancelText: t('Всё равно выйти')
                 });
                 if (save) { openRegisterScreen(); return; }
                 const sure = await askConfirm({
-                    title: t('Точно выйти?'),
-                    text: t('Собранные картинки и прогресс исчезнут без возможности вернуть.'),
+                    title: t('Точно?'),
+                    text: t('Картинки и прогресс исчезнут насовсем.'),
                     okText: t('Выйти и стереть'),
                     cancelText: t('Отмена'),
                     danger: true
@@ -4522,8 +4522,8 @@
             }
 
             const ok = await askConfirm({
-                title: t('Выйти из профиля?'),
-                text: t('Прогресс останется на сервере — войдёшь под тем же логином и паролем, и всё вернётся. На этом устройстве профиль пропадёт из списка.'),
+                title: t('Выйти?'),
+                text: t('Вернёшься по своему логину и паролю — всё будет на месте.'),
                 okText: t('Выйти'),
                 cancelText: t('Отмена')
             });
@@ -4534,9 +4534,9 @@
             const sent = await Progress.flush(true);
             if (!sent) {
                 const anyway = await askConfirm({
-                    title: t('Связи нет'),
-                    text: t('Последние ответы не успели уйти на сервер. Если выйти сейчас, они пропадут: на этом устройстве копия стирается.'),
-                    okText: t('Выйти и потерять их'),
+                    title: t('Нет интернета'),
+                    text: t('Последние ответы не сохранились. Выйдешь сейчас — они пропадут.'),
+                    okText: t('Всё равно выйти'),
                     cancelText: t('Остаться'),
                     danger: true
                 });
@@ -4582,7 +4582,7 @@
             if (Progress.isGuest() || Progress.getAccountType() === 'linked') return;
             const vals = await askForm({
                 title: t('Сменить пароль'),
-                text: t('Старый пароль нужен, чтобы сменить его нельзя было с чужого устройства. После смены вход на всех устройствах, включая это, придётся выполнить заново.'),
+                text: t('После смены придётся войти заново.'),
                 fields: [
                     { key: 'old', label: t('Старый пароль'), type: 'password' },
                     { key: 'neu', label: t('Новый пароль'), type: 'password',
@@ -4613,7 +4613,7 @@
                 { p_code: code, p_password: vals.neu });
             if (back.data && back.data.ok && back.data.token) {
                 Progress.setToken(code, back.data.token);
-                showToast(t('Пароль изменён. Запомни новый — восстановить его нельзя.'));
+                showToast(t('Готово! Запомни новый пароль.'));
             } else {
                 // Пароль уже сменён, а войти заново не вышло: честнее вывести человека
                 // на экран входа, чем оставить его с мёртвым токеном.
@@ -4949,8 +4949,8 @@
             // устройства и очистку браузера — ребёнок такое не читает, а если читает, то
             // пугается. Две строки говорят то же самое.
             const yes = await askConfirm({
-                title: t('Хочешь сохранить прогресс?'),
-                text: tf('Собрано картинок: %1. Пока они есть только здесь. С аккаунтом не потеряются.', done),
+                title: t('Сохранить прогресс?'),
+                text: tf('Собрано картинок: %1. Заведи аккаунт — и они не потеряются.', done),
                 okText: t('Создать аккаунт'),
                 cancelText: t('Потом')
             });
