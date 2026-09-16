@@ -852,6 +852,24 @@ const Progress = (() => {
     // Переключение активного профиля: откладывает текущий в кэш, поднимает
     // уже известный устройству профиль или заводит новый с нужными метками.
     // password — обязателен для нового профиля, иначе им нельзя будет синхронизироваться.
+    // Код гостевого профиля — того, кто играет без регистрации.
+    //
+    // Почему служебный код, а не анонимное состояние без кода. Раньше «без аккаунта»
+    // означало playerCode: null, и такой прогресс НЕ переживал перезагрузку: init()
+    // собирает состояние как profiles[activeCode], а persistLocal() кладёт профиль в
+    // profiles только при наличии кода. Гость с null терял всё при закрытии вкладки —
+    // и напоминание «заведи аккаунт, а то потеряешь» было бы враньём: терялось бы и так.
+    //
+    // Код нарочно содержит двоеточие: сервер в логинах разрешает только буквы, цифры,
+    // дефис и подчёркивание (см. supabase/self-register.sql), поэтому такой логин
+    // НЕЛЬЗЯ зарегистрировать по-настоящему. Первым вариантом было «__guest__» — и его
+    // сервер как раз принял бы: подчёркивания разрешены, а значит кто-то мог бы занять
+    // этот логин, и на его устройстве гость столкнулся бы с настоящим профилем.
+    //
+    // Наружу код не показывается: в интерфейсе гость называется гостем, а на сервер не
+    // уходит вовсе — подтверждать личность гостю нечем, и flush() выходит раньше отправки.
+    const GUEST_CODE = 'guest:local';
+
     function doSwitch(code, password, opts) {
         if (!code) return;
         // Доступ принадлежит профилю, а не устройству: при переключении забываем.
@@ -957,6 +975,42 @@ const Progress = (() => {
         // code+password должны быть уже проверены сервером (через login/create_student)
         // до вызова этой функции — сама она чужие пароли не проверяет.
         switchTo(code, password, opts) { doSwitch(code, password, opts); },
+
+        // --- игра без регистрации ---
+        GUEST_CODE,
+        isGuest() { return state.playerCode === GUEST_CODE; },
+
+        // Начать (или продолжить) игру без аккаунта. Пароля нет намеренно: без него
+        // authFor() отдаёт null, и flush() выходит раньше любой отправки на сервер.
+        startGuest() {
+            doSwitch(GUEST_CODE, null, { accountType: 'self' });
+            return state;
+        },
+
+        // Гость завёл себе аккаунт. Прогресс переезжает ЦЕЛИКОМ — это тот же объект
+        // состояния, просто под новым именем: ни один счётчик по дороге не пересобирается.
+        //
+        // persistLocal() здесь уместен вместе со штампом updatedAt, в отличие от простого
+        // переключения профиля: данные действительно только что изменились, и локальная
+        // копия должна выглядеть новее пустой серверной заготовки. Счётчикам это ничего
+        // не решает — они сливаются максимумом, — но accountType и имя профиля берутся
+        // по времени, и здесь верны именно наши.
+        adoptGuest(code, password) {
+            if (!code || code === GUEST_CODE) return false;
+            if (state.playerCode !== GUEST_CODE) return false;
+            if (profiles[code]) return false;   // такой профиль уже есть — не затираем
+            const carried = state;
+            delete profiles[GUEST_CODE];
+            carried.playerCode = code;
+            carried.accountType = 'self';
+            carried.ownerCode = null;
+            profiles[code] = carried;
+            state = carried;
+            if (password) passwords[code] = password;
+            access = null;
+            persistLocal();
+            return true;
+        },
         listProfiles() {
             return Object.keys(profiles).map(code => ({
                 code,
@@ -1248,6 +1302,10 @@ const Progress = (() => {
         // Худший исход при перекрытии — лишний, избыточный запрос, не потеря данных.
         async flush(force) {
             if (!remoteDriver || !state.playerCode) return;
+            // Гость на сервер не уходит никогда. Подтверждать личность ему и так нечем,
+            // но проверка стоит явно: служебный код не должен оказаться в базе даже
+            // если когда-нибудь ему по ошибке припишут пароль.
+            if (state.playerCode === GUEST_CODE) return;
             const auth = authFor(state.playerCode);
             if (!auth) return; // подтвердить личность нечем — ждём входа
             if (!dirty && !force) return;
@@ -1293,6 +1351,13 @@ const Progress = (() => {
         farewell() {
             if (!remoteDriver || !remoteDriver.writeKeepalive) return false;
             if (!dirty || !state.playerCode) return false;
+            // Второй рубеж, и он намеренно недостижим: гостю не даёт синхронизироваться
+            // проверка в flush(), а без успешного слияния lastMergeAt остаётся нулём и
+            // прощальная запись не уходит в любом случае. Проверено подсадкой — снятие
+            // этой строки не роняет ни одного теста, и это не недосмотр, а следствие.
+            // Строка стоит, чтобы farewell() был верен сам по себе, а не держался на
+            // рассуждении о соседней функции.
+            if (state.playerCode === GUEST_CODE) return false;
             const auth = authFor(state.playerCode);
             if (!auth) return false;
             if (!lastMergeAt || Date.now() - lastMergeAt > FAREWELL_MAX_STALE_MS) return false;
