@@ -976,6 +976,29 @@ const Progress = (() => {
         // до вызова этой функции — сама она чужие пароли не проверяет.
         switchTo(code, password, opts) { doSwitch(code, password, opts); },
 
+        // Выход из профиля на ЭТОМ устройстве.
+        //
+        // Убирает не только ключи, но и сам локальный профиль. Иначе это не выход:
+        // оставшийся профиль виден в списке и открывается обратно одним касанием без
+        // пароля — так «выйти» означало бы «переключиться», а это у нас уже есть.
+        //
+        // Отсюда требование к вызывающему коду: СНАЧАЛА отправить прогресс на сервер и
+        // убедиться, что он дошёл. Здесь этого не сделать — модуль синхронный, а отправка
+        // нет, — поэтому решение «уходить ли, если отправить не удалось» принимает тот,
+        // кто может спросить человека.
+        logout() {
+            const code = state.playerCode;
+            if (!code) return false;
+            delete profiles[code];
+            delete passwords[code];
+            delete tokens[code];
+            access = null;
+            state = emptyState();
+            localDriver.write({ activeCode: null, profiles, passwords, tokens, access });
+            dirty = false;
+            return true;
+        },
+
         // --- игра без регистрации ---
         GUEST_CODE,
         isGuest() { return state.playerCode === GUEST_CODE; },

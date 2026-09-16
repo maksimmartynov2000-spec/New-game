@@ -881,6 +881,14 @@
             font-family: inherit; font-size: 0.88rem; cursor: pointer; text-decoration: underline;
         }
         .btn-auth-ghost:active { color: #e2e8f0; }
+        /* Выход: тихий, но не спрятанный. Не красный — красное в этом приложении
+           означает необратимое, а выход обратим входом. */
+        .btn-logout {
+            width: 100%; min-height: 44px; margin-top: 14px; padding: 11px 16px;
+            border-radius: 10px; background: none; border: 1px solid rgba(255,255,255,0.14);
+            color: #94a3b8; font-family: inherit; font-size: 0.88rem; cursor: pointer;
+        }
+        .btn-logout:active { color: #e2e8f0; background: rgba(255,255,255,0.05); }
 
         .win-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -2345,14 +2353,29 @@
                 </div>
                 <!-- Виден только гостю: единственное, что ему здесь по-настоящему нужно. -->
                 <div id="guestUpgradeRow" style="display:none; margin-top:10px;">
-                    <button class="btn-auth-second" onclick="openRegisterScreen()">Создать аккаунт и сохранить прогресс</button>
-                    <div class="config-hint" style="margin-top:8px;">Прогресс переедет целиком — ничего собирать заново не придётся.</div>
+                    <button class="btn-auth-second" onclick="openRegisterScreen()">Сохранить прогресс</button>
+                    <div class="config-hint" style="margin-top:8px;">Всё собранное переедет с тобой.</div>
+                </div>
+
+                <!-- Логин можно скопировать и записать. Пароль — нельзя: на устройстве он
+                     стирается после первого входа, а на сервере лежит только хэш. Поэтому
+                     рядом не «показать пароль», а «сменить»: прочитать старый нельзя, а
+                     поставить новый, зная старый, можно. -->
+                <div id="ownAccountRow" style="display:none; margin-top:10px;">
+                    <button class="menu-btn" onclick="copyOwnCode()">📋 <span>Скопировать логин</span></button>
+                    <button class="menu-btn" style="margin-top:8px;" onclick="changeOwnPassword()">🔑 <span>Сменить пароль</span></button>
+                    <div class="config-hint" style="margin-top:8px;">Пароль посмотреть нельзя — только задать новый.</div>
                 </div>
                 <input id="profileLabelInput" type="text" placeholder="Имя (необязательно)"
                        style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
                               background:rgba(255,255,255,0.06); color:white; box-sizing:border-box; text-align:center; font-size:0.95rem;">
                 <button class="menu-btn" style="margin-top:8px;" onclick="saveProfileLabel()">💾 <span>Сохранить имя</span></button>
                 <div id="accessSummary" class="config-hint" style="margin-top:8px;"></div>
+
+                <!-- Выход стоит последним и нарочно тихий: ученику он нужен редко, а
+                     нажать случайно легко. Отдельного раздела не заводим — это действие
+                     про текущий аккаунт и живёт там же, где всё остальное про него. -->
+                <button class="btn-logout" id="btnLogout" onclick="logoutHere()">Выйти из профиля</button>
             </div>
 
             <div class="config-section" data-fold="profile:devices" id="devicesSection">
@@ -4460,11 +4483,143 @@
                 // Про пароль предупреждаем здесь, а не подсказкой под полями: восстановления
                 // у нас нет, и сказать об этом надо — но в тот момент, когда пароль уже
                 // придуман и его есть смысл запоминать, а не когда его ещё набирают.
-                showToast(tf('Аккаунт «%1» готов. Запомни пароль — восстановить его нельзя.', code));
+                showToast(tf('Готово! Запомни пароль — его не восстановить.', code));
             } catch (e) {
                 loadingEl.style.display = 'none';
                 errEl.innerText = t('Не получилось создать аккаунт. Попробуй позже.');
                 errEl.style.display = 'block';
+            }
+        }
+
+        // ===== ВЫХОД, ЛОГИН, СМЕНА СВОЕГО ПАРОЛЯ =====
+
+        // Выход с этого устройства. Главное здесь — порядок: сначала отправляем прогресс
+        // на сервер и только потом убираем профиль. Выход стирает локальную копию (иначе
+        // это не выход, а переключение), и всё, что не успело уехать, пропало бы молча.
+        async function logoutHere() {
+            // Гость — особый случай: его прогресса на сервере нет вовсе, и выход означает
+            // «стереть насовсем». Поэтому сначала предлагаем то, что ему на самом деле
+            // нужно, и только при отказе спрашиваем всерьёз.
+            if (Progress.isGuest()) {
+                const save = await askConfirm({
+                    title: t('Прогресс пропадёт'),
+                    text: t('Ты играешь без аккаунта — всё собранное есть только здесь.'),
+                    okText: t('Создать аккаунт'),
+                    cancelText: t('Всё равно выйти')
+                });
+                if (save) { openRegisterScreen(); return; }
+                const sure = await askConfirm({
+                    title: t('Точно?'),
+                    text: t('Картинки и прогресс исчезнут насовсем.'),
+                    okText: t('Выйти и стереть'),
+                    cancelText: t('Отмена'),
+                    danger: true
+                });
+                if (!sure) return;
+                Progress.logout();
+                finishLogout();
+                return;
+            }
+
+            const ok = await askConfirm({
+                title: t('Выйти?'),
+                text: t('Вернёшься по своему логину и паролю — всё будет на месте.'),
+                okText: t('Выйти'),
+                cancelText: t('Отмена')
+            });
+            if (!ok) return;
+
+            // Отправляем ДО выхода и проверяем результат. flush(true) возвращает true
+            // только если сервер действительно принял.
+            const sent = await Progress.flush(true);
+            if (!sent) {
+                const anyway = await askConfirm({
+                    title: t('Нет интернета'),
+                    text: t('Последние ответы не сохранились. Выйдешь сейчас — они пропадут.'),
+                    okText: t('Всё равно выйти'),
+                    cancelText: t('Остаться'),
+                    danger: true
+                });
+                if (!anyway) return;
+            }
+            Progress.logout();
+            finishLogout();
+        }
+
+        // Возврат к экрану входа. Чистим то, что осталось от прошлого профиля на экране:
+        // иначе за формой входа проглядывают чужие цифры.
+        function finishLogout() {
+            document.querySelectorAll('.modal-screen').forEach(x => { x.style.display = 'none'; });
+            closeMainMenu();
+            document.getElementById('codeInputField').value = '';
+            document.getElementById('passwordInputField').value = '';
+            document.getElementById('codeErrorMsg').style.display = 'none';
+            refreshSectionLocks();
+            renderDailyBar();
+            renderConfigTasks();
+            updateCollectionBadge();
+            document.getElementById('codeScreen').style.display = 'flex';
+        }
+
+        // Логин можно записать — значит надо дать его скопировать.
+        async function copyOwnCode() {
+            const code = Progress.getCode();
+            if (!code || Progress.isGuest()) return;
+            try {
+                await navigator.clipboard.writeText(code);
+                showToast(tf('Логин скопирован: %1', code));
+            } catch (e) {
+                // Буфер обмена бывает закрыт настройками браузера — тогда просто
+                // показываем логин, чтобы его можно было переписать руками.
+                await showNotice({ title: t('Твой логин'), text: code });
+            }
+        }
+
+        // Пароль прочитать нельзя ни на устройстве, ни на сервере: на устройстве он
+        // стирается после первого обмена на токен, на сервере лежит только хэш. Поэтому
+        // «восстановить» здесь означает «задать новый, зная старый».
+        async function changeOwnPassword() {
+            if (Progress.isGuest() || Progress.getAccountType() === 'linked') return;
+            const vals = await askForm({
+                title: t('Сменить пароль'),
+                text: t('После смены придётся войти заново.'),
+                fields: [
+                    { key: 'old', label: t('Старый пароль'), type: 'password' },
+                    { key: 'neu', label: t('Новый пароль'), type: 'password',
+                      hint: tf('Минимум %1 символов', REG_PW_MIN) }
+                ],
+                validate: (v) => (!v.neu || v.neu.length < REG_PW_MIN)
+                    ? tf('Пароль должен быть от %1 знаков.', REG_PW_MIN) : null
+            });
+            if (!vals) return;
+
+            const res = await callAuthed('session_change_own_password',
+                { p_old_password: vals.old, p_new_password: vals.neu });
+            const why = res.data && res.data.error;
+            if (res.error || !res.data || !res.data.ok) {
+                const messages = {
+                    bad_credentials: t('Старый пароль не подошёл.'),
+                    password_too_short: tf('Пароль должен быть от %1 знаков.', REG_PW_MIN),
+                    not_allowed: t('Пароль ученика меняет репетитор.')
+                };
+                showToast(messages[why] || t('Не получилось сменить пароль. Попробуй позже.'), 'error');
+                return;
+            }
+
+            // Сервер погасил все сессии, включая нашу. Берём новый токен сразу, иначе
+            // приложение продолжит ходить со старым и получит отказ на первом же запросе.
+            const code = Progress.getCode();
+            const back = await supabaseClient.rpc('session_login',
+                { p_code: code, p_password: vals.neu });
+            if (back.data && back.data.ok && back.data.token) {
+                Progress.setToken(code, back.data.token);
+                showToast(t('Готово! Запомни новый пароль.'));
+            } else {
+                // Пароль уже сменён, а войти заново не вышло: честнее вывести человека
+                // на экран входа, чем оставить его с мёртвым токеном.
+                showToast(t('Пароль изменён. Войди с новым паролем.'));
+                Progress.logout();
+                finishLogout();
             }
         }
 
@@ -4794,8 +4949,8 @@
             // устройства и очистку браузера — ребёнок такое не читает, а если читает, то
             // пугается. Две строки говорят то же самое.
             const yes = await askConfirm({
-                title: t('Хочешь сохранить прогресс?'),
-                text: tf('Собрано картинок: %1. Пока они есть только здесь. С аккаунтом не потеряются.', done),
+                title: t('Сохранить прогресс?'),
+                text: tf('Собрано картинок: %1. Заведи аккаунт — и они не потеряются.', done),
                 okText: t('Создать аккаунт'),
                 cancelText: t('Потом')
             });
@@ -8953,6 +9108,10 @@
                 : (type === 'linked' ? `${ACCOUNT_TYPE_LABELS.linked} ${owner || ''}` : ACCOUNT_TYPE_LABELS.self);
             // Гостю здесь главное — не настройки, а выход из гостевого положения.
             document.getElementById('guestUpgradeRow').style.display = guest ? '' : 'none';
+            // Логин и смена пароля — только тому, кто сам себе хозяин. У ученика пароль
+            // меняет репетитор (так решено на сервере), у гостя пароля нет вовсе.
+            document.getElementById('ownAccountRow').style.display =
+                (!guest && type !== 'linked') ? '' : 'none';
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
             renderProfileList();
 
