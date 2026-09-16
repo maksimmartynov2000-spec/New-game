@@ -46,7 +46,10 @@ const Progress = (() => {
             updatedAt: 0,
 
             profileLabel: '',      // имя, которое видно только на этом устройстве и в списке учеников
-            accountType: 'self',   // 'self' — завёл себе сам; 'linked' — код выдал репетитор
+            // 'self'   — репетитор: ему открыто всё;
+            // 'solo'   — завёл себе сам: видит ровно то же, что ученик репетитора;
+            // 'linked' — код выдал репетитор.
+            accountType: 'self',
             ownerCode: null,       // для accountType 'linked' — код репетитора, который выдал этот код
 
             config: null,          // последняя выбранная настройка примеров
@@ -635,7 +638,7 @@ const Progress = (() => {
         if (!s.epochs || typeof s.epochs !== 'object' || Array.isArray(s.epochs)) s.epochs = {};
         trimTopicSpeed(s.daily);
         if (typeof s.profileLabel !== 'string') s.profileLabel = '';
-        if (s.accountType !== 'linked') s.accountType = 'self';
+        if (s.accountType !== 'linked' && s.accountType !== 'solo') s.accountType = 'self';
         if (typeof s.ownerCode !== 'string') s.ownerCode = null;
         rescueNullSection(s);
         return s;
@@ -1006,7 +1009,7 @@ const Progress = (() => {
         // Начать (или продолжить) игру без аккаунта. Пароля нет намеренно: без него
         // authFor() отдаёт null, и flush() выходит раньше любой отправки на сервер.
         startGuest() {
-            doSwitch(GUEST_CODE, null, { accountType: 'self' });
+            doSwitch(GUEST_CODE, null, { accountType: 'solo' });
             return state;
         },
 
@@ -1025,7 +1028,7 @@ const Progress = (() => {
             const carried = state;
             delete profiles[GUEST_CODE];
             carried.playerCode = code;
-            carried.accountType = 'self';
+            carried.accountType = 'solo';
             carried.ownerCode = null;
             profiles[code] = carried;
             state = carried;
@@ -1060,7 +1063,7 @@ const Progress = (() => {
 
         // --- тип аккаунта ---
         setAccountType(type, ownerCode) {
-            state.accountType = (type === 'linked') ? 'linked' : 'self';
+            state.accountType = (type === 'linked' || type === 'solo') ? type : 'self';
             state.ownerCode = ownerCode || null;
             persistLocal();
         },
