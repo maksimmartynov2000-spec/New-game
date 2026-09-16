@@ -858,7 +858,14 @@
         }
         .pw-eye.on { opacity: 1; }
         .pw-eye:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; border-radius: 10px; }
-        .auth-hint { color: #64748b; font-size: 0.76rem; line-height: 1.4; margin: 2px 0 12px; }
+        /* Обычное состояние — тихая короткая строчка. Когда введённое не подходит, та же
+           строчка становится объяснением и меняет цвет: отдельной плашки не заводим,
+           иначе экран прыгает на каждую букву. */
+        .auth-hint {
+            color: #64748b; font-size: 0.76rem; line-height: 1.4; margin: 2px 0 12px;
+            min-height: 2.2em; display: flex; align-items: center; justify-content: center;
+        }
+        .auth-hint.trouble { color: #fbbf24; }
         /* Три двери на экране входа стоят по убыванию громкости: «Войти» — кнопка,
            «Создать аккаунт» — обводка, «Играть без регистрации» — просто текст. */
         .auth-alt { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; align-items: stretch; }
@@ -1950,7 +1957,10 @@
                 <button type="button" class="pw-eye" id="regEye" onclick="togglePassword('regPasswordField','regEye')"
                         aria-label="Показать пароль">👁</button>
             </div>
-            <p class="auth-hint" id="regHint">Логин от трёх букв, пароль от восьми. Пароль запомни — восстановить его будет некому.</p>
+            <!-- Короткая строчка стоит всегда, длинное объяснение приходит на её место
+                 только когда введённое не подходит. Читать правила до того, как в них
+                 упёрся, ребёнок всё равно не станет. -->
+            <p class="auth-hint" id="regHint">Логин от 3 букв, пароль от 8</p>
             <button class="btn-config-continue ready" id="regSubmit" onclick="doRegister()">Создать и играть</button>
             <p id="regErrorMsg" style="display:none; color:#f87171; margin-top:10px; font-size:0.85rem;"></p>
             <p id="regLoadingMsg" style="display:none; color:#94a3b8; margin-top:10px; font-size:0.85rem;">Создаю…</p>
@@ -4360,12 +4370,38 @@
         // сервере: логин от трёх знаков, пароль от четырёх.
         const REG_CODE_MIN = 3;
         const REG_PW_MIN = 8;   // столько же, сколько у созданных репетитором и при смене пароля
+        // Те же знаки, что разрешает сервер (см. supabase/self-register.sql). Проверяем
+        // и здесь, чтобы «маша!» отсекалась внятной строчкой на месте, а не общим отказом
+        // сервера после нажатия кнопки.
+        const REG_CODE_RE = /^[A-Za-z0-9А-Яа-яЁё_-]+$/;
+
+        // Подсказка под полями. По умолчанию — одна короткая строчка. Длинное объяснение
+        // приходит только тогда, когда человек во что-то упёрся, и говорит ровно про то,
+        // во что упёрся именно он.
+        function registerHint(code, pw) {
+            if (code && !REG_CODE_RE.test(code)) {
+                return t('В логине можно буквы, цифры, дефис и подчёркивание. Пробелов и точек быть не должно.');
+            }
+            if (code && code.length < REG_CODE_MIN) {
+                return tf('Логин пока короткий: нужно хотя бы %1 буквы.', REG_CODE_MIN);
+            }
+            if (pw && pw.length < REG_PW_MIN) {
+                return tf('Пароль пока короткий: нужно хотя бы %1 знаков.', REG_PW_MIN);
+            }
+            return null;                      // всё в порядке — оставляем короткую строчку
+        }
+
         function onRegisterInput() {
             const code = document.getElementById('regCodeField').value.trim();
             const pw = document.getElementById('regPasswordField').value;
-            const ok = code.length >= REG_CODE_MIN && pw.length >= REG_PW_MIN;
+            const ok = code.length >= REG_CODE_MIN && REG_CODE_RE.test(code) && pw.length >= REG_PW_MIN;
             document.getElementById('regSubmit').classList.toggle('ready', ok);
             document.getElementById('regSubmit').disabled = !ok;
+
+            const hintEl = document.getElementById('regHint');
+            const trouble = registerHint(code, pw);
+            hintEl.innerText = trouble || t('Логин от 3 букв, пароль от 8');
+            hintEl.classList.toggle('trouble', !!trouble);
         }
 
         async function doRegister() {
@@ -4751,11 +4787,12 @@
             if (!Progress.isGuest()) return;
             const st = Progress.get();
             const done = (st.totals && st.totals.puzzlesCompleted) || 0;
+            // Коротко и простыми словами. Первая версия была из шести предложений про
+            // устройства и очистку браузера — ребёнок такое не читает, а если читает, то
+            // пугается. Две строки говорят то же самое.
             const yes = await askConfirm({
-                title: t('Сохранить твою коллекцию?'),
-                // Одной строкой, а не склейкой из трёх: порядок слов в языках разный,
-                // и склеенные куски переводятся криво по определению.
-                text: tf('Собрано картинок: %1. Сейчас всё это живёт только на этом устройстве: если открыть игру на другом телефоне или почистить браузер, начнётся с нуля. Аккаунт делается за полминуты, и прогресс никуда не денется.', done),
+                title: t('Хочешь сохранить прогресс?'),
+                text: tf('Собрано картинок: %1. Пока они есть только здесь. С аккаунтом не потеряются.', done),
                 okText: t('Создать аккаунт'),
                 cancelText: t('Потом')
             });
