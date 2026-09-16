@@ -839,6 +839,42 @@
         .btn-final .name { color: #f3e8ff; font-size: 0.95rem; display: block; font-weight: bold; }
         .btn-final:active { transform: scale(0.98); }
 
+        /* ===== ВХОД, РЕГИСТРАЦИЯ, ИГРА БЕЗ АККАУНТА ===== */
+        .auth-input {
+            width: 100%; padding: 12px; text-align: center; font-size: 1.1rem;
+            border-radius: 10px; border: 1px solid rgba(255,255,255,0.22);
+            background: rgba(255,255,255,0.07); color: white; margin-bottom: 10px;
+            box-sizing: border-box; min-height: 44px;
+        }
+        /* Глазик вместо повтора пароля. Лежит ВНУТРИ поля справа, поэтому полю нужен
+           запас справа — иначе длинный пароль уезжает под кнопку. */
+        .pw-wrap { position: relative; }
+        .pw-wrap .auth-input { padding-right: 46px; }
+        .pw-eye {
+            position: absolute; top: 0; right: 0; height: 100%; width: 44px;
+            display: flex; align-items: center; justify-content: center;
+            background: none; border: none; cursor: pointer; font-size: 1.05rem;
+            opacity: 0.5; color: white; padding: 0;
+        }
+        .pw-eye.on { opacity: 1; }
+        .pw-eye:focus-visible { outline: 2px solid var(--cyan); outline-offset: -2px; border-radius: 10px; }
+        .auth-hint { color: #64748b; font-size: 0.76rem; line-height: 1.4; margin: 2px 0 12px; }
+        /* Три двери на экране входа стоят по убыванию громкости: «Войти» — кнопка,
+           «Создать аккаунт» — обводка, «Играть без регистрации» — просто текст. */
+        .auth-alt { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; align-items: stretch; }
+        .btn-auth-second {
+            width: 100%; min-height: 44px; padding: 11px 16px; border-radius: 10px;
+            background: transparent; border: 1px solid rgba(255,255,255,0.28);
+            color: #e2e8f0; font-family: inherit; font-size: 0.95rem; font-weight: bold; cursor: pointer;
+        }
+        .btn-auth-second:active { background: rgba(255,255,255,0.06); }
+        .btn-auth-ghost {
+            width: 100%; min-height: 44px; padding: 11px 16px; border-radius: 10px;
+            background: none; border: none; color: #94a3b8;
+            font-family: inherit; font-size: 0.88rem; cursor: pointer; text-decoration: underline;
+        }
+        .btn-auth-ghost:active { color: #e2e8f0; }
+
         .win-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #030712; z-index: 100; display: flex; flex-direction: column;
@@ -1879,17 +1915,49 @@
         <h1 class="start-title" style="font-size:clamp(1.15rem, 5vw, 1.6rem);">Вход</h1>
 
         <div style="width:100%; max-width:420px; text-align:center;">
-            <input id="codeInputField" type="text" placeholder="Логин" autocapitalize="off" autocorrect="off" spellcheck="false"
-                   style="width:100%; padding:12px; text-align:center; font-size:1.1rem;
-                          border-radius:10px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.07);
-                          color:white; margin-bottom:10px; box-sizing:border-box;">
-            <input id="passwordInputField" type="password" placeholder="Пароль"
-                   style="width:100%; padding:12px; text-align:center; font-size:1.1rem;
-                          border-radius:10px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.07);
-                          color:white; margin-bottom:10px; box-sizing:border-box;">
+            <input id="codeInputField" type="text" placeholder="Логин" autocapitalize="off" autocorrect="off"
+                   spellcheck="false" class="auth-input">
+            <div class="pw-wrap">
+                <input id="passwordInputField" type="password" placeholder="Пароль" class="auth-input">
+                <button type="button" class="pw-eye" id="loginEye" onclick="togglePassword('passwordInputField','loginEye')"
+                        aria-label="Показать пароль">👁</button>
+            </div>
             <button class="btn-config-continue ready" onclick="loginWithExistingCode()">Войти</button>
             <p id="codeErrorMsg" style="display:none; color:#f87171; margin-top:10px; font-size:0.85rem;"></p>
             <p id="codeLoadingMsg" style="display:none; color:#94a3b8; margin-top:10px; font-size:0.85rem;">Проверяю…</p>
+
+            <!-- Две другие двери. «Играть без регистрации» намеренно самая тихая из трёх:
+                 она ничего не обещает и ни к чему не обязывает, но и не прячется. -->
+            <div class="auth-alt">
+                <button class="btn-auth-second" onclick="openRegisterScreen()">Создать аккаунт</button>
+                <button class="btn-auth-ghost" onclick="playAsGuest()">Играть без регистрации</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Регистрация. Ни почты, ни повтора пароля: почта — лишние данные ребёнка и лишний
+         экран, а повтор дети проваливают чаще, чем он что-то спасает. Вместо повтора —
+         глазик «показать». -->
+    <div class="modal-screen" id="registerScreen" style="z-index:211; display:none;">
+        <h1 class="start-title" style="font-size:clamp(1.15rem, 5vw, 1.6rem);">Новый игрок</h1>
+
+        <div style="width:100%; max-width:420px; text-align:center;">
+            <input id="regCodeField" type="text" placeholder="Придумай логин" autocapitalize="off" autocorrect="off"
+                   spellcheck="false" class="auth-input" oninput="onRegisterInput()">
+            <div class="pw-wrap">
+                <input id="regPasswordField" type="password" placeholder="Придумай пароль" class="auth-input"
+                       oninput="onRegisterInput()">
+                <button type="button" class="pw-eye" id="regEye" onclick="togglePassword('regPasswordField','regEye')"
+                        aria-label="Показать пароль">👁</button>
+            </div>
+            <p class="auth-hint" id="regHint">Логин от трёх букв, пароль от восьми. Пароль запомни — восстановить его будет некому.</p>
+            <button class="btn-config-continue ready" id="regSubmit" onclick="doRegister()">Создать и играть</button>
+            <p id="regErrorMsg" style="display:none; color:#f87171; margin-top:10px; font-size:0.85rem;"></p>
+            <p id="regLoadingMsg" style="display:none; color:#94a3b8; margin-top:10px; font-size:0.85rem;">Создаю…</p>
+
+            <div class="auth-alt">
+                <button class="btn-auth-ghost" onclick="closeRegisterScreen()">У меня уже есть аккаунт</button>
+            </div>
         </div>
     </div>
 
@@ -2264,6 +2332,11 @@
                 <div class="menu-stat-card" style="text-align:center;">
                     <div class="menu-code-line" id="profileCodeVal">—</div>
                     <div class="menu-stat-label" style="margin-top:6px;" id="profileTypeVal">Личный аккаунт</div>
+                </div>
+                <!-- Виден только гостю: единственное, что ему здесь по-настоящему нужно. -->
+                <div id="guestUpgradeRow" style="display:none; margin-top:10px;">
+                    <button class="btn-auth-second" onclick="openRegisterScreen()">Создать аккаунт и сохранить прогресс</button>
+                    <div class="config-hint" style="margin-top:8px;">Прогресс переедет целиком — ничего собирать заново не придётся.</div>
                 </div>
                 <input id="profileLabelInput" type="text" placeholder="Имя (необязательно)"
                        style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
@@ -4241,8 +4314,127 @@
 
         // Показывается, пока на устройстве нет сохранённого входа. Вход — это токен
         // сессии либо (пока не обменяли) пароль; хватает любого из двух.
+        // ===== ТРИ ДВЕРИ: ВХОД, РЕГИСТРАЦИЯ, ИГРА БЕЗ АККАУНТА =====
+
+        // Глазик. Повтора пароля у нас нет намеренно, и увидеть набранное — единственный
+        // способ проверить себя. Поэтому кнопка не украшение, а замена целому полю.
+        function togglePassword(fieldId, btnId) {
+            const f = document.getElementById(fieldId);
+            const b = document.getElementById(btnId);
+            if (!f || !b) return;
+            const show = f.type === 'password';
+            f.type = show ? 'text' : 'password';
+            b.classList.toggle('on', show);
+            b.setAttribute('aria-label', show ? t('Скрыть пароль') : t('Показать пароль'));
+            f.focus();
+        }
+
+        // Играть без аккаунта. Прогресс пишется на устройство под служебным профилем и
+        // переживает перезагрузку — иначе напоминание «заведи аккаунт, а то потеряешь»
+        // было бы враньём: терялось бы и так.
+        function playAsGuest() {
+            Progress.startGuest();
+            document.getElementById('codeScreen').style.display = 'none';
+            document.getElementById('registerScreen').style.display = 'none';
+            refreshSectionLocks();
+            renderDailyBar();
+            renderConfigTasks();
+            updateCollectionBadge();
+        }
+
+        function openRegisterScreen() {
+            document.getElementById('regErrorMsg').style.display = 'none';
+            document.getElementById('regLoadingMsg').style.display = 'none';
+            document.getElementById('registerScreen').style.display = 'flex';
+            onRegisterInput();
+            setTimeout(() => document.getElementById('regCodeField').focus(), 0);
+        }
+
+        function closeRegisterScreen() {
+            document.getElementById('registerScreen').style.display = 'none';
+            // Гость мог зайти сюда из игры — тогда за спиной не экран входа, а сама игра.
+            if (!Progress.getCode()) document.getElementById('codeScreen').style.display = 'flex';
+        }
+
+        // Кнопка «Создать» гаснет, пока введённого не хватает. Те же пороги, что на
+        // сервере: логин от трёх знаков, пароль от четырёх.
+        const REG_CODE_MIN = 3;
+        const REG_PW_MIN = 8;   // столько же, сколько у созданных репетитором и при смене пароля
+        function onRegisterInput() {
+            const code = document.getElementById('regCodeField').value.trim();
+            const pw = document.getElementById('regPasswordField').value;
+            const ok = code.length >= REG_CODE_MIN && pw.length >= REG_PW_MIN;
+            document.getElementById('regSubmit').classList.toggle('ready', ok);
+            document.getElementById('regSubmit').disabled = !ok;
+        }
+
+        async function doRegister() {
+            const code = document.getElementById('regCodeField').value.trim();
+            const pw = document.getElementById('regPasswordField').value;
+            const errEl = document.getElementById('regErrorMsg');
+            const loadingEl = document.getElementById('regLoadingMsg');
+            errEl.style.display = 'none';
+
+            if (code.length < REG_CODE_MIN || pw.length < REG_PW_MIN) return;
+            if (!supabaseClient) {
+                errEl.innerText = t('Нет соединения с сервером. Попробуйте позже.');
+                errEl.style.display = 'block';
+                return;
+            }
+
+            loadingEl.style.display = 'block';
+            try {
+                const { data, error } = await supabaseClient.rpc('session_register',
+                    { p_code: code, p_password: pw });
+                loadingEl.style.display = 'none';
+                if (error) throw error;
+                const why = data && data.error;
+                if (!data || !data.ok) {
+                    // Про сервер и SQL ребёнку знать нечего — подсказка уходит в консоль
+                    // разработчику, на экране остаётся то, что человек может исправить.
+                    if (!why) {
+                        console.warn('Регистрация: сервер не ответил как надо. Запущен ли '
+                            + 'supabase/self-register.sql?');
+                    }
+                    const messages = {
+                        taken: t('Такой логин уже занят — придумай другой.'),
+                        bad_code: tf('Логин должен быть от %1 знаков.', REG_CODE_MIN),
+                        bad_password: tf('Пароль должен быть от %1 знаков.', REG_PW_MIN)
+                    };
+                    errEl.innerText = messages[why] || t('Не получилось создать аккаунт. Попробуй позже.');
+                    errEl.style.display = 'block';
+                    return;
+                }
+
+                // Прогресс гостя переезжает в новый аккаунт целиком. Если гостем не
+                // играли — заводим обычный пустой профиль.
+                if (!Progress.isGuest() || !Progress.adoptGuest(code, pw)) {
+                    Progress.switchTo(code, pw, { accountType: 'self' });
+                }
+                if (data.token) Progress.setToken(code, data.token);
+
+                document.getElementById('registerScreen').style.display = 'none';
+                document.getElementById('codeScreen').style.display = 'none';
+                await Progress.flush(true);
+                await refreshAccess();
+                refreshSectionLocks();
+                renderDailyBar();
+                renderConfigTasks();
+                updateCollectionBadge();
+                showToast(tf('Аккаунт «%1» готов. Прогресс сохранён.', code));
+            } catch (e) {
+                loadingEl.style.display = 'none';
+                errEl.innerText = t('Не получилось создать аккаунт. Попробуй позже.');
+                errEl.style.display = 'block';
+            }
+        }
+
         function bootCodeScreen() {
             const existing = Progress.getCode();
+            // Гость продолжает с того же места и экрана входа больше не видит: он уже
+            // сделал свой выбор, и переспрашивать при каждом запуске — то же самое, что
+            // не пускать. Подтверждать личность ему нечем, поэтому проверка отдельная.
+            if (Progress.isGuest()) return;
             if (existing && Progress.authFor(existing)) {
                 // Обмен паролей на токены — до первой синхронизации, чтобы она пошла
                 // уже по токену, и в фоне: экран входа этого не ждёт.
@@ -4546,6 +4738,30 @@
             img.src = src;
         }
 
+        // Сколько ждать после собранной картинки, прежде чем заговорить про аккаунт.
+        // Меньше — перебиваем радость, больше — ребёнок уже уехал дальше и не свяжет
+        // одно с другим.
+        const GUEST_NUDGE_DELAY_MS = 2600;
+        let guestNudgeShownThisMission = false;
+
+        // Разговор с гостем про аккаунт. Тон здесь важнее слов: не «зарегистрируйся»,
+        // а «твоё можно сохранить». Отказ — полноценный ответ, и после него игра идёт
+        // дальше как шла.
+        async function offerAccountToGuest() {
+            if (!Progress.isGuest()) return;
+            const st = Progress.get();
+            const done = (st.totals && st.totals.puzzlesCompleted) || 0;
+            const yes = await askConfirm({
+                title: t('Сохранить твою коллекцию?'),
+                // Одной строкой, а не склейкой из трёх: порядок слов в языках разный,
+                // и склеенные куски переводятся криво по определению.
+                text: tf('Собрано картинок: %1. Сейчас всё это живёт только на этом устройстве: если открыть игру на другом телефоне или почистить браузер, начнётся с нуля. Аккаунт делается за полминуты, и прогресс никуда не денется.', done),
+                okText: t('Создать аккаунт'),
+                cancelText: t('Потом')
+            });
+            if (yes) openRegisterScreen();
+        }
+
         function onPuzzleComplete(completedIndex, topicKey) {
             puzzlesCompletedCount++;
             // Счётчик «пазлов собрано за всё время» так и остаётся хранимым и только
@@ -4563,6 +4779,16 @@
             // Та же картинка начинается заново: сотая по счёту клетка и есть новый
             // ноль. Форма кусочков перегенерируется, чтобы собирать было не скучно.
             setupPuzzleForCell(topicKey);
+
+            // Гостю напоминаем про аккаунт — но ПОСЛЕ показа собранной картинки, а не
+            // вместо неё. Это момент радости, и перебивать его просьбой нельзя: сначала
+            // ребёнок получает своё, и только потом ему говорят, что это можно сохранить.
+            // Один раз за миссию: собрать две картинки подряд можно, а читать одно и то
+            // же окно дважды — незачем.
+            if (Progress.isGuest() && !guestNudgeShownThisMission) {
+                guestNudgeShownThisMission = true;
+                setTimeout(offerAccountToGuest, GUEST_NUDGE_DELAY_MS);
+            }
 
             lastCompletedSrc = completedSrc;
             lastCompletedPaths = completedPaths;
@@ -8675,10 +8901,18 @@
             const code = Progress.getCode();
             const type = Progress.getAccountType();
             const owner = Progress.getOwnerCode();
-            document.getElementById('profileCodeVal').innerText = code || '—';
-            document.getElementById('profileSubtitle').innerText = Progress.getProfileLabel() || t('Управление аккаунтом');
-            document.getElementById('profileTypeVal').innerText =
-                type === 'linked' ? `${ACCOUNT_TYPE_LABELS.linked} ${owner || ''}` : ACCOUNT_TYPE_LABELS.self;
+            // Служебный код гостя наружу не показываем ни здесь, ни где-либо ещё:
+            // человек его не выбирал и ввести обратно не сможет.
+            const guest = Progress.isGuest();
+            document.getElementById('profileCodeVal').innerText = guest ? t('Гость') : (code || '—');
+            document.getElementById('profileSubtitle').innerText = guest
+                ? t('Игра без аккаунта')
+                : (Progress.getProfileLabel() || t('Управление аккаунтом'));
+            document.getElementById('profileTypeVal').innerText = guest
+                ? t('Прогресс только на этом устройстве')
+                : (type === 'linked' ? `${ACCOUNT_TYPE_LABELS.linked} ${owner || ''}` : ACCOUNT_TYPE_LABELS.self);
+            // Гостю здесь главное — не настройки, а выход из гостевого положения.
+            document.getElementById('guestUpgradeRow').style.display = guest ? '' : 'none';
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
             renderProfileList();
 
@@ -8697,8 +8931,15 @@
             // Заводить учеников может только сам репетитор (self) — сервер тоже это
             // проверяет (см. миграцию), но прятать кнопку у ученика правильнее, чем
             // показывать её и потом объяснять отказ.
+            //
+            // Гость сюда тоже не допускается, хотя формально он 'self'. Это нашлось на
+            // снимках экрана: ребёнку, который нажал «играть без регистрации», показывали
+            // «Мои ученики», «Резервную копию» и «Опасную зону» — весь учительский слой
+            // разом. Тип аккаунта у гостя 'self' ради простоты остального кода, поэтому
+            // отличать его надо отдельной проверкой, а не по типу.
+            const tutorHidden = (type === 'linked') || Progress.isGuest();
             const studentsSection = document.getElementById('studentsSection');
-            if (type === 'linked') {
+            if (tutorHidden) {
                 studentsSection.style.display = 'none';
             } else {
                 studentsSection.style.display = '';
@@ -8713,15 +8954,15 @@
             // ошибка в приложении: восстановить стёртое нечем, а кнопка с восклицательным
             // знаком у одиннадцатилетнего живёт ровно до первого любопытства.
             // Сбросить прогресс ученику при необходимости может репетитор со своей стороны.
-            document.getElementById('dangerSection').style.display = (type === 'linked') ? 'none' : '';
+            document.getElementById('dangerSection').style.display = tutorHidden ? 'none' : '';
 
             // Резервная копия — тоже работа репетитора: копию делает тот, кто сможет ею
             // воспользоваться. Ученику эта кнопка ничего не даёт и только путает.
-            document.getElementById('backupSection').style.display = (type === 'linked') ? 'none' : '';
+            document.getElementById('backupSection').style.display = tutorHidden ? 'none' : '';
 
             // Вход на устройствах — тоже работа репетитора. У ученика сессии гасит смена
             // пароля, которую делает репетитор; отдельная кнопка ему только мешала бы.
-            document.getElementById('sessionsSection').style.display = (type === 'linked') ? 'none' : '';
+            document.getElementById('sessionsSection').style.display = tutorHidden ? 'none' : '';
 
             setupFolds('profileScreen');
         }
@@ -9532,6 +9773,7 @@
             clearInterval(timerInterval);
             gameActive = false;
             correctCount = 0; wrongCount = 0; totalSeconds = 0; state.combo = 0;
+            guestNudgeShownThisMission = false;   // разговор про аккаунт — раз за миссию
             sessionAnswerMs = 0;
             document.getElementById('stat-correct').innerText = '0';
             document.getElementById('stat-wrong').innerText = '0';
