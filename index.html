@@ -1957,6 +1957,10 @@
          прежними 211 регистрация открывалась ПОД ним. Кнопка выглядела мёртвой, а при
          закрытии профиля из-под него неожиданно появлялась форма. -->
     <div class="modal-screen" id="registerScreen" style="z-index:240; display:none;">
+        <!-- Кнопка «назад» такая же, как в профиле и на панели закрытого раздела. Ссылки
+             «У меня уже есть аккаунт» внизу не хватало: она читается как «войти», а не
+             как «отмена», и человек, передумавший заводить аккаунт, закрывал приложение. -->
+        <button class="start-menu-btn" onclick="closeRegisterScreen()" aria-label="Назад">◀️</button>
         <h1 class="start-title" style="font-size:clamp(1.15rem, 5vw, 1.6rem);">Новый игрок</h1>
 
         <div style="width:100%; max-width:420px; text-align:center;">
@@ -4354,7 +4358,7 @@
                 document.getElementById('codeScreen').style.display = 'none';
                 await Progress.flush(true);
                 await refreshAccess();
-                updateCollectionBadge();
+                enterApp();
             } catch (e) {
                 loadingEl.style.display = 'none';
                 errEl.innerText = t('Не удалось подключиться. Проверь интернет.');
@@ -4382,27 +4386,55 @@
         // Играть без аккаунта. Прогресс пишется на устройство под служебным профилем и
         // переживает перезагрузку — иначе напоминание «заведи аккаунт, а то потеряешь»
         // было бы враньём: терялось бы и так.
-        function playAsGuest() {
-            Progress.startGuest();
+        // Куда человек попадает, пройдя дверь: вход или игра без аккаунта. Экран выбора
+        // миссии здесь ПОКАЗЫВАЕТСЯ явно, а не подразумевается.
+        //
+        // Раньше двери просто прятали свой экран и надеялись, что под ним лежит выбор
+        // миссии — при первом запуске так и было. Но выход из профиля (finishLogout)
+        // прячет ВСЕ .modal-screen, а configScreen — один из них. После выхода любая
+        // дверь открывалась в пустоту: голый игровой слой с надписью «Загрузка…» и без
+        // единой кнопки. Ровно это выглядело как зависшее приложение.
+        function enterApp() {
             document.getElementById('codeScreen').style.display = 'none';
             document.getElementById('registerScreen').style.display = 'none';
             refreshSectionLocks();
             renderDailyBar();
             renderConfigTasks();
             updateCollectionBadge();
+            document.getElementById('configScreen').style.display = 'flex';
         }
 
-        // Откуда пришли в регистрацию: со стартового экрана или из профиля. Нужно, чтобы
-        // «У меня уже есть аккаунт» вернуло туда же, откуда позвали, а не выбросило на
-        // вход человека, который просто хотел сохранить прогресс из профиля.
-        let registerCameFromProfile = false;
+        function playAsGuest() {
+            Progress.startGuest();
+            enterApp();
+        }
+
+        // Откуда пришли в регистрацию. Позвать её можно из четырёх мест, и вернуться
+        // надо туда же: со входа, из профиля, с выбора миссии и прямо из идущей миссии
+        // (гостю предлагают завести аккаунт после собранной картинки).
+        //
+        // Раньше здесь был признак «пришли из профиля», а всё остальное считалось
+        // «пришли со входа». Для гостя это ломалось: код у него есть, на вход его не
+        // возвращали — и закрытая регистрация не показывала НИЧЕГО. Выйти можно было
+        // только закрыв приложение.
+        let registerReturnTo = 'code';
+
+        // Что лежит под регистрацией прямо сейчас. Смотрим вычисленный стиль, а не
+        // inline: у configScreen при первом запуске style.display пустой, display ему
+        // задаёт класс .modal-screen.
+        function currentBackdrop() {
+            const shown = id => getComputedStyle(document.getElementById(id)).display !== 'none';
+            if (shown('profileScreen')) return 'profile';
+            if (shown('codeScreen')) return 'code';
+            if (shown('configScreen')) return 'config';
+            return 'game';   // регистрацию открыли поверх идущей миссии
+        }
 
         function openRegisterScreen() {
-            registerCameFromProfile =
-                document.getElementById('profileScreen').style.display === 'flex';
+            registerReturnTo = currentBackdrop();
             // Профиль прячем: две формы одна поверх другой читаются как сбой, даже
             // когда порядок слоёв правильный.
-            if (registerCameFromProfile) document.getElementById('profileScreen').style.display = 'none';
+            if (registerReturnTo === 'profile') document.getElementById('profileScreen').style.display = 'none';
             document.getElementById('regErrorMsg').style.display = 'none';
             document.getElementById('regLoadingMsg').style.display = 'none';
             document.getElementById('registerScreen').style.display = 'flex';
@@ -4410,17 +4442,28 @@
             setTimeout(() => document.getElementById('regCodeField').focus(), 0);
         }
 
-        function closeRegisterScreen() {
-            document.getElementById('registerScreen').style.display = 'none';
-            if (registerCameFromProfile) {
-                registerCameFromProfile = false;
+        // Закрыть регистрацию — значит обязательно куда-то попасть. Зовётся и при отмене,
+        // и после успешного создания аккаунта, поэтому решение принимается по факту, а не
+        // по намерению: у зарегистрировавшегося код уже есть, и на вход он не вернётся.
+        function returnFromRegister() {
+            if (registerReturnTo === 'profile') {
                 renderProfileScreen();
                 document.getElementById('profileScreen').style.display = 'flex';
                 return;
             }
-            // Пришли со стартового экрана — туда и возвращаемся. Но только если человек
-            // и правда не вошёл: у гостя код есть, и выбрасывать его на вход незачем.
-            if (!Progress.getCode()) document.getElementById('codeScreen').style.display = 'flex';
+            // Так и не вошёл — обратно на вход.
+            if (registerReturnTo === 'code' && !Progress.getCode()) {
+                document.getElementById('codeScreen').style.display = 'flex';
+                return;
+            }
+            // Под регистрацией шла миссия — отдаём её обратно, а не выбрасываем на выбор.
+            if (registerReturnTo === 'game') return;
+            document.getElementById('configScreen').style.display = 'flex';
+        }
+
+        function closeRegisterScreen() {
+            document.getElementById('registerScreen').style.display = 'none';
+            returnFromRegister();
         }
 
         // Кнопка «Создать» гаснет, пока введённого не хватает. Те же пороги, что на
@@ -4514,6 +4557,7 @@
                 renderDailyBar();
                 renderConfigTasks();
                 updateCollectionBadge();
+                returnFromRegister();
                 // Про пароль предупреждаем здесь, а не подсказкой под полями: восстановления
                 // у нас нет, и сказать об этом надо — но в тот момент, когда пароль уже
                 // придуман и его есть смысл запоминать, а не когда его ещё набирают.
