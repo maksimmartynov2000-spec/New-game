@@ -232,6 +232,58 @@ function record(name, err) {
         await page.evaluate(`resumeGame(); null;`);
     }
 
+    console.log('\nМеню живёт на паузе');
+    {
+        // Кнопки меню в полосе часов больше нет, и это не косметика. Раньше меню
+        // открывалось прямо из миссии, НЕ останавливая часы: ребёнок листал статистику,
+        // а время ответа на текущий пример продолжало течь и портило ему скорость.
+        await startMission();
+        await page.waitForTimeout(200);
+        record('кнопки меню в полосе часов нет',
+               await page.evaluate(`!!document.getElementById('btnOpenMenu')`)
+                   ? 'кнопка меню осталась в игре' : null);
+
+        const menuBtn = await page.evaluate(`
+            !!document.querySelector('#pauseScreen button[onclick*="openMainMenu"]')`);
+        record('на экране паузы есть вход в меню', menuBtn ? null : 'кнопки меню на паузе нет');
+
+        errors.length = 0;
+        await page.evaluate(`document.getElementById('btnPause').click(); null;`);
+        await page.waitForTimeout(200);
+        await page.evaluate(`
+            document.querySelector('#pauseScreen button[onclick*="openMainMenu"]').click(); null;`);
+        await page.waitForTimeout(250);
+        const r = await page.evaluate(`(() => ({
+            меню: document.getElementById('menuOverlay').classList.contains('open'),
+            наПаузе: paused,
+            менюВыше: getComputedStyle(document.getElementById('menuOverlay')).zIndex >
+                      getComputedStyle(document.getElementById('pauseScreen')).zIndex
+        }))()`);
+        record('меню открылось', r.меню ? null : 'меню не открылось');
+        record('меню открылось ПОВЕРХ паузы', r.менюВыше ? null : 'меню ушло под экран паузы');
+        record('часы при этом стоят', r.наПаузе ? null : 'меню открыто, а миссия идёт');
+        record('открытие меню прошло без ошибок', errors.length ? errors.join(' | ') : null);
+
+        // Закрыли меню — вернулись на паузу, а не в игру.
+        await page.evaluate(`closeMainMenu(); null;`);
+        await page.waitForTimeout(200);
+        const после = await look();
+        record('закрытое меню возвращает на паузу',
+               после.экранПаузы ? null : 'после меню пауза пропала');
+        record('и часы всё ещё стоят',
+               await page.evaluate(`paused`) ? null : 'миссия пошла сама собой');
+
+        // Коллекция и пазл открываются из меню и обязаны быть видны поверх паузы.
+        await page.evaluate(`openCollectionModal(); null;`);
+        await page.waitForTimeout(250);
+        record('коллекция из меню видна поверх паузы',
+               await page.evaluate(`
+                   getComputedStyle(document.getElementById('collectionModal')).zIndex >
+                   getComputedStyle(document.getElementById('pauseScreen')).zIndex`)
+                   ? null : 'коллекция откроется под экраном паузы');
+        await page.evaluate(`closeCollectionModal(); resumeGame(); null;`);
+    }
+
     console.log('\nЗавершение миссии с паузы');
     {
         await startMission();
