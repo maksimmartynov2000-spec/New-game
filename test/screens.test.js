@@ -424,6 +424,72 @@ const SCREENS = [
         record(`статистика и задания на «${lang}»`, problem);
     }
 
+
+    // Полоса часов во время миссии. Кнопки ☰ и ⏸ обязаны В НЕЁ ПОМЕЩАТЬСЯ.
+    //
+    // Раньше не помещались: полоса была ростом с текст в 0.8rem (около 25 px), а
+    // кнопки под палец — 44. Они вылезали вниз за тёмную плашку и верхним краем
+    // заходили под системную строку iOS, где часы и батарея. Максим описал это
+    // словами «время криво расположено», и он был прав — только криво стояла не
+    // надпись, а кнопки, которым не хватило места.
+    //
+    // Безопасную зону приходится подделывать. Headless-браузер даёт
+    // env(safe-area-inset-top) = 0, а весь этот класс поломок живёт именно под чёлкой:
+    // без неё сбитая центровка не видна ни на пиксель. Поэтому в тексте таблицы стилей
+    // (она встроена в index.html) env(...) заменяется на 47px — столько у iPhone 14 Pro.
+    // Подмена настоящая: браузер перечитывает стили и раскладывает страницу заново.
+    console.log('\nПолоса часов');
+    {
+        errors.length = 0;
+        const r = await page.evaluate(`(() => {
+            const style = document.querySelector('style');
+            style.textContent = style.textContent
+                .split('env(safe-area-inset-top)').join('47px')
+                .split('env(safe-area-inset-bottom)').join('34px')
+                .split('env(safe-area-inset-left)').join('0px')
+                .split('env(safe-area-inset-right)').join('0px');
+            document.querySelectorAll('.modal-screen').forEach(x => x.style.display = 'none');
+            gameActive = true; refreshPauseButton();
+            const box = el => { const b = el.getBoundingClientRect();
+                return { top: b.top, bottom: b.bottom, h: b.height, mid: b.top + b.height / 2 }; };
+            const bar = box(document.getElementById('gameClock'));
+            const menu = box(document.getElementById('btnOpenMenu'));
+            const pause = box(document.getElementById('btnPause'));
+            // Именно надпись, а не Range по всей полосе: Range захватывает и сами
+            // кнопки, и тогда «кнопки на одной оси с надписью» сравнивает кнопки
+            // с прямоугольником, в который они же и входят. Проверка была пустой.
+            const text = document.getElementById('clockTimeText').getBoundingClientRect();
+            gameActive = false; refreshPauseButton();
+            // Флекс схлопывает пробел между «⏳ Время:» и самим временем — меряем зазор.
+            // Ищем ИМЕННО текстовый узел с подписью: индексы детей полосы занимают
+            // кнопки и комментарии, и Range по номеру мерил бы кнопку.
+            const подпись = [...document.getElementById('gameClock').childNodes]
+                .find(n => n.nodeType === 3 && n.textContent.trim().length);
+            const lr = document.createRange();
+            lr.selectNodeContents(подпись);
+            const зазор = text.left - lr.getBoundingClientRect().right;
+            return { bar, menu, pause, зазор, textMid: text.top + text.height / 2,
+                     inset: getComputedStyle(document.getElementById('gameClock')).paddingTop };
+        })()`);
+        record('безопасная зона в проверке действительно подменилась',
+               parseFloat(r.inset) >= 47 ? null : `отступ сверху ${r.inset} — подмена не сработала`);
+        const выступ = (b) => Math.round(Math.max(0, r.bar.top - b.top) + Math.max(0, b.bottom - r.bar.bottom));
+        record('кнопка ☰ помещается в полосу часов',
+               выступ(r.menu) === 0 ? null : `вылезает на ${выступ(r.menu)} px`);
+        record('кнопка ⏸ помещается в полосу часов',
+               выступ(r.pause) === 0 ? null : `вылезает на ${выступ(r.pause)} px`);
+        record('кнопки не мельче 44 px',
+               Math.round(r.menu.h) >= 44 && Math.round(r.pause.h) >= 44
+                   ? null : `☰ ${Math.round(r.menu.h)}, ⏸ ${Math.round(r.pause.h)}`);
+        record('кнопки и надпись на одной оси',
+               Math.abs(r.menu.mid - r.textMid) <= 2 && Math.abs(r.pause.mid - r.textMid) <= 2
+                   ? null : `☰ ${Math.round(r.menu.mid)}, ⏸ ${Math.round(r.pause.mid)}, надпись ${Math.round(r.textMid)}`);
+        record('между «Время:» и самим временем есть пробел',
+               r.зазор >= 2 ? null
+                   : `надпись и время слиплись (${r.зазор} px) — получится «Время:00:00»`);
+        record('полоса часов рисуется без ошибок', errors.length ? errors.join(' | ') : null);
+    }
+
     await b.close();
     console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
     if (failed) { failures.forEach(f => console.log(`  ✗ ${f.name}: ${f.message}`)); process.exit(1); }

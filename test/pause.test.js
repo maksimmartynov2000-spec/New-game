@@ -48,7 +48,7 @@ function record(name, err) {
     // Настоящая миссия: тот же путь, которым в неё входит ученик.
     const startMission = () => page.evaluate(`
         resetSessionCounters();
-        exampleConfig.category = 'arithmetic';
+        exampleConfig.category = 'integer';   // так называется раздел на самом деле
         exampleConfig.numberType = 'positive';
         exampleConfig.operations = { add: 1 };
         Progress.setConfig(exampleConfig);
