@@ -54,7 +54,58 @@ function loadPicker() {
         + ';globalThis.R = { trickPick, trickHint, mulClassOf };', box);
     return box.R;
 }
+// Приём ВМЕСТЕ с настоящим генератором. Перебор по всем парам чисел отвечает на
+// вопрос «может ли подсказка выдать ответ», а этот загрузчик — на вопрос «выдаёт ли
+// она его на том, что ученик реально видит». Второй вопрос важнее: именно на нём
+// 1★ вычитания оказалось стопроцентной утечкой, хотя по всем парам доля была 10%.
+function loadWithGenerator() {
+    const stubEl = () => ({ style: {}, dataset: {}, innerHTML: '', innerText: '', value: '',
+        classList: { add() {}, remove() {}, toggle() {}, contains: () => false },
+        appendChild() {}, removeChild() {}, remove() {}, addEventListener() {}, setAttribute() {},
+        getAttribute: () => null, querySelector: () => stubEl(), querySelectorAll: () => [],
+        getBoundingClientRect: () => ({ left: 0, top: 0, width: 0, height: 0 }) });
+    const box = {
+        console, Math, Number, Object, Array, String, JSON, Set, Map, Date, isNaN,
+        parseInt, parseFloat, RegExp,
+        document: { getElementById: () => stubEl(), querySelectorAll: () => [],
+                    querySelector: () => stubEl(), addEventListener() {},
+                    createElement: () => stubEl(), body: stubEl() },
+        window: { addEventListener() {}, innerWidth: 400, innerHeight: 800 }, navigator: {},
+        localStorage: { getItem: () => null, setItem() {}, removeItem() {} },
+        setInterval: () => 0, setTimeout: () => 0, clearInterval() {}, requestAnimationFrame: () => 0
+    };
+    box.globalThis = box;
+    vm.createContext(box);
+    const MARKER = '// ===================== ПАЗЛ: ГЕНЕРАЦИЯ КУСОЧКОВ (jigsaw)';
+    const inline = require('./app-source').inlineScript(HTML);
+    const files = require('./app-source').CODE_FILES
+        .map(f => fs.readFileSync(path.join(ROOT, f), 'utf8')).join('\n') + '\n';
+    vm.runInContext(files + inline.slice(0, inline.indexOf(MARKER)), box);
+    // structuralClassOf, trickPick и trickHint объявлены НИЖЕ метки обрыва — они нужны
+    // экранам, а не генератору. Достаём каждую по телу функции.
+    ['structuralClassOf', 'trickPick', 'trickHint', 'resolveTricks'].forEach(name => {
+        const from = SCRIPT.indexOf('function ' + name + '(');
+        if (from < 0) throw new Error('не найдена функция ' + name);
+        let depth = 0, to = SCRIPT.indexOf('{', from);
+        for (let i = to; i < SCRIPT.length; i++) {
+            if (SCRIPT[i] === '{') depth++;
+            else if (SCRIPT[i] === '}' && --depth === 0) { to = i + 1; break; }
+        }
+        vm.runInContext(SCRIPT.slice(from, to) + ';globalThis.' + name + ' = ' + name + ';', box);
+    });
+    vm.runInContext('globalThis.LANG = "ru";', box);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'content/hints.js'), 'utf8'), box);
+    return box;
+}
+
 const meta = (op, level) => ({ category: 'integer', opKey: op, level: level || 3, isNegative: false });
+
+// Печатает ли подсказка сам пример вместе с его ответом? Это и есть «списал, а не решил».
+function givesAnswer(a, b, op, txt) {
+    const answer = op === 'add' ? a + b : op === 'sub' ? a - b : op === 'mul' ? a * b : a / b;
+    return new RegExp('(^|\\D)' + a + '\\s*[−+×÷*\\-]\\s*' + b + '\\s*=\\s*' + answer + '(\\D|$)')
+        .test(txt);
+}
 
 console.log('\nРежим обучения');
 
@@ -184,6 +235,138 @@ test('где приёма нет, подсказки нет', () => {
     nothing.forEach(([op, p, what]) => {
         eq(R.trickHint(meta(op, 3), p), '', `${what}: подсказки быть не должно`);
     });
+});
+
+// ============ Подсказка не выдаёт ответ. Все четыре действия ============
+//
+// Эта проверка была написана ТОЛЬКО для умножения — и потому вычитание почти два
+// месяца печатало ученику готовый ответ. На 1★ в 100% подсказок, на 2★ в 94,6%.
+// Нашёл это Максим на уроке с учеником, а не тест. Теперь считаются все четыре
+// действия, и двумя способами сразу.
+
+test('ни одна подсказка не печатает пример вместе с ответом', () => {
+    const R = loadPicker();
+    const bad = [];
+    [['add', 5], ['sub', 5], ['mul', 5], ['div', 5]].forEach(([op, maxLvl]) => {
+        for (let lvl = 1; lvl <= maxLvl; lvl++) {
+            for (let a = 0; a <= 200; a++) for (let b = 0; b <= 100; b++) {
+                const answer = op === 'add' ? a + b : op === 'sub' ? a - b
+                             : op === 'mul' ? a * b : (b ? a / b : null);
+                if (answer === null || !Number.isInteger(answer) || answer < 0) continue;
+                let txt = '';
+                try { txt = R.trickHint(meta(op, lvl), { a, b }); } catch (e) { continue; }
+                if (txt && givesAnswer(a, b, op, txt)) bad.push(`${a} ${op} ${b}: «${txt}»`);
+            }
+        }
+    });
+    eq([...new Set(bad)].slice(0, 5).join(' | '), '',
+        'подсказка печатает пример и ответ целиком: ' + [...new Set(bad)].slice(0, 5).join(' | '));
+});
+
+// Перебор выше отвечает «может ли». Этот — «выдаёт ли на том, что ученик видит».
+// Разница огромна: по всем парам утечка была 10%, а на 1★ вычитания — 100%, потому
+// что генератор там выдаёт только примеры вида 10 − b.
+test('на настоящих примерах генератора подсказка тоже не выдаёт ответ', () => {
+    const G = loadWithGenerator();
+    const bad = [];
+    const N = 4000;
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < N; i++) {
+                const p = G.generateProblem(op, lvl, false);
+                if (!p || typeof p.a !== 'number' || typeof p.b !== 'number') continue;
+                let txt = '';
+                try { txt = G.trickHint(meta(op, lvl), p); } catch (e) { continue; }
+                if (txt && givesAnswer(p.a, p.b, op, txt)) {
+                    bad.push(`${op} ${lvl}★: ${p.a} ${op} ${p.b} → «${txt}»`);
+                }
+            }
+        }
+    });
+    eq([...new Set(bad)].slice(0, 5).join(' | '), '',
+        'на живых примерах подсказка выдаёт ответ: ' + [...new Set(bad)].slice(0, 5).join(' | '));
+});
+
+// Подсказку можно выдать и не печатая пример целиком: достаточно, чтобы на экране
+// оказалось число, равное ответу. У спуска до десятка это ровно один случай —
+// 14 − 9 → «Отними 4 — дойдёшь до 10. Потом ещё 5», где 5 и есть ответ. Ребёнку,
+// который просто читает последнее число, считать уже нечего.
+//
+// Числа САМОГО примера не в счёт: у переворота 10 − 5 печатаются 5 и 10, то есть
+// условие своими словами, и совпадение с ответом ничего не выдаёт.
+//
+// Вычитание через сотню (sub:h) сюда не входит НАМЕРЕННО: у него тот же слабый
+// случай (101 − 51 → «…Потом ещё 50»), около 1% его срабатываний, и закрыть его
+// той же защитой значит получить молчание — Максим это решение ещё не принимал.
+test('спуск до десятка не оставляет ответ последним числом', () => {
+    const R = loadPicker();
+    const bad = [];
+    for (let a = 0; a <= 200; a++) for (let b = 0; b <= Math.min(a, 100); b++) {
+        let pick = null;
+        try { pick = R.trickPick(meta('sub', 5), { a, b }); } catch (e) { continue; }
+        if (!pick || (pick.key !== 'sub:ten' && pick.key !== 'sub:toAdd')) continue;
+        const answer = a - b;
+        const чужое = pick.args.filter(v => v !== a && v !== b);   // всё, кроме чисел примера
+        if (чужое.indexOf(answer) >= 0) {
+            bad.push(`${a} − ${b} = ${answer}: «${R.trickHint(meta('sub', 5), { a, b })}»`);
+        }
+    }
+    eq(bad.slice(0, 5).join(' | '), '',
+        'подсказка печатает ответ отдельным числом: ' + bad.slice(0, 5).join(' | '));
+});
+
+// Починка не должна была отобрать подсказку там, где она и так была честной: приём
+// «займи десяток» у 23 − 7 показывает 13 − 7 = 6, а ответ 16 — ничего не выдано.
+test('честные подсказки вычитания не тронуты', () => {
+    const R = loadPicker();
+    [[23, 7], [34, 18], [52, 27]].forEach(([a, b]) => {
+        const pick = R.trickPick(meta('sub', 5), { a, b });
+        assert(pick, `${a} − ${b}: подсказка пропала`);
+        eq(pick.key, 'sub:borrow', `${a} − ${b}: приём подменили`);
+    });
+});
+
+// Молчание — тоже потеря. До правки на 1★ подсказка была у каждого примера с заёмом,
+// и после правки должна остаться у каждого: мы меняли ПРИЁМ, а не выключали режим.
+test('вычитание не стало молчаливее, чем было', () => {
+    const G = loadWithGenerator();
+    const silent = [];
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        let сзаёмом = 0, сподсказкой = 0;
+        for (let i = 0; i < 3000; i++) {
+            const p = G.generateProblem('sub', lvl, false);
+            const st = G.structuralClassOf(meta('sub', lvl), p);
+            if (!st || (st.cls !== '1' && st.cls !== '2') || st.extra === 'h') continue;
+            сзаёмом++;
+            if (G.trickHint(meta('sub', lvl), p)) сподсказкой++;
+        }
+        if (сзаёмом && сподсказкой < сзаёмом) {
+            silent.push(`${lvl}★: из ${сзаёмом} примеров с заёмом подсказка у ${сподсказкой}`);
+        }
+    }
+    eq(silent.join(' | '), '', 'подсказка исчезла там, где была: ' + silent.join(' | '));
+});
+
+// Три приёма вычитания и повод для каждого. Значения проверены руками на бумаге.
+test('приём вычитания выбирается по поводу, а не наугад', () => {
+    const R = loadPicker();
+    const want = [
+        [10, 6, 'sub:toAdd', 'число круглое — спускаться некуда'],
+        [20, 16, 'sub:toAdd', 'круглое и двузначное вычитаемое'],
+        [14, 9, 'sub:toAdd', 'остаток спуска совпал бы с ответом'],
+        [64, 57, 'sub:toAdd', 'остаток спуска был бы 53 — тяжелее примера'],
+        [12, 4, 'sub:ten', 'спуск до десятка чистый'],
+        [16, 9, 'sub:ten', 'спуск до десятка чистый'],
+        [23, 7, 'sub:borrow', 'шаг не равен ответу — приём остаётся прежним']
+    ];
+    want.forEach(([a, b, key, why]) => {
+        const pick = R.trickPick(meta('sub', 5), { a, b });
+        assert(pick, `${a} − ${b}: подсказки нет вовсе (${why})`);
+        eq(pick.key, key, `${a} − ${b} (${why})`);
+    });
+    // И сами строки: числа обязаны быть из его примера.
+    eq(R.trickHint(meta('sub', 5), { a: 12, b: 4 }), 'Отними 2 — дойдёшь до 10. Потом ещё 2');
+    eq(R.trickHint(meta('sub', 5), { a: 10, b: 6 }), 'Что прибавить к 6, чтобы вышло 10?');
 });
 
 // Подсказка обязана говорить числами ЕГО примера. Шаблон, доехавший до экрана

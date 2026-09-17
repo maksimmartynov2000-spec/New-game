@@ -437,10 +437,23 @@
             border-bottom: 2px solid rgba(255, 215, 0, 0.15); z-index: 10;
             display: flex; flex-direction: column; width: 100%; overflow: hidden;
         }
+        /* Высота полосы задаётся КНОПКОЙ, а не текстом. Кнопки под палец 44×44 (это
+           порог, ниже него ребёнок мажет, и на него есть проверка), а на текст в 0.8rem
+           полосе хватало двадцати пяти пикселей. Кнопки в неё не помещались: вылезали
+           на 10–13 px вниз за тёмную плашку, а верхними десятью заходили под системную
+           строку iOS — туда, где часы и батарея. Выглядело это как сбитая вёрстка,
+           хотя по центру они стояли ровно.
+           Содержимое центрируем флексом: при блочной раскладке текст остался бы у
+           верхнего края выросшей полосы, и разъехалось бы уже по-настоящему. */
         .game-clock-bar {
             text-align: center; font-size: 0.8rem; color: var(--gold);
             background: rgba(0, 0, 0, 0.25); padding: 4px 0; font-weight: bold;
             padding-top: calc(4px + env(safe-area-inset-top));
+            min-height: calc(44px + env(safe-area-inset-top));
+            /* gap, а не пробел в разметке: флекс делает «⏳ Время:» и само время
+               отдельными элементами и схлопывает пробел между ними — получалось
+               «Время:00:00». Отступ задаём стилем, он от раскладки не зависит. */
+            display: flex; align-items: center; justify-content: center; gap: 0.35em;
             position: relative;
         }
         .clock-menu-btn {
@@ -1277,6 +1290,22 @@
         }
         .maintenance-wait { color: #cbd5e1; font-size: 0.95rem; line-height: 1.5; }
         .maintenance-note { color: #94a3b8; font-size: 0.82rem; line-height: 1.5; margin-top: 12px; }
+        /* Цифры моноширинные по ширине (tabular-nums): иначе отсчёт дёргается влево-вправо
+           на каждой секунде, потому что единица уже семёрки. */
+        .maintenance-clock {
+            font-size: clamp(2rem, 11vw, 2.8rem); font-weight: 900; color: #e2e8f0;
+            letter-spacing: 2px; font-variant-numeric: tabular-nums; margin: 6px 0 10px;
+        }
+        .maintenance-track {
+            height: 8px; border-radius: 99px; background: rgba(255,255,255,0.08);
+            overflow: hidden; margin-bottom: 14px;
+        }
+        .maintenance-track > div {
+            height: 100%; width: 0; border-radius: 99px;
+            background: linear-gradient(90deg, #06b6d4, #22d3ee);
+            transition: width 0.9s linear;
+        }
+        #maintenancePeekBtn { width: 100%; margin-top: 18px; }
 
         /* Блок заданий и блок разделов стояли впритык и читались как один список:
            одинаковые карточки, одинаковые края, никакой паузы между ними. Разводим
@@ -2455,12 +2484,23 @@
 
     <!-- Технические работы. Слой выше всего остального: он и должен закрывать собой
          любой экран, на котором ученика застали. -->
+    <!-- ПЕРЕРЫВ НА ОБНОВЛЕНИЕ.
+         Заголовок «Идут технические работы» убран намеренно: это язык разработчика,
+         а экран видит ребёнок. Крупный отсчёт и полоска говорят то же самое, но без
+         чтения — и одинаково на всех четырёх языках.
+         Кнопка внизу открывает коллекцию собранных картинок. Коллекция только
+         читается и в прогресс не пишет НИЧЕГО, поэтому смотреть её во время работ
+         можно, не ломая смысл заглушки. -->
     <div class="maintenance-screen" id="maintenanceScreen" style="display:none;">
         <div class="maintenance-card">
-            <div class="maintenance-icon">🔧</div>
-            <div class="maintenance-title">Идут технические работы</div>
+            <div class="maintenance-icon">🛠️</div>
+            <div class="maintenance-title">Обновляюсь</div>
+            <div class="maintenance-clock" id="maintenanceClock">—</div>
+            <div class="maintenance-track" id="maintenanceTrack"><div id="maintenanceFill"></div></div>
             <div class="maintenance-wait" id="maintenanceWait"></div>
             <div class="maintenance-note" id="maintenanceNote"></div>
+            <button class="btn-config-continue ready" id="maintenancePeekBtn"
+                    onclick="peekCollectionDuringBreak()">🏆 Пока посмотри коллекцию</button>
         </div>
     </div>
 
@@ -5306,7 +5346,12 @@
             document.getElementById('collectionModal').classList.add('active');
         }
         function closeCollectionModal() {
-            document.getElementById('collectionModal').classList.remove('active');
+            const modal = document.getElementById('collectionModal');
+            modal.classList.remove('active');
+            // Подъём слоя и глухой фон нужны были только на время перерыва — снимаем,
+            // чтобы они не остались навсегда и не перекрыли потом что-нибудь нужное.
+            modal.style.zIndex = '';
+            modal.style.background = '';
         }
         document.getElementById('btnViewCollection').addEventListener('click', openCollectionModal);
         document.getElementById('btnOpenCollectionLive').addEventListener('click', openCollectionModal);
@@ -6932,7 +6977,9 @@
         // из-за оборвавшейся сети хуже, чем поиграть во время работ.
         // Раз в пятнадцать секунд, а не в тридцать: число на экране должно меняться
         // вскоре после того, как минута прошла, иначе экран выглядит замершим.
-        const MAINTENANCE_POLL_MS = 15000;
+        // Раз в секунду. Было пятнадцать: столько же ученик после конца работ смотрел
+        // на заглушку впустую, а теперь ещё и секунды на экране — им нужен каждый такт.
+        const MAINTENANCE_POLL_MS = 1000;
         // До этого порога называем минуты точно, дальше округляем вверх до пяти.
         const MAINTENANCE_EXACT_MIN = 15;
 
@@ -6987,8 +7034,71 @@
             const noteEl = document.getElementById('maintenanceNote');
             noteEl.innerText = note;
             noteEl.style.display = note ? '' : 'none';
+            renderMaintenanceClock(left);
             box.style.display = 'flex';
             return true;
+        }
+
+        // Крупный отсчёт и полоска.
+        //
+        // Отсчёт идёт до минуты и секунды: «приходи через 12 минут» — это обещание, а
+        // бегущие секунды — доказательство, что приложение живо, а не зависло. Строка
+        // словами остаётся под ним: она мягче и годится, когда ждать долго.
+        //
+        // Полоска считается от МОМЕНТА, КОГДА ЭТО УСТРОЙСТВО ВПЕРВЫЕ УВИДЕЛО ЭТОТ
+        // перерыв, а не от начала работ: когда работы начались, приложение не знает —
+        // в файле записано только время окончания. Получается честно с точки зрения
+        // того, кто смотрит: полоска дошла до конца — можно играть. Зашёл в начале
+        // двадцатиминутного перерыва — она ползёт двадцать минут, зашёл за две минуты
+        // до конца — две. Врать ей нечем, потому что конец у неё общий с отсчётом.
+        const MAINTENANCE_SEEN_KEY = 'kluchBreakSeen_v1';
+
+        function maintenanceFirstSeen(untilMs) {
+            // Ключ включает само время окончания: следующий перерыв — другая запись,
+            // и полоска не унаследует чужое начало.
+            try {
+                const raw = localStorage.getItem(MAINTENANCE_SEEN_KEY);
+                const saved = raw ? JSON.parse(raw) : null;
+                if (saved && saved.until === untilMs && typeof saved.at === 'number') return saved.at;
+                const now = Date.now();
+                localStorage.setItem(MAINTENANCE_SEEN_KEY, JSON.stringify({ until: untilMs, at: now }));
+                return now;
+            } catch (e) {
+                return null;   // приватное окно или запрет — полоску просто не покажем
+            }
+        }
+
+        function renderMaintenanceClock(leftMs) {
+            const total = Math.max(0, Math.ceil(leftMs / 1000));
+            const mm = Math.floor(total / 60), ss = total % 60;
+            document.getElementById('maintenanceClock').innerText =
+                `${String(mm).padStart(2, '0')}:${String(ss).padStart(2, '0')}`;
+
+            const track = document.getElementById('maintenanceTrack');
+            const fill = document.getElementById('maintenanceFill');
+            const until = Date.now() + leftMs;
+            const seen = maintenanceFirstSeen(until - (until % 1000));
+            const span = seen === null ? 0 : (until - seen);
+            if (span <= 0) { track.style.display = 'none'; return; }
+            track.style.display = '';
+            const done = Math.min(1, Math.max(0, (Date.now() - seen) / span));
+            fill.style.width = (done * 100).toFixed(1) + '%';
+        }
+
+        // Коллекция во время перерыва. Она только читается — ни одной записи в прогресс,
+        // поэтому запертую игру это не открывает.
+        //
+        // Слой поднимаем поверх заглушки, а саму заглушку НЕ прячем: она остаётся под
+        // коллекцией, и, закрыв картинки, ребёнок возвращается к отсчёту, а не в игру.
+        // Спрятать заглушку было бы проще и было бы дырой.
+        function peekCollectionDuringBreak() {
+            const modal = document.getElementById('collectionModal');
+            modal.style.zIndex = '9100';
+            // И фон делаем глухим. У окна коллекции он полупрозрачный — обычно это
+            // хорошо, видно, откуда пришёл. Но сквозь него просвечивало «Обновляюсь»
+            // и «Приходи через 12 минут», и картинки читались как сбой.
+            modal.style.background = '#03050c';
+            openCollectionModal();
         }
 
         function startMaintenanceWatch() {

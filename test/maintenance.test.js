@@ -31,7 +31,8 @@ function load(flag, opts) {
     const o = opts || {};
     const byId = {};
     const el = () => ({ innerText: '', style: {} });
-    ['maintenanceScreen', 'maintenanceWait', 'maintenanceNote'].forEach(id => (byId[id] = el()));
+    ['maintenanceScreen', 'maintenanceWait', 'maintenanceNote',
+     'maintenanceClock', 'maintenanceTrack', 'maintenanceFill'].forEach(id => (byId[id] = el()));
     const box = {
         console, Math, Number, Date, Object, String,
         // Язык ученика: записка на экране работ берётся по нему.
@@ -41,13 +42,27 @@ function load(flag, opts) {
         window: flag === undefined ? {} : { MAINTENANCE: flag },
         gameActive: !!o.playing,
         setInterval: () => 0,
+        // Полоска перерыва помнит, когда это устройство впервые увидела эту заглушку.
+        // Заглушка хранилища своя: ей нужно только отдавать и принимать одну строку.
+        localStorage: o.noStorage
+            ? { getItem() { throw new Error('приватное окно'); },
+                setItem() { throw new Error('приватное окно'); },
+                removeItem() { throw new Error('приватное окно'); } }
+            : (function () {
+                const mem = {};
+                return { getItem: (k) => (k in mem ? mem[k] : null),
+                         setItem: (k, v) => { mem[k] = String(v); },
+                         removeItem: (k) => { delete mem[k]; } };
+            })(),
+        JSON,
         document: { getElementById: (id) => byId[id] || null }
     };
     box.globalThis = box;
     vm.createContext(box);
     vm.runInContext(
         slice('// ===================== ТЕХНИЧЕСКИЕ РАБОТЫ', '        // ===================== ЗАДАНИЯ ДНЯ И НЕДЕЛИ', 'работы')
-        + '\n;globalThis.M = { maintenanceActive, maintenanceLeftMs, maintenanceWaitText, renderMaintenance };',
+        + '\n;globalThis.M = { maintenanceActive, maintenanceLeftMs, maintenanceWaitText,'
+        + ' renderMaintenance, renderMaintenanceClock };',
         box, { filename: 'index.html<технические работы>' });
     return { M: box.M, byId };
 }
@@ -209,6 +224,78 @@ test('после конца миссии заглушка появляется',
     const body = slice('function advanceMissionReveals', '\n\n', 'очередь наград');
     assert(/renderMaintenance\(\)/.test(body),
         'во время миссии заглушку придержали и забыли показать после');
+});
+
+// ============ Отсчёт и полоска ============
+//
+// Заглушка была глухой дверью: гаечный ключ, строчка словами — и всё. Строчка к тому
+// же обновлялась раз в пятнадцать секунд, столько же ученик после конца работ смотрел
+// в неё впустую. Секунды на экране лечат и то и другое, но только если такт частый.
+
+test('отсчёт идёт до секунды, а не до минуты', () => {
+    const w = load({ until: new Date(Date.now() + 3 * 60000 + 25000).toISOString() });
+    w.M.renderMaintenance();
+    assert(/^\d\d:\d\d$/.test(w.byId.maintenanceClock.innerText),
+        `отсчёт не в виде мм:сс: «${w.byId.maintenanceClock.innerText}»`);
+    const [mm, ss] = w.byId.maintenanceClock.innerText.split(':').map(Number);
+    assert(mm === 3 && ss >= 23 && ss <= 25,
+        `отсчёт врёт: показывает ${w.byId.maintenanceClock.innerText}, а осталось 3:25`);
+});
+
+test('такт опроса не реже секунды', () => {
+    // Полоска и секунды обновляются этим же таймером. Редкий такт — застывший экран.
+    const m = SCRIPT.match(/const MAINTENANCE_POLL_MS = (\d+);/);
+    assert(m, 'не найден такт опроса');
+    assert(Number(m[1]) <= 1000, `такт ${m[1]} мс — секунды на экране будут стоять`);
+});
+
+test('полоска доходит до конца ровно к концу работ', () => {
+    const w = load({ until: new Date(Date.now() + 60000).toISOString() });
+    w.M.renderMaintenance();                       // первый взгляд: полоска в начале
+    const начало = parseFloat(w.byId.maintenanceFill.style.width);
+    assert(начало < 5, `полоска начинается не с нуля: ${w.byId.maintenanceFill.style.width}`);
+    // Полминуты спустя — половина. Время двигаем подменой Date.now, а не ожиданием.
+    const now = Date.now;
+    try {
+        Date.now = () => now() + 30000;
+        w.M.renderMaintenance();
+    } finally { Date.now = now; }
+    const середина = parseFloat(w.byId.maintenanceFill.style.width);
+    assert(середина > 40 && середина < 60,
+        `к середине перерыва полоска на ${середина}%, а должна быть около половины`);
+});
+
+test('без хранилища полоска прячется, а отсчёт остаётся', () => {
+    // Приватное окно: localStorage БРОСАЕТ на любое обращение. Заглушка обязана
+    // работать и там — остаться без объяснения, почему игра заперта, хуже, чем
+    // остаться без полоски.
+    const w = load({ until: new Date(Date.now() + 5 * 60000).toISOString() }, { noStorage: true });
+    w.M.renderMaintenance();
+    assert(/^\d\d:\d\d$/.test(w.byId.maintenanceClock.innerText),
+        `отсчёт пропал вместе с хранилищем: «${w.byId.maintenanceClock.innerText}»`);
+    eq(w.byId.maintenanceTrack.style.display, 'none',
+       'полоску нечем считать, а она показана — будет висеть пустой');
+    eq(w.byId.maintenanceScreen.style.display, 'flex', 'заглушка не показалась вовсе');
+});
+
+test('во время работ в игру ведёт только коллекция', () => {
+    // Кнопка на заглушке открывает коллекцию — она ТОЛЬКО ЧИТАЕТСЯ и в прогресс не
+    // пишет ничего. А вот саму заглушку прятать нельзя: тогда, закрыв картинки,
+    // ребёнок оказался бы в игре, которую мы только что заперли.
+    const fn = SCRIPT.match(/function peekCollectionDuringBreak\(\)[\s\S]*?\n        \}/);
+    assert(fn, 'peekCollectionDuringBreak не найдена');
+    assert(!/maintenanceScreen/.test(fn[0]),
+        'заглушка прячется при открытии коллекции — закрыв её, ученик попадёт в запертую игру');
+    assert(/zIndex/.test(fn[0]), 'коллекция не поднята над заглушкой — её не будет видно');
+    // И слой обязан возвращаться на место при закрытии.
+    const close = SCRIPT.match(/function closeCollectionModal\(\)[\s\S]*?\n        \}/);
+    assert(close && /zIndex\s*=\s*''/.test(close[0]),
+        'поднятый слой коллекции не снимается — останется поверх всего навсегда');
+    // Фон окна коллекции полупрозрачный: сквозь него просвечивало «Обновляюсь».
+    assert(/background\s*=\s*'#/.test(fn[0]),
+        'фон коллекции не заглушён — заглушка будет просвечивать сквозь картинки');
+    assert(/background\s*=\s*''/.test(close[0]),
+        'глухой фон не снимается — останется на окне коллекции навсегда');
 });
 
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);

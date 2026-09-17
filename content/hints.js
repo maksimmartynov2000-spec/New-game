@@ -438,6 +438,8 @@ window.HINT_CONTENT = {
 //   add:h        сотня, сколько не хватает, второе число
 //   sub:borrow   единицы первого + 10, единицы второго, их разность
 //   sub:h        хвост до сотни, сама сотня, что останется вычесть
+//   sub:ten      хвост до десятка, сам десяток, что останется вычесть
+//   sub:toAdd    второе число, первое число
 //   mul:two      второй множитель
 //   mul:five     второй множитель × 10
 //   mul:small4   второй множитель × 2
@@ -457,6 +459,8 @@ window.TRICK_CONTENT = {
         "add:2": "До %1 не хватает %2 — возьми из %3",
         "add:h": "До %1 не хватает %2 — возьми из %3",
         "sub:borrow": "Займи десяток: %1 − %2 = %3",
+        "sub:ten": "Отними %1 — дойдёшь до %2. Потом ещё %3",
+        "sub:toAdd": "Что прибавить к %1, чтобы вышло %2?",
         "sub:h": "Отними %1 — дойдёшь до %2. Потом ещё %3",
         "mul:triv10": "Допиши ноль",
         "mul:two": "Удвой: %1 + %1",
@@ -479,6 +483,8 @@ window.TRICK_CONTENT = {
         "add:2": "To reach %1 you need %2 — take them from %3",
         "add:h": "To reach %1 you need %2 — take them from %3",
         "sub:borrow": "Borrow a ten: %1 − %2 = %3",
+        "sub:ten": "Take off %1 — that gets you to %2. Then %3 more",
+        "sub:toAdd": "What do you add to %1 to get %2?",
         "sub:h": "Take off %1 — that gets you to %2. Then %3 more",
         "mul:triv10": "Times ten — add a zero",
         "mul:two": "Double it: %1 + %1",
@@ -501,6 +507,8 @@ window.TRICK_CONTENT = {
         "add:2": "Pour aller à %1 il manque %2 — prends-les dans %3",
         "add:h": "Pour aller à %1 il manque %2 — prends-les dans %3",
         "sub:borrow": "Emprunte une dizaine : %1 − %2 = %3",
+        "sub:ten": "Enlève %1 — tu arrives à %2. Puis encore %3",
+        "sub:toAdd": "Qu'est-ce qu'on ajoute à %1 pour arriver à %2 ?",
         "sub:h": "Enlève %1 — tu arrives à %2. Puis encore %3",
         "mul:triv10": "Par dix — ajoute un zéro",
         "mul:two": "Double : %1 + %1",
@@ -523,6 +531,8 @@ window.TRICK_CONTENT = {
         "add:2": "Bis %1 fehlen %2 — nimm sie aus %3",
         "add:h": "Bis %1 fehlen %2 — nimm sie aus %3",
         "sub:borrow": "Borge dir einen Zehner: %1 − %2 = %3",
+        "sub:ten": "Nimm %1 weg — so kommst du auf %2. Dann noch %3",
+        "sub:toAdd": "Was kommt zu %1 dazu, damit %2 herauskommt?",
         "sub:h": "Nimm %1 weg — so kommst du auf %2. Dann noch %3",
         "mul:triv10": "Mal zehn — häng eine Null an",
         "mul:two": "Verdopple: %1 + %1",
