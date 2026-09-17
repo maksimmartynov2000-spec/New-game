@@ -452,6 +452,16 @@
             display: flex; align-items: center; justify-content: center;
         }
         .clock-menu-btn:active { transform: translateY(-50%) scale(0.94); }
+        /* Зеркало кнопки меню, справа. Те же 44 пиксела: палец на телефоне меньше не берёт. */
+        .clock-pause-btn {
+            position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+            margin-top: calc(env(safe-area-inset-top) / 2);
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
+            color: var(--gold); font-size: 1rem; line-height: 1;
+            width: 44px; height: 44px; border-radius: 10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .clock-pause-btn:active { transform: translateY(-50%) scale(0.94); }
 
         .start-menu-btn {
             position: absolute; left: 16px;
@@ -2535,6 +2545,10 @@
     <div class="top-panel-wrapper">
         <div class="game-clock-bar" id="gameClock">
             <button class="clock-menu-btn" id="btnOpenMenu" aria-label="Меню">☰</button>
+            <!-- Пауза стоит здесь, а не в главном меню: за ней тянутся, когда отвлекли
+                 прямо сейчас, и лишнее касание в этот момент — это уже не пауза. -->
+            <button class="clock-pause-btn" id="btnPause" onclick="pauseGame()" aria-label="Пауза"
+                    style="display:none;">⏸</button>
             <!-- Просто часы миссии: сколько ученик уже решает. Раньше здесь стояло
                  «Время Эпохи» — слово из другой части приложения (в статистике эпоха
                  это свёрнутые 180 дней) и для ребёнка пустое. -->
@@ -2604,6 +2618,20 @@
         <button class="btn-final" id="btn-exam">
             <span class="name">🏁 Завершить миссию</span>
         </button>
+    </div>
+
+    <!-- ПАУЗА. Экран непрозрачный и закрывает пример НАМЕРЕННО.
+         Время ответа — мерка того, доведён ли навык до автоматизма, и по ней идёт
+         лесенка скорости, открывающая звёзды. Пауза с примером перед глазами
+         превратила бы её в «думай сколько хочешь». Спрятанный пример оставляет одну
+         лазейку — запомнить его и думать на паузе; она требует умысла, и закрывать её
+         ценой усложнения кода мы пока не стали. -->
+    <div class="modal-screen" id="pauseScreen" style="z-index:255; display:none;">
+        <h1 class="start-title">⏸ Пауза</h1>
+        <p class="start-subtitle">Время стоит. Пример вернётся, когда продолжишь.</p>
+        <div class="config-container" style="max-width:420px;">
+            <button class="btn-config-continue ready" onclick="resumeGame()">▶️ Продолжить</button>
+        </div>
     </div>
 
     <div class="win-screen" id="winScreen">
@@ -10052,6 +10080,11 @@
         function resetSessionCounters() {
             clearInterval(timerInterval);
             gameActive = false;
+            // Миссию можно завершить и с паузы — тогда экран паузы остался бы висеть
+            // поверх итогов.
+            paused = false; pausedAt = 0;
+            document.getElementById('pauseScreen').style.display = 'none';
+            refreshPauseButton();
             correctCount = 0; wrongCount = 0; totalSeconds = 0; state.combo = 0;
             guestNudgeShownThisMission = false;   // разговор про аккаунт — раз за миссию
             sessionAnswerMs = 0;
@@ -10380,6 +10413,36 @@
         // Момент показа текущего примера. Скорость ответа — самая честная метрика того,
         // что навык доведён до автоматизма, а не пересчитывается каждый раз с нуля.
         let questionShownAt = 0;
+
+        // ===================== ПАУЗА =====================
+        // Останавливается ровно три вещи: часы миссии (а с ними и запись «сколько сегодня
+        // занимались»), полоска времени и отсчёт раздумья над текущим примером. Больше
+        // ничего трогать не нужно — решённое уже записано, синхронизация идёт сама.
+        let paused = false;
+        let pausedAt = 0;
+
+        function pauseGame() {
+            if (!gameActive || paused) return;
+            paused = true;
+            pausedAt = Date.now();
+            document.getElementById('pauseScreen').style.display = 'flex';
+        }
+
+        function resumeGame() {
+            if (!paused) return;
+            paused = false;
+            // Начало отсчёта сдвигаем ровно на длину паузы. Меряем то, сколько пример был
+            // ПЕРЕД ГЛАЗАМИ, а не сколько прошло по настенным часам: на паузе его не видно.
+            if (questionShownAt && pausedAt) questionShownAt += Date.now() - pausedAt;
+            pausedAt = 0;
+            document.getElementById('pauseScreen').style.display = 'none';
+        }
+
+        // Кнопка живёт ровно столько, сколько идёт миссия: пауза посреди выбора миссии
+        // ничего бы не остановила, а нажать её было бы можно.
+        function refreshPauseButton() {
+            document.getElementById('btnPause').style.display = gameActive ? 'flex' : 'none';
+        }
 
         const canvas = document.getElementById('cityCanvas');
         const ctx = canvas.getContext('2d');
@@ -10711,6 +10774,7 @@
             // бы однажды забыть одно.
             if (maintenanceActive()) { renderMaintenance(); return; }
             gameActive = true;
+            refreshPauseButton();
             sessionMistakes = []; // новая миссия — разбор начинается с чистого листа
             mistakesMode = 'review';   // и с разбора, а не с недоделанной прошлой работы
             mistakeWork = [];
@@ -10784,7 +10848,7 @@
             const decrementPerTick = 100 / (baseDurationSeconds * 10); // 10 тиков/сек
 
             timerInterval = setInterval(() => {
-                if (!gameActive) return;
+                if (!gameActive || paused) return;
                 timeRemaining -= decrementPerTick;
                 if (timeRemaining <= 0) timeRemaining = 0;
                 document.getElementById('timerBar').style.width = `${timeRemaining}%`;
@@ -11033,7 +11097,7 @@
         }
 
         function checkAnswer(chosen, event) {
-            if (!gameActive || answerLocked) return;
+            if (!gameActive || paused || answerLocked) return;
 
             let clickX = window.innerWidth / 2;
             let clickY = window.innerHeight / 2;
@@ -11332,7 +11396,7 @@
         }
 
         setInterval(() => {
-            if (!gameActive) return;
+            if (!gameActive || paused) return;
             totalSeconds++;
             Progress.recordSecond(); // сколько времени реально занимались — для отчёта родителям
             document.getElementById('clockTimeText').innerText = formatTime(totalSeconds);
@@ -11355,6 +11419,9 @@
         function finishChallenge() {
             if (!gameActive) return;
             gameActive = false;
+            paused = false; pausedAt = 0;
+            document.getElementById('pauseScreen').style.display = 'none';
+            refreshPauseButton();
             document.getElementById('winDesc').innerText =
                 tf('⏱️ Время: %1\n✅ Верно: %2 | ❌ Ошибок: %3', formatTime(totalSeconds), correctCount, wrongCount);
 
@@ -11402,9 +11469,25 @@
             if (Progress.farewell && Progress.farewell()) return;
             Progress.flush();
         }
-        window.addEventListener('pagehide', saveOnHide);
+        // Свернули приложение — миссия встаёт на паузу сама. Без этого часы миссии и
+        // отсчёт раздумья над примером продолжали идти, пока ребёнка позвали ужинать:
+        // время занятий в отчёте оказывалось больше настоящего, а пример «сгорал» по
+        // скорости из-за того, что происходило вообще не в игре.
+        //
+        // Обратно паузу САМИ НЕ СНИМАЕМ, и это не забывчивость. Экран загорается раньше,
+        // чем на него начинают смотреть: телефон достали из кармана, глянули на время,
+        // убрали. Автоматический возврат снова запустил бы часы в пустоту — ровно то, от
+        // чего здесь и защищаемся. Снимается пауза тем же нажатием, что и обычная.
+        //
+        // Ставится ДО сохранения: иначе в занятое время успевала бы капнуть лишняя
+        // секунда, и у saveOnHide есть защита от двойного вызова по времени, а у паузы
+        // такой защиты быть не должно.
+        function pauseOnHide() {
+            if (gameActive && !paused) pauseGame();
+        }
+        window.addEventListener('pagehide', () => { pauseOnHide(); saveOnHide(); });
         document.addEventListener('visibilitychange', () => {
-            if (document.visibilityState === 'hidden') { saveOnHide(); return; }
+            if (document.visibilityState === 'hidden') { pauseOnHide(); saveOnHide(); return; }
             // Вернулись из фона — перечитываем доступ. Репетитор открывает звезду со
             // своего устройства, и без этого правка доезжала бы только при следующем
             // запуске приложения: открыл при ученике, а у него ничего не изменилось.
