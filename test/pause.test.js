@@ -165,6 +165,73 @@ function record(name, err) {
         await page.evaluate(`resumeGame(); null;`);
     }
 
+    console.log('\nСвернули приложение');
+    {
+        // ВАЖНО про честность этой проверки. Headless-браузер не умеет по-настоящему
+        // прятать вкладку: ни вторая вкладка поверх, ни Page.setWebLifecycleState,
+        // ни Emulation.setFocusEmulationEnabled не переводят страницу в hidden — всё
+        // проверено, состояние остаётся visible. Поэтому здесь подменяется САМО
+        // свойство document.visibilityState и рассылается настоящее событие: то, что
+        // делает браузер. Проверяется, значит, реакция приложения, а не то, что событие
+        // приходит, — последнее на телефоне и так работает, на нём же держится
+        // сохранение прогресса при сворачивании.
+        const свернуть = (состояние) => page.evaluate(`
+            Object.defineProperty(document, 'visibilityState',
+                { configurable: true, value: '${состояние}' });
+            document.dispatchEvent(new Event('visibilitychange')); null;`);
+
+        await startMission();
+        await page.waitForTimeout(1200);
+        errors.length = 0;
+        await свернуть('hidden');
+        await page.waitForTimeout(150);
+        const сразу = await look();
+        record('сворачивание ставит миссию на паузу',
+               сразу.экранПаузы ? null : 'приложение свернули, а миссия идёт дальше');
+        record('пример спрятан и здесь', сразу.примерВиден ? 'пример виден' : null);
+
+        await page.waitForTimeout(2600);
+        const потом = await look();
+        record('часы не идут, пока приложение свёрнуто',
+               потом.часы === сразу.часы ? null : `${сразу.часы} → ${потом.часы}`);
+        record('занятое время не капает, пока приложение свёрнуто',
+               потом.занято === сразу.занято ? null : `${сразу.занято}с → ${потом.занято}с`);
+
+        // Вернулись — пауза ОСТАЁТСЯ. Экран загорается раньше, чем на него смотрят.
+        await свернуть('visible');
+        await page.waitForTimeout(300);
+        const вернулись = await look();
+        record('сама собой пауза не снимается',
+               вернулись.экранПаузы ? null : 'часы пошли, едва экран загорелся');
+        record('возврат прошёл без ошибок', errors.length ? errors.join(' | ') : null);
+
+        await page.evaluate(`document.querySelector('#pauseScreen button').click(); null;`);
+        await page.waitForTimeout(150);
+        record('после нажатия миссия продолжается',
+               (await look()).экранПаузы ? 'экран паузы остался' : null);
+    }
+
+    console.log('\nСворачивание вне миссии');
+    {
+        // pagehide приходит на части телефонов вместо visibilitychange — слушаем оба.
+        // А вот на экране выбора миссии сворачивание не должно показывать паузу: паузить
+        // нечего, и вернувшийся человек упёрся бы в лишний экран.
+        await page.evaluate(`resetSessionCounters();
+            document.getElementById('configScreen').style.display = 'flex'; null;`);
+        await page.evaluate(`window.dispatchEvent(new Event('pagehide')); null;`);
+        await page.waitForTimeout(150);
+        record('вне миссии экран паузы не появляется',
+               (await look()).экранПаузы ? 'показался экран паузы без миссии' : null);
+
+        await startMission();
+        await page.waitForTimeout(200);
+        await page.evaluate(`window.dispatchEvent(new Event('pagehide')); null;`);
+        await page.waitForTimeout(150);
+        record('pagehide тоже ставит на паузу',
+               (await look()).экранПаузы ? null : 'по pagehide миссия не встала');
+        await page.evaluate(`resumeGame(); null;`);
+    }
+
     console.log('\nЗавершение миссии с паузы');
     {
         await startMission();
