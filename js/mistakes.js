@@ -768,7 +768,15 @@ function trickPick(meta, problem) {
             const tail = a % 100;
             const hundred = a - tail;
             // Спуск до сотни работает, только если хвост есть и его хватает вычесть.
-            if (tail > 0 && tail < b) return { key: 'sub:h', args: [tail, hundred, b - tail] };
+            if (tail > 0 && tail < b) {
+                // Та же защита, что у спуска к десятку: остаток «потом ещё X» иногда
+                // САМ РАВЕН ОТВЕТУ (101 − 51 = 50, и остаток тоже 50). Ребёнку, который
+                // просто читает последнее число, считать уже нечего. Редко — 0,13% всех
+                // подсказок вычитания, и только на 5★ — но чинится тем же переворотом
+                // в сложение, без единого молчания.
+                if (b - tail !== a - b) return { key: 'sub:h', args: [tail, hundred, b - tail] };
+                return { key: 'sub:toAdd', args: [b, a] };
+            }
         }
         if (struct.cls === '1' || struct.cls === '2') {
             const top = u(a) + 10, low = u(b);
