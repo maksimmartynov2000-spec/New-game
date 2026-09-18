@@ -453,7 +453,6 @@ const SCREENS = [
             const box = el => { const b = el.getBoundingClientRect();
                 return { top: b.top, bottom: b.bottom, h: b.height, mid: b.top + b.height / 2 }; };
             const bar = box(document.getElementById('gameClock'));
-            const menu = box(document.getElementById('btnOpenMenu'));
             const pause = box(document.getElementById('btnPause'));
             // Именно надпись, а не Range по всей полосе: Range захватывает и сами
             // кнопки, и тогда «кнопки на одной оси с надписью» сравнивает кнопки
@@ -468,22 +467,28 @@ const SCREENS = [
             const lr = document.createRange();
             lr.selectNodeContents(подпись);
             const зазор = text.left - lr.getBoundingClientRect().right;
-            return { bar, menu, pause, зазор, textMid: text.top + text.height / 2,
+            return { bar, pause, зазор,
+                     воздух: pause.top - 47, воздухСнизу: bar.bottom - pause.bottom,
+                     textMid: text.top + text.height / 2,
                      inset: getComputedStyle(document.getElementById('gameClock')).paddingTop };
         })()`);
         record('безопасная зона в проверке действительно подменилась',
                parseFloat(r.inset) >= 47 ? null : `отступ сверху ${r.inset} — подмена не сработала`);
         const выступ = (b) => Math.round(Math.max(0, r.bar.top - b.top) + Math.max(0, b.bottom - r.bar.bottom));
-        record('кнопка ☰ помещается в полосу часов',
-               выступ(r.menu) === 0 ? null : `вылезает на ${выступ(r.menu)} px`);
         record('кнопка ⏸ помещается в полосу часов',
                выступ(r.pause) === 0 ? null : `вылезает на ${выступ(r.pause)} px`);
-        record('кнопки не мельче 44 px',
-               Math.round(r.menu.h) >= 44 && Math.round(r.pause.h) >= 44
-                   ? null : `☰ ${Math.round(r.menu.h)}, ⏸ ${Math.round(r.pause.h)}`);
-        record('кнопки и надпись на одной оси',
-               Math.abs(r.menu.mid - r.textMid) <= 2 && Math.abs(r.pause.mid - r.textMid) <= 2
-                   ? null : `☰ ${Math.round(r.menu.mid)}, ⏸ ${Math.round(r.pause.mid)}, надпись ${Math.round(r.textMid)}`);
+        record('кнопка ⏸ не мельче 44 px',
+               Math.round(r.pause.h) >= 44 ? null : `${Math.round(r.pause.h)} px`);
+        record('кнопка и надпись на одной оси',
+               Math.abs(r.pause.mid - r.textMid) <= 2
+                   ? null : `⏸ ${Math.round(r.pause.mid)}, надпись ${Math.round(r.textMid)}`);
+        // Воздух между системной строкой iOS и кнопкой. Без него кнопка упирается
+        // в часы телефона — Максим назвал это «высоковато смотрятся».
+        record('над кнопкой есть просвет от системной строки',
+               r.воздух >= 8 ? null : `просвет ${Math.round(r.воздух)} px — кнопка упирается в строку iOS`);
+        record('снизу просвет такой же',
+               Math.abs(r.воздух - r.воздухСнизу) <= 1
+                   ? null : `сверху ${Math.round(r.воздух)}, снизу ${Math.round(r.воздухСнизу)}`);
         record('между «Время:» и самим временем есть пробел',
                r.зазор >= 2 ? null
                    : `надпись и время слиплись (${r.зазор} px) — получится «Время:00:00»`);

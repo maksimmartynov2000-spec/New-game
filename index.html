@@ -449,23 +449,19 @@
             text-align: center; font-size: 0.8rem; color: var(--gold);
             background: rgba(0, 0, 0, 0.25); padding: 4px 0; font-weight: bold;
             padding-top: calc(4px + env(safe-area-inset-top));
-            min-height: calc(44px + env(safe-area-inset-top));
+            /* 44 под кнопку плюс по 12 воздуха сверху и снизу. Без этого запаса
+               кнопка упиралась прямо в системную строку iOS — просвета между
+               часами телефона и нашими не было ни пикселя.
+               Зазор задаётся ОДНОЙ величиной здесь: центровка от него не зависит,
+               кнопка и надпись остаются посередине сами. */
+            min-height: calc(44px + 24px + env(safe-area-inset-top));
             /* gap, а не пробел в разметке: флекс делает «⏳ Время:» и само время
                отдельными элементами и схлопывает пробел между ними — получалось
                «Время:00:00». Отступ задаём стилем, он от раскладки не зависит. */
             display: flex; align-items: center; justify-content: center; gap: 0.35em;
             position: relative;
         }
-        .clock-menu-btn {
-            position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
-            margin-top: calc(env(safe-area-inset-top) / 2);
-            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.18);
-            color: var(--gold); font-size: 1rem; line-height: 1;
-            width: 44px; height: 44px; border-radius: 10px; cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .clock-menu-btn:active { transform: translateY(-50%) scale(0.94); }
-        /* Зеркало кнопки меню, справа. Те же 44 пиксела: палец на телефоне меньше не берёт. */
+        /* Единственная кнопка в полосе часов. 44 пиксела: палец на телефоне меньше не берёт. */
         .clock-pause-btn {
             position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
             margin-top: calc(env(safe-area-inset-top) / 2);
@@ -1306,6 +1302,14 @@
             transition: width 0.9s linear;
         }
         #maintenancePeekBtn { width: 100%; margin-top: 18px; }
+        /* Тише, чем «Продолжить»: из паузы обычно возвращаются в игру, а не в меню. */
+        .btn-pause-menu {
+            width: 100%; margin-top: 10px; padding: 14px; border-radius: 12px;
+            min-height: 44px; cursor: pointer; font-size: 0.95rem; font-weight: bold;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.18);
+            color: #e2e8f0;
+        }
+        .btn-pause-menu:active { transform: scale(0.98); }
 
         /* Блок заданий и блок разделов стояли впритык и читались как один список:
            одинаковые карточки, одинаковые края, никакой паузы между ними. Разводим
@@ -2584,7 +2588,12 @@
 
     <div class="top-panel-wrapper">
         <div class="game-clock-bar" id="gameClock">
-            <button class="clock-menu-btn" id="btnOpenMenu" aria-label="Меню">☰</button>
+            <!-- Кнопки меню здесь больше нет. Во время миссии она почти ничего не
+                 добавляла: «Завершить» стоит внизу экрана, пазл открывается с самой
+                 картинки, а звук, язык и статистика посреди забега не нужны. Хуже
+                 другое — она НЕ СТАВИЛА ПАУЗУ: часы шли, пока ребёнок листал меню, и
+                 он молча терял скорость. Теперь меню живёт на экране паузы, то есть
+                 открывается только с остановленными часами. -->
             <!-- Пауза стоит здесь, а не в главном меню: за ней тянутся, когда отвлекли
                  прямо сейчас, и лишнее касание в этот момент — это уже не пауза. -->
             <button class="clock-pause-btn" id="btnPause" onclick="pauseGame()" aria-label="Пауза"
@@ -2666,11 +2675,15 @@
          превратила бы её в «думай сколько хочешь». Спрятанный пример оставляет одну
          лазейку — запомнить его и думать на паузе; она требует умысла, и закрывать её
          ценой усложнения кода мы пока не стали. -->
-    <div class="modal-screen" id="pauseScreen" style="z-index:255; display:none;">
+    <!-- Слой НИЖЕ окон коллекции, пазла и меню (250 и 260) намеренно: они открываются
+         с этого экрана, и при более высоком слое открылись бы под ним. Игровой слой
+         и панели (10) пауза при этом закрывает полностью, а экран выбора миссии (200)
+         перекрывает — если оба окажутся показаны, побеждает пауза, и это правильно. -->
+    <div class="modal-screen" id="pauseScreen" style="z-index:205; display:none;">
         <h1 class="start-title">⏸ Пауза</h1>
-        <p class="start-subtitle">Время стоит. Пример вернётся, когда продолжишь.</p>
         <div class="config-container" style="max-width:420px;">
             <button class="btn-config-continue ready" onclick="resumeGame()">▶️ Продолжить</button>
+            <button class="btn-pause-menu" onclick="openMainMenu()">☰ Меню</button>
         </div>
     </div>
 
@@ -5376,7 +5389,6 @@
 
         // Ключ темы и работа с журналом по дням — в js/topics.js.
 
-        document.getElementById('btnOpenMenu').addEventListener('click', openMainMenu);
 
         function openMainMenu() {
             renderMenuStats();
