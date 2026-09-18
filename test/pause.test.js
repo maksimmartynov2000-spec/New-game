@@ -40,7 +40,16 @@ function record(name, err) {
 
     await page.goto(FILE);
     await page.waitForFunction(`typeof startGame === 'function' && typeof pauseGame === 'function'`);
-    await page.evaluate(`window.MAINTENANCE = { until: null }; renderMaintenance();`);
+    // Работы выключаем — и заодно затыкаем ПЕРЕЧИТЫВАНИЕ файла. Приложение теперь
+    // ходит за content/maintenance.js при каждом возврате из фона, а эта проверка
+    // возвраты как раз и подделывает: без заглушки она вернула бы себе настоящее окно
+    // из репозитория, startGame отказался бы начинать миссию, и проверка паузы упала
+    // бы по причине, к паузе отношения не имеющей. Само перечитывание проверяется там,
+    // где ему и место, — в test/maintenance-live.test.js.
+    await page.evaluate(`
+        window.MAINTENANCE = { until: null };
+        reloadMaintenanceFile = function () {};
+        renderMaintenance();`);
     // Без этого поверх игры так и висит экран входа, и «пример спрятан» проверяло бы
     // не паузу, а форму логина. Заходим той же дверью, что и человек без аккаунта.
     await page.evaluate(`playAsGuest(); null;`);

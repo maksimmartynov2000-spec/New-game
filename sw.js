@@ -82,6 +82,21 @@ self.addEventListener('fetch', (event) => {
     // Чужие домены (в первую очередь Supabase) не трогаем совсем — пусть идут напрямую.
     if (url.origin !== self.location.origin) return;
 
+    // Файл технических работ — ЕДИНСТВЕННЫЙ, который никогда не отдаётся из кеша и
+    // никогда в кеш не кладётся. Он и существует затем, чтобы доехать до уже открытого
+    // приложения; отданная из кеша копия означала бы, что заглушка просто не появилась.
+    // Приложение перезапрашивает его раз в минуту с меткой времени в адресе — если бы
+    // мы эти адреса складывали, кеш рос бы по записи в минуту и никогда не чистился.
+    // Сети нет — отдаём копию, сохранённую при установке: она без метки времени.
+    if (url.pathname.endsWith('/content/maintenance.js')) {
+        event.respondWith(
+            fetch(req, { cache: 'no-store' }).catch(() =>
+                caches.match('./content/maintenance.js')
+                    .then(hit => hit || new Response('', { status: 504, statusText: 'offline' })))
+        );
+        return;
+    }
+
     // Картинки: сначала кеш. Файлы неизменяемые, гонять их по сети повторно незачем.
     if (/\.(png|webp|jpg|jpeg|svg|ico)$/i.test(url.pathname)) {
         event.respondWith(
