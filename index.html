@@ -851,6 +851,40 @@
             padding-right: calc(10px + env(safe-area-inset-right));
             z-index: 10; width: 100%;
         }
+        /* ===== ЭКРАН ИТОГОВ ===== */
+        .win-card { width: 100%; max-width: 340px; margin: 0 auto 16px; }
+        .win-kicker {
+            text-align: center; color: #94a3b8; font-size: 0.78rem;
+            letter-spacing: 1px; text-transform: uppercase;
+        }
+        .win-big {
+            text-align: center; font-size: 3.4rem; font-weight: 900; color: var(--gold);
+            line-height: 1.1; margin: 2px 0 4px; font-variant-numeric: tabular-nums;
+        }
+        .win-sub { text-align: center; color: #94a3b8; font-size: 0.8rem; margin-bottom: 12px; }
+        .win-art svg {
+            width: 190px; height: 190px; display: block; margin: 0 auto;
+            border-radius: 16px; border: 2px solid rgba(255, 215, 0, 0.45);
+        }
+        /* Строка про ворота: зачем нужна эта клетка. Единственное место в игре, где
+           ученику говорят, что именно открывает золото. */
+        .win-gate {
+            margin-top: 12px; padding: 9px 12px; border-radius: 10px; text-align: center;
+            background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245, 158, 11, 0.30);
+            color: #fcd34d; font-size: 0.8rem; line-height: 1.4;
+        }
+        .win-row {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 14px; margin-top: 8px; border-radius: 10px;
+            background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #cbd5e1; font-size: 0.82rem;
+        }
+        .win-row b { color: #e2e8f0; }
+        .win-row b.done { color: #10b981; }
+        /* Сам забег — мелкой строкой. Он не награда: эти же числа стояли в верхней
+           строке весь забег, и повторять их крупно значит не сказать ничего нового. */
+        .win-run { margin-top: 14px; text-align: center; color: #64748b; font-size: 0.76rem; }
+
         .btn-final {
             width: 100%; background: linear-gradient(45deg, #1e1b4b, #4c1d95);
             border: 1px solid var(--royal); text-align: center; padding: 14px; border-radius: 12px; cursor: pointer;
@@ -2687,14 +2721,34 @@
         </div>
     </div>
 
+    <!-- ЭКРАН ИТОГОВ.
+         Раньше здесь стояло «Время / Верно / Ошибок» — то есть ровно то, что ученик и
+         так видел в верхней строке всю миссию. За обычный забег в игре сдвигается шесть
+         вещей (кусочки пазла, счётчик к звезде, точность, скорость, дневная цель, серия),
+         и экран не говорил НИ ОБ ОДНОЙ. Очередь наград показывает только завершённое —
+         собралась картинка, взята задача, открылась звезда, — а движение, не дошедшее до
+         конца, исчезало бесследно. При этом «не дошло» — это девять забегов из десяти.
+         Теперь главное на экране — сколько осталось. Забег ушёл в одну строчку внизу. -->
     <div class="win-screen" id="winScreen">
-        <h1 style="color:var(--gold); font-size:2.2rem; margin-bottom:15px;">Миссия выполнена!</h1>
-        <p id="winDesc" style="padding:0 25px; color:#94a3b8; line-height:1.5; font-size: 1.1rem; white-space:pre-line;"></p>
+        <div class="win-card" id="winCard">
+            <div class="win-kicker" id="winKicker">До картинки осталось</div>
+            <div class="win-big" id="winBig">—</div>
+            <div class="win-sub" id="winSub">верных ответов в этой клетке</div>
+            <div class="win-art" id="winArt"></div>
+            <div class="win-gate" id="winGate" style="display:none;"></div>
+            <div id="winRows"></div>
+            <div class="win-run" id="winRun"></div>
+        </div>
         <div class="win-actions">
             <button class="btn-win secondary" id="btnWinMistakes" onclick="openMistakesScreen()" style="display:none;">📋 Разбор ошибок</button>
         </div>
         <div class="win-actions">
-            <button class="btn-win" onclick="winGoHome()">🏠 На главную</button>
+            <!-- «Ещё раз» первой и крупной: человеку только что сказали, сколько осталось,
+                 и самая естественная кнопка в этот момент — «давай сейчас же». -->
+            <button class="btn-win" id="btnWinAgain" onclick="winPlayAgain()">🔁 Ещё раз</button>
+            <button class="btn-win secondary" onclick="winGoHome()">🏠 На главную</button>
+        </div>
+        <div class="win-actions">
             <button class="btn-win secondary" onclick="winGoMenu()">☰ Меню</button>
         </div>
     </div>
@@ -11577,14 +11631,162 @@
         // Завершение миссии. Путь один на всех: и кнопка «Завершить», и окно
         // «цель взята» ведут сюда, чтобы итоги, разбор ошибок и показ собранных пазлов
         // не разъехались между двумя копиями кода.
+        // ===================== ЭКРАН ИТОГОВ =====================
+        //
+        // Правило этого экрана: ни одного утверждения, которого нельзя проверить по
+        // Progress. Он не хвалит и не обещает — он называет, сколько осталось. Числа
+        // берутся оттуда же, откуда их берёт сама игра, а не пересчитываются заново.
+
+        // Строка про ворота: что именно откроет золото в этой клетке. Пусто, если
+        // следующей звезды нет или она уже открыта — обещать открытое нельзя.
+        function winGateNote(topicKey) {
+            const p = (typeof parseTopicKey === 'function') ? parseTopicKey(topicKey) : null;
+            if (!p || !p.level || p.level >= 5) return '';
+            const secKey = `${p.category}${p.sign || '+'}`;
+            // Репетитор мог открыть следующую звезду напрямую, кодом доступа. Тогда
+            // золото её уже ничего не открывает, и обещать это — враньё. Проверку по
+            // самим воротам здесь не делаем: она слово в слово повторила бы условие
+            // «обе лесенки взяты» двумя строками ниже.
+            if (levelNamedByGrant(secKey, p.op, p.level + 1)) return '';
+            const unlocks = Progress.getUnlocks() || {};
+            const мало = ladderTierEarned(unlocks, topicKey, 'c') < LEVEL_GATE_TIER;
+            const неточно = ladderTierEarned(unlocks, topicKey, 'a') < LEVEL_GATE_TIER;
+            if (!мало && !неточно) return '';
+            const имя = (OP_LABELS[p.op] || p.op).replace(/^\S+\s/, '');
+            const звезда = `${имя} ${p.level + 1}★`;
+            // Когда не хватает только количества, до золота ровно столько же ответов,
+            // сколько до картинки: и то и другое — сотня в клетке. Не повторяем число
+            // второй раз, а связываем их: одно усилие, две награды.
+            if (мало && !неточно) return tf('Эти же ответы дают золото — оно откроет %1', звезда);
+            if (!мало && неточно) {
+                return tf('Количество взято. До %1 осталась точность %2%', звезда,
+                          ACCURACY_TIERS[LEVEL_GATE_TIER - 1]);
+            }
+            return tf('Золото откроет %1: %2 верных и точность %3%', звезда,
+                      COUNT_TIERS[LEVEL_GATE_TIER - 1], ACCURACY_TIERS[LEVEL_GATE_TIER - 1]);
+        }
+
+        function winRow(ярлык, значение, взято) {
+            const row = document.createElement('div');
+            row.className = 'win-row';
+            const l = document.createElement('span');
+            l.innerText = ярлык;
+            const v = document.createElement('b');
+            if (взято) v.className = 'done';
+            v.innerText = значение;
+            row.appendChild(l);
+            row.appendChild(v);
+            return row;
+        }
+
+        function renderWinSummary() {
+            const card = document.getElementById('winCard');
+            const rows = document.getElementById('winRows');
+            const art = document.getElementById('winArt');
+            const gate = document.getElementById('winGate');
+            if (!card) return;
+            rows.innerHTML = '';
+            art.innerHTML = '';
+            gate.style.display = 'none';
+
+            // Забег — мелкой строкой внизу. Те же числа стояли в верхней строке весь
+            // забег, и повторять их крупно значит не сказать ничего нового.
+            document.getElementById('winRun').innerText =
+                tf('⏱️ %1 · ✅ %2 · ❌ %3', formatTime(totalSeconds), correctCount, wrongCount);
+
+            const key = currentMissionTopicKey();
+            const big = document.getElementById('winBig');
+            const kicker = document.getElementById('winKicker');
+            const sub = document.getElementById('winSub');
+
+            if (!key) {
+                // Клетка неизвестна — про картинку сказать нечего. Молчим, а не гадаем.
+                card.querySelectorAll('.win-kicker, .win-big, .win-sub')
+                    .forEach(x => { x.style.display = 'none'; });
+            } else {
+                card.querySelectorAll('.win-kicker, .win-big, .win-sub')
+                    .forEach(x => { x.style.display = ''; });
+                const собрано = puzzleFilledFor(key);
+                const верных = topicCorrect(key);
+                // Картинка только что собралась: собрано снова ноль. Тогда впереди
+                // СЛЕДУЮЩАЯ картинка, и говорить надо об этом — сама собранная уже
+                // показана в очереди наград до этого экрана.
+                const заново = собрано === 0 && верных > 0;
+                kicker.innerText = заново ? t('До следующей картинки') : t('До картинки осталось');
+                big.innerText = String(PUZZLE_TOTAL - собрано);
+                sub.innerText = t('верных ответов в этой клетке');
+
+                // Сама картинка, в том виде, в каком она сейчас. Берём готовый рисунок
+                // мини-пазла, а не собираем заново: так на экране итогов не может
+                // оказаться картинка, отличная от той, что видел ученик в игре.
+                const mini = document.getElementById('miniPuzzleSvg');
+                if (mini) art.appendChild(mini.cloneNode(true));
+
+                const note = winGateNote(key);
+                if (note) { gate.innerText = note; gate.style.display = ''; }
+            }
+
+            // Режим обучения: ответы не идут ни в точность, ни в скорость, ни в лесенки,
+            // ни в пазл. Если об этом промолчать, экран соврёт самим своим видом —
+            // покажет «осталось 12» после забега, который ничего не приблизил.
+            if (trainActive) {
+                gate.innerText = t('Это была тренировка с подсказками — такие ответы в счёт не идут');
+                gate.style.display = '';
+            }
+
+            const daily = (Progress.get() || {}).daily || {};
+            const today = Progress.dayKey();
+            const d = dailyProgress(daily, today);
+            rows.appendChild(winRow(t('🎯 Сегодня'),
+                d.complete ? tf('%1 из %2 — взято', d.done, d.goal) : tf('%1 из %2', d.done, d.goal),
+                d.complete));
+
+            const st = streakState(daily, today);
+            if (st.streak > 0) {
+                rows.appendChild(winRow(t('🔥 Серия'),
+                    tf('%1 %2', st.streak, pluralDaysWord(st.streak)), false));
+            }
+            const собранных = collectionCollectedCount(collectionTimes());
+            if (собранных > 0) {
+                rows.appendChild(winRow(t('🏆 Коллекция'),
+                    tf('%1 из %2', собранных, PUZZLE_IMAGE_SRCS.length), false));
+            }
+        }
+
+        // «Ещё раз» — та же клетка, тот же режим, без захода на выбор миссии.
+        // Человеку только что назвали, сколько осталось; заставлять его ради этого
+        // пройти два экрана значит отнять у числа весь смысл.
+        function winPlayAgain() {
+            document.getElementById('winScreen').classList.remove('active');
+            document.getElementById('mistakesScreen').style.display = 'none';
+            sessionMistakes = [];
+            resetSessionCounters();
+            Progress.flush();
+            // Доступ мог измениться, пока шла миссия: репетитор отозвал звезду,
+            // синхронизация принесла новый список. Пускать в закрытое нельзя.
+            const cfg = exampleConfig || {};
+            const ops = Object.keys(cfg.operations || {});
+            const secKey = sectionKeyOf(cfg.category, cfg.numberType);
+            const закрыто = ops.some(op => !isLevelOpen(secKey, op, cfg.operations[op]));
+            if (!ops.length || закрыто) {
+                resetConfigScreen();
+                refreshSectionLocks();
+                renderDailyBar();
+                renderConfigTasks();
+                document.getElementById('configScreen').style.display = 'flex';
+                if (закрыто) showToast(t('Это действие больше не открыто — выбери другое.'), 'error');
+                return;
+            }
+            startGame();
+        }
+
         function finishChallenge() {
             if (!gameActive) return;
             gameActive = false;
             paused = false; pausedAt = 0;
             document.getElementById('pauseScreen').style.display = 'none';
             refreshPauseButton();
-            document.getElementById('winDesc').innerText =
-                tf('⏱️ Время: %1\n✅ Верно: %2 | ❌ Ошибок: %3', formatTime(totalSeconds), correctCount, wrongCount);
+            renderWinSummary();
 
             // Кнопка разбора появляется, только если разбирать действительно есть что
             const mistakesBtn = document.getElementById('btnWinMistakes');
