@@ -3218,8 +3218,6 @@
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
             const valid = !!exampleConfig.category && !!exampleConfig.numberType && allHaveDifficulty;
             if (valid) btn.classList.add('ready'); else btn.classList.remove('ready');
-            // Клетка могла смениться — предложение режима должно идти следом.
-            syncTrainSuggestion();
         }
 
         // ===================== РЕЖИМ ОБУЧЕНИЯ =====================
@@ -3237,17 +3235,17 @@
         let trainWanted = false;    // что выбрано на экране выбора
         let trainActive = false;    // с чем реально запущена текущая миссия
 
-        // Порог, до которого режим предлагается сам. Клетка, где решено меньше двадцати,
-        // для ученика новая — именно там подсказки и нужны. Прятать переключатель по
-        // этому же признаку я не стал: невидимая кнопка заставляет объяснять ребёнку,
-        // почему её нет, а видимая объясняет себя сама.
-        const TRAIN_SUGGEST_BELOW = 20;
-
-        function trainSuggestedFor(topicKey) {
-            if (!topicKey) return false;
-            return topicCorrect(topicKey) < TRAIN_SUGGEST_BELOW;
-        }
-
+        // РЕЖИМ НИКОГДА НЕ ВКЛЮЧАЕТСЯ САМ.
+        //
+        // Раньше он предлагался автоматически на клетке, где решено меньше двадцати:
+        // мол, тема новая, подсказки там и нужны. Выходило хуже задуманного. Ответы с
+        // подсказкой не идут ни в точность, ни в скорость, ни в лесенки, ни в пазл —
+        // и человек, не заметивший включённого переключателя, решал сотню примеров, а
+        // статистика оставалась пустой. Цена ошибки несимметрична: не включить подсказки
+        // там, где они были нужны, — это просто миссия потруднее; включить их молча —
+        // это стёртый час работы.
+        //
+        // Поэтому по умолчанию выключено всегда, а включает человек сам.
         function renderTrainToggle() {
             const btn = document.getElementById('trainToggle');
             if (!btn) return;
@@ -3256,18 +3254,8 @@
             document.getElementById('trainBox').innerText = trainWanted ? '✓' : '';
         }
 
-        // Предлагаем режим сам, когда клетка новая. Вызывается при каждом изменении
-        // выбора: пока ученик не трогал переключатель руками, он следует за клеткой.
-        let trainTouched = false;
-        function syncTrainSuggestion() {
-            if (trainTouched) return;
-            trainWanted = trainSuggestedFor(currentMissionTopicKey());
-            renderTrainToggle();
-        }
-
         document.getElementById('trainToggle').addEventListener('click', () => {
             trainWanted = !trainWanted;
-            trainTouched = true;
             renderTrainToggle();
         });
 
@@ -10346,10 +10334,11 @@
             document.querySelectorAll('.btn-op').forEach(b => b.classList.remove('selected'));
             document.getElementById('fracSpecialBlock').style.display = 'none';
             renderDifficultyList();   // сама спрячет блок сложности, раз режимов не выбрано
-            // Выбор сброшен — значит и решение ученика про подсказки больше не его
-            // решение про ЭТУ клетку. Считаем предложение заново.
-            trainTouched = false;
-            updateConfigValidity();   // и погасит кнопку "Начать миссию", и пересчитает режим
+            // Выбор сброшен — гасим и подсказки. Иначе включённый однажды переключатель
+            // переживал бы смену клетки и тихо съедал статистику следующей миссии.
+            trainWanted = false;
+            renderTrainToggle();
+            updateConfigValidity();   // погасит кнопку «Начать миссию»
             showConfigStep(1);
         }
 
