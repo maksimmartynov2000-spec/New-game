@@ -872,6 +872,10 @@
             margin-top: 12px; padding: 9px 12px; border-radius: 10px; text-align: center;
             background: rgba(245, 158, 11, 0.10); border: 1px solid rgba(245, 158, 11, 0.30);
             color: #fcd34d; font-size: 0.8rem; line-height: 1.4;
+            /* Перенос строки внутри текста — значащий: после названия звезды условие
+               начинается с новой строки, иначе «Вычитание 2★: 100 верных и точность
+               90%» читается одной кашей. */
+            white-space: pre-line;
         }
         .win-row {
             display: flex; justify-content: space-between; align-items: center;
@@ -943,11 +947,23 @@
         }
         .btn-logout:active { color: #e2e8f0; background: rgba(255,255,255,0.05); }
 
+        /* Ровно та же беда, что описана у .modal-screen выше, и тот же лечащий приём.
+           Пока на экране итогов были три строки, центрирование без "safe" ничего не
+           резало. Стоило добавить карточку с картинкой — содержимое стало выше экрана,
+           и верх ушёл под системную строку iOS: заголовок «До картинки осталось» был
+           не виден, и прокруткой его было не достать.
+           Сюда же безопасная зона: без неё карточка лезет под часы телефона. */
         .win-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #030712; z-index: 100; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; text-align: center; padding: 20px;
+            justify-content: flex-start; align-items: center; text-align: center; padding: 20px;
+            padding-top: calc(20px + env(safe-area-inset-top));
+            padding-bottom: calc(20px + env(safe-area-inset-bottom));
+            overflow-y: auto;
             opacity: 0; pointer-events: none; transition: opacity 0.8s ease;
+        }
+        @supports (justify-content: safe center) {
+            .win-screen { justify-content: safe center; }
         }
         .win-screen.active { opacity: 1; pointer-events: auto; }
         .win-actions { display: flex; gap: 10px; margin-top: 30px; flex-wrap: wrap; justify-content: center; }
@@ -11662,7 +11678,7 @@
                 return tf('Количество взято. До %1 осталась точность %2%', звезда,
                           ACCURACY_TIERS[LEVEL_GATE_TIER - 1]);
             }
-            return tf('Золото откроет %1: %2 верных и точность %3%', звезда,
+            return tf('Золото откроет %1:\n%2 верных и точность %3%', звезда,
                       COUNT_TIERS[LEVEL_GATE_TIER - 1], ACCURACY_TIERS[LEVEL_GATE_TIER - 1]);
         }
 

@@ -118,6 +118,47 @@ function record(name, err) {
                r.вИтогах === r.вИгре ? null : `в игре ${r.вИгре}, в итогах ${r.вИтогах}`);
     }
 
+    console.log('\nВерх экрана не обрезан');
+    {
+        // Содержимое стало выше экрана, когда на итогах появилась карточка с картинкой,
+        // и заголовок ушёл под системную строку iOS — прокруткой его было не достать.
+        // Та же беда, что описана у .modal-screen, и тот же лечащий приём.
+        // Чёлку подделываем: headless-браузер её не даёт, а без неё дефект не виден.
+        //
+        // И экран делаем НИЗКИМ. На высоком содержимое влезает целиком, центрирование
+        // ставит его посередине, и дефекта не видно ни на пиксель: обе подсадки —
+        // «вернуть center без safe» и «убрать безопасную зону» — проходили мимо.
+        // Беда начинается ровно тогда, когда содержимое выше экрана: у Максима так и
+        // было. 600 px — это маленький телефон или крупный системный шрифт.
+        await page.setViewportSize({ width: 390, height: 600 });
+        await посев(88);
+        await завершить();
+        const r = await page.evaluate(`(() => {
+            const st = document.querySelector('style');
+            st.textContent = st.textContent.split('env(safe-area-inset-top)').join('47px')
+                .split('env(safe-area-inset-bottom)').join('34px')
+                .split('env(safe-area-inset-left)').join('0px')
+                .split('env(safe-area-inset-right)').join('0px');
+            const scr = document.getElementById('winScreen');
+            const kick = document.getElementById('winKicker');
+            const k = kick.getBoundingClientRect();
+            return { верхЗаголовка: k.top, высотаЗаголовка: k.height,
+                     прокрутка: getComputedStyle(scr).overflowY,
+                     можноПрокрутить: scr.scrollHeight > scr.clientHeight };
+        })()`);
+        record('заголовок не заехал под системную строку',
+               r.верхЗаголовка >= 47 ? null
+                   : `верх заголовка на ${Math.round(r.верхЗаголовка)} px, а чёлка занимает 47`);
+        record('заголовок не уехал выше экрана',
+               r.верхЗаголовка >= 0 ? null : `верх на ${Math.round(r.верхЗаголовка)} px`);
+        record('если содержимое не влезло — его можно прокрутить',
+               r.прокрутка === 'auto' || r.прокрутка === 'scroll'
+                   ? null : `overflow-y: ${r.прокрутка}`);
+        record('проверка и правда мерила переполненный экран',
+               r.можноПрокрутить ? null : 'содержимое влезло — дефект так не воспроизвести');
+        await page.setViewportSize({ width: 390, height: 900 });
+    }
+
     console.log('\nСтрока про ворота не врёт');
     {
         // Следующая звезда ещё закрыта — строка обязана быть и называть ИМЕННО её.
