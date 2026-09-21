@@ -392,6 +392,127 @@ test('приём вычитания выбирается по поводу, а �
     eq(R.trickHint(meta('sub', 5), { a: 10, b: 6 }), '6 плюс что, чтобы получить 10?');
 });
 
+// ============ ОТРИЦАТЕЛЬНЫЕ ============
+//
+// Режим обучения на отрицательных МОЛЧАЛ: замер по генератору дал 0% подсказок у
+// сложения и вычитания на всех пяти звёздах и 3–5% у умножения. Приёмы разбирали
+// класс примера ('1', '2', 'h'), а у отрицательных классы другие — 'same', 'near',
+// 'cross', — и ни одна ветка не срабатывала. Ни один тест этого не видел: проверки
+// выше зовут picker только с isNegative: false.
+
+const negMeta = (op, level) => ({ category: 'integer', opKey: op, level: level || 3, isNegative: true });
+
+test('у отрицательных сложение и вычитание больше не молчат', () => {
+    const G = loadWithGenerator();
+    const молчит = [];
+    ['add', 'sub'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            let всего = 0, есть = 0;
+            for (let i = 0; i < 2000; i++) {
+                const p = G.generateProblem(op, lvl, true);
+                if (!p || typeof p.answer !== 'number') continue;
+                всего++;
+                if (G.trickHint(negMeta(op, lvl), p)) есть++;
+            }
+            // Молчим только там, где правила знаков нет: слагаемое равно нулю или
+            // числа гасят друг друга. На живом генераторе это доли процента.
+            if (есть < всего * 0.95) молчит.push(`${op} ${lvl}★: ${есть} из ${всего}`);
+        }
+    });
+    eq(молчит.join(' | '), '', 'подсказки нет почти нигде: ' + молчит.join(' | '));
+});
+
+test('у отрицательных умножение тоже не молчит', () => {
+    const G = loadWithGenerator();
+    const молчит = [];
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        let всего = 0, есть = 0;
+        for (let i = 0; i < 2000; i++) {
+            const p = G.generateProblem('mul', lvl, true);
+            if (!p || typeof p.answer !== 'number') continue;
+            всего++;
+            if (G.trickHint(negMeta('mul', lvl), p)) есть++;
+        }
+        // Порог ниже, чем у сложения: ×1, ×0 и три множителя приёма не имеют,
+        // и на пятой звезде троек особенно много.
+        if (есть < всего * 0.6) молчит.push(`${lvl}★: ${есть} из ${всего}`);
+    }
+    eq(молчит.join(' | '), '', 'умножение отрицательных молчит: ' + молчит.join(' | '));
+});
+
+test('приём отрицательных выбирается по правилу знаков', () => {
+    const R = loadPicker();
+    const пример = (a, b, answer) => ({ a, b, answer, text: `${a} + ${b}` });
+    const want = [
+        // Знаки одинаковые — модули складываются.
+        [pair(-8, -6, -14), 'neg:same', 'оба со знаком минус'],
+        // Знаки разные — из большего модуля вычитаем меньший.
+        [pair(-14, 13, -1), 'neg:diff', 'минус больше по модулю'],
+        [pair(-9, 21, 12), 'neg:diff', 'плюс больше по модулю'],
+        // Модули равны — гасят друг друга, вычитать нечего.
+        [pair(-7, 7, 0), null, 'взаимно уничтожаются']
+    ];
+    function pair(a, b, answer) { return { a, b, answer, text: `${a} + ${b}` }; }
+    want.forEach(([p, key, why]) => {
+        const pick = R.trickPick(negMeta('add', 3), p);
+        if (key === null) { assert(!pick, `${p.text}: подсказки быть не должно (${why})`); return; }
+        assert(pick, `${p.text}: подсказки нет вовсе (${why})`);
+        eq(pick.key, key, `${p.text} (${why})`);
+    });
+    // Знак берётся у большего по модулю — и печатается СО ЗНАКОМ.
+    eq(R.trickHint(negMeta('add', 3), pair(-14, 13, -1)),
+       'Знаки разные: из 14 вычти 13, а знак возьми у -14');
+    eq(R.trickHint(negMeta('add', 3), pair(-8, -6, -14)),
+       'Знаки одинаковые: сложи 8 и 6, знак оставь тот же');
+    // Умножение: правило знаков плюс счёт модулей.
+    eq(R.trickPick(negMeta('mul', 3), { a: -7, b: -8, answer: 56 }).key, 'neg:mulSame');
+    eq(R.trickPick(negMeta('mul', 3), { a: -7, b: 8, answer: -56 }).key, 'neg:mulDiff');
+});
+
+test('ни одна подсказка отрицательных не печатает ответ', () => {
+    const G = loadWithGenerator();
+    const bad = [];
+    ['add', 'sub', 'mul', 'div'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 1500; i++) {
+                const p = G.generateProblem(op, lvl, true);
+                if (!p || typeof p.answer !== 'number') continue;
+                let pick = null, txt = '';
+                try { pick = G.trickPick(negMeta(op, lvl), p); txt = G.trickHint(negMeta(op, lvl), p); }
+                catch (e) { continue; }
+                if (!txt || !pick) continue;
+                // Числа самого примера не в счёт: они и так на экране.
+                const своё = [p.a, p.b, Math.abs(p.a), Math.abs(p.b)];
+                const чужое = pick.args.filter(v => typeof v === 'number' && своё.indexOf(v) < 0);
+                if (чужое.indexOf(p.answer) >= 0 || чужое.indexOf(Math.abs(p.answer)) >= 0) {
+                    bad.push(`${p.text} = ${p.answer} → «${txt}»`);
+                }
+            }
+        }
+    });
+    eq([...new Set(bad)].slice(0, 5).join(' | '), '',
+        'подсказка печатает ответ: ' + [...new Set(bad)].slice(0, 5).join(' | '));
+});
+
+test('деление круглых не оставляет ответ последним числом', () => {
+    // «Убери по нулю: 4 ÷ 2» у примера 40 ÷ 20: двойка и есть ответ. Та же болезнь,
+    // что была у спуска к десятку и у вычитания через сотню, и лечится так же —
+    // уходом в общий приём, без молчания.
+    const R = loadPicker();
+    const bad = [];
+    [false, true].forEach(isNeg => {
+        const m = isNeg ? negMeta('div', 5) : meta('div', 5);
+        for (let a = -960; a <= 960; a += 10) for (let b = -90; b <= 90; b += 10) {
+            if (!b || a === 0 || a % b !== 0) continue;
+            let pick = null;
+            try { pick = R.trickPick(m, { a, b, answer: a / b }); } catch (e) { continue; }
+            if (!pick || pick.key !== 'div:round') continue;
+            if (Math.abs(pick.args[1]) === Math.abs(a / b)) bad.push(`${a} ÷ ${b} = ${a / b}`);
+        }
+    });
+    eq(bad.slice(0, 5).join(' | '), '', 'сокращённый делитель совпал с ответом: ' + bad.slice(0, 5).join(' | '));
+});
+
 // Подсказка обязана говорить числами ЕГО примера. Шаблон, доехавший до экрана
 // с неподставленной %1, хуже молчания.
 test('в готовой строке не остаётся неподставленных мест', () => {
