@@ -294,45 +294,45 @@ window.CHALLENGE_CONTENT = {
         // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
         'integer-:add:1': {
             diamond: {
-                task: 'Лифт с −3 этажа поднялся на 5, потом опустился на 4. Где он теперь?',
-                answer: '−2',
-                why: 'С −3 вверх на пять — это ноль, а потом ещё два вверх: лифт на втором. Оттуда вниз на четыре, и он снова под землёй, на −2. Ноль переходят дважды, и оба раза счёт не сбрасывается, а идёт дальше.'
+                task: 'Лифт с −3 этажа поднялся на 5 этажей, потом опустился на 4. На каком этаже он теперь?',
+                answer: 'На −2 этаже',
+                why: 'Вверх по одному этажу: −3 → −2 → −1 → 0 → 1 → 2. Пять шагов, и лифт на втором. Теперь вниз, тоже по одному: 2 → 1 → 0 → −1 → −2. Четыре шага, и он снова под землёй. Ноль прошли дважды и оба раза не остановились: он такой же этаж, как остальные.'
             },
             legend: {
-                task: 'После двух ходов в игре очков стало меньше, чем было. Обязательно ли оба хода были в минус?',
-                answer: 'Нет, хватит одного',
-                why: 'Хочется сказать «оба», но достаточно, чтобы один ход отнял больше, чем второй прибавил: −9 и +4 вместе дают −5. Чтобы уйти вниз, нужен не каждый шаг вниз, а перевес.'
+                task: 'Ход в игре отнял 6 очков, и стало −2 очка. Сколько очков было до хода?',
+                answer: '4 очка',
+                why: 'Идём назад — значит вверх: −2 → −1 → 0 → 1 → 2 → 3 → 4. Шесть шагов, и мы у начала. Чтобы узнать, с чего начали, шаг делают в другую сторону.'
             }
         },
         'integer-:add:2': {
             diamond: {
                 task: 'Было 8 градусов тепла, за ночь стало на 15 холоднее. Что показывает термометр утром?',
-                answer: '−7',
+                answer: '−7 градусов',
                 why: 'Спускаемся на восемь — это ноль, и падать остаётся ещё семь. Ноль не преграда: счёт идёт через него дальше, только уже в минус. Отсюда и −7, а на словах это «семь градусов мороза».'
             },
             legend: {
-                task: 'На счету −8 рублей. Сколько надо положить, чтобы стало 8?',
-                answer: '16',
-                why: 'Восьмёрка не годится — она доводит только до нуля. Путь идёт дважды: восемь до нуля и ещё восемь дальше. От числа до его зеркального всегда вдвое больше, чем до нуля.'
+                task: 'На счету −8 рублей. Сколько надо положить, чтобы стало 8 рублей?',
+                answer: '16 рублей',
+                why: 'Восьми не хватит — она только закроет долг, и на счету будет ноль. Платить надо дважды: восемь рублей, чтобы закрыть долг, и ещё восемь, чтобы накопить. Вместе шестнадцать.'
             }
         },
         'integer-:add:3': {
             diamond: {
-                task: 'Батискаф был на отметке −11 и поднялся на 10 метров. Всплыл он?',
+                task: 'Аппарат был под водой на глубине 11 метров и поднялся на 10 метров. Всплыл он?',
                 answer: 'Нет, метра не хватило',
-                why: 'С −11 вверх на десять — это −1, то есть метр до поверхности. Когда числа почти равны, ответ выходит крошечным, но сторону всё равно решает большее: одиннадцать перевесило десять.'
+                why: 'Глубина 11 метров — это отметка −11. Поднялись на десять, стало −1: один метр до поверхности. Ответ крошечный, потому что числа почти равны. А под водой мы остались потому, что одиннадцать больше десяти.'
             },
             legend: {
-                task: 'Термометр показывает −30 и поднимается на 7 градусов в час. Какое показание будет ближе всего к нулю?',
-                answer: '−2',
-                why: 'Через четыре часа станет −2, а через пять уже +5 — ноль перескочили. Ровно в ноль одинаковыми шагами попадают, только если начальное расстояние делится на шаг, а тридцать на семь не делится.'
+                task: 'Термометр показывает −30 градусов и каждый час становится теплее на 7 градусов. Покажет ли он когда-нибудь ровно ноль?',
+                answer: 'Нет, перескочит',
+                why: 'Через час −23, через два −16, потом −9, потом −2 — а дальше сразу +5. Двух градусов до нуля не хватило, а шаг всегда семь. Ровно в ноль попадают, только если расстояние делится на шаг, а тридцать на семь не делится.'
             }
         },
         'integer-:add:4': {
             diamond: {
                 task: 'Как записать 24 + (−19) короче, без скобок?',
                 answer: '24 − 19',
-                why: 'Прибавить отрицательное — то же самое, что вычесть положительное: шаг вниз он и есть шаг вниз, как его ни записать. Плюс и минус рядом сворачиваются в один минус, и скобки становятся не нужны.'
+                why: 'Прибавить −19 — значит уйти вниз на девятнадцать. А уйти вниз на девятнадцать — это и есть вычесть девятнадцать. Плюс и минус, стоящие рядом, всегда сворачиваются в один минус.'
             },
             legend: {
                 task: 'Что можно прибавить к любому числу, чтобы оно не изменилось?',
@@ -344,49 +344,49 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: '−97 + 95 и −95 + 97. У какой из двух ответ окажется ниже нуля?',
                 answer: 'У первой',
-                why: 'Сторону задаёт то число, что дальше от нуля. В первой дальше −97, и ответ уходит вниз: −2. Во второй дальше 97, и ответ 2. Величину решают сами числа, а сторону — знак большего из них.'
+                why: 'В первой самое большое число — 97, и оно с минусом. Значит и ответ с минусом: −2. Во второй самое большое тоже 97, но уже без минуса, и ответ 2. Смотри, у какого из двух чисел минус: если у большего — ответ уйдёт вниз.'
             },
             legend: {
-                task: 'Ход в игре даёт либо −7 очков, либо +3. За сколько ходов вернуться ровно к нулю?',
-                answer: 'Десять',
-                why: 'Семёрки тянут вниз, тройки вверх, и сравняться они могут только на двадцати одном — первом числе, которое делится и на семь, и на три. Это три хода по −7 и семь ходов по +3, вместе десять. Меньше не выйдет.'
+                task: 'В игре начали с нуля. Каждый ход либо отнимает 7 очков, либо даёт 3. За сколько ходов счёт снова станет нулём?',
+                answer: 'За 10 ходов',
+                why: 'Отнятое должно сравняться с добавленным. Семёрки и тройки впервые сравниваются на двадцати одном: 7 × 3 = 21 и 3 × 7 = 21. Значит три хода вниз и семь вверх, вместе десять. Раньше не выйдет.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · ВЫЧИТАНИЕ =========
         'integer-:sub:1': {
             diamond: {
-                task: 'У Ани на счету −4, у Бори 4. Оба потратили по 6. Насколько счета отличаются теперь?',
-                answer: 'На 8',
-                why: 'У Ани стало −10, у Бори −2. Разница как была восемь, так и осталась: если у двоих отнять поровну, оба сдвинутся одинаково, и расстояние между ними не изменится.'
+                task: 'У Ани на счету −4 рубля, у Бори 4 рубля. Оба потратили по 6 рублей. Насколько теперь отличаются их счета?',
+                answer: 'На 8 рублей',
+                why: 'У Ани стало −10 рублей, у Бори −2. Разница как была восемь рублей, так и осталась. Оба уехали вниз на одно и то же число шагов, а расстояние между ними от этого не меняется.'
             },
             legend: {
                 task: 'Костя старше Оли на 6 лет. На сколько лет Оля старше Кости?',
-                answer: 'На −6',
-                why: 'Она не старше, а младше — и это тот самый случай, когда «на сколько больше» отвечают числом со знаком минус. Поменяли местами, кого с кем сравниваем, — и ответ перевернулся, а величина осталась.'
+                answer: 'На −6 лет',
+                why: 'Оля не старше — она младше на шесть лет. Чтобы всё равно ответить на вопрос «на сколько старше», перед шестёркой ставят минус. Поменяли местами, кого с кем сравниваем, — перевернулся и знак.'
             }
         },
         'integer-:sub:2': {
             diamond: {
                 task: 'Чайка летит на высоте 5 метров, а ныряльщик на 13 метров ниже неё. Где ныряльщик?',
-                answer: '−8',
+                answer: '−8 метров',
                 why: 'От пятёрки вниз пять метров — это поверхность воды, и опускаться остаётся ещё восемь. Ноль тут не дно и не стена: под ним счёт продолжается теми же метрами, только со знаком минус.'
             },
             legend: {
-                task: 'Утром термометр показывал −5, вечером −12. Стало теплее или холоднее?',
-                answer: 'Холоднее на 7',
-                why: 'Оба числа ниже нуля, и сравнивать их привычным «где цифра больше» нельзя: двенадцать больше пяти, а −12 холоднее, чем −5. Чем дальше вниз от нуля, тем меньше само число.'
+                task: 'Утром термометр показывал −5 градусов, вечером −12 градусов. Стало теплее или холоднее?',
+                answer: 'Холоднее на 7 градусов',
+                why: 'Хочется сказать «теплее»: двенадцать ведь больше пяти. Но на термометре чем ниже число, тем холоднее. От −5 до −12 семь шагов вниз — значит похолодало на семь градусов.'
             }
         },
         'integer-:sub:3': {
             diamond: {
-                task: 'У Пети было −6 очков. Выиграл 14, потом проиграл 20. Сколько теперь?',
-                answer: '−12',
-                why: 'После выигрыша стало 8 — ноль перешли вверх. После проигрыша ушли ниже нуля ещё на двенадцать. Ноль здесь не преграда и не остановка: счёт идёт через него насквозь, в обе стороны.'
+                task: 'У Пети было −6 очков. Выиграл 14 очков, потом проиграл 20. Сколько у него теперь?',
+                answer: '−12 очков',
+                why: 'Сначала вверх на 14: шесть шагов до нуля и ещё восемь над ним — стало 8. Потом вниз на 20: восемь шагов до нуля и ещё двенадцать под него — вышло −12. Ноль переходили дважды, и оба раза счёт просто шёл дальше.'
             },
             legend: {
-                task: 'Шахтёр был на отметке −13 и спустился ещё на 14 метров. Где он теперь?',
-                answer: '−27',
-                why: 'Обе отметки ниже нуля, и вычитание уводит ещё ниже: −13 − 14 = −27. Когда начинают в минусе и продолжают вниз, числа складываются по величине, а знак остаётся прежним.'
+                task: 'Шахтёр был на отметке −13 метров и спустился ещё на 14 метров. На какой отметке он теперь?',
+                answer: '−27 метров',
+                why: 'Оба раза идём вниз, поэтому метры складываются: 13 и 14 дают 27, и все они под землёй. Ноль здесь ни при чём — его ни разу не переходили, поэтому знак не меняется, а число растёт.'
             }
         },
         'integer-:sub:4': {
@@ -409,7 +409,7 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'На трёх счетах −71, −30 и 62 рубля. Какая наибольшая разница между двумя из них?',
-                answer: '133',
+                answer: '133 рубля',
                 why: 'Дальше всего друг от друга самый богатый и самый должный: от −71 до 62 ровно 133 рубля. Самый большой долг оказывается самым полезным — вычесть его значит прибавить.'
             }
         },
@@ -417,13 +417,13 @@ window.CHALLENGE_CONTENT = {
         'integer-:mul:1': {
             diamond: {
                 task: 'Каждый час холодает на 5 градусов. Сейчас ровно ноль. Что покажет термометр через 4 часа?',
-                answer: '−20',
+                answer: '−20 градусов',
                 why: 'Пять градусов вниз, взятые четыре раза, — это и есть умножение: 5 × 4 = 20, и все двадцать уходят ниже нуля. Когда одно и то же повторяется много раз, направление сохраняется, а величина растёт.'
             },
             legend: {
-                task: 'Все счета в банке умножили на −1. Что стало с теми, кто был должен?',
-                answer: 'Они разбогатели',
-                why: 'Умножение на единицу оставляет число как есть, а минус разворачивает его на другую сторону от нуля. Долг в 500 превращается в 500 на счету: величина та же, сторона другая.'
+                task: 'В игре есть кнопка, которая меняет счёт на противоположный — умножает его на −1. На счету долг 500 очков. Что будет после нажатия?',
+                answer: '500 очков',
+                why: 'У −1 две части, и каждая делает своё. Единица оставляет число как есть: пятьсот так и останется пятьюстами. А минус переносит его на другую сторону от нуля — был долг, стал запас.'
             }
         },
         'integer-:mul:2': {
@@ -434,7 +434,7 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Лифт опускается на 3 этажа за раз. Где он окажется после 4 спусков с 6 этажа?',
-                answer: 'На −6',
+                answer: 'На −6 этаже',
                 why: 'Четыре спуска по три этажа — это 3 × 4 = 12 этажей вниз. С шестого вниз двенадцать: шесть до земли и ещё шесть под неё. Ноль между ними не остановка, а такой же этаж пути.'
             }
         },
@@ -454,12 +454,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: '3 × 9 = 27. Чему равно −3 × 90?',
                 answer: '−270',
-                why: 'Девяносто — это девять и ноль, поэтому ответ вырастает в десять раз. Минус приходит отдельно, от одного отрицательного числа. Два действия не мешают друг другу: сначала величина, потом сторона.'
+                why: 'Девяносто — это девять с нулём на конце, значит и ответ будет с нулём на конце: 270. Минус в примере один — значит и ответ с минусом. Посчитать и поставить знак — два отдельных дела, и друг другу они не мешают.'
             },
             legend: {
-                task: 'Аквалангист уходит вниз по 6 метров в минуту. Сейчас он на −42. Где он был 3 минуты назад?',
-                answer: 'На −24',
-                why: 'Три минуты назад — это −3 минуты, а спуск за минуту — это −6 метров. Вместе они дают +18, и глубина была на восемнадцать метров меньше: −42 + 18 = −24. Вот и вся загадка про минус на минус: назад во времени по дороге вниз — значит выше.'
+                task: 'Водолаз опускается на 6 метров каждую минуту. Сейчас он на отметке −42 метра. На какой отметке он был 3 минуты назад?',
+                answer: '−24 метра',
+                why: 'За три минуты он прошёл 3 × 6 = 18 метров вниз. Значит раньше он был на восемнадцать метров выше: −42 + 18 = −24. Смотри, что вышло: шаг назад во времени по дороге вниз поднимает наверх. Это и есть минус на минус.'
             }
         },
         'integer-:mul:5': {
@@ -478,7 +478,7 @@ window.CHALLENGE_CONTENT = {
         'integer-:div:1': {
             diamond: {
                 task: 'За 4 часа похолодало на 20 градусов, и каждый час одинаково. На сколько менялся термометр за час?',
-                answer: 'На −5',
+                answer: 'На −5 градусов',
                 why: 'Двадцать градусов вниз разложили на четыре равные части: 20 ÷ 4 = 5, и каждая часть идёт вниз. Деление дробит величину, а направление у всех кусков остаётся то же, что у целого.'
             },
             legend: {
@@ -507,7 +507,7 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Долг 48 рублей поделили поровну на 6 человек. Каким стал счёт каждого?',
-                answer: '−8',
+                answer: '−8 рублей',
                 why: 'Делят долг, а не деньги, поэтому и достаётся каждому долг: −48 ÷ 6 = −8. Знак делимого переходит в ответ целиком — шесть человек ничего не переворачивают, они только дробят.'
             }
         },
@@ -518,8 +518,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'Минус уже есть у первого числа, и в ответе он остался — значит второе ничего не переворачивало и было без минуса. Будь оно −4, два минуса дали бы плюс, и вышло бы 80.'
             },
             legend: {
-                task: 'Трос уходит под воду, метки стоят каждые 7 метров. Какая метка ближе всего к −50?',
-                answer: '−49',
+                task: 'Трос уходит под воду, метки стоят каждые 7 метров. Какая метка ближе всего к отметке −50 метров?',
+                answer: '−49 метров',
                 why: 'Метки идут на −7, −14 и дальше вниз тем же шагом. Сорок девять — последняя перед пятьюдесятью, а следующая, −56, уже дальше от неё. Вниз от нуля кратные идут так же, как вверх.'
             }
         },
@@ -531,7 +531,7 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Долг 960 рублей делят между людьми. Их больше одного, но меньше десяти. Какой самый большой долг достанется одному?',
-                answer: '−480',
+                answer: '−480 рублей',
                 why: 'Чем меньше людей, тем больше достаётся каждому, а меньше всего людей — двое. Долг остаётся долгом: 960 на двоих это по 480 рублей минуса. Одного человека исключили — тогда он просто забрал бы весь долг.'
             }
         }
@@ -784,45 +784,45 @@ window.CHALLENGE_CONTENT = {
         // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
         'integer-:add:1': {
             diamond: {
-                task: 'A lift went up 5 floors from floor −3, then down 4. Where is it now?',
-                answer: '−2',
-                why: 'From −3 up five is zero, then two more up: the lift is on the second floor. From there down four, and it is underground again, at −2. Zero is crossed twice, and neither time does the count restart — it simply carries on.'
+                task: 'A lift went up 5 floors from floor −3, then down 4. Which floor is it on now?',
+                answer: 'Floor −2',
+                why: 'Up one floor at a time: −3 → −2 → −1 → 0 → 1 → 2. Five steps, and the lift is on the second floor. Now down, one at a time: 2 → 1 → 0 → −1 → −2. Four steps, and it is underground again. Zero was passed twice and nothing stopped either time: it is a floor like all the others.'
             },
             legend: {
-                task: 'After two moves in a game there are fewer points than before. Did both moves have to take points away?',
-                answer: 'No, one is enough',
-                why: 'It feels like both, but it is enough for one move to take away more than the other gave back: −9 and +4 together make −5. Going down needs a balance tipped, not every single step downwards.'
+                task: 'A move in a game took away 6 points, leaving −2 points. How many points were there before the move?',
+                answer: '4 points',
+                why: 'Going back means going up: −2 → −1 → 0 → 1 → 2 → 3 → 4. Six steps, and we are at the start. To find where it all began, take the step the other way.'
             }
         },
         'integer-:add:2': {
             diamond: {
                 task: 'It was 8 degrees above zero, and overnight it got 15 degrees colder. What does the thermometer read in the morning?',
-                answer: '−7',
+                answer: '−7 degrees',
                 why: 'Eight down is zero, and there are still seven left to fall. Zero is not a wall: the count goes straight through it, only now into the minus. Hence −7, which in words is «seven degrees of frost».'
             },
             legend: {
-                task: 'An account is at −8. How much has to be paid in to reach 8?',
-                answer: '16',
-                why: 'Eight will not do — it only gets you to zero. The journey is made twice: eight up to zero and eight more beyond. From a number to its mirror image is always twice the distance to zero.'
+                task: 'An account is at −8 dollars. How much has to be paid in to reach 8 dollars?',
+                answer: '16 dollars',
+                why: 'Eight will not do — it only clears the debt, leaving zero in the account. The paying happens twice over: eight dollars to clear the debt and eight more to build something up. Sixteen in all.'
             }
         },
         'integer-:add:3': {
             diamond: {
-                task: 'A submersible was at −11 and rose 10 metres. Did it surface?',
+                task: 'A craft was under water at a depth of 11 metres and rose 10 metres. Did it surface?',
                 answer: 'No, a metre short',
-                why: 'From −11 up ten is −1, that is one metre below the surface. When two numbers are nearly equal the answer comes out tiny, but the larger one still decides the side: eleven outweighed ten.'
+                why: 'A depth of 11 metres is the mark −11. Ten metres up, and it reads −1: one metre to the surface. The answer is tiny because the numbers are nearly equal. And it stayed under water because eleven is bigger than ten.'
             },
             legend: {
-                task: 'A thermometer reads −30 and rises 7 degrees an hour. Which reading comes closest to zero?',
-                answer: '−2',
-                why: 'After four hours it reads −2, and after five it is already +5 — zero was jumped over. Equal steps land exactly on zero only when the starting distance divides by the step, and thirty does not divide by seven.'
+                task: 'A thermometer reads −30 degrees and gets 7 degrees warmer every hour. Will it ever read exactly zero?',
+                answer: 'No, it jumps over',
+                why: 'After an hour −23, after two −16, then −9, then −2 — and then straight to +5. Two degrees short of zero, and the step is always seven. Equal steps land exactly on zero only when the distance divides by the step, and thirty does not divide by seven.'
             }
         },
         'integer-:add:4': {
             diamond: {
                 task: 'How can 24 + (−19) be written more briefly, without brackets?',
                 answer: '24 − 19',
-                why: 'Adding a negative is the same as subtracting a positive: a step down is a step down however it is written. A plus and a minus side by side collapse into one minus, and the brackets are no longer needed.'
+                why: 'Adding −19 means going down nineteen. And going down nineteen is exactly what subtracting nineteen does. A plus and a minus standing side by side always collapse into one minus.'
             },
             legend: {
                 task: 'What can be added to any number and leave it unchanged?',
@@ -834,49 +834,49 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: '−97 + 95 and −95 + 97. Which of the two ends up below zero?',
                 answer: 'The first one',
-                why: 'The side is set by whichever number lies further from zero. In the first that is −97, so the answer goes down: −2. In the second it is 97, and the answer is 2. The numbers set the size, the sign of the larger one sets the side.'
+                why: 'In the first one the biggest number is 97, and it carries the minus. So the answer carries the minus too: −2. In the second the biggest is also 97, but without the minus, and the answer is 2. Look at which of the two numbers has the minus: if it is the bigger one, the answer goes down.'
             },
             legend: {
-                task: 'A move in a game gives either −7 points or +3. How many moves does it take to get back to exactly zero?',
-                answer: 'Ten',
-                why: 'Sevens pull down, threes pull up, and they can only level out at twenty-one — the first number divisible by both seven and three. That is three moves of −7 and seven moves of +3, ten in all. Fewer will not do.'
+                task: 'A game starts from zero. Each move either takes away 7 points or gives 3. After how many moves is the score back to zero?',
+                answer: 'After 10 moves',
+                why: 'What was taken away has to match what was given. Sevens and threes first level out at twenty-one: 7 × 3 = 21 and 3 × 7 = 21. That means three moves down and seven up, ten in all. Fewer will not do.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · ВЫЧИТАНИЕ =========
         'integer-:sub:1': {
             diamond: {
-                task: 'Anya is at −4 and Boris at 4. Both spend 6. How far apart are they now?',
-                answer: 'By 8',
-                why: 'Anya is now at −10, Boris at −2. The gap was eight and stayed eight: take the same amount from two numbers and both shift equally, leaving the distance between them untouched.'
+                task: 'Anya is at −4 dollars and Boris at 4 dollars. Both spend 6 dollars. How far apart are their accounts now?',
+                answer: 'By 8 dollars',
+                why: 'Anya is now at −10 dollars, Boris at −2. The gap was eight dollars and stayed eight. Both moved down by the same number of steps, and that leaves the distance between them untouched.'
             },
             legend: {
                 task: 'Kostya is 6 years older than Olya. By how many years is Olya older than Kostya?',
-                answer: 'By −6',
-                why: 'She is not older, she is younger — and this is exactly the case where «by how much more» is answered with a minus. Swap who is compared with whom and the answer flips over, while its size stays the same.'
+                answer: 'By −6 years',
+                why: 'Olya is not older — she is six years younger. To answer the question «by how much older» all the same, a minus is put in front of the six. Swap who is compared with whom, and the sign flips over.'
             }
         },
         'integer-:sub:2': {
             diamond: {
                 task: 'A gull flies 5 metres up, and a diver is 13 metres below it. Where is the diver?',
-                answer: '−8',
+                answer: '−8 metres',
                 why: 'Five metres down from the gull is the surface of the water, with eight metres still to go. Zero here is neither the bottom nor a wall: below it the count continues in the same metres, only with a minus.'
             },
             legend: {
-                task: 'A thermometer read −5 in the morning and −12 in the evening. Did it get warmer or colder?',
-                answer: 'Colder by 7',
-                why: 'Both numbers are below zero, and the usual «bigger digit wins» does not work: twelve is more than five, yet −12 is colder than −5. The further down from zero, the smaller the number itself.'
+                task: 'A thermometer read −5 degrees in the morning and −12 degrees in the evening. Did it get warmer or colder?',
+                answer: 'Colder by 7 degrees',
+                why: 'It feels like «warmer»: twelve is more than five, after all. But on a thermometer the lower the number, the colder it is. From −5 to −12 is seven steps down — so it got seven degrees colder.'
             }
         },
         'integer-:sub:3': {
             diamond: {
-                task: 'Petya had −6 points. He won 14, then lost 20. How many now?',
-                answer: '−12',
-                why: 'After the win it was 8 — zero was crossed going up. After the loss it went twelve below zero. Zero here is not a barrier and not a stop: the score runs straight through it, both ways.'
+                task: 'Petya had −6 points. He won 14 points, then lost 20. How many has he now?',
+                answer: '−12 points',
+                why: 'First up 14: six steps to zero and eight more above it — that makes 8. Then down 20: eight steps to zero and twelve more below it — that makes −12. Zero was crossed twice, and both times the score simply carried on.'
             },
             legend: {
-                task: 'A miner was at −13 and went down another 14 metres. Where is he now?',
-                answer: '−27',
-                why: 'Both marks are below zero, and subtracting takes him lower still: −13 − 14 = −27. Starting in the minus and carrying on downwards, the sizes add up while the sign stays as it was.'
+                task: 'A miner was at the −13 metre mark and went down another 14 metres. Which mark is he at now?',
+                answer: '−27 metres',
+                why: 'Both moves go down, so the metres add up: 13 and 14 make 27, all of them underground. Zero plays no part here — it was never crossed, so the sign stays and only the number grows.'
             }
         },
         'integer-:sub:4': {
@@ -898,22 +898,22 @@ window.CHALLENGE_CONTENT = {
                 why: 'Two minuses side by side collapse into a plus, giving −94 + 86. The numbers are nearly equal and nearly cancel out, so the answer is tiny. Around −180 would happen if they added up, but here they take from each other.'
             },
             legend: {
-                task: 'Three accounts hold −71, −30 and 62. What is the biggest gap between any two of them?',
-                answer: '133',
-                why: 'The furthest apart are the richest and the deepest in debt: from −71 to 62 is exactly 133. The biggest debt turns out to be the most useful one — subtracting it means adding.'
+                task: 'Three accounts hold −71, −30 and 62 dollars. What is the biggest gap between any two of them?',
+                answer: '133 dollars',
+                why: 'The furthest apart are the richest and the deepest in debt: from −71 to 62 is exactly 133 dollars. The biggest debt turns out to be the most useful one — subtracting it means adding.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · УМНОЖЕНИЕ =========
         'integer-:mul:1': {
             diamond: {
                 task: 'It gets 5 degrees colder every hour. Right now it is exactly zero. What will the thermometer read in 4 hours?',
-                answer: '−20',
+                answer: '−20 degrees',
                 why: 'Five degrees down, taken four times, is exactly what multiplying means: 5 × 4 = 20, and all twenty go below zero. When the same thing repeats many times the direction stays and the size grows.'
             },
             legend: {
-                task: 'Every account in a bank was multiplied by −1. What happened to those who were in debt?',
-                answer: 'They got rich',
-                why: 'Multiplying by one leaves a number as it is, and the minus turns it to the other side of zero. A debt of 500 becomes 500 in the account: the same size, the other side.'
+                task: 'A game has a button that turns the score into its opposite — it multiplies the score by −1. The account shows a debt of 500 points. What happens after the press?',
+                answer: '500 points',
+                why: '−1 has two parts, and each does its own job. The one leaves the number as it is: five hundred stays five hundred. And the minus carries it to the other side of zero — a debt becomes a store.'
             }
         },
         'integer-:mul:2': {
@@ -924,7 +924,7 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'A lift goes down 3 floors at a time. Where does it end up after 4 trips from floor 6?',
-                answer: 'At −6',
+                answer: 'On floor −6',
                 why: 'Four trips of three floors is 3 × 4 = 12 floors down. From the sixth, twelve down: six to the ground and six more below it. Zero in between is not a stop, just another floor along the way.'
             }
         },
@@ -944,12 +944,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: '3 × 9 = 27. What is −3 × 90?',
                 answer: '−270',
-                why: 'Ninety is nine with a zero, so the answer grows tenfold. The minus arrives separately, from the one negative number. The two steps do not interfere: first the size, then the side.'
+                why: 'Ninety is nine with a zero on the end, so the answer will have a zero on the end too: 270. There is one minus in the example, so the answer carries a minus. Working it out and putting the sign on are two separate jobs, and neither gets in the way of the other.'
             },
             legend: {
-                task: 'A diver descends 6 metres a minute and is now at −42. Where was he 3 minutes ago?',
-                answer: 'At −24',
-                why: 'Three minutes ago is −3 minutes, and a minute of descending is −6 metres. Together they give +18, so the depth was eighteen metres less: −42 + 18 = −24. That is the whole riddle of minus times minus: back in time along a downward path means higher up.'
+                task: 'A diver goes down 6 metres every minute and is now at the −42 metre mark. Which mark was he at 3 minutes ago?',
+                answer: '−24 metres',
+                why: 'In three minutes he covered 3 × 6 = 18 metres downwards. So earlier he was eighteen metres higher: −42 + 18 = −24. Look at what came out: a step back in time along a downward path lifts you up. That is minus times minus.'
             }
         },
         'integer-:mul:5': {
@@ -968,7 +968,7 @@ window.CHALLENGE_CONTENT = {
         'integer-:div:1': {
             diamond: {
                 task: 'Over 4 hours it got 20 degrees colder, the same amount each hour. How much did the thermometer change per hour?',
-                answer: 'By −5',
+                answer: 'By −5 degrees',
                 why: 'Twenty degrees downwards were split into four equal parts: 20 ÷ 4 = 5, and every part goes down. Dividing breaks up the size, while the direction of each piece stays the same as the whole.'
             },
             legend: {
@@ -996,8 +996,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'The seven and the eight simply swapped roles — it is the same trio of numbers. The answer becomes eight, and the two minuses give a plus, so it carries no sign.'
             },
             legend: {
-                task: 'A debt of 48 was split evenly between 6 people. What did each account become?',
-                answer: '−8',
+                task: 'A debt of 48 dollars was split evenly between 6 people. What did each account become?',
+                answer: '−8 dollars',
                 why: 'What is being split is a debt, not money, so a debt is what each one gets: −48 ÷ 6 = −8. The sign passes into the answer whole — six people flip nothing, they only break things up.'
             }
         },
@@ -1008,8 +1008,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'The minus is already on the first number and it stayed in the answer — so the second flipped nothing and had no minus. Had it been −4, two minuses would give a plus and the answer would be 80.'
             },
             legend: {
-                task: 'A cable runs down into the water with marks every 7 metres. Which mark is closest to −50?',
-                answer: '−49',
+                task: 'A cable runs down into the water with marks every 7 metres. Which mark is closest to the −50 metre mark?',
+                answer: '−49 metres',
                 why: 'The marks sit at −7, −14 and onwards with the same step. Forty-nine is the last one before fifty, and the next, −56, is further away again. Below zero the multiples run just as they do above.'
             }
         },
@@ -1020,8 +1020,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'Dividing and multiplying undo each other, so the answer times what you divided by must give the starting number. The two minuses cancel and 540 comes out — it fits. Such a check catches both a wrong sign and a wrong count.'
             },
             legend: {
-                task: 'A debt of 960 is split between people. There are more than one but fewer than ten. What is the largest debt one person can end up with?',
-                answer: '−480',
+                task: 'A debt of 960 dollars is split between people. There are more than one but fewer than ten. What is the largest debt one person can end up with?',
+                answer: '−480 dollars',
                 why: 'The fewer the people, the more each one gets, and the fewest is two. A debt stays a debt: 960 between two is 480 of minus each. One person was ruled out — they would simply take the whole debt.'
             }
         }
@@ -1274,45 +1274,45 @@ window.CHALLENGE_CONTENT = {
         // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
         'integer-:add:1': {
             diamond: {
-                task: 'Un ascenseur est monté de 5 étages depuis l’étage −3, puis descendu de 4. Où est-il ?',
-                answer: '−2',
-                why: 'De −3, cinq étages plus haut, c’est zéro, puis deux de plus : l’ascenseur est au deuxième. De là, quatre vers le bas, et le voilà de nouveau sous terre, à −2. On traverse zéro deux fois, et le compte ne repart jamais de zéro : il continue.'
+                task: 'Un ascenseur est monté de 5 étages depuis l’étage −3, puis descendu de 4. À quel étage est-il ?',
+                answer: 'À l’étage −2',
+                why: 'On monte étage par étage : −3 → −2 → −1 → 0 → 1 → 2. Cinq pas, et l’ascenseur est au deuxième. Maintenant on descend, un par un : 2 → 1 → 0 → −1 → −2. Quatre pas, et le voilà de nouveau sous terre. On a traversé zéro deux fois sans jamais s’arrêter : c’est un étage comme les autres.'
             },
             legend: {
-                task: 'Après deux coups dans un jeu, il y a moins de points qu’avant. Les deux coups devaient-ils forcément retirer des points ?',
-                answer: 'Non, un seul suffit',
-                why: 'On a envie de dire « les deux », mais il suffit qu’un coup retire plus que l’autre n’ajoute : −9 et +4 font ensemble −5. Pour descendre, il faut un déséquilibre, pas que chaque pas aille vers le bas.'
+                task: 'Un coup dans un jeu a retiré 6 points, et il reste −2 points. Combien y avait-il de points avant le coup ?',
+                answer: '4 points',
+                why: 'Revenir en arrière, c’est monter : −2 → −1 → 0 → 1 → 2 → 3 → 4. Six pas, et nous voilà au départ. Pour retrouver le début, on fait le pas dans l’autre sens.'
             }
         },
         'integer-:add:2': {
             diamond: {
                 task: 'Il faisait 8 degrés, et dans la nuit il a fait 15 degrés de moins. Que montre le thermomètre au matin ?',
-                answer: '−7',
+                answer: '−7 degrés',
                 why: 'Huit degrés plus bas, c’est zéro, et il en reste sept à descendre. Zéro n’est pas un mur : le compte le traverse et continue, mais du côté du moins. D’où −7, que l’on dit aussi « sept degrés de gel ».'
             },
             legend: {
-                task: 'Un compte est à −8. Combien faut-il déposer pour arriver à 8 ?',
-                answer: '16',
-                why: 'Huit ne suffit pas — cela ne mène qu’à zéro. Le chemin se fait deux fois : huit jusqu’à zéro, puis huit encore au-delà. D’un nombre à son miroir, c’est toujours le double de la distance à zéro.'
+                task: 'Un compte est à −8 euros. Combien faut-il déposer pour arriver à 8 euros ?',
+                answer: '16 euros',
+                why: 'Huit ne suffit pas — cela ne fait qu’effacer la dette, et le compte tombe à zéro. On paie deux fois : huit euros pour effacer la dette, puis huit de plus pour mettre de côté. Seize en tout.'
             }
         },
         'integer-:add:3': {
             diamond: {
-                task: 'Un bathyscaphe était à −11 et est remonté de 10 mètres. A-t-il fait surface ?',
+                task: 'Un engin était sous l’eau à 11 mètres de profondeur et est remonté de 10 mètres. A-t-il fait surface ?',
                 answer: 'Non, il manque un mètre',
-                why: 'De −11, dix mètres plus haut, cela fait −1, soit un mètre sous la surface. Quand deux nombres sont presque égaux, la réponse est minuscule, mais c’est le plus grand qui décide du côté : onze l’emporte sur dix.'
+                why: 'Onze mètres de profondeur, c’est la marque −11. On remonte de dix, et cela donne −1 : un mètre avant la surface. La réponse est minuscule parce que les nombres sont presque égaux. Et il est resté sous l’eau parce que onze est plus grand que dix.'
             },
             legend: {
-                task: 'Un thermomètre indique −30 et monte de 7 degrés par heure. Quelle indication sera la plus proche de zéro ?',
-                answer: '−2',
-                why: 'Après quatre heures il indique −2, après cinq il est déjà à +5 — zéro a été sauté. Des pas égaux tombent pile sur zéro seulement si la distance de départ se divise par le pas, et trente ne se divise pas par sept.'
+                task: 'Un thermomètre indique −30 degrés et se réchauffe de 7 degrés chaque heure. Indiquera-t-il un jour exactement zéro ?',
+                answer: 'Non, il saute par-dessus',
+                why: 'Au bout d’une heure −23, puis −16, puis −9, puis −2 — et ensuite directement +5. Il manquait deux degrés pour atteindre zéro, et le pas vaut toujours sept. On tombe pile sur zéro seulement si la distance se divise par le pas, et trente ne se divise pas par sept.'
             }
         },
         'integer-:add:4': {
             diamond: {
                 task: 'Comment écrire 24 + (−19) plus court, sans parenthèses ?',
                 answer: '24 − 19',
-                why: 'Ajouter un négatif revient à soustraire un positif : un pas vers le bas reste un pas vers le bas, quelle que soit l’écriture. Un plus et un moins côte à côte se replient en un seul moins, et les parenthèses deviennent inutiles.'
+                why: 'Ajouter −19, c’est descendre de dix-neuf. Et descendre de dix-neuf, c’est exactement soustraire dix-neuf. Un plus et un moins côte à côte se replient toujours en un seul moins.'
             },
             legend: {
                 task: 'Qu’est-ce qu’on peut ajouter à n’importe quel nombre sans le changer ?',
@@ -1324,49 +1324,49 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: '−97 + 95 et −95 + 97. Laquelle des deux tombe sous zéro ?',
                 answer: 'La première',
-                why: 'Le côté est donné par le nombre le plus éloigné de zéro. Dans la première c’est −97, et la réponse descend : −2. Dans la seconde c’est 97, et la réponse vaut 2. Les nombres fixent la taille, le signe du plus grand fixe le côté.'
+                why: 'Dans la première, le plus grand nombre est 97, et c’est lui qui porte le moins. La réponse porte donc le moins aussi : −2. Dans la seconde, le plus grand est aussi 97, mais sans le moins, et la réponse vaut 2. Regarde lequel des deux nombres porte le moins : si c’est le plus grand, la réponse descend.'
             },
             legend: {
-                task: 'Un coup dans un jeu donne soit −7 points, soit +3. En combien de coups revenir exactement à zéro ?',
-                answer: 'Dix',
-                why: 'Les sept tirent vers le bas, les trois vers le haut, et ils ne peuvent s’égaliser qu’à vingt et un — le premier nombre divisible par sept et par trois. Cela fait trois coups à −7 et sept coups à +3, dix en tout. Moins, c’est impossible.'
+                task: 'Dans un jeu, on part de zéro. Chaque coup retire 7 points ou en donne 3. En combien de coups le score revient-il à zéro ?',
+                answer: 'En 10 coups',
+                why: 'Ce qui a été retiré doit égaler ce qui a été donné. Les sept et les trois s’égalisent pour la première fois à vingt et un : 7 × 3 = 21 et 3 × 7 = 21. Cela fait trois coups vers le bas et sept vers le haut, dix en tout. Moins, c’est impossible.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · ВЫЧИТАНИЕ =========
         'integer-:sub:1': {
             diamond: {
-                task: 'Anna est à −4 et Boris à 4. Chacun dépense 6. De combien leurs comptes diffèrent-ils maintenant ?',
-                answer: 'De 8',
-                why: 'Anna est à −10, Boris à −2. L’écart était de huit et il reste de huit : si l’on retire la même chose à deux nombres, tous deux se décalent pareillement et la distance entre eux ne bouge pas.'
+                task: 'Anna est à −4 euros et Boris à 4 euros. Chacun dépense 6 euros. De combien leurs comptes diffèrent-ils maintenant ?',
+                answer: 'De 8 euros',
+                why: 'Anna est à −10 euros, Boris à −2. L’écart était de huit euros et il l’est resté. Tous deux sont descendus du même nombre de pas, et cela ne change pas la distance entre eux.'
             },
             legend: {
                 task: 'Kostia a 6 ans de plus qu’Olia. De combien d’années Olia est-elle plus âgée que Kostia ?',
-                answer: 'De −6',
-                why: 'Elle n’est pas plus âgée, elle est plus jeune — et c’est justement le cas où « de combien de plus » se répond avec un moins. On échange qui est comparé à qui, et la réponse se retourne, sa taille restant la même.'
+                answer: 'De −6 ans',
+                why: 'Olia n’est pas plus âgée — elle est plus jeune de six ans. Pour répondre quand même à « de combien plus âgée », on met un moins devant le six. On échange qui est comparé à qui, et le signe se retourne.'
             }
         },
         'integer-:sub:2': {
             diamond: {
                 task: 'Une mouette vole à 5 mètres, et un plongeur est 13 mètres plus bas qu’elle. Où est le plongeur ?',
-                answer: '−8',
+                answer: '−8 mètres',
                 why: 'Cinq mètres plus bas que la mouette, c’est la surface de l’eau, et il reste huit mètres à descendre. Zéro n’est ici ni le fond ni un mur : en dessous, on compte les mêmes mètres, avec un moins.'
             },
             legend: {
-                task: 'Le matin le thermomètre indiquait −5, le soir −12. Fait-il plus chaud ou plus froid ?',
-                answer: 'Plus froid de 7',
-                why: 'Les deux nombres sont sous zéro, et l’habituel « le plus grand chiffre gagne » ne marche pas : douze dépasse cinq, pourtant −12 est plus froid que −5. Plus on descend sous zéro, plus le nombre lui-même est petit.'
+                task: 'Le matin le thermomètre indiquait −5 degrés, le soir −12 degrés. Fait-il plus chaud ou plus froid ?',
+                answer: 'Plus froid de 7 degrés',
+                why: 'On a envie de dire « plus chaud » : douze dépasse bien cinq. Mais sur un thermomètre, plus le nombre est bas, plus il fait froid. De −5 à −12, il y a sept pas vers le bas — il a donc fait sept degrés de moins.'
             }
         },
         'integer-:sub:3': {
             diamond: {
                 task: 'Petia avait −6 points. Il en a gagné 14, puis perdu 20. Combien en a-t-il maintenant ?',
-                answer: '−12',
-                why: 'Après le gain, il était à 8 — zéro a été franchi vers le haut. Après la perte, il est descendu douze en dessous. Zéro n’est ici ni une barrière ni un arrêt : le score le traverse de part en part, dans les deux sens.'
+                answer: '−12 points',
+                why: 'D’abord 14 vers le haut : six pas jusqu’à zéro et huit de plus au-dessus — cela fait 8. Puis 20 vers le bas : huit pas jusqu’à zéro et douze de plus en dessous — cela fait −12. Zéro a été franchi deux fois, et chaque fois le score a simplement continué.'
             },
             legend: {
-                task: 'Un mineur était à −13 et est descendu de 14 mètres de plus. Où est-il maintenant ?',
-                answer: '−27',
-                why: 'Les deux repères sont sous zéro, et la soustraction le fait descendre encore : −13 − 14 = −27. Quand on part du moins et qu’on continue vers le bas, les tailles s’ajoutent et le signe reste tel quel.'
+                task: 'Un mineur était à la marque −13 mètres et est descendu de 14 mètres de plus. À quelle marque est-il maintenant ?',
+                answer: '−27 mètres',
+                why: 'Les deux fois on descend, donc les mètres s’additionnent : 13 et 14 font 27, tous sous terre. Zéro n’y est pour rien — il n’a jamais été franchi, donc le signe reste et seul le nombre grandit.'
             }
         },
         'integer-:sub:4': {
@@ -1388,22 +1388,22 @@ window.CHALLENGE_CONTENT = {
                 why: 'Deux moins côte à côte se replient en un plus, ce qui donne −94 + 86. Les nombres sont presque égaux et s’annulent presque, d’où une réponse minuscule. Environ −180 arriverait s’ils s’additionnaient, mais ici ils se retranchent.'
             },
             legend: {
-                task: 'Trois comptes contiennent −71, −30 et 62. Quel est le plus grand écart entre deux d’entre eux ?',
-                answer: '133',
-                why: 'Les plus éloignés l’un de l’autre sont le plus riche et le plus endetté : de −71 à 62, il y a exactement 133. La plus grosse dette se révèle la plus utile — la retrancher revient à ajouter.'
+                task: 'Trois comptes contiennent −71, −30 et 62 euros. Quel est le plus grand écart entre deux d’entre eux ?',
+                answer: '133 euros',
+                why: 'Les plus éloignés l’un de l’autre sont le plus riche et le plus endetté : de −71 à 62, il y a exactement 133 euros. La plus grosse dette se révèle la plus utile — la retrancher revient à ajouter.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · УМНОЖЕНИЕ =========
         'integer-:mul:1': {
             diamond: {
                 task: 'Il fait 5 degrés de moins chaque heure. Il fait exactement zéro maintenant. Que montrera le thermomètre dans 4 heures ?',
-                answer: '−20',
+                answer: '−20 degrés',
                 why: 'Cinq degrés vers le bas, pris quatre fois, c’est précisément ce que veut dire multiplier : 5 × 4 = 20, et les vingt passent sous zéro. Quand la même chose se répète, la direction reste et la taille grandit.'
             },
             legend: {
-                task: 'Tous les comptes d’une banque ont été multipliés par −1. Qu’est-il arrivé à ceux qui devaient de l’argent ?',
-                answer: 'Ils sont devenus riches',
-                why: 'Multiplier par un laisse le nombre tel quel, et le moins le fait basculer de l’autre côté de zéro. Une dette de 500 devient 500 sur le compte : même taille, autre côté.'
+                task: 'Un jeu a un bouton qui transforme le score en son opposé — il le multiplie par −1. Le compte affiche une dette de 500 points. Que se passe-t-il après l’appui ?',
+                answer: '500 points',
+                why: '−1 a deux parties, et chacune fait son travail. Le un laisse le nombre tel quel : cinq cents reste cinq cents. Et le moins le fait passer de l’autre côté de zéro — la dette devient une réserve.'
             }
         },
         'integer-:mul:2': {
@@ -1414,7 +1414,7 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Un ascenseur descend de 3 étages à la fois. Où arrive-t-il après 4 descentes depuis l’étage 6 ?',
-                answer: 'À −6',
+                answer: 'À l’étage −6',
                 why: 'Quatre descentes de trois étages font 3 × 4 = 12 étages vers le bas. Du sixième, douze plus bas : six jusqu’au sol et six encore en dessous. Le zéro entre les deux n’est pas un arrêt, c’est un étage comme les autres.'
             }
         },
@@ -1434,12 +1434,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: '3 × 9 = 27. Que vaut −3 × 90 ?',
                 answer: '−270',
-                why: 'Quatre-vingt-dix, c’est neuf avec un zéro, donc la réponse est dix fois plus grande. Le moins arrive à part, du seul nombre négatif. Les deux étapes ne se gênent pas : d’abord la taille, puis le côté.'
+                why: 'Quatre-vingt-dix, c’est neuf avec un zéro à la fin, donc la réponse aura aussi un zéro à la fin : 270. Il n’y a qu’un seul moins, donc la réponse porte un moins. Calculer et poser le signe sont deux travaux séparés, et ils ne se gênent pas.'
             },
             legend: {
-                task: 'Un plongeur descend de 6 mètres par minute et se trouve à −42. Où était-il il y a 3 minutes ?',
-                answer: 'À −24',
-                why: 'Il y a trois minutes, c’est −3 minutes, et une minute de descente, c’est −6 mètres. Ensemble cela fait +18, donc la profondeur était de dix-huit mètres moindre : −42 + 18 = −24. Voilà toute l’énigme du moins par moins : remonter le temps en descendant, c’est se retrouver plus haut.'
+                task: 'Un plongeur descend de 6 mètres chaque minute et se trouve à la marque −42 mètres. À quelle marque était-il il y a 3 minutes ?',
+                answer: '−24 mètres',
+                why: 'En trois minutes il a parcouru 3 × 6 = 18 mètres vers le bas. Il était donc dix-huit mètres plus haut : −42 + 18 = −24. Regarde ce qui en sort : un pas en arrière dans le temps sur un chemin descendant fait remonter. Voilà le moins par moins.'
             }
         },
         'integer-:mul:5': {
@@ -1458,7 +1458,7 @@ window.CHALLENGE_CONTENT = {
         'integer-:div:1': {
             diamond: {
                 task: 'En 4 heures il a fait 20 degrés de moins, autant chaque heure. De combien le thermomètre changeait-il par heure ?',
-                answer: 'De −5',
+                answer: 'De −5 degrés',
                 why: 'Vingt degrés vers le bas ont été partagés en quatre parts égales : 20 ÷ 4 = 5, et chaque part descend. Diviser découpe la taille, tandis que la direction de chaque morceau reste celle du tout.'
             },
             legend: {
@@ -1486,8 +1486,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'Le sept et le huit ont simplement échangé leurs rôles — c’est le même trio de nombres. La réponse devient huit, et les deux moins donnent un plus, elle reste donc sans signe.'
             },
             legend: {
-                task: 'Une dette de 48 a été partagée à parts égales entre 6 personnes. Qu’est devenu le compte de chacun ?',
-                answer: '−8',
+                task: 'Une dette de 48 euros a été partagée à parts égales entre 6 personnes. Qu’est devenu le compte de chacun ?',
+                answer: '−8 euros',
                 why: 'Ce qu’on partage est une dette et non de l’argent, donc chacun reçoit une dette : −48 ÷ 6 = −8. Le signe passe entier dans la réponse — six personnes ne retournent rien, elles ne font que découper.'
             }
         },
@@ -1498,8 +1498,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'Le moins est déjà sur le premier nombre et il est resté dans la réponse — le second n’a donc rien retourné et n’avait pas de moins. S’il avait été −4, deux moins donneraient un plus et la réponse serait 80.'
             },
             legend: {
-                task: 'Un câble descend dans l’eau, avec des repères tous les 7 mètres. Quel repère est le plus proche de −50 ?',
-                answer: '−49',
+                task: 'Un câble descend dans l’eau, avec des repères tous les 7 mètres. Quel repère est le plus proche du repère −50 mètres ?',
+                answer: '−49 mètres',
                 why: 'Les repères sont à −7, −14 et ainsi de suite, du même pas. Quarante-neuf est le dernier avant cinquante, et le suivant, −56, s’en éloigne à nouveau. Sous zéro, les multiples se suivent comme au-dessus.'
             }
         },
@@ -1510,8 +1510,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'Diviser et multiplier s’annulent, donc la réponse multipliée par le diviseur doit redonner le nombre de départ. Les deux moins s’effacent et 540 apparaît — cela concorde. Un tel contrôle attrape aussi bien une erreur de signe qu’une erreur de calcul.'
             },
             legend: {
-                task: 'Une dette de 960 est partagée entre des personnes. Elles sont plus d’une et moins de dix. Quelle est la plus grosse dette que l’une puisse recevoir ?',
-                answer: '−480',
+                task: 'Une dette de 960 euros est partagée entre des personnes. Elles sont plus d’une et moins de dix. Quelle est la plus grosse dette que l’une puisse recevoir ?',
+                answer: '−480 euros',
                 why: 'Moins il y a de personnes, plus chacune reçoit, et le minimum est deux. Une dette reste une dette : 960 à deux, cela fait 480 de moins chacun. Une seule personne a été exclue — elle reprendrait simplement toute la dette.'
             }
         }
@@ -1764,45 +1764,45 @@ window.CHALLENGE_CONTENT = {
         // ========= ОТРИЦАТЕЛЬНЫЕ · СЛОЖЕНИЕ =========
         'integer-:add:1': {
             diamond: {
-                task: 'Ein Aufzug fuhr von Etage −3 fünf Etagen hoch und dann vier hinunter. Wo ist er jetzt?',
-                answer: '−2',
-                why: 'Von −3 fünf hinauf ist null, dann noch zwei hinauf: der Aufzug steht im zweiten Stock. Von dort vier hinunter, und er ist wieder unter der Erde, auf −2. Die Null wird zweimal überquert, und beide Male beginnt die Zählung nicht neu, sondern läuft weiter.'
+                task: 'Ein Aufzug fuhr von Etage −3 fünf Etagen hoch und dann vier hinunter. In welcher Etage ist er jetzt?',
+                answer: 'In Etage −2',
+                why: 'Eine Etage nach der anderen hinauf: −3 → −2 → −1 → 0 → 1 → 2. Fünf Schritte, und der Aufzug steht im zweiten Stock. Jetzt hinunter, ebenfalls einzeln: 2 → 1 → 0 → −1 → −2. Vier Schritte, und er ist wieder unter der Erde. Die Null wurde zweimal überquert, und beide Male hielt nichts an: sie ist eine Etage wie alle anderen.'
             },
             legend: {
-                task: 'Nach zwei Zügen im Spiel sind es weniger Punkte als vorher. Mussten beide Züge Punkte abziehen?',
-                answer: 'Nein, einer genügt',
-                why: 'Man möchte «beide» sagen, doch es genügt, wenn ein Zug mehr abzieht, als der andere gibt: −9 und +4 ergeben zusammen −5. Nach unten führt das Übergewicht, nicht jeder einzelne Schritt.'
+                task: 'Ein Zug im Spiel hat 6 Punkte abgezogen, übrig sind −2 Punkte. Wie viele Punkte waren es vor dem Zug?',
+                answer: '4 Punkte',
+                why: 'Rückwärts gehen heißt hinauf: −2 → −1 → 0 → 1 → 2 → 3 → 4. Sechs Schritte, und wir sind am Anfang. Um herauszufinden, wo es losging, macht man den Schritt in die andere Richtung.'
             }
         },
         'integer-:add:2': {
             diamond: {
                 task: 'Es waren 8 Grad über null, über Nacht wurde es 15 Grad kälter. Was zeigt das Thermometer am Morgen?',
-                answer: '−7',
+                answer: '−7 Grad',
                 why: 'Acht hinunter ist null, und es bleiben noch sieben zu fallen. Die Null ist keine Wand: die Zählung geht durch sie hindurch weiter, nur eben ins Minus. Daher −7, in Worten «sieben Grad Frost».'
             },
             legend: {
-                task: 'Ein Konto steht bei −8. Wie viel muss eingezahlt werden, damit 8 daraus wird?',
-                answer: '16',
-                why: 'Acht reicht nicht — damit kommt man nur bis null. Der Weg wird zweimal gegangen: acht bis zur null und noch acht darüber hinaus. Von einer Zahl bis zu ihrem Spiegelbild ist es immer doppelt so weit wie bis zur null.'
+                task: 'Ein Konto steht bei −8 Euro. Wie viel muss eingezahlt werden, damit 8 Euro daraus werden?',
+                answer: '16 Euro',
+                why: 'Acht reicht nicht — damit ist nur die Schuld getilgt und das Konto steht auf null. Bezahlt wird zweimal: acht Euro, um die Schuld zu tilgen, und noch acht, um etwas anzusparen. Zusammen sechzehn.'
             }
         },
         'integer-:add:3': {
             diamond: {
-                task: 'Ein Tauchboot war bei −11 und stieg 10 Meter auf. Ist es aufgetaucht?',
+                task: 'Ein Gerät war unter Wasser in 11 Metern Tiefe und stieg 10 Meter auf. Ist es aufgetaucht?',
                 answer: 'Nein, ein Meter fehlt',
-                why: 'Von −11 zehn hinauf ergibt −1, also einen Meter unter der Oberfläche. Wenn zwei Zahlen fast gleich sind, fällt die Antwort winzig aus, doch die größere entscheidet trotzdem die Seite: elf hat zehn überwogen.'
+                why: 'Elf Meter Tiefe sind die Marke −11. Zehn Meter hinauf, und es steht bei −1: ein Meter bis zur Oberfläche. Die Antwort ist winzig, weil die Zahlen fast gleich sind. Unter Wasser geblieben ist es, weil elf größer ist als zehn.'
             },
             legend: {
-                task: 'Ein Thermometer zeigt −30 und steigt um 7 Grad pro Stunde. Welcher Stand kommt der null am nächsten?',
-                answer: '−2',
-                why: 'Nach vier Stunden steht es bei −2, nach fünf schon bei +5 — die null wurde übersprungen. Gleiche Schritte treffen die null nur, wenn der Abstand am Anfang durch den Schritt teilbar ist, und dreißig ist nicht durch sieben teilbar.'
+                task: 'Ein Thermometer zeigt −30 Grad und wird jede Stunde 7 Grad wärmer. Wird es irgendwann genau null zeigen?',
+                answer: 'Nein, es springt darüber',
+                why: 'Nach einer Stunde −23, nach zwei −16, dann −9, dann −2 — und danach gleich +5. Zwei Grad bis zur null fehlten, und der Schritt ist immer sieben. Genau auf die null trifft man nur, wenn der Abstand durch den Schritt teilbar ist, und dreißig ist nicht durch sieben teilbar.'
             }
         },
         'integer-:add:4': {
             diamond: {
                 task: 'Wie schreibt man 24 + (−19) kürzer, ohne Klammern?',
                 answer: '24 − 19',
-                why: 'Ein Negatives addieren ist dasselbe wie ein Positives subtrahieren: ein Schritt nach unten bleibt ein Schritt nach unten, wie man ihn auch schreibt. Plus und Minus nebeneinander fallen zu einem Minus zusammen, und die Klammern werden überflüssig.'
+                why: '−19 addieren heißt, neunzehn hinunterzugehen. Und neunzehn hinunterzugehen ist genau das, was neunzehn subtrahieren tut. Plus und Minus nebeneinander fallen immer zu einem Minus zusammen.'
             },
             legend: {
                 task: 'Was kann man zu jeder Zahl addieren, ohne sie zu verändern?',
@@ -1814,49 +1814,49 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: '−97 + 95 und −95 + 97. Welche der beiden landet unter null?',
                 answer: 'Die erste',
-                why: 'Die Seite bestimmt die Zahl, die weiter von der null entfernt ist. In der ersten ist das −97, und die Antwort geht nach unten: −2. In der zweiten ist es 97, und die Antwort ist 2. Die Zahlen bestimmen die Größe, das Vorzeichen der größeren die Seite.'
+                why: 'In der ersten ist die größte Zahl 97, und sie trägt das Minus. Also trägt auch die Antwort das Minus: −2. In der zweiten ist die größte ebenfalls 97, aber ohne Minus, und die Antwort ist 2. Schau, welche der beiden Zahlen das Minus trägt: trägt es die größere, geht die Antwort nach unten.'
             },
             legend: {
-                task: 'Ein Zug im Spiel bringt entweder −7 Punkte oder +3. Nach wie vielen Zügen ist man genau bei null?',
-                answer: 'Zehn',
-                why: 'Die Siebenen ziehen nach unten, die Dreien nach oben, und ausgleichen können sie sich erst bei einundzwanzig — der ersten Zahl, die durch sieben und durch drei teilbar ist. Das sind drei Züge zu −7 und sieben Züge zu +3, zusammen zehn. Weniger geht nicht.'
+                task: 'Im Spiel beginnt man bei null. Jeder Zug zieht 7 Punkte ab oder gibt 3 dazu. Nach wie vielen Zügen steht der Stand wieder bei null?',
+                answer: 'Nach 10 Zügen',
+                why: 'Das Abgezogene muss dem Gegebenen gleichkommen. Siebenen und Dreien gleichen sich erstmals bei einundzwanzig aus: 7 × 3 = 21 und 3 × 7 = 21. Das sind drei Züge nach unten und sieben nach oben, zusammen zehn. Weniger geht nicht.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · ВЫЧИТАНИЕ =========
         'integer-:sub:1': {
             diamond: {
-                task: 'Anja steht bei −4, Boris bei 4. Beide geben 6 aus. Wie weit liegen ihre Konten jetzt auseinander?',
-                answer: 'Um 8',
-                why: 'Anja steht nun bei −10, Boris bei −2. Der Abstand war acht und blieb acht: nimmt man zweien dasselbe weg, verschieben sich beide gleich, und der Abstand zwischen ihnen bleibt unberührt.'
+                task: 'Anja steht bei −4 Euro, Boris bei 4 Euro. Beide geben 6 Euro aus. Wie weit liegen ihre Konten jetzt auseinander?',
+                answer: 'Um 8 Euro',
+                why: 'Anja steht nun bei −10 Euro, Boris bei −2. Der Abstand war acht Euro und blieb acht. Beide sind um dieselbe Zahl von Schritten hinuntergegangen, und das lässt den Abstand zwischen ihnen unberührt.'
             },
             legend: {
                 task: 'Kostja ist 6 Jahre älter als Olja. Um wie viele Jahre ist Olja älter als Kostja?',
-                answer: 'Um −6',
-                why: 'Sie ist nicht älter, sondern jünger — und genau hier antwortet man auf «um wie viel mehr» mit einem Minus. Vertauscht man, wer mit wem verglichen wird, kippt die Antwort um, ihre Größe bleibt.'
+                answer: 'Um −6 Jahre',
+                why: 'Olja ist nicht älter — sie ist sechs Jahre jünger. Um die Frage «um wie viel älter» trotzdem zu beantworten, setzt man ein Minus vor die Sechs. Vertauscht man, wer mit wem verglichen wird, kippt das Vorzeichen.'
             }
         },
         'integer-:sub:2': {
             diamond: {
                 task: 'Eine Möwe fliegt auf 5 Metern, ein Taucher ist 13 Meter tiefer als sie. Wo ist der Taucher?',
-                answer: '−8',
+                answer: '−8 Meter',
                 why: 'Fünf Meter unter der Möwe liegt die Wasseroberfläche, und es bleiben noch acht Meter nach unten. Die null ist hier weder Grund noch Wand: darunter zählt man dieselben Meter weiter, nur mit einem Minus.'
             },
             legend: {
-                task: 'Morgens zeigte das Thermometer −5, abends −12. Wurde es wärmer oder kälter?',
-                answer: 'Kälter um 7',
-                why: 'Beide Zahlen liegen unter null, und das gewohnte «die größere Ziffer gewinnt» gilt nicht: zwölf ist mehr als fünf, doch −12 ist kälter als −5. Je weiter hinunter von der null, desto kleiner die Zahl selbst.'
+                task: 'Morgens zeigte das Thermometer −5 Grad, abends −12 Grad. Wurde es wärmer oder kälter?',
+                answer: 'Kälter um 7 Grad',
+                why: 'Man möchte «wärmer» sagen: zwölf ist ja mehr als fünf. Doch auf dem Thermometer gilt: je niedriger die Zahl, desto kälter. Von −5 bis −12 sind es sieben Schritte nach unten — also wurde es sieben Grad kälter.'
             }
         },
         'integer-:sub:3': {
             diamond: {
-                task: 'Petja hatte −6 Punkte. Er gewann 14, dann verlor er 20. Wie viele sind es jetzt?',
-                answer: '−12',
-                why: 'Nach dem Gewinn waren es 8 — die null wurde nach oben überquert. Nach dem Verlust ging es zwölf unter null. Die null ist hier keine Schranke und kein Halt: der Punktestand läuft mitten hindurch, in beide Richtungen.'
+                task: 'Petja hatte −6 Punkte. Er gewann 14 Punkte, dann verlor er 20. Wie viele sind es jetzt?',
+                answer: '−12 Punkte',
+                why: 'Zuerst 14 hinauf: sechs Schritte bis zur null und acht darüber — das ergibt 8. Dann 20 hinunter: acht Schritte bis zur null und zwölf darunter — das ergibt −12. Die null wurde zweimal überquert, und beide Male lief der Stand einfach weiter.'
             },
             legend: {
-                task: 'Ein Bergmann war bei −13 und stieg weitere 14 Meter hinab. Wo ist er jetzt?',
-                answer: '−27',
-                why: 'Beide Marken liegen unter null, und das Subtrahieren bringt ihn noch tiefer: −13 − 14 = −27. Beginnt man im Minus und geht weiter nach unten, addieren sich die Größen, und das Vorzeichen bleibt.'
+                task: 'Ein Bergmann war bei der Marke −13 Meter und stieg weitere 14 Meter hinab. Bei welcher Marke ist er jetzt?',
+                answer: '−27 Meter',
+                why: 'Beide Male geht es nach unten, also addieren sich die Meter: 13 und 14 ergeben 27, alle unter der Erde. Die null spielt keine Rolle — sie wurde nie überquert, das Vorzeichen bleibt und nur die Zahl wächst.'
             }
         },
         'integer-:sub:4': {
@@ -1878,22 +1878,22 @@ window.CHALLENGE_CONTENT = {
                 why: 'Zwei Minus nebeneinander fallen zu einem Plus zusammen, es ergibt sich −94 + 86. Die Zahlen sind fast gleich und löschen einander fast aus, daher ist die Antwort winzig. Etwa −180 käme heraus, wenn sie sich addierten, hier ziehen sie voneinander ab.'
             },
             legend: {
-                task: 'Auf drei Konten liegen −71, −30 und 62. Wie groß ist der größte Abstand zwischen zweien davon?',
-                answer: '133',
-                why: 'Am weitesten auseinander liegen der Reichste und der am tiefsten Verschuldete: von −71 bis 62 sind es genau 133. Die größte Schuld erweist sich als die nützlichste — sie abzuziehen heißt zu addieren.'
+                task: 'Auf drei Konten liegen −71, −30 und 62 Euro. Wie groß ist der größte Abstand zwischen zweien davon?',
+                answer: '133 Euro',
+                why: 'Am weitesten auseinander liegen der Reichste und der am tiefsten Verschuldete: von −71 bis 62 sind es genau 133 Euro. Die größte Schuld erweist sich als die nützlichste — sie abzuziehen heißt zu addieren.'
             }
         },
         // ========= ОТРИЦАТЕЛЬНЫЕ · УМНОЖЕНИЕ =========
         'integer-:mul:1': {
             diamond: {
                 task: 'Jede Stunde wird es 5 Grad kälter. Jetzt ist es genau null. Was zeigt das Thermometer in 4 Stunden?',
-                answer: '−20',
+                answer: '−20 Grad',
                 why: 'Fünf Grad hinunter, viermal genommen, ist genau das, was Multiplizieren heißt: 5 × 4 = 20, und alle zwanzig gehen unter null. Wiederholt sich dasselbe viele Male, bleibt die Richtung und die Größe wächst.'
             },
             legend: {
-                task: 'Alle Konten einer Bank wurden mit −1 multipliziert. Was wurde aus denen, die Schulden hatten?',
-                answer: 'Sie wurden reich',
-                why: 'Das Multiplizieren mit eins lässt die Zahl, wie sie ist, und das Minus dreht sie auf die andere Seite der null. Eine Schuld von 500 wird zu 500 auf dem Konto: gleiche Größe, andere Seite.'
+                task: 'Ein Spiel hat einen Knopf, der den Stand ins Gegenteil verkehrt — er multipliziert ihn mit −1. Auf dem Konto stehen 500 Punkte Schulden. Was passiert nach dem Druck?',
+                answer: '500 Punkte',
+                why: '−1 hat zwei Teile, und jeder tut das Seine. Die Eins lässt die Zahl, wie sie ist: fünfhundert bleibt fünfhundert. Und das Minus trägt sie auf die andere Seite der null — aus der Schuld wird ein Vorrat.'
             }
         },
         'integer-:mul:2': {
@@ -1904,7 +1904,7 @@ window.CHALLENGE_CONTENT = {
             },
             legend: {
                 task: 'Ein Aufzug fährt jeweils 3 Etagen hinunter. Wo ist er nach 4 Fahrten von Etage 6?',
-                answer: 'Auf −6',
+                answer: 'Auf Etage −6',
                 why: 'Vier Fahrten zu drei Etagen sind 3 × 4 = 12 Etagen abwärts. Vom sechsten zwölf hinunter: sechs bis zum Boden und sechs weitere darunter. Die null dazwischen ist kein Halt, sondern eine Etage wie jede andere.'
             }
         },
@@ -1924,12 +1924,12 @@ window.CHALLENGE_CONTENT = {
             diamond: {
                 task: '3 × 9 = 27. Was ergibt −3 × 90?',
                 answer: '−270',
-                why: 'Neunzig ist neun mit einer null, also wird die Antwort zehnmal so groß. Das Minus kommt getrennt, von der einen negativen Zahl. Die zwei Schritte stören einander nicht: erst die Größe, dann die Seite.'
+                why: 'Neunzig ist neun mit einer null am Ende, also hat auch die Antwort eine null am Ende: 270. Im Beispiel steht ein Minus, also trägt die Antwort ein Minus. Rechnen und das Vorzeichen setzen sind zwei getrennte Arbeiten, und sie stören einander nicht.'
             },
             legend: {
-                task: 'Ein Taucher sinkt 6 Meter pro Minute und ist jetzt bei −42. Wo war er vor 3 Minuten?',
-                answer: 'Bei −24',
-                why: 'Vor drei Minuten ist −3 Minuten, und eine Minute Absinken ist −6 Meter. Zusammen ergeben sie +18, die Tiefe war also achtzehn Meter geringer: −42 + 18 = −24. Das ist das ganze Rätsel von Minus mal Minus: rückwärts in der Zeit auf dem Weg nach unten heißt weiter oben.'
+                task: 'Ein Taucher sinkt jede Minute 6 Meter und ist jetzt bei der Marke −42 Meter. Bei welcher Marke war er vor 3 Minuten?',
+                answer: '−24 Meter',
+                why: 'In drei Minuten hat er 3 × 6 = 18 Meter nach unten zurückgelegt. Vorher war er also achtzehn Meter höher: −42 + 18 = −24. Schau, was dabei herauskommt: ein Schritt zurück in der Zeit auf einem Weg nach unten hebt nach oben. Das ist Minus mal Minus.'
             }
         },
         'integer-:mul:5': {
@@ -1948,7 +1948,7 @@ window.CHALLENGE_CONTENT = {
         'integer-:div:1': {
             diamond: {
                 task: 'In 4 Stunden wurde es 20 Grad kälter, jede Stunde gleich viel. Um wie viel änderte sich das Thermometer pro Stunde?',
-                answer: 'Um −5',
+                answer: 'Um −5 Grad',
                 why: 'Zwanzig Grad abwärts wurden in vier gleiche Teile zerlegt: 20 ÷ 4 = 5, und jeder Teil geht nach unten. Das Teilen zerlegt die Größe, während die Richtung jedes Stücks die des Ganzen bleibt.'
             },
             legend: {
@@ -1976,8 +1976,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'Sieben und acht haben einfach die Rollen getauscht — es ist dasselbe Zahlentrio. Die Antwort wird zur acht, und die zwei Minus geben ein Plus, sie bleibt also ohne Vorzeichen.'
             },
             legend: {
-                task: 'Eine Schuld von 48 wurde gleichmäßig auf 6 Leute verteilt. Was wurde aus dem Konto jedes Einzelnen?',
-                answer: '−8',
+                task: 'Eine Schuld von 48 Euro wurde gleichmäßig auf 6 Leute verteilt. Was wurde aus dem Konto jedes Einzelnen?',
+                answer: '−8 Euro',
                 why: 'Verteilt wird eine Schuld und kein Geld, also bekommt jeder eine Schuld: −48 ÷ 6 = −8. Das Vorzeichen geht ganz in die Antwort über — sechs Leute drehen nichts um, sie zerlegen nur.'
             }
         },
@@ -1988,8 +1988,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'Das Minus steht schon an der ersten Zahl und blieb in der Antwort — die zweite hat also nichts umgedreht und hatte kein Minus. Wäre sie −4 gewesen, gäben zwei Minus ein Plus und es käme 80 heraus.'
             },
             legend: {
-                task: 'Ein Seil führt ins Wasser, alle 7 Meter eine Marke. Welche Marke liegt am nächsten an −50?',
-                answer: '−49',
+                task: 'Ein Seil führt ins Wasser, alle 7 Meter eine Marke. Welche Marke liegt am nächsten an der Marke −50 Meter?',
+                answer: '−49 Meter',
                 why: 'Die Marken sitzen bei −7, −14 und weiter im selben Schritt. Neunundvierzig ist die letzte vor fünfzig, und die nächste, −56, entfernt sich wieder. Unter null laufen die Vielfachen genauso wie darüber.'
             }
         },
@@ -2000,8 +2000,8 @@ window.CHALLENGE_CONTENT = {
                 why: 'Teilen und Multiplizieren heben einander auf, die Antwort mal dem Teiler muss also die Ausgangszahl ergeben. Die zwei Minus löschen sich, es kommt 540 heraus — es stimmt. Eine solche Probe fängt sowohl ein falsches Vorzeichen als auch einen Rechenfehler.'
             },
             legend: {
-                task: 'Eine Schuld von 960 wird unter Leuten aufgeteilt. Es sind mehr als einer und weniger als zehn. Welche größte Schuld kann einen treffen?',
-                answer: '−480',
+                task: 'Eine Schuld von 960 Euro wird unter Leuten aufgeteilt. Es sind mehr als einer und weniger als zehn. Welche größte Schuld kann einen treffen?',
+                answer: '−480 Euro',
                 why: 'Je weniger Leute, desto mehr bekommt jeder, und am wenigsten sind zwei. Eine Schuld bleibt eine Schuld: 960 auf zwei sind je 480 im Minus. Einen Einzelnen hat man ausgeschlossen — er würde einfach die ganze Schuld übernehmen.'
             }
         }
