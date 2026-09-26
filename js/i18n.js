@@ -11,11 +11,17 @@
 
 // uiLabel — слово «Язык» на самом этом языке: подпись кнопки должна быть на том
 // языке, который сейчас выбран, а не на английском для всех нерусских.
+//
+// flag — флаг РЯДОМ с названием, а не вместо него, и на то две причины. Язык не
+// равен стране: по-немецки говорят ещё в Австрии и Швейцарии, по-английски — в
+// Англии, Канаде, Австралии. И на Windows флаги просто не нарисованы шрифтом:
+// вместо 🇷🇺 там видны буквы «RU». Название рядом делает обе беды безвредными —
+// язык всё равно назван словом.
 const LANGS = [
-    { code: 'ru', name: 'Русский',  short: 'RU', uiLabel: 'Язык: ',    locale: 'ru-RU', comma: true },
-    { code: 'en', name: 'English',  short: 'EN', uiLabel: 'Language: ', locale: 'en-US', comma: false },
-    { code: 'fr', name: 'Français', short: 'FR', uiLabel: 'Langue : ',  locale: 'fr-FR', comma: true },
-    { code: 'de', name: 'Deutsch',  short: 'DE', uiLabel: 'Sprache: ',  locale: 'de-DE', comma: true }
+    { code: 'ru', name: 'Русский',  short: 'RU', flag: '🇷🇺', uiLabel: 'Язык: ',    locale: 'ru-RU', comma: true },
+    { code: 'en', name: 'English',  short: 'EN', flag: '🇺🇸', uiLabel: 'Language: ', locale: 'en-US', comma: false },
+    { code: 'fr', name: 'Français', short: 'FR', flag: '🇫🇷', uiLabel: 'Langue : ',  locale: 'fr-FR', comma: true },
+    { code: 'de', name: 'Deutsch',  short: 'DE', flag: '🇩🇪', uiLabel: 'Sprache: ',  locale: 'de-DE', comma: true }
 ];
 // Словари лежат в content/i18n.js — это полторы тысячи строк чистых данных,
 // и держать их посреди логики незачем. Файл не доехал — работаем по-русски:
