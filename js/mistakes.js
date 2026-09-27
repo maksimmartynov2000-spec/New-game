@@ -40,6 +40,7 @@ const MISTAKE_LABELS = {
     'сократил не до конца':        t('Сокращено не до конца'),
     'ошибся в сокращении':         t('Ошибка в сокращении'),
     'ошибся в знаке':              t('Ошибка в знаке'),
+    'знак и число мимо':           t('Мимо и знаком, и числом'),
     'ошибся на единицу':           t('Мимо на единицу'),
     'таблица умножения':           t('Ошибка в таблице умножения'),
     'делил на ноль':               t('В примере деление на ноль'),
@@ -81,6 +82,7 @@ const MISTAKE_SHORT = {
     'сократил не до конца':        t('не до конца'),
     'ошибся в сокращении':         t('сокращение'),
     'ошибся в знаке':              t('знак'),
+    'знак и число мимо':           t('знак и число'),
     'ошибся на единицу':           t('мимо на 1'),
     'таблица умножения':           t('таблица'),
     'делил на ноль':               t('деление на 0'),
@@ -186,15 +188,27 @@ function classifyFractionArith(problem, correct, chosen) {
     return null;
 }
 
-// isNegative нужен последним четырём правилам, и только им: они описывают
-// разряды положительного столбика («не сошлись ни десятки, ни единицы»,
-// «посчитал только единицы»). В отрицательных своя арифметика разрядов, там
-// уже есть «ошибся в знаке», и переносить эти слова туда было бы выдумкой.
-// Всё, что стояло в этой функции раньше, работает в обоих режимах как прежде.
+// Разрядные правила («ошибка в десятках», «промахнулся рядом», «оба разряда
+// мимо», «посчитал только единицы») говорят о ЧИСЛЕ и молчат о знаке. На
+// отрицательных они правдивы ровно тогда, когда ответ и выбранное стоят по
+// одну сторону от нуля, — это и проверяет sameSide.
+//
+// Раньше здесь стояло «только не для отрицательных», целиком. Это было честно,
+// но слишком грубо: на отрицательных почти половина ошибок уходила в «другую
+// ошибку» и молчала, хотя −5 × 5 = −25 против −75 — ровно та же ошибка в
+// десятках, что и у положительных. А вот 10 × (−4) = −40 против 50 — нет:
+// оба числа кончаются нулём, «единицы сошлись» формально, но ребёнок перепутал
+// знак, и говорить ему про десятки было бы выдумкой. Замер на ловушках
+// генератора: без этого условия текст про десятки врал в 14,5% случаев.
+//
+// Ноль стороны не имеет: с ним сравнивать знак не с чем, и правило решает само.
+// Для положительных sameSide всегда истинно — там всё работает как прежде.
 function classifyIntegerLike(problem, correct, chosen, opKey, isNegative) {
     if (typeof chosen !== 'number' || typeof correct !== 'number') return null;
     const a = problem.a, b = problem.b;
     const haveOperands = typeof a === 'number' && typeof b === 'number';
+    const sameSide = !isNegative || chosen === 0 || correct === 0
+        || Math.sign(chosen) === Math.sign(correct);
 
     if (chosen === -correct && correct !== 0) return 'ошибся в знаке';
 
@@ -204,7 +218,7 @@ function classifyIntegerLike(problem, correct, chosen, opKey, isNegative) {
     // Ярлык «не перенёс десяток» остался в словаре ради старых записей в журнале,
     // но новые в него больше не пишутся: модель, по которой он ставился, считала
     // разряды все сразу и на двух переносах давала не ошибку, а мусор.
-    if ((opKey === 'add' || opKey === 'sub') && Math.abs(chosen - correct) === 10) {
+    if (sameSide && (opKey === 'add' || opKey === 'sub') && Math.abs(chosen - correct) === 10) {
         return 'ошибка в десятках';
     }
 
@@ -242,7 +256,8 @@ function classifyIntegerLike(problem, correct, chosen, opKey, isNegative) {
     //
     // Ставится САМОЙ последней, ниже промаха на единицу: «34 вместо 35» это тоже
     // верные десятки при неверной единице, но там ученику полезнее услышать
-    // «мимо на единицу». Отрицательные не трогаем: там своя арифметика разрядов.
+    // «мимо на единицу». На отрицательных правило срабатывает, только когда оба
+    // числа положительные (условие ниже) — это обычный столбик, и слова верны.
     //
     // Оба числа должны быть не меньше десяти. Без этого условия «9 вместо 7»
     // тоже считалось «верными десятками» — их там просто нет ни одного, — и
@@ -267,7 +282,7 @@ function classifyIntegerLike(problem, correct, chosen, opKey, isNegative) {
     // ловится общим правилом «та же последняя цифра» ниже. Круглый второй
     // множитель (7 × 20) исключён по той же причине: единиц у него нет,
     // и «посчитал только единицы» про него сказать нельзя.
-    if (!isNegative && haveOperands && opKey === 'mul') {
+    if (sameSide && haveOperands && opKey === 'mul') {
         const lo = Math.min(a, b), hi = Math.max(a, b);
         if (hi >= 11 && hi % 10 !== 0 && lo > 1 && lo <= 9
             && correct - chosen === 10 * lo) {
@@ -281,7 +296,7 @@ function classifyIntegerLike(problem, correct, chosen, opKey, isNegative) {
     // поэтому там нужна проверка по самой цифре. Ловушка эта тоже намеренная:
     // без второго числа с той же последней цифрой ответ берётся счётом одного
     // разряда из двух.
-    if (!isNegative && (opKey === 'mul' || opKey === 'div')
+    if (sameSide && (opKey === 'mul' || opKey === 'div')
         && chosen % 10 === correct % 10) {
         return 'ошибка в десятках';
     }
@@ -293,7 +308,7 @@ function classifyIntegerLike(problem, correct, chosen, opKey, isNegative) {
     //
     // Оба числа должны быть не меньше десяти: у однозначных десятков нет,
     // и говорить про них «оба разряда» бессмысленно.
-    if (!isNegative && (opKey === 'add' || opKey === 'sub')
+    if (sameSide && (opKey === 'add' || opKey === 'sub')
         && chosen >= 10 && correct >= 10
         && Math.floor(chosen / 10) !== Math.floor(correct / 10)) {
         return 'оба разряда мимо';
@@ -303,9 +318,21 @@ function classifyIntegerLike(problem, correct, chosen, opKey, isNegative) {
     // именно такие варианты — «считал, но сбился», — и до сих пор половина
     // разбора первой звезды вычитания уходила в «другую ошибку». Ставится
     // последним: любая названная причина полезнее общего «мимо».
-    if (!isNegative && (opKey === 'add' || opKey === 'sub')
+    if (sameSide && (opKey === 'add' || opKey === 'sub')
         && Math.abs(chosen - correct) <= 5) {
         return 'промахнулся рядом';
+    }
+
+    // Ответ ушёл не в ту сторону от нуля, и само число тоже другое — не зеркало
+    // верного, иначе это было бы «ошибся в знаке» выше. Все правила про разряды
+    // сюда уже не дошли: они смотрят только на одну сторону. Раньше этот случай
+    // падал в «другую ошибку» и составлял три четверти её на отрицательных.
+    //
+    // Причину числа мы не знаем и не называем. Называем то, что знаем точно:
+    // знак не тот. Подсказка поэтому даёт правило знака и просит пересчитать.
+    if (isNegative && chosen !== 0 && correct !== 0
+        && Math.sign(chosen) !== Math.sign(correct)) {
+        return 'знак и число мимо';
     }
     return null;
 }
@@ -450,12 +477,70 @@ function resolveHints() {
     return all[lang] || all.ru || null;
 }
 
-// Ключ ищем сначала с действием ('ошибка в десятках:add'), потом без него:
-// у сложения и вычитания одна и та же ошибка объясняется разными словами.
-function hintEntry(kind, opKey) {
+// Ключ ищем сначала с вариантом ('ошибся в знаке:addDiff'), потом с действием
+// ('ошибка в десятках:add'), потом без них: у сложения и вычитания одна и та же
+// ошибка объясняется разными словами, а у знака — ещё и разными правилами.
+function hintEntry(kind, opKey, variant) {
     const table = resolveHints();
     if (!table || !kind) return null;
-    return (opKey && table[kind + ':' + opKey]) || table[kind] || null;
+    return (variant && table[kind + ':' + variant])
+        || (opKey && table[kind + ':' + opKey]) || table[kind] || null;
+}
+
+// Отрицательная ли арифметика в этом примере. Смотрим на сами числа, а не на
+// meta.isNegative: в разбор после миссии meta приходит без этого флага.
+function hintNegArith(problem, correct) {
+    const a = problem && problem.a, b = problem && problem.b;
+    return a < 0 || b < 0 || (typeof correct === 'number' && correct < 0);
+}
+
+// Какой из текстов вида взять. Правило знака у сложения и у умножения разное,
+// а внутри каждого — своё для одинаковых и для разных знаков. Одной фразой на
+// все случаи оно не скажется без вранья: «знак у большего числа» неверно уже на
+// −8 + 7, ведь −8 меньше семи.
+//
+// Для сложения и вычитания берём те же два числа, что и приём до ответа
+// (neg:same / neg:diff): первое число и то, что к нему на деле прибавили.
+// У «3 − 8» это 3 и −8. Так правило после ошибки звучит теми же словами и о
+// тех же числах, что и подсказка до неё.
+function hintVariant(kind, meta, problem, correct) {
+    const op = meta && meta.opKey;
+    const a = problem && problem.a, b = problem && problem.b;
+    if (typeof a !== 'number' || typeof b !== 'number') return null;
+
+    if (kind === 'ошибся в знаке' || kind === 'знак и число мимо') {
+        if (op === 'add' || op === 'sub') {
+            if (typeof correct !== 'number') return null;
+            const x = a, y = correct - a;
+            if (x === 0 || y === 0) return null;
+            return Math.sign(x) === Math.sign(y) ? 'addSame' : 'addDiff';
+        }
+        if (op === 'mul' || op === 'div') {
+            // Три множителя на экране — «два одинаковых знака» тут неправда.
+            if (problem.triple) return 'mulTriple';
+            if (a === 0 || b === 0) return null;
+            return (a < 0) === (b < 0) ? 'mulSame' : 'mulDiff';
+        }
+        return null;
+    }
+
+    // Десятки на отрицательном сложении. Столбик тут идёт не по записи, а по
+    // тому, что делают с числами на деле: при одинаковых знаках их складывают,
+    // при разных — из дальнего вычитают ближнее. «−17 − 18» — это сложение
+    // 17 и 18, и рассказ про «десяток, который занимали» был бы враньём.
+    if (kind === 'ошибка в десятках' && (op === 'add' || op === 'sub')
+        && hintNegArith(problem, correct) && typeof correct === 'number') {
+        const x = a, y = correct - a;
+        if (x === 0 || y === 0) return null;
+        return Math.sign(x) === Math.sign(y) ? 'add' : 'sub';
+    }
+    return null;
+}
+
+// Отрицательное число после знака действия пишется в скобках: «4 × (−5)».
+// Так оно выглядит в самом примере, и подсказка не должна писать иначе.
+function hintParen(n) {
+    return (typeof n === 'number' && n < 0) ? '(' + n + ')' : String(n);
 }
 
 // Какую клетку таблицы ученик посчитал на самом деле. Вид ошибки ставится
@@ -475,10 +560,51 @@ function hintArgs(kind, meta, problem, correct, chosen) {
     if (typeof a !== 'number' || typeof b !== 'number') return null;
     const u = (x) => Math.abs(x) % 10;
 
+    // Знак. Раскладка одна на все тексты этих двух видов: первым идёт число со
+    // знаком, у которого ответ этот знак берёт, дальше — сами числа без знаков,
+    // как их и считают. Для умножения чисел не нужно: правило говорит само.
+    if (kind === 'ошибся в знаке' || kind === 'знак и число мимо') {
+        const variant = hintVariant(kind, meta, problem, correct);
+        if (!variant) return null;
+        if (variant === 'addSame' || variant === 'addDiff') {
+            const x = a, y = correct - a;
+            if (Math.abs(x) === Math.abs(y)) return null;  // ответ ноль — знака у него нет
+            const far = Math.abs(x) > Math.abs(y) ? x : y;
+            const near = far === x ? y : x;
+            // При одинаковых знаках знак ответа — это знак любого из двух чисел;
+            // называем первое, как и приём до ответа.
+            const ref = variant === 'addSame' ? x : far;
+            const first = variant === 'addSame' ? Math.abs(x) : Math.abs(far);
+            const second = variant === 'addSame' ? Math.abs(y) : Math.abs(near);
+            return { game: [ref], review: [ref, first, second] };
+        }
+        return { game: [], review: [] };
+    }
+
     if (kind === 'ошибка в десятках') {
         // Про перенос и заём говорим, только если они в этом примере есть.
         // «10 + 7 = 17, выбрал 27» — единицы 0 + 7, наверх ничего не уходит,
         // и объяснять промах потерянным переносом значит врать. Молчим.
+        //
+        // На отрицательных столбик считают по тому, что делают с числами на деле
+        // (см. hintVariant): при одинаковых знаках складывают, при разных — из
+        // дальнего от нуля вычитают ближнее. Подставляем эти самые числа, без
+        // знаков — так, как их и считают. Текст берётся тоже по делу, а не по
+        // записи: у «−17 − 18» это текст про сложение.
+        if ((op === 'add' || op === 'sub') && hintNegArith(problem, correct)) {
+            if (typeof correct !== 'number') return null;
+            const x = a, y = correct - a;
+            if (x === 0 || y === 0) return null;
+            if (Math.sign(x) === Math.sign(y)) {
+                const su = u(x) + u(y);
+                if (su < 10) return null;
+                return { game: [], review: [Math.abs(x), Math.abs(y), u(x), u(y), su, su % 10] };
+            }
+            const far = Math.max(Math.abs(x), Math.abs(y));
+            const near = Math.min(Math.abs(x), Math.abs(y));
+            if (u(far) >= u(near)) return null;  // заёма нет — заём и не при чём
+            return { game: [], review: [far, near] };
+        }
         if (op === 'add') {
             const su = u(a) + u(b);
             if (su < 10) return null;
@@ -497,12 +623,14 @@ function hintArgs(kind, meta, problem, correct, chosen) {
             // Про «ровно на десяток» говорим, только если промах и правда десяток:
             // сейчас он такой всегда, но генератор нам ничего не обещал.
             if (b === 0 || Math.abs(chosen - correct) !== 10) return null;
-            return { game: [chosen, b, chosen * b, a],
-                     review: [a, b, correct, chosen, chosen * b] };
+            // b везде стоит после знака действия, поэтому пишется в скобках,
+            // если он отрицательный. У положительных ничего не меняется.
+            return { game: [chosen, hintParen(b), chosen * b, a],
+                     review: [a, hintParen(b), correct, chosen, chosen * b] };
         }
         if (op === 'mul') {
-            return { game: [Math.abs(chosen - correct), a, b],
-                     review: [a, b, correct, chosen] };
+            return { game: [Math.abs(chosen - correct), a, hintParen(b)],
+                     review: [a, hintParen(b), correct, chosen] };
         }
         return null;
     }
@@ -589,7 +717,7 @@ function hintArgs(kind, meta, problem, correct, chosen) {
 // нет, файл не доехал, числа не сошлись. Игру это не должно задевать никак.
 function hintText(form, kind, meta, problem, correct, chosen) {
     try {
-        const entry = hintEntry(kind, meta && meta.opKey);
+        const entry = hintEntry(kind, meta && meta.opKey, hintVariant(kind, meta, problem, correct));
         if (!entry || !entry[form]) return '';
         const args = hintArgs(kind, meta, problem, correct, chosen);
         if (!args || !args[form]) return '';
@@ -640,6 +768,14 @@ function hintProblemLine(meta, problem, correct) {
     const sign = HINT_OP_SIGNS[meta && meta.opKey];
     if (!sign || !problem || typeof problem.a !== 'number' || typeof problem.b !== 'number') return '';
     const right = (typeof correct === 'number') ? String(correct) : t('Нет решения');
+    // На отрицательных строку собирать из a и b нельзя: три множителя хранятся
+    // как два числа («−24 × −8» вместо «−8 × 3 × (−8)»), а сложение записано
+    // на экране по-своему («−5 − 3», а не «−5 + −3»). Берём запись ровно такой,
+    // какой её видел ребёнок. У положительных всё как прежде — там запись и
+    // сборка из a и b совпадают, и типографский минус остаётся.
+    if (problem.text && (problem.triple || hintNegArith(problem, correct))) {
+        return `${problem.text} = ${right}`;
+    }
     return `${problem.a} ${sign} ${problem.b} = ${right}`;
 }
 
