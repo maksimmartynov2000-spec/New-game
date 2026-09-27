@@ -3,10 +3,24 @@
 // Показываются в двух местах: короткой строкой прямо в игре (время на этот момент
 // заморожено) и подробнее — в разборе ошибок в конце миссии.
 //
-// Ключ — код вида ошибки из classifyMistake, при необходимости с уточнением действия
-// через двоеточие: 'ошибка в десятках:add'. Поиск идёт сначала по ключу с действием,
-// потом по ключу без него. Коды видов — идентификаторы базы, их НЕЛЬЗЯ переводить и
-// переименовывать; переводятся только тексты.
+// Ключ — код вида ошибки из classifyMistake, при необходимости с уточнением через
+// двоеточие: действием ('ошибка в десятках:add') или вариантом
+// («ошибся в знаке:addDiff»). Поиск идёт сначала по варианту, потом по действию,
+// потом по голому коду. Вариант выбирает hintVariant() в js/mistakes.js. Коды видов — идентификаторы
+// базы, их НЕЛЬЗЯ переводить и переименовывать; переводятся только тексты.
+//
+// Варианты знака. Правило знака у сложения и у умножения разное, и внутри каждого
+// своё для одинаковых и разных знаков, поэтому текстов пять, а не один:
+//   addSame   сложение и вычитание, знаки одинаковые     −6 − 3
+//   addDiff   сложение и вычитание, знаки разные         −8 + 7
+//   mulSame   умножение и деление, знаки одинаковые      −4 × (−5)
+//   mulDiff   умножение и деление, знаки разные          −4 × 5
+//   mulTriple три множителя                              −8 × 3 × (−8)
+// Для сложения «знаки» — это первое число и то, что к нему на деле прибавили: у
+// «3 − 8» это 3 и −8. Те же числа берёт приём до ответа (neg:same / neg:diff).
+//
+// Ни в одном тексте про знак нет слова «больше»: «знак у большего числа» неверно
+// уже на −8 + 7, ведь −8 меньше семи. Правильно — «дальше от нуля».
 //
 // %1, %2… — подстановки из того самого примера, на котором ученик споткнулся. Порядок
 // аргументов задан в hintArgs() в index.html и ОДИНАКОВ для всех языков; менять его
@@ -36,6 +50,14 @@
 //                           review меньший, единицы большего, их произведение,
 //                                  десятки большего, второе произведение, верный ответ
 //   нет решения зря         game делитель     review a, b, верный ответ
+//   ошибся в знаке:add*     game число, у которого знак берут
+//                           review то же число, его величина, величина второго
+//   ошибся в знаке:mul*     game —            review —
+//   знак и число мимо:*     то же, что у «ошибся в знаке» с тем же вариантом
+//
+//   ошибка в десятках на отрицательном сложении и вычитании берёт текст не по
+//   записи, а по делу: при одинаковых знаках — текст :add, при разных — :sub,
+//   и подставляет величины без знаков («−17 − 18» — это 17 + 18).
 
 window.HINT_CONTENT = {
     ru: {
@@ -130,6 +152,46 @@ window.HINT_CONTENT = {
         'нет решения зря': {
             game: 'Здесь делят не на ноль — на %1 делить можно.',
             review: '%1 ÷ %2 = %3. Правило запрещает только деление НА ноль, то есть когда ноль стоит вторым. Здесь второе число %2, и ответ есть. Ноль в примере сам по себе ничего не запрещает — важно, на каком он месте.'
+        },
+        'ошибся в знаке:addSame': {
+            game: 'Число верное, знак нет. Знаки одинаковые — знак тот же, что у %1.',
+            review: 'Число верное, знак нет. Знаки одинаковые, поэтому знак не меняется: он тот же, что у %1. Считать заново не нужно — достаточно поставить знак.'
+        },
+        'ошибся в знаке:addDiff': {
+            game: 'Число верное, знак нет. Знаки разные — знак берут у %1: оно дальше от нуля.',
+            review: 'Число верное, знак нет. Когда знаки разные, знак берут у %1 — оно дальше от нуля. Считать заново не нужно — достаточно поставить знак.'
+        },
+        'ошибся в знаке:mulSame': {
+            game: 'Число верное, знак нет. Два одинаковых знака дают плюс.',
+            review: 'Число верное, знак нет. Два одинаковых знака дают плюс — неважно, оба это плюса или оба минуса. Считать заново не нужно — достаточно поставить знак.'
+        },
+        'ошибся в знаке:mulDiff': {
+            game: 'Число верное, знак нет. Разные знаки дают минус.',
+            review: 'Число верное, знак нет. Разные знаки дают минус — неважно, у какого из двух чисел он стоит. Считать заново не нужно — достаточно поставить знак.'
+        },
+        'ошибся в знаке:mulTriple': {
+            game: 'Число верное, знак нет. Считай минусы: два — плюс, один или три — минус.',
+            review: 'Число верное, знак нет. Считай минусы: два — плюс, один или три — минус. Каждый минус переворачивает знак, поэтому важно только, сколько их. Считать заново не нужно — достаточно поставить знак.'
+        },
+        'знак и число мимо:addSame': {
+            game: 'Мимо и знаком, и числом. Знаки одинаковые — знак тот же, что у %1.',
+            review: 'Мимо и знаком, и числом. Знаки одинаковые, поэтому знак не меняется: он тот же, что у %1. А само число пересчитай: %2 и %3 надо сложить.'
+        },
+        'знак и число мимо:addDiff': {
+            game: 'Мимо и знаком, и числом. Знаки разные — знак берут у %1: оно дальше от нуля.',
+            review: 'Мимо и знаком, и числом. Когда знаки разные, знак берут у %1 — оно дальше от нуля. А само число пересчитай: из %2 вычти %3.'
+        },
+        'знак и число мимо:mulSame': {
+            game: 'Мимо и знаком, и числом. Два одинаковых знака дают плюс.',
+            review: 'Мимо и знаком, и числом. Два одинаковых знака дают плюс. А само число пересчитай так, будто минусов нет.'
+        },
+        'знак и число мимо:mulDiff': {
+            game: 'Мимо и знаком, и числом. Разные знаки дают минус.',
+            review: 'Мимо и знаком, и числом. Разные знаки дают минус. А само число пересчитай так, будто минусов нет.'
+        },
+        'знак и число мимо:mulTriple': {
+            game: 'Мимо и знаком, и числом. Считай минусы: два — плюс, один или три — минус.',
+            review: 'Мимо и знаком, и числом. Считай минусы: два — плюс, один или три — минус. А само число пересчитай так, будто минусов нет.'
         }
     },
 
@@ -225,6 +287,46 @@ window.HINT_CONTENT = {
         'нет решения зря': {
             game: 'Nothing here is divided by zero — dividing by %1 is allowed.',
             review: '%1 ÷ %2 = %3. The rule forbids dividing BY zero, that is, when the zero stands second. Here the second number is %2, so there is an answer. A zero in the problem forbids nothing on its own — what matters is where it stands.'
+        },
+        'ошибся в знаке:addSame': {
+            game: 'Right number, wrong sign. Same signs — the sign is that of %1.',
+            review: 'Right number, wrong sign. The signs are the same, so the sign does not change: it is the same as that of %1. No need to recount — just put the sign on.'
+        },
+        'ошибся в знаке:addDiff': {
+            game: 'Right number, wrong sign. Signs differ — take the sign of %1, further from zero.',
+            review: 'Right number, wrong sign. When the signs differ, the sign comes from %1 — it lies further from zero. No need to recount — just put the sign on.'
+        },
+        'ошибся в знаке:mulSame': {
+            game: 'Right number, wrong sign. Two equal signs give a plus.',
+            review: 'Right number, wrong sign. Two equal signs give a plus — whether both are pluses or both are minuses. No need to recount — just put the sign on.'
+        },
+        'ошибся в знаке:mulDiff': {
+            game: 'Right number, wrong sign. Different signs give a minus.',
+            review: 'Right number, wrong sign. Different signs give a minus — no matter which of the two numbers carries it. No need to recount — just put the sign on.'
+        },
+        'ошибся в знаке:mulTriple': {
+            game: 'Right number, wrong sign. Count minuses: two is plus, one or three is minus.',
+            review: 'Right number, wrong sign. Count the minuses: two give a plus, one or three give a minus. Each minus flips the sign, so only how many there are matters. No need to recount — just put the sign on.'
+        },
+        'знак и число мимо:addSame': {
+            game: 'Wrong sign and wrong number. Same signs — the sign is that of %1.',
+            review: 'Wrong sign and wrong number. The signs are the same, so the sign does not change: it is the same as that of %1. And recount the number itself: %2 and %3 have to be added.'
+        },
+        'знак и число мимо:addDiff': {
+            game: 'Wrong sign and wrong number. Signs differ — sign of %1, further from zero.',
+            review: 'Wrong sign and wrong number. When the signs differ, the sign comes from %1 — it lies further from zero. And recount the number itself: take %3 away from %2.'
+        },
+        'знак и число мимо:mulSame': {
+            game: 'Wrong sign and wrong number. Two equal signs give a plus.',
+            review: 'Wrong sign and wrong number. Two equal signs give a plus. And recount the number itself as if there were no minuses.'
+        },
+        'знак и число мимо:mulDiff': {
+            game: 'Wrong sign and wrong number. Different signs give a minus.',
+            review: 'Wrong sign and wrong number. Different signs give a minus. And recount the number itself as if there were no minuses.'
+        },
+        'знак и число мимо:mulTriple': {
+            game: 'Wrong sign and number. Count minuses: two is plus, one or three is minus.',
+            review: 'Wrong sign and wrong number. Count the minuses: two give a plus, one or three give a minus. And recount the number itself as if there were no minuses.'
         }
     },
 
@@ -320,6 +422,46 @@ window.HINT_CONTENT = {
         'нет решения зря': {
             game: 'Ici on ne divise pas par zéro — diviser par %1 est permis.',
             review: '%1 ÷ %2 = %3. La règle interdit seulement de diviser PAR zéro, c’est-à-dire quand le zéro est le deuxième nombre. Ici le deuxième nombre est %2, donc il y a une réponse. Un zéro dans le calcul n’interdit rien en soi — ce qui compte, c’est sa place.'
+        },
+        'ошибся в знаке:addSame': {
+            game: 'Nombre juste, signe faux. Mêmes signes : le signe reste celui de %1.',
+            review: 'Le nombre est juste, le signe non. Les signes sont les mêmes, donc le signe ne change pas : c’est celui de %1. Inutile de recompter — il suffit de mettre le signe.'
+        },
+        'ошибся в знаке:addDiff': {
+            game: 'Nombre juste, signe faux. Signes différents : celui de %1, plus loin de zéro.',
+            review: 'Le nombre est juste, le signe non. Quand les signes diffèrent, on prend le signe de %1 — il est plus loin de zéro. Inutile de recompter — il suffit de mettre le signe.'
+        },
+        'ошибся в знаке:mulSame': {
+            game: 'Nombre juste, signe faux. Deux signes pareils donnent un plus.',
+            review: 'Le nombre est juste, le signe non. Deux signes pareils donnent un plus — qu’il s’agisse de deux plus ou de deux moins. Inutile de recompter — il suffit de mettre le signe.'
+        },
+        'ошибся в знаке:mulDiff': {
+            game: 'Nombre juste, signe faux. Des signes différents donnent un moins.',
+            review: 'Le nombre est juste, le signe non. Des signes différents donnent un moins — peu importe lequel des deux nombres le porte. Inutile de recompter — il suffit de mettre le signe.'
+        },
+        'ошибся в знаке:mulTriple': {
+            game: 'Nombre juste, signe faux. Compte les moins : deux, plus ; un ou trois, moins.',
+            review: 'Le nombre est juste, le signe non. Compte les moins : deux donnent un plus, un ou trois donnent un moins. Chaque moins retourne le signe, seul leur nombre compte. Inutile de recompter — il suffit de mettre le signe.'
+        },
+        'знак и число мимо:addSame': {
+            game: 'Ni le signe ni le nombre. Mêmes signes : le signe de %1.',
+            review: 'Ni le signe ni le nombre. Les signes sont les mêmes, donc le signe ne change pas : c’est celui de %1. Et recompte le nombre : il faut additionner %2 et %3.'
+        },
+        'знак и число мимо:addDiff': {
+            game: 'Ni le signe ni le nombre. Signes différents : celui de %1, plus loin de zéro.',
+            review: 'Ni le signe ni le nombre. Quand les signes diffèrent, on prend le signe de %1 — il est plus loin de zéro. Et recompte le nombre : de %2, retire %3.'
+        },
+        'знак и число мимо:mulSame': {
+            game: 'Ni le signe ni le nombre. Deux signes pareils donnent un plus.',
+            review: 'Ni le signe ni le nombre. Deux signes pareils donnent un plus. Et recompte le nombre comme s’il n’y avait pas de moins.'
+        },
+        'знак и число мимо:mulDiff': {
+            game: 'Ni le signe ni le nombre. Des signes différents donnent un moins.',
+            review: 'Ni le signe ni le nombre. Des signes différents donnent un moins. Et recompte le nombre comme s’il n’y avait pas de moins.'
+        },
+        'знак и число мимо:mulTriple': {
+            game: 'Ni le signe ni le nombre. Compte les moins : deux, plus ; un ou trois, moins.',
+            review: 'Ni le signe ni le nombre. Compte les moins : deux donnent un plus, un ou trois donnent un moins. Et recompte le nombre comme s’il n’y avait pas de moins.'
         }
     },
 
@@ -415,6 +557,46 @@ window.HINT_CONTENT = {
         'нет решения зря': {
             game: 'Hier wird nicht durch null geteilt — durch %1 darf man teilen.',
             review: '%1 ÷ %2 = %3. Die Regel verbietet nur das Teilen DURCH null, also wenn die null an zweiter Stelle steht. Hier steht dort %2, es gibt also eine Antwort. Eine null im Beispiel verbietet für sich nichts — es kommt darauf an, wo sie steht.'
+        },
+        'ошибся в знаке:addSame': {
+            game: 'Zahl stimmt, Zeichen nicht. Gleiche Zeichen — das Vorzeichen wie bei %1.',
+            review: 'Die Zahl stimmt, das Vorzeichen nicht. Die Zeichen sind gleich, also ändert sich das Vorzeichen nicht: es ist dasselbe wie bei %1. Neu rechnen muss man nicht — nur das Vorzeichen setzen.'
+        },
+        'ошибся в знаке:addDiff': {
+            game: 'Zahl stimmt, Zeichen nicht. Verschiedene Zeichen — das von %1, weiter von null.',
+            review: 'Die Zahl stimmt, das Vorzeichen nicht. Sind die Zeichen verschieden, nimmt man das Vorzeichen von %1 — sie liegt weiter von der null weg. Neu rechnen muss man nicht — nur das Vorzeichen setzen.'
+        },
+        'ошибся в знаке:mulSame': {
+            game: 'Zahl stimmt, Zeichen nicht. Zwei gleiche Zeichen geben ein Plus.',
+            review: 'Die Zahl stimmt, das Vorzeichen nicht. Zwei gleiche Zeichen geben ein Plus — egal, ob zwei Plus oder zwei Minus. Neu rechnen muss man nicht — nur das Vorzeichen setzen.'
+        },
+        'ошибся в знаке:mulDiff': {
+            game: 'Zahl stimmt, Zeichen nicht. Verschiedene Zeichen geben ein Minus.',
+            review: 'Die Zahl stimmt, das Vorzeichen nicht. Verschiedene Zeichen geben ein Minus — egal, welche der zwei Zahlen es trägt. Neu rechnen muss man nicht — nur das Vorzeichen setzen.'
+        },
+        'ошибся в знаке:mulTriple': {
+            game: 'Zahl stimmt, Zeichen nicht. Zähl die Minus: zwei — Plus, eins oder drei — Minus.',
+            review: 'Die Zahl stimmt, das Vorzeichen nicht. Zähl die Minus: zwei geben ein Plus, eins oder drei ein Minus. Jedes Minus dreht das Vorzeichen um, es zählt nur ihre Anzahl. Neu rechnen muss man nicht — nur das Vorzeichen setzen.'
+        },
+        'знак и число мимо:addSame': {
+            game: 'Vorzeichen und Zahl falsch. Gleiche Zeichen — das Vorzeichen von %1.',
+            review: 'Vorzeichen und Zahl falsch. Die Zeichen sind gleich, also ändert sich das Vorzeichen nicht: es ist dasselbe wie bei %1. Und rechne die Zahl neu: %2 und %3 werden addiert.'
+        },
+        'знак и число мимо:addDiff': {
+            game: 'Vorzeichen und Zahl falsch. Verschiedene Zeichen — das von %1, weiter von null.',
+            review: 'Vorzeichen und Zahl falsch. Sind die Zeichen verschieden, nimmt man das Vorzeichen von %1 — sie liegt weiter von der null weg. Und rechne die Zahl neu: von %2 zieh %3 ab.'
+        },
+        'знак и число мимо:mulSame': {
+            game: 'Vorzeichen und Zahl falsch. Zwei gleiche Zeichen geben ein Plus.',
+            review: 'Vorzeichen und Zahl falsch. Zwei gleiche Zeichen geben ein Plus. Und rechne die Zahl neu, als gäbe es keine Minus.'
+        },
+        'знак и число мимо:mulDiff': {
+            game: 'Vorzeichen und Zahl falsch. Verschiedene Zeichen geben ein Minus.',
+            review: 'Vorzeichen und Zahl falsch. Verschiedene Zeichen geben ein Minus. Und rechne die Zahl neu, als gäbe es keine Minus.'
+        },
+        'знак и число мимо:mulTriple': {
+            game: 'Vorzeichen und Zahl falsch. Zähl die Minus: zwei — Plus, eins oder drei — Minus.',
+            review: 'Vorzeichen und Zahl falsch. Zähl die Minus: zwei geben ein Plus, eins oder drei ein Minus. Und rechne die Zahl neu, als gäbe es keine Minus.'
         }
     }
 };
