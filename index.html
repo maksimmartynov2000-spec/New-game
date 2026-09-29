@@ -6911,22 +6911,41 @@
 
             const grid = document.getElementById('examAnswers');
             grid.innerHTML = '';
-            const wrong = buildDistractors(exam.op, problem.a, problem.b, problem.answer, false, 3, exam.level);
-            const options = wrong.concat([problem.answer]);
-            // Перемешиваем, иначе верный ответ всегда стоял бы последним.
-            for (let i = options.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                const tmp = options[i]; options[i] = options[j]; options[j] = tmp;
-            }
-            options.forEach(value => {
+            const set = examOptions(problem, exam.op, exam.level);
+            set.options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'btn-answer';
-                btn.innerText = String(value);
-                btn.addEventListener('click', () => examAnswer(value === problem.answer));
+                btn.innerText = opt.label;
+                btn.addEventListener('click', () => examAnswer(opt.value === set.correct));
                 grid.appendChild(btn);
             });
 
             examStartTimer();
+        }
+
+        // Варианты ответа — ровно так же, как в обычной игре.
+        //
+        // Раньше экзамен печатал значения как есть, и на делении это ломалось
+        // дважды. У «63 ÷ 0» ответа нет, в задаче он записан как null — и верной
+        // была кнопка с надписью «null»: угадать её было нельзя. А в обычные
+        // примеры деления генератор кладёт ловушку «Нет решения», и экзамен
+        // показывал её служебным словом «NO_SOLUTION». Замер: сломанная кнопка
+        // стояла в 22% вопросов по делению на 1★, 12% на 2★ и 8% на 3★.
+        function examOptions(problem, op, level) {
+            const correct = problem.noSolution ? 'NO_SOLUTION' : problem.answer;
+            const wrong = problem.noSolution
+                ? buildNoSolutionOptions(problem.a, false)
+                : buildDistractors(op, problem.a, problem.b, problem.answer, false, 3, level);
+            const values = wrong.concat([correct]);
+            // Перемешиваем, иначе верный ответ всегда стоял бы последним.
+            for (let i = values.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                const tmp = values[i]; values[i] = values[j]; values[j] = tmp;
+            }
+            return {
+                correct,
+                options: values.map(v => ({ value: v, label: v === 'NO_SOLUTION' ? t('Нет решения') : String(v) }))
+            };
         }
 
         function examStartTimer() {
