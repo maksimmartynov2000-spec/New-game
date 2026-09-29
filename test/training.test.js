@@ -433,6 +433,7 @@ test('приём вычитания выбирается по поводу, а �
 // 'cross', — и ни одна ветка не срабатывала. Ни один тест этого не видел: проверки
 // выше зовут picker только с isNegative: false.
 
+const R0 = loadPicker();
 const negMeta = (op, level) => ({ category: 'integer', opKey: op, level: level || 3, isNegative: true });
 
 test('у отрицательных сложение и вычитание больше не молчат', () => {
@@ -466,8 +467,8 @@ test('у отрицательных умножение тоже не молчи�
             всего++;
             if (G.trickHint(negMeta('mul', lvl), p)) есть++;
         }
-        // Порог ниже, чем у сложения: ×1, ×0 и три множителя приёма не имеют,
-        // и на пятой звезде троек особенно много.
+        // Порог ниже, чем у сложения: ×1 и ×0 приёма не имеют. Три множителя
+        // раньше тоже молчали — теперь у них свой приём, см. тест ниже.
         if (есть < всего * 0.6) молчит.push(`${lvl}★: ${есть} из ${всего}`);
     }
     eq(молчит.join(' | '), '', 'умножение отрицательных молчит: ' + молчит.join(' | '));
@@ -500,6 +501,54 @@ test('приём отрицательных выбирается по прави
     // Умножение: правило знаков плюс счёт модулей.
     eq(R.trickPick(negMeta('mul', 3), { a: -7, b: -8, answer: 56 }).key, 'neg:mulSame');
     eq(R.trickPick(negMeta('mul', 3), { a: -7, b: 8, answer: -56 }).key, 'neg:mulDiff');
+});
+
+test('три множителя: приём считает минусы и называет множители как в записи', () => {
+    // До этой правки здесь было молчание — треть пятой звезды умножения. Правило
+    // то же, что у пары, только минусы надо сосчитать: чётное число — плюс.
+    const G = loadWithGenerator();
+    const bad = [];
+    let tri = 0;
+    const keys = new Set();
+    for (let i = 0; i < 20000; i++) {
+        const p = G.generateProblem('mul', 5, true);
+        if (!p.triple) continue;
+        tri++;
+        const pick = G.trickPick(negMeta('mul', 5), p);
+        const txt = G.trickHint(negMeta('mul', 5), p);
+        const f = p.text.replace(/[()]/g, '').split(' × ').map(Number);
+        const minuses = f.filter(v => v < 0).length;
+        const tail = `Дальше: ${f.map(Math.abs).join(' × ')}`;
+        if (!pick || pick.key !== 'neg:triple' + minuses || !txt.endsWith(tail)
+            || /плюсом/.test(txt) !== (p.answer > 0)) {
+            if (bad.length < 3) bad.push(`${p.text} = ${p.answer} → «${txt}»`);
+        }
+        keys.add(pick && pick.key);
+    }
+    assert(tri > 5000, `троек в выборке ${tri} — проверка почти ничего не проверила`);
+    eq(bad.join(' | '), '', 'приём на тройных неверен');
+    eq([...keys].sort().join(','), 'neg:triple0,neg:triple1,neg:triple2,neg:triple3', 'встретились не все случаи');
+    eq(R0.trickHint(negMeta('mul', 5), { a: 42, b: -4, answer: -168, triple: true, factors: [-7, -6, -4] }),
+       'Три минуса — ответ с минусом. Дальше: 7 × 6 × 4');
+});
+
+test('тройка без множителей молчит, а не называет «−24 × −8»', () => {
+    // Старая запись или чужой путь без поля — лучше ничего, чем числа, которых
+    // ребёнок не видел.
+    eq(R0.trickHint(negMeta('mul', 5), { a: -24, b: -8, answer: 192, triple: true }), '');
+});
+
+test('приём для трёх множителей есть на всех языках и с тремя подстановками', () => {
+    const box = { window: {} };
+    vm.createContext(box);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'content/hints.js'), 'utf8'), box);
+    const T = box.window.TRICK_CONTENT;
+    ['ru', 'en', 'fr', 'de'].forEach(lang => [0, 1, 2, 3].forEach(n => {
+        const tpl = T[lang]['neg:triple' + n];
+        assert(tpl, `[${lang}] нет neg:triple${n}`);
+        ['%1', '%2', '%3'].forEach(k => assert(tpl.indexOf(k) >= 0, `[${lang}] neg:triple${n} без ${k}: ${tpl}`));
+        assert(tpl.length <= 80, `[${lang}] neg:triple${n} длиннее строки: ${tpl.length}`);
+    }));
 });
 
 test('ни одна подсказка отрицательных не печатает ответ', () => {

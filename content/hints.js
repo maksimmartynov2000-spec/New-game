@@ -626,6 +626,8 @@ window.HINT_CONTENT = {
 //   neg:diff     больший модуль, меньший модуль, большее число СО ЗНАКОМ
 //   neg:mulSame  модуль первого, модуль второго
 //   neg:mulDiff  модуль первого, модуль второго
+//   neg:triple0…neg:triple3  три модуля множителей, как в записи; цифра в
+//                ключе — сколько среди них минусов
 //   mul:two      второй множитель
 //   mul:five     второй множитель × 10
 //   mul:small4   второй множитель × 2
@@ -651,6 +653,10 @@ window.TRICK_CONTENT = {
         "neg:diff": "Знаки разные: из %1 вычти %2, а знак возьми у %3",
         "neg:mulSame": "Знаки одинаковые — ответ с плюсом. Дальше: %1 × %2",
         "neg:mulDiff": "Знаки разные — ответ с минусом. Дальше: %1 × %2",
+        "neg:triple0": "Минусов нет — ответ с плюсом. Дальше: %1 × %2 × %3",
+        "neg:triple1": "Один минус — ответ с минусом. Дальше: %1 × %2 × %3",
+        "neg:triple2": "Два минуса — ответ с плюсом. Дальше: %1 × %2 × %3",
+        "neg:triple3": "Три минуса — ответ с минусом. Дальше: %1 × %2 × %3",
         "sub:h": "Отними %1 — дойдёшь до %2. Потом ещё %3",
         "mul:triv10": "Допиши ноль",
         "mul:two": "Удвой: %1 + %1",
@@ -679,6 +685,10 @@ window.TRICK_CONTENT = {
         "neg:diff": "Different signs: take %2 from %1, and keep the sign of %3",
         "neg:mulSame": "Same signs — the answer is positive. Now: %1 × %2",
         "neg:mulDiff": "Different signs — the answer is negative. Now: %1 × %2",
+        "neg:triple0": "No minuses — the answer is positive. Now: %1 × %2 × %3",
+        "neg:triple1": "One minus — the answer is negative. Now: %1 × %2 × %3",
+        "neg:triple2": "Two minuses — the answer is positive. Now: %1 × %2 × %3",
+        "neg:triple3": "Three minuses — the answer is negative. Now: %1 × %2 × %3",
         "sub:h": "Take off %1 — that gets you to %2. Then %3 more",
         "mul:triv10": "Times ten — add a zero",
         "mul:two": "Double it: %1 + %1",
@@ -707,6 +717,10 @@ window.TRICK_CONTENT = {
         "neg:diff": "Signes différents : enlève %2 à %1, et prends le signe de %3",
         "neg:mulSame": "Mêmes signes — la réponse est positive. Ensuite : %1 × %2",
         "neg:mulDiff": "Signes différents — la réponse est négative. Ensuite : %1 × %2",
+        "neg:triple0": "Aucun signe moins — la réponse est positive. Ensuite : %1 × %2 × %3",
+        "neg:triple1": "Un signe moins — la réponse est négative. Ensuite : %1 × %2 × %3",
+        "neg:triple2": "Deux signes moins — la réponse est positive. Ensuite : %1 × %2 × %3",
+        "neg:triple3": "Trois signes moins — la réponse est négative. Ensuite : %1 × %2 × %3",
         "sub:h": "Enlève %1 — tu arrives à %2. Puis encore %3",
         "mul:triv10": "Par dix — ajoute un zéro",
         "mul:two": "Double : %1 + %1",
@@ -735,6 +749,10 @@ window.TRICK_CONTENT = {
         "neg:diff": "Verschiedene Vorzeichen: %1 minus %2, und nimm das Vorzeichen von %3",
         "neg:mulSame": "Gleiche Vorzeichen — das Ergebnis ist positiv. Dann: %1 × %2",
         "neg:mulDiff": "Verschiedene Vorzeichen — das Ergebnis ist negativ. Dann: %1 × %2",
+        "neg:triple0": "Kein Minuszeichen — das Ergebnis ist positiv. Dann: %1 × %2 × %3",
+        "neg:triple1": "Ein Minuszeichen — das Ergebnis ist negativ. Dann: %1 × %2 × %3",
+        "neg:triple2": "Zwei Minuszeichen — das Ergebnis ist positiv. Dann: %1 × %2 × %3",
+        "neg:triple3": "Drei Minuszeichen — das Ergebnis ist negativ. Dann: %1 × %2 × %3",
         "sub:h": "Nimm %1 weg — so kommst du auf %2. Dann noch %3",
         "mul:triv10": "Mal zehn — häng eine Null an",
         "mul:two": "Verdopple: %1 + %1",

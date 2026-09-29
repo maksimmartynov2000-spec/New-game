@@ -831,6 +831,38 @@ test('пометка «три множителя» доезжает до раз�
     calls.forEach(c => assert(/triple:\s*m\.triple/.test(c), 'разбор не передаёт пометку: ' + c));
 });
 
+test('десятки на трёх множителях: пересчитать то, что было на экране', () => {
+    // Раньше: «Пересчитай −15 × (−6)» на примере −3 × 5 × (−6). Такого умножения
+    // ребёнок не видел — это внутреннее разложение для вариантов ответа.
+    const p = { a: -15, b: -6, triple: true, factors: [-3, 5, -6] };
+    const game = H.R.hintText('game', 'ошибка в десятках', meta('mul'), p, 90, 70);
+    eq(game, 'Единицы сошлись, а десятки — нет: мимо на 20. Пересчитай -3 × 5 × (-6).');
+    const review = H.R.hintText('review', 'ошибка в десятках', meta('mul'), p, 90, 70);
+    assert(review.indexOf('-3 × 5 × (-6) = 90') === 0 && !/-15/.test(review), review);
+    // на всех языках — та же запись
+    LANGS.forEach(lang => {
+        const box = loadHints({ HINT_CONTENT: CONTENT });
+        box.LANG = lang;
+        ['game', 'review'].forEach(form => {
+            const got = box.R.hintText(form, 'ошибка в десятках', meta('mul'), p, 90, 70);
+            assert(/-3 × 5 × \(-6\)/.test(got) && !/-15/.test(got), `[${lang}] ${form}: «${got}»`);
+        });
+    });
+});
+
+test('тройка без множителей: про десятки молчим, а не называем «−15 × −6»', () => {
+    eq(H.R.hintText('game', 'ошибка в десятках', meta('mul'), { a: -15, b: -6, triple: true }, 90, 70), '');
+    eq(H.R.hintText('review', 'ошибка в десятках', meta('mul'), { a: -15, b: -6, triple: true }, 90, 70), '');
+});
+
+test('три множителя доезжают до разбора после миссии', () => {
+    const push = slice('sessionMistakes.push({', '});', 'запись ошибки');
+    assert(/factors:[^,]*currentProblem\.factors/.test(push), 'в записи ошибки нет множителей');
+    const calls = SCRIPT.match(/hintText\('review'[^;]*;/g) || [];
+    assert(calls.length >= 2, 'не нашлись вызовы разбора');
+    calls.forEach(c => assert(/factors:\s*m\.factors/.test(c), 'разбор не передаёт множители: ' + c));
+});
+
 test('у каждого варианта про знак собирается текст на всех языках', () => {
     const cases = [
         ['add', { a: -6, b: -3 }, -9, 9], ['add', { a: -8, b: 7 }, -1, 1],

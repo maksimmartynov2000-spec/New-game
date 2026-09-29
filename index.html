@@ -10738,6 +10738,10 @@
                     // третье). Без этой пометки разбор сказал бы про «два одинаковых
                     // знака», а на экране у ребёнка их было три.
                     triple: !!(currentProblem && currentProblem.triple),
+                    // И сами три множителя: без них подсказка про десятки в разборе
+                    // сказала бы «Пересчитай −35 × 5» вместо «−5 × 7 × 5».
+                    factors: (currentProblem && Array.isArray(currentProblem.factors))
+                        ? currentProblem.factors.slice() : null,
                     correctVal: correctAnswer,
                     chosenVal: chosen,
                     opKey: meta.opKey || null,
@@ -10779,7 +10783,7 @@
             const m = sessionMistakes.filter(x => x.kind === kind && x.a !== null)[0];
             if (!m) return;
             const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
-                { a: m.a, b: m.b, triple: m.triple }, m.correctVal, m.chosenVal);
+                { a: m.a, b: m.b, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
             if (!text) return;
 
             const box = document.createElement('div');
@@ -10890,7 +10894,7 @@
             const kind = m.isAlmost ? 'не сократил' : (m.kind || null);
             if (!kind) return;
             const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
-                { a: m.a, b: m.b, triple: m.triple }, m.correctVal, m.chosenVal);
+                { a: m.a, b: m.b, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
             if (!text) return;
             const box = document.createElement('div');
             box.className = 'hint-review';

@@ -206,7 +206,12 @@ function classifyFractionArith(problem, correct, chosen) {
 function classifyIntegerLike(problem, correct, chosen, opKey, isNegative) {
     if (typeof chosen !== 'number' || typeof correct !== 'number') return null;
     const a = problem.a, b = problem.b;
-    const haveOperands = typeof a === 'number' && typeof b === 'number';
+    // Три множителя хранятся как два числа — произведение первых двух и третье.
+    // Правила ниже, которые разбирают пример как «a × b», на них врут: соседняя
+    // клетка «−14 × −10», «посчитано только 3 × 4», «12, взятое −4 раза» — всё это
+    // числа, которых ребёнок не видел. Поэтому для тройных их просто нет. Правила,
+    // которые смотрят только на ответ и выбранное, работают как прежде.
+    const haveOperands = typeof a === 'number' && typeof b === 'number' && !problem.triple;
     const sameSide = !isNegative || chosen === 0 || correct === 0
         || Math.sign(chosen) === Math.sign(correct);
 
@@ -629,6 +634,18 @@ function hintArgs(kind, meta, problem, correct, chosen) {
                      review: [a, hintParen(b), correct, chosen, chosen * b] };
         }
         if (op === 'mul') {
+            // Три множителя: в шаблоне стоит «%2 × %3», и мы кладём туда запись
+            // целиком — первые два множителя в %2, третий в %3. Выходит ровно
+            // «−5 × 7 × 5», как на экране, а не «−35 × 5». Шаблоны при этом те же
+            // во всех четырёх языках. Нет множителей — молчим: лучше ничего, чем
+            // пример, которого ребёнок не видел.
+            if (problem.triple) {
+                const f = problem.factors;
+                if (!Array.isArray(f) || f.length !== 3) return null;
+                const head = f[0] + ' × ' + hintParen(f[1]), tail = hintParen(f[2]);
+                return { game: [Math.abs(chosen - correct), head, tail],
+                         review: [head, tail, correct, chosen] };
+            }
             return { game: [Math.abs(chosen - correct), a, hintParen(b)],
                      review: [a, hintParen(b), correct, chosen] };
         }
@@ -912,9 +929,20 @@ function trickPick(meta, problem) {
             return { key: 'neg:diff', args: [Math.abs(бол), Math.abs(мен), бол] };
         }
         if (op === 'mul') {
+            // Три множителя: правило то же, что у пары, только считать приходится
+            // минусы, а не сравнивать два знака. Число минусов называем словом —
+            // сосчитать их и есть весь приём, — а сами множители отдаём без знаков,
+            // в том порядке, в каком они стоят в примере. Перемножает ученик сам.
+            // До этой правки здесь было молчание: 35% примеров пятой звезды.
+            if (problem.triple) {
+                const f = problem.factors;
+                if (!Array.isArray(f) || f.length !== 3) return null;
+                const minuses = f.filter(v => v < 0).length;
+                return { key: 'neg:triple' + minuses, args: f.map(v => Math.abs(v)) };
+            }
             // ×1 и ×0 пропускаем по той же причине, что и у положительных: это не
             // приём, а определение, и правило знаков там выдало бы готовый ответ.
-            if (problem.triple || struct.cls === 'triv') return null;
+            if (struct.cls === 'triv') return null;
             const одинаковые = (a < 0) === (b < 0);
             return { key: одинаковые ? 'neg:mulSame' : 'neg:mulDiff',
                      args: [Math.abs(a), Math.abs(b)] };
