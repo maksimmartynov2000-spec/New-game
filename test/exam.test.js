@@ -58,6 +58,8 @@ function load(opts) {
         // Пример всегда один и тот же: экзамен проверяем, а не генератор.
         generateProblem: (op, level) => ({ text: `${level}0 + 1`, answer: level * 10 + 1, a: level * 10, b: 1 }),
         buildDistractors: () => [1, 2, 3],
+        // Для «÷ 0» игра берёт варианты отсюда, а не из buildDistractors.
+        buildNoSolutionOptions: () => [0, 63, 1],
         OP_LABELS: { add: '➕ Сложение' },
         levelAllowedByAccess: () => o.allowed !== false,
         levelGateApplies: () => o.gated !== false,
@@ -93,7 +95,7 @@ function load(opts) {
     vm.runInContext(EXAM_SRC
         + '\n;globalThis.E = { examOpen, examClose, examAnswer, examRoundOver, examFinish,'
         + ' EXAM_QUESTIONS, EXAM_PASS, EXAM_FAIL, EXAM_SECONDS, EXAM_ROUNDS, EXAM_START_LEVEL,'
-        + ' EXAM_MAX_GRANT,'
+        + ' EXAM_MAX_GRANT, examOptions,'
         + ' get exam() { return exam; }, set exam(v) { exam = v; } };',
         box, { filename: 'index.html<экзамен>' });
     return { E: box.E, box, byId };
@@ -405,6 +407,56 @@ test('одна попытка в день считает только НЕсда
 test('уровень с сервера проверяется, а не берётся на веру', async () => {
     assert(/p_level\s*<\s*0\s*or\s*p_level\s*>\s*5/.test(SQL),
         'сервер примет любую звезду, которую пришлёт устройство');
+});
+
+group('Кнопки ответа');
+
+// Раньше экзамен печатал значения вариантов как есть. На делении это давало
+// кнопку «null» (верный ответ к «63 ÷ 0») и кнопку «NO_SOLUTION» (ловушка):
+// сломанная кнопка стояла в 22% вопросов по делению на 1★.
+const labels = (set) => set.options.map(o => o.label);
+
+test('у «63 ÷ 0» верная кнопка — «Нет решения», а не «null»', async () => {
+    const w = load();
+    // Обычные ловушки деления сами бывают «Нет решения». Возьми их для «÷ 0» —
+    // и на экране окажутся две такие кнопки: одна верная, другая нет.
+    w.box.buildDistractors = () => [4, 'NO_SOLUTION', 56];
+    const set = w.E.examOptions({ text: '63 ÷ 0', answer: null, noSolution: true, a: 63, b: 0 }, 'div', 2);
+    assert(labels(set).indexOf('Нет решения') >= 0, 'нет кнопки «Нет решения»: ' + labels(set).join(' | '));
+    assert(labels(set).indexOf('null') < 0, 'осталась кнопка «null»');
+    eq(labels(set).filter(l => l === 'Нет решения').length, 1, 'кнопок «Нет решения»');
+    const right = set.options.filter(o => o.value === set.correct);
+    eq(right.length, 1, 'верная кнопка одна');
+    eq(right[0].label, 'Нет решения', 'верная кнопка');
+});
+
+test('ловушка «Нет решения» подписана словами и засчитывается ошибкой', async () => {
+    const w = load();
+    w.box.buildDistractors = () => [4, 'NO_SOLUTION', 56];
+    const set = w.E.examOptions({ text: '28 ÷ 2', answer: 14, a: 28, b: 2 }, 'div', 2);
+    assert(labels(set).indexOf('NO_SOLUTION') < 0, 'служебное слово на кнопке');
+    const trap = set.options.filter(o => o.label === 'Нет решения');
+    eq(trap.length, 1, 'ловушка на месте');
+    assert(trap[0].value !== set.correct, 'ловушка не может быть верной');
+});
+
+test('на кнопках нет служебных слов ни в одном вопросе', async () => {
+    const w = load();
+    w.box.buildDistractors = () => [4, 'NO_SOLUTION', 56];
+    [{ answer: 14, a: 28, b: 2 }, { answer: null, noSolution: true, a: 63, b: 0 }].forEach(p => {
+        labels(w.E.examOptions(p, 'div', 2)).forEach(l =>
+            assert(!/^(null|undefined|NaN|NO_SOLUTION)$/.test(l), 'кнопка «' + l + '»'));
+    });
+});
+
+test('в живом вопросе нажатие «Нет решения» засчитано верным', async () => {
+    const w = load();
+    w.box.generateProblem = () => ({ text: '63 ÷ 0', answer: null, noSolution: true, a: 63, b: 0 });
+    await w.E.examOpen('div');
+    const btn = w.byId.examAnswers.children.filter(b => b.innerText === 'Нет решения')[0];
+    assert(btn, 'кнопки «Нет решения» нет на экране');
+    btn.handlers.click();
+    eq(w.E.exam.right, 1, 'верный ответ не засчитан');
 });
 
 (async () => {
