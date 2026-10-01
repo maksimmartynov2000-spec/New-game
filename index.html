@@ -9545,7 +9545,7 @@
             list.forEach(p => {
                 const row = document.createElement('div');
                 row.className = 'list-row' + (p.active ? ' active' : '');
-                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    %1\n                ', p.active ? t('<span class="list-row-badge">Сейчас</span>') : '<button class="list-row-btn">Войти</button>');
+                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    %1\n                ', p.active ? t('<span class="list-row-badge">Сейчас</span>') : '<button class="list-row-btn">' + t('Войти') + '</button>');
                 row.querySelector('.list-row-name').innerText = p.label || t('Без имени');
                 row.querySelector('.list-row-sub').innerText = p.code;
                 if (!p.active) {
