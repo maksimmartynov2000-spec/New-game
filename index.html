@@ -4694,8 +4694,13 @@
 
                 // Прогресс гостя переезжает в новый аккаунт целиком. Если гостем не
                 // играли — заводим обычный пустой профиль.
+                //
+                // Тип — 'solo', а не 'self'. 'self' — это репетитор, которому открыто всё.
+                // Здесь стояло 'self' со времён, когда третьего типа ещё не было, и до
+                // первой удачной синхронизации зарегистрировавшийся ребёнок был
+                // «репетитором»: видел все разделы и все звёзды.
                 if (!Progress.isGuest() || !Progress.adoptGuest(code, pw)) {
-                    Progress.switchTo(code, pw, { accountType: 'self' });
+                    Progress.switchTo(code, pw, { accountType: 'solo' });
                 }
                 if (data.token) Progress.setToken(code, data.token);
 
@@ -9540,7 +9545,7 @@
             list.forEach(p => {
                 const row = document.createElement('div');
                 row.className = 'list-row' + (p.active ? ' active' : '');
-                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    %1\n                ', p.active ? t('<span class="list-row-badge">Сейчас</span>') : '<button class="list-row-btn">Войти</button>');
+                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    %1\n                ', p.active ? t('<span class="list-row-badge">Сейчас</span>') : '<button class="list-row-btn">' + t('Войти') + '</button>');
                 row.querySelector('.list-row-name').innerText = p.label || t('Без имени');
                 row.querySelector('.list-row-sub').innerText = p.code;
                 if (!p.active) {
@@ -10733,6 +10738,10 @@
                     // третье). Без этой пометки разбор сказал бы про «два одинаковых
                     // знака», а на экране у ребёнка их было три.
                     triple: !!(currentProblem && currentProblem.triple),
+                    // И сами три множителя: без них подсказка про десятки в разборе
+                    // сказала бы «Пересчитай −35 × 5» вместо «−5 × 7 × 5».
+                    factors: (currentProblem && Array.isArray(currentProblem.factors))
+                        ? currentProblem.factors.slice() : null,
                     correctVal: correctAnswer,
                     chosenVal: chosen,
                     opKey: meta.opKey || null,
@@ -10774,7 +10783,7 @@
             const m = sessionMistakes.filter(x => x.kind === kind && x.a !== null)[0];
             if (!m) return;
             const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
-                { a: m.a, b: m.b, triple: m.triple }, m.correctVal, m.chosenVal);
+                { a: m.a, b: m.b, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
             if (!text) return;
 
             const box = document.createElement('div');
@@ -10885,7 +10894,7 @@
             const kind = m.isAlmost ? 'не сократил' : (m.kind || null);
             if (!kind) return;
             const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
-                { a: m.a, b: m.b, triple: m.triple }, m.correctVal, m.chosenVal);
+                { a: m.a, b: m.b, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
             if (!text) return;
             const box = document.createElement('div');
             box.className = 'hint-review';

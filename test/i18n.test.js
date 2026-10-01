@@ -286,14 +286,52 @@ test('в списке языков флаг стоит РЯДОМ с назва�
 test('в словарях нет повторяющихся ключей', () => {
     // Дубль не заметен: второй молча перекрывает первый, и одна из двух фраз
     // навсегда остаётся непереведённой. Так уже случалось.
-    ['TR_EN', 'TR_FR', 'TR_DE'].forEach(name => {
-        const head = 'const ' + name + ' = {';
-        const from = D.script.indexOf(head);
-        const to = D.script.indexOf('\n        };', from);
-        const body = D.script.slice(from + head.length, to);
-        const keys = [...body.matchAll(/^\s{12}("(?:[^"\\]|\\.)*")\s*:/gm)].map(m => m[1]);
-        eq(new Set(keys).size, keys.length, `уникальных ключей в ${name} (всего ${keys.length})`);
-    });
+    //
+    // Раньше эта проверка искала словари в index.html (const TR_EN = {…}). Словари
+    // оттуда давно переехали в content/i18n.js, срез стал пустым, и проверка
+    // проходила, ничего не проверяя. За это время набралось по шесть повторов на
+    // язык, и один был виден: в английском выходе гостя кнопка «Всё равно выйти»
+    // говорила по-французски — «Partir quand même».
+    const src = fs.readFileSync(path.join(ROOT, 'content/i18n.js'), 'utf8');
+    const parts = src.split(/\n    (en|fr|de): \{/);
+    const seen = [];
+    for (let i = 1; i < parts.length; i += 2) {
+        const lang = parts[i];
+        seen.push(lang);
+        const keys = [...parts[i + 1].matchAll(/^\s{12}("(?:[^"\\]|\\.)*")\s*:/gm)].map(m => m[1]);
+        assert(keys.length > 500, `[${lang}] ключей ${keys.length} — срез словаря сломался`);
+        const dup = keys.filter((k, j) => keys.indexOf(k) !== j);
+        eq(dup.join(', '), '', `[${lang}] повторяющиеся ключи`);
+    }
+    eq(seen.join(','), 'en,fr,de', 'нашлись не все словари');
+});
+
+test('выход гостя на каждом языке говорит на этом языке', () => {
+    eq(D.en['Всё равно выйти'], 'Sign out anyway', 'английский');
+    eq(D.fr['Всё равно выйти'], 'Partir quand même', 'французский');
+    eq(D.de['Всё равно выйти'], 'Trotzdem abmelden', 'немецкий');
+});
+
+test('все семь дней недели в календаре переведены', () => {
+    // «Пн» и «Пт» из словарей пропали, остальные пять были: в календаре занятий
+    // на английском неделя начиналась с «Пн» и посередине стояла «Пт».
+    const charts = fs.readFileSync(path.join(ROOT, 'js/charts.js'), 'utf8');
+    const m = charts.match(/const WEEKDAY_SHORT = \[([^\]]*)\]/);
+    assert(m, 'не найден список дней недели');
+    const days = m[1].match(/'[^']*'/g).map(x => x.slice(1, -1));
+    eq(days.length, 7, 'дней в неделе');
+    ['en', 'fr', 'de'].forEach(lang => days.forEach(d => {
+        assert(D[lang][d] && !/[А-Яа-яЁё]/.test(D[lang][d]), `[${lang}] «${d}» не переведён`);
+    }));
+});
+
+test('кнопка «Войти» в списке профилей идёт через перевод', () => {
+    // Её видит и ребёнок: два профиля на одном телефоне — обычное дело в семье.
+    const from = D.script.indexOf('function renderProfileList');
+    assert(from >= 0, 'renderProfileList не найдена');
+    const body = D.script.slice(from, D.script.indexOf('\n        }\n', from));
+    assert(!/>Войти</.test(body), 'надпись «Войти» вставлена мимо перевода');
+    assert(/t\('Войти'\)/.test(body), 'кнопка «Войти» не берёт перевод');
 });
 
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);

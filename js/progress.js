@@ -367,6 +367,15 @@ const Progress = (() => {
         // обратно на сервер при следующем flush(), реально портя запись.
         out.profileLabel = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.profileLabel : a.profileLabel) || '';
         out.accountType = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.accountType : a.accountType) || 'self';
+        // Самостоятельный аккаунт слиянием в репетитора не превращается — ни в какую
+        // сторону и ни при каком времени. Законного пути из 'solo' в 'self' нет: ребёнок,
+        // заведший аккаунт сам, репетитором не становится. А незаконный был: сервер
+        // по старой версии session_register ставил 'self', при первой же ничьей по
+        // времени побеждала серверная копия, и ребёнку открывались все разделы и все
+        // звёзды. Так и нашлось — на живом аккаунте, после сотого ответа.
+        if (out.accountType === 'self' && (a.accountType === 'solo' || b.accountType === 'solo')) {
+            out.accountType = 'solo';
+        }
         out.ownerCode = ((b.updatedAt || 0) > (a.updatedAt || 0) ? b.ownerCode : a.ownerCode) || null;
 
         // Настройки — не прогресс, здесь честно побеждает более свежая запись.

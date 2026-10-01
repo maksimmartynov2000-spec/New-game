@@ -240,6 +240,76 @@ test('в базе самостоятельный аккаунт заводитс
         'в колонке account_type осталось значение репетитора');
 });
 
+test('регистрация без гостя заводит самостоятельного, а не репетитора', () => {
+    // Здесь стояло accountType: 'self' — со времён, когда третьего типа ещё не было.
+    // До первой удачной синхронизации ребёнок был «репетитором» и видел всё.
+    const m = HTML.match(/async function doRegister\(\)[\s\S]*?\n        \}\n/);
+    assert(m, 'doRegister не найдена — срез сломался');
+    assert(/switchTo\(code, pw, \{ accountType: 'solo' \}\)/.test(m[0]),
+        'новый аккаунт без гостя заводится не как solo');
+    assert(!/accountType: 'self'/.test(m[0]), 'при регистрации остался тип репетитора');
+});
+
+// Сервер со старой версией session_register: тип в колонке — 'self', и каждое
+// сохранение принудительно ставит его в состояние (pin_identity). Так и было на
+// живой базе: ребёнок проходил гостем до сотого ответа, заводил аккаунт, а после
+// первой синхронизации без новых ответов (ничья по времени — побеждает сервер)
+// становился репетитором. Открывалось всё: разделы и все пять звёзд.
+function pinnedServer(type) {
+    const row = { state: { schema: 2, updatedAt: 0, accountType: type, ownerCode: null } };
+    return {
+        row,
+        driver: {
+            async read() { return JSON.parse(JSON.stringify(row.state)); },
+            async write(code, auth, st) {
+                const copy = JSON.parse(JSON.stringify(st));
+                copy.accountType = type; copy.ownerCode = null;
+                row.state = copy;
+            },
+            writeKeepalive() { return true; }
+        }
+    };
+}
+
+test('сервер со старым «self» не делает из ребёнка репетитора (через гостя)', async () => {
+    const { P } = loadProgress();
+    P.startGuest();
+    for (let i = 0; i < 100; i++) P.recordAnswer('integer+:add:1', 'correct', 1500);
+    P.adoptGuest('MASHA', 'secret12');
+    P.setToken('MASHA', 'tok');
+    P.attachRemote(pinnedServer('self').driver);
+    await P.flush(true);       // первая: локальная копия новее — побеждает она
+    await P.flush(true);       // вторая: ничья — раньше здесь побеждал сервер
+    await P.flush(true);
+    eq(P.getAccountType(), 'solo', 'после синхронизаций ребёнок стал репетитором');
+});
+
+test('сервер со старым «self» не делает из ребёнка репетитора (без гостя)', async () => {
+    const { P } = loadProgress();
+    P.switchTo('PETYA', 'secret12', { accountType: 'solo' });
+    P.setToken('PETYA', 'tok');
+    P.attachRemote(pinnedServer('self').driver);
+    await P.flush(true);
+    P.recordAnswer('integer+:add:1', 'correct', 1500);
+    await P.flush(true);
+    await P.flush(true);
+    eq(P.getAccountType(), 'solo', 'после синхронизаций ребёнок стал репетитором');
+});
+
+test('слияние: самостоятельный не становится репетитором ни в какую сторону', () => {
+    const { P } = loadProgress();
+    const st = (type, at) => ({ schema: 2, updatedAt: at, accountType: type, ownerCode: null });
+    [[1, 1], [1, 2], [2, 1]].forEach(([x, y]) => {
+        eq(P._merge(st('solo', x), st('self', y)).accountType, 'solo', `solo@${x} + self@${y}`);
+        eq(P._merge(st('self', x), st('solo', y)).accountType, 'solo', `self@${x} + solo@${y}`);
+    });
+    // А репетитор остаётся репетитором, и ученик — учеником: правило «свежее
+    // побеждает» для них прежнее.
+    eq(P._merge(st('self', 1), st('self', 2)).accountType, 'self', 'репетитор потерял свой тип');
+    eq(P._merge(st('self', 0), st('linked', 0)).accountType, 'self', 'ничья: сервер (первый) побеждает');
+    eq(P._merge(st('linked', 0), st('self', 0)).accountType, 'linked', 'ничья: ученик с сервера затёрт заготовкой');
+});
+
 test('регистрация открывается поверх профиля, а не под ним', () => {
     // Было: у профиля z-index 230, у регистрации 211. Кнопка «Сохранить прогресс»
     // выглядела мёртвой, а при закрытии профиля из-под него появлялась форма.
