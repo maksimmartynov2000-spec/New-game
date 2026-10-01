@@ -4694,8 +4694,13 @@
 
                 // Прогресс гостя переезжает в новый аккаунт целиком. Если гостем не
                 // играли — заводим обычный пустой профиль.
+                //
+                // Тип — 'solo', а не 'self'. 'self' — это репетитор, которому открыто всё.
+                // Здесь стояло 'self' со времён, когда третьего типа ещё не было, и до
+                // первой удачной синхронизации зарегистрировавшийся ребёнок был
+                // «репетитором»: видел все разделы и все звёзды.
                 if (!Progress.isGuest() || !Progress.adoptGuest(code, pw)) {
-                    Progress.switchTo(code, pw, { accountType: 'self' });
+                    Progress.switchTo(code, pw, { accountType: 'solo' });
                 }
                 if (data.token) Progress.setToken(code, data.token);
 
