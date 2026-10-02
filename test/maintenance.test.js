@@ -60,7 +60,8 @@ function load(flag, opts) {
     box.globalThis = box;
     vm.createContext(box);
     vm.runInContext(
-        slice('// ===================== ТЕХНИЧЕСКИЕ РАБОТЫ', '        // ===================== ЗАДАНИЯ ДНЯ И НЕДЕЛИ', 'работы')
+        require('./app-source').i18nHelpers()
+        + slice('// ===================== ТЕХНИЧЕСКИЕ РАБОТЫ', '        // ===================== ЗАДАНИЯ ДНЯ И НЕДЕЛИ', 'работы')
         + '\n;globalThis.M = { maintenanceActive, maintenanceLeftMs, maintenanceWaitText,'
         + ' renderMaintenance, renderMaintenanceClock };',
         box, { filename: 'index.html<технические работы>' });

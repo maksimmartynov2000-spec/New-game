@@ -63,7 +63,8 @@ function load(topics) {
     box.globalThis = box;
     vm.createContext(box);
     vm.runInContext(
-        slice('function parseTopicKey(key) {', '// Ключ для ОТОБРАЖЕНИЯ', 'разбор ключа')
+        require('./app-source').i18nHelpers()
+        + slice('function parseTopicKey(key) {', '// Ключ для ОТОБРАЖЕНИЯ', 'разбор ключа')
         + slice('// ===================== БЛИЖАЙШАЯ ЦЕЛЬ', '        // ===================== СВОРАЧИВАЕМЫЕ', 'ближайшая цель')
         + '\n;globalThis.G = { nearestLadderGoal, nearestGoalText, heroDetailLines };',
         box, { filename: 'index.html<ближайшая цель>' });

@@ -51,7 +51,8 @@ function loadReport() {
     const days = slice('// Сколько примеров решено в каждый день периода',
                        '// Календарь по неделям', 'дни занятий');
     // Остальное лежит по файлу врозь и подтягивается по кусочку.
-    const plur = slice('function pluralStudents(n)', 'function lastSeenText(iso)', 'склонения')
+    // Склонение — общее, из js/i18n.js: plural() и num().
+    const plur = require('./app-source').i18nHelpers()
                + slice('function pluralDaysWord(n)', '\n\n', 'склонение дней');
     const parse = slice('function parseTopicKey(key)', '// Ключ для ОТОБРАЖЕНИЯ', 'parseTopicKey');
     const acc = slice('function accuracyPct(correct, wrong, minAttempts)',
@@ -68,7 +69,9 @@ function loadReport() {
              + `-${String(dt.getDate()).padStart(2, '0')}`;
     };
     const sandbox = { console, Math, Number, Object, Array, String, JSON, Set, Map, Date, isNaN,
-                      t: (x) => x, tf: (x) => x, LEVEL_GATE_TIER: 3,
+                      t: (x) => x,
+                      tf: function (x) { let r = x; for (let i = 1; i < arguments.length; i++) r = r.split('%' + i).join(String(arguments[i])); return r; },
+                      LEVEL_GATE_TIER: 3,
                       Progress: { dayKey } };
     sandbox.globalThis = sandbox;
     vm.createContext(sandbox);
@@ -86,7 +89,7 @@ function loadReport() {
         + '\n;globalThis.PARENT_ACC_MIN_DELTA = PARENT_ACC_MIN_DELTA;'
         + '\n;globalThis.PARENT_SILENCE_MIN = PARENT_SILENCE_MIN;'
         + '\n;globalThis.pluralDays = pluralDaysWord;'
-        + '\n;globalThis.pluralStudents = pluralStudents;',
+        + '\n;globalThis.plural = plural;',
         sandbox, { filename: 'index.html<report>' });
     return sandbox;
 }
@@ -627,12 +630,14 @@ test('склонение дней не падает и склоняет верн
     eq(R.pluralDays(111), 'дней', '111');
 });
 
-test('pluralStudents не падает и склоняет верно', () => {
-    eq(R.pluralStudents(1), 'ученик', '1');
-    eq(R.pluralStudents(3), 'ученика', '3');
-    eq(R.pluralStudents(7), 'учеников', '7');
-    eq(R.pluralStudents(12), 'учеников', '12');
-    eq(R.pluralStudents(21), 'ученик', '21');
+test('склонение учеников идёт через общее plural и верно по-русски', () => {
+    // Своих pluralStudents/pluralLogins больше нет: всё через plural() из js/i18n.js.
+    const st = n => R.plural(n, '%1 ученик', '%1 ученика', '%1 учеников').replace('%1', n);
+    eq(st(1), '1 ученик', '1');
+    eq(st(3), '3 ученика', '3');
+    eq(st(7), '7 учеников', '7');
+    eq(st(12), '12 учеников', '12');
+    eq(st(21), '21 ученик', '21');
 });
 
 test('склонения не зовут наружу ничего — только возвращают строку', () => {
@@ -640,7 +645,7 @@ test('склонения не зовут наружу ничего — толь�
     // любой вызов бросит TypeError, и этот прогон по всем остаткам это покажет.
     for (let n = 0; n <= 120; n++) {
         assert(typeof R.pluralDays(n) === 'string', `pluralDays(${n}) вернул не строку`);
-        assert(typeof R.pluralStudents(n) === 'string', `pluralStudents(${n}) вернул не строку`);
+        assert(typeof R.plural(n, 'а', 'б', 'в') === 'string', `plural(${n}) вернул не строку`);
     }
 });
 

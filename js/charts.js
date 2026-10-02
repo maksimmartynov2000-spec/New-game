@@ -65,12 +65,9 @@ function daysSummary(counts) {
              perDay: Math.round(total / active.length) };
 }
 
+// Слово при числе — через plural() из js/i18n.js: правило у каждого языка своё.
 function pluralDaysWord(n) {
-    const d100 = n % 100, d10 = n % 10;
-    if (d100 >= 11 && d100 <= 14) return t('дней');
-    if (d10 === 1) return t('день');
-    if (d10 >= 2 && d10 <= 4) return t('дня');
-    return t('дней');
+    return plural(n, 'день', 'дня', 'дней');
 }
 
 // Календарь по неделям: столбцы Пн–Вс, строки — недели. Пропуски читаются как

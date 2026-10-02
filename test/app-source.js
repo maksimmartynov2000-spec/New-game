@@ -30,4 +30,21 @@ function appScript(html) {
         + '\n' + inlineScript(html);
 }
 
-module.exports = { ROOT, CODE_FILES, appScript, inlineScript };
+// Склонение и числа из js/i18n.js — для песочниц, которые вырезают куски кода и
+// без этого не знают plural() и num(). Код берётся настоящий, а не переписанный:
+// разойдись копия с оригиналом, и тесты проверяли бы не то, что видит ученик.
+// Язык — тот, что уже задан в песочнице (LANG), иначе русский.
+function i18nHelpers() {
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'i18n.js'), 'utf8');
+    const pick = (a, b) => {
+        const from = src.indexOf(a), to = src.indexOf(b, from + 1);
+        if (from < 0 || to < 0) throw new Error(`в js/i18n.js не найдено: ${a}`);
+        return src.slice(from, to);
+    };
+    return 'var LANG = (typeof LANG === "undefined") ? "ru" : LANG;\n'
+        + pick('const LANGS = [', '// Словари лежат').replace('const LANGS', 'var LANGS')
+        + pick('function plural(', '// Разделитель дробной части')
+        + src.slice(src.indexOf('function num('));
+}
+
+module.exports = { ROOT, CODE_FILES, appScript, inlineScript, i18nHelpers };
