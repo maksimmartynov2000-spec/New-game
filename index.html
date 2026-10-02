@@ -397,6 +397,13 @@
             opacity: 0.4; pointer-events: none; transition: opacity 0.2s ease;
         }
         .btn-config-continue.ready { opacity: 1; pointer-events: auto; }
+        /* Пробный экзамен — только у репетитора. Нарочно тише «Начать миссию»: это
+           проверка, а не игра, и спутать две кнопки нельзя. */
+        .btn-config-trial {
+            width: 100%; max-width: 450px; background: transparent;
+            border: 1px dashed rgba(255,255,255,0.35); color: rgba(255,255,255,0.85);
+            padding: 11px; font-size: 0.92rem; border-radius: 12px; margin-top: 10px; cursor: pointer;
+        }
 
         .category-select-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .btn-category {
@@ -2638,6 +2645,9 @@
                 </button>
             </div>
             <button class="btn-config-continue" id="btnConfigContinue" onclick="finishConfig()">🚀 Начать миссию</button>
+            <!-- Только у репетитора и только на целых: проверить экзамен в разделе, где
+                 он ещё ничего не открывает (см. EXAM_SECTIONS). -->
+            <button class="btn-config-trial" id="btnTrialExam" hidden onclick="startTrialExam()">🎓 Пробный экзамен</button>
         </div>
     </div>
 
@@ -3229,6 +3239,31 @@
             const allHaveDifficulty = selectedOps.length > 0 && selectedOps.every(op => exampleConfig.operations[op] !== null);
             const valid = !!exampleConfig.category && !!exampleConfig.numberType && allHaveDifficulty;
             if (valid) btn.classList.add('ready'); else btn.classList.remove('ready');
+            updateTrialExamButton();
+        }
+
+        // Пробный экзамен. Репетитор видит все звёзды открытыми, и настоящий экзамен ему
+        // не предлагается никогда: открывать нечего. А проверить экзамен до того, как
+        // раздел откроют ученикам, нужно — отсюда пробный: те же примеры, ловушки и
+        // правила, результат никуда не уходит.
+        const EXAM_OPS = ['add', 'sub', 'mul', 'div'];
+        function examTrialAllowed() {
+            return Progress.getAccountType() === 'self' && !Progress.isGuest();
+        }
+        function trialExamTarget() {
+            const ops = Object.keys(exampleConfig.operations || {});
+            if (!examTrialAllowed() || exampleConfig.category !== 'integer' || !exampleConfig.numberType) return null;
+            if (ops.length !== 1 || EXAM_OPS.indexOf(ops[0]) < 0) return null;
+            return { op: ops[0], secKey: sectionKeyOf(exampleConfig.category, exampleConfig.numberType) };
+        }
+        function updateTrialExamButton() {
+            const btn = document.getElementById('btnTrialExam');
+            if (btn) btn.hidden = !trialExamTarget();
+        }
+        function startTrialExam() {
+            const target = trialExamTarget();
+            if (!target) return;
+            examOpen(target.op, target.secKey, { trial: true });
         }
 
         // ===================== РЕЖИМ ОБУЧЕНИЯ =====================
@@ -6742,7 +6777,7 @@
             // третья звезда, а проверки уровня здесь не было вовсе: ребёнок нажимал
             // 4★, ему предлагали экзамен, он его сдавал — и 4★ не открывалась.
             // Обещание, которое не может сбыться.
-            const canExam = gated && secKey === EXAM_SECTION && levelGateApplies()
+            const canExam = gated && EXAM_SECTIONS.indexOf(secKey) >= 0 && levelGateApplies()
                             && Number(level) <= EXAM_MAX_GRANT;
             const opName = (OP_LABELS[op] || op).replace(/^\S+\s/, '').toLowerCase();
 
@@ -6764,7 +6799,7 @@
                 okText: t('Пройти экзамен'),
                 cancelText: t('Не сейчас')
             });
-            if (go) await examOpen(op);
+            if (go) await examOpen(op, secKey);
         }
 
         // Список попыток экзамена — только на чужом экране, у репетитора. Ученику он
@@ -6782,7 +6817,9 @@
             list.forEach(row => {
                 const el = document.createElement('div');
                 el.className = 'exam-log-row';
-                const name = (OP_LABELS[row.op] || row.op).replace(/^\S+\s/, '');
+                const opName = (OP_LABELS[row.op] || row.op).replace(/^\S+\s/, '');
+                const sec = row.section && row.section !== 'integer+' ? parseSectionKey(row.section) : null;
+                const name = sec ? `${categoryLabel(sec.category, sec.numberType === 'negative' ? '-' : '+')} · ${opName}` : opName;
                 el.innerText = row.passed
                     ? tf('%1 — открыто до %2★, %3', name, row.level, formatDayKeyHuman((row.takenAt || '').slice(0, 10)))
                     : tf('%1 — не сдал, %2', name, formatDayKeyHuman((row.takenAt || '').slice(0, 10)));
@@ -6814,10 +6851,17 @@
         // Здесь не вызывается НИ ОДНА функция записи — поэтому экзамен физически не
         // может попасть в статистику.
         //
-        // Только положительные целые. В остальных разделах доступ ограничивает ещё и
-        // само разрешение раздела, а его выдаёт репетитор: это его решение, а не вопрос
-        // умения. См. шапку supabase/exam.sql.
-        const EXAM_SECTION = 'integer+';
+        // Разделы, где экзамен ОТКРЫВАЕТ звёзды. Только те, что открыты всем: там звёзды
+        // закрывает одно золото, и экзамен лишь дописывает сданные. В разделе, который
+        // открывает репетитор, доступ — его решение, а не вопрос умения, и записать туда
+        // «раздел открыт, а звёзды до 3★ сданы» сервер не умеет. См. шапку
+        // supabase/exam.sql.
+        //
+        // Отрицательные добавятся сюда в тот день, когда их откроют всем, и ровно тем
+        // же движением — в exam_sections() на сервере (supabase/exam-sections.sql).
+        // Сам экзамен на них уже готов: до открытия его видит только репетитор, как
+        // пробный (examOpen с trial), и пробный ничего не открывает и не записывает.
+        const EXAM_SECTIONS = ['integer+'];
         const EXAM_QUESTIONS = 6;      // примеров в одном заходе
         const EXAM_PASS = 5;           // сколько нужно верных, чтобы шагнуть вверх
         const EXAM_FAIL = 3;           // столько и меньше — шаг вниз
@@ -6865,19 +6909,29 @@
             } catch (e) { return false; }
         }
 
-        async function examOpen(op) {
+        // secKey — раздел экзамена. Пробный (opts.trial) — только для репетитора: тот же
+        // экзамен, те же примеры и правила, но результат никуда не уходит. Связь ему
+        // поэтому не нужна.
+        async function examOpen(op, secKey, opts) {
             if (maintenanceActive()) { renderMaintenance(); return; }
+            const section = secKey || EXAM_SECTIONS[0];
+            const trial = !!(opts && opts.trial);
+            // Настоящий экзамен — только там, где он открывает звёзды. Закрытая дверь
+            // здесь дублирует ту, что в openLockedStar, и стоит на случай нового пути сюда.
+            if (!trial && EXAM_SECTIONS.indexOf(section) < 0) return;
+            if (trial && !examTrialAllowed()) return;
             // Проверка обычно мгновенная, но на плохой связи тянется до шести секунд —
             // и всё это время экран не меняется. Говорим, что происходит.
-            showToast(t('Проверяем связь…'));
-            if (!(await examOnline())) {
+            if (!trial) showToast(t('Проверяем связь…'));
+            if (!trial && !(await examOnline())) {
                 await showNotice({
                     title: t('Экзамен нужен со связью'),
                     text: t('Результат экзамена открывает звёзды, а для этого нужен интернет. Сейчас связи нет — попробуй, когда она появится. Попытка не потрачена.')
                 });
                 return;
             }
-            exam = { op, level: EXAM_START_LEVEL, round: 0, asked: 0, right: 0,
+            exam = { op, section, negative: section.slice(-1) === '-', trial,
+                     level: EXAM_START_LEVEL, round: 0, asked: 0, right: 0,
                      best: 0, low: 1, high: EXAM_MAX_GRANT, problem: null, answer: null,
                      timer: null, left: EXAM_SECONDS, done: false };
             document.getElementById('examScreen').style.display = 'flex';
@@ -6906,17 +6960,18 @@
         function examNextQuestion() {
             if (exam.asked >= EXAM_QUESTIONS) { examRoundOver(); return; }
             exam.asked++;
-            const problem = generateProblem(exam.op, exam.level, false);
+            const problem = generateProblem(exam.op, exam.level, exam.negative);
             exam.problem = problem;
             exam.answer = problem.answer;
 
             document.getElementById('examStep').innerText =
-                tf('%1★ · пример %2 из %3', exam.level, exam.asked, EXAM_QUESTIONS);
+                (exam.trial ? t('Пробный · ') : '')
+                + tf('%1★ · пример %2 из %3', exam.level, exam.asked, EXAM_QUESTIONS);
             document.getElementById('examQuestion').innerText = problem.text + ' = ?';
 
             const grid = document.getElementById('examAnswers');
             grid.innerHTML = '';
-            const set = examOptions(problem, exam.op, exam.level);
+            const set = examOptions(problem, exam.op, exam.level, exam.negative);
             set.options.forEach(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'btn-answer';
@@ -6936,11 +6991,15 @@
         // примеры деления генератор кладёт ловушку «Нет решения», и экзамен
         // показывал её служебным словом «NO_SOLUTION». Замер: сломанная кнопка
         // стояла в 22% вопросов по делению на 1★, 12% на 2★ и 8% на 3★.
-        function examOptions(problem, op, level) {
+        //
+        // negative — раздел отрицательных: ловушки у них свои (зеркало ответа, промах
+        // знаком), и строить их положительными значило бы экзаменовать не тот раздел.
+        function examOptions(problem, op, level, negative) {
+            const neg = !!negative;
             const correct = problem.noSolution ? 'NO_SOLUTION' : problem.answer;
             const wrong = problem.noSolution
-                ? buildNoSolutionOptions(problem.a, false)
-                : buildDistractors(op, problem.a, problem.b, problem.answer, false, 3, level);
+                ? buildNoSolutionOptions(problem.a, neg)
+                : buildDistractors(op, problem.a, problem.b, problem.answer, neg, 3, level);
             const values = wrong.concat([correct]);
             // Перемешиваем, иначе верный ответ всегда стоял бы последним.
             for (let i = values.length - 1; i > 0; i--) {
@@ -7023,6 +7082,16 @@
             note.innerText = '';
             note.style.display = 'none';
 
+            // Пробный экзамен никуда не пишет: ни звёзд, ни попытки дня. Говорим это
+            // прямо, иначе «до 3★» читается как открытые звёзды.
+            if (exam.trial) {
+                cap.innerText = level
+                    ? tf('🎓 Пробный: %1★', level)
+                    : t('🎓 Пробный: не сдан');
+                text.innerText = t('Это проверка: ничего не открыто и не записано. У ученика здесь был бы такой же результат.');
+                return;
+            }
+
             const saved = await examSave(level);
             if (saved.error) {
                 // Результат называем — он честно заработан и был виден по ходу, — но
@@ -7051,7 +7120,12 @@
         // на устройстве стёрлось бы первой же синхронизацией.
         async function examSave(level) {
             if (!supabaseClient) return { error: t('Нет связи — результат не сохранён.') };
-            const res = await callAuthed('session_take_exam', { p_op: exam.op, p_level: level });
+            // Раздел передаём, только когда он не «Положительные». Так новое приложение
+            // работает и со старой базой: там функция с тремя параметрами и раздел
+            // зашит внутри. С четырьмя её узнаёт только supabase/exam-sections.sql.
+            const args = { p_op: exam.op, p_level: level };
+            if (exam.section !== 'integer+') args.p_section = exam.section;
+            const res = await callAuthed('session_take_exam', args);
             if (res.error || !res.data || !res.data.ok) {
                 // Ученику про сервер и тем более про SQL знать нечего: он не может ни
                 // того, ни другого. Раньше на этом месте ребёнку предлагалось запустить

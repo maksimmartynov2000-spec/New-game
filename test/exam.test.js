@@ -56,10 +56,13 @@ function load(opts) {
         clearTimeout: () => {},
         Promise,
         // Пример всегда один и тот же: экзамен проверяем, а не генератор.
-        generateProblem: (op, level) => ({ text: `${level}0 + 1`, answer: level * 10 + 1, a: level * 10, b: 1 }),
-        buildDistractors: () => [1, 2, 3],
+        generateProblem: (op, level, neg) => { box.genNeg = (box.genNeg || []).concat(!!neg);
+                                               return { text: `${level}0 + 1`, answer: level * 10 + 1, a: level * 10, b: 1 }; },
+        buildDistractors: (op, a, b, ans, neg) => { box.decoyNeg = (box.decoyNeg || []).concat(!!neg); return [1, 2, 3]; },
         // Для «÷ 0» игра берёт варианты отсюда, а не из buildDistractors.
-        buildNoSolutionOptions: () => [0, 63, 1],
+        buildNoSolutionOptions: (a, neg) => { box.decoyNeg = (box.decoyNeg || []).concat(!!neg); return [0, 63, 1]; },
+        // Пробный экзамен — только у репетитора. o.notTutor изображает ученика.
+        examTrialAllowed: () => !o.notTutor,
         OP_LABELS: { add: '➕ Сложение' },
         levelAllowedByAccess: () => o.allowed !== false,
         levelGateApplies: () => o.gated !== false,
@@ -95,7 +98,7 @@ function load(opts) {
     vm.runInContext(EXAM_SRC
         + '\n;globalThis.E = { examOpen, examClose, examAnswer, examRoundOver, examFinish,'
         + ' EXAM_QUESTIONS, EXAM_PASS, EXAM_FAIL, EXAM_SECONDS, EXAM_ROUNDS, EXAM_START_LEVEL,'
-        + ' EXAM_MAX_GRANT, examOptions,'
+        + ' EXAM_MAX_GRANT, EXAM_SECTIONS, examOptions,'
         + ' get exam() { return exam; }, set exam(v) { exam = v; } };',
         box, { filename: 'index.html<экзамен>' });
     return { E: box.E, box, byId };
@@ -304,7 +307,7 @@ test('экзамен предлагается только когда дело �
     // а не вопрос умения.
     const body = slice('async function openLockedStar', 'ВВОДНЫЙ ЭКЗАМЕН', 'панель звезды');
     assert(/levelAllowedByAccess/.test(body), 'панель не отличает ворота от невыданной звезды');
-    assert(/EXAM_SECTION/.test(body), 'экзамен предлагается вне положительных целых');
+    assert(/EXAM_SECTIONS\.indexOf\(secKey\)/.test(body), 'экзамен предлагается вне разделов, где он открывает звёзды');
 });
 
 test('экзамен не предлагается там, где он не поможет', async () => {
@@ -457,6 +460,93 @@ test('в живом вопросе нажатие «Нет решения» за
     assert(btn, 'кнопки «Нет решения» нет на экране');
     btn.handlers.click();
     eq(w.E.exam.right, 1, 'верный ответ не засчитан');
+});
+
+group('Экзамен по разделам');
+
+// Сдать два захода по 6 из 6 и третий на 5 из 6 — потолок 3★.
+async function passToCap(w) {
+    answerRound(w.E, 6); answerRound(w.E, 6);
+    await new Promise(r => setImmediate(r));
+}
+
+test('разделы, где экзамен открывает звёзды, одни и те же в приложении и в базе', async () => {
+    // Включение отрицательных — одно движение в двух местах. Разойдутся списки —
+    // либо приложение предложит экзамен, который база не примет, либо база
+    // примет то, чего приложение никогда не пошлёт.
+    const SQL2 = fs.readFileSync(path.join(ROOT, 'supabase', 'exam-sections.sql'), 'utf8');
+    const m = SQL2.match(/function exam_sections\(\)[\s\S]*?array\[([^\]]*)\]/);
+    assert(m, 'в exam-sections.sql не найден список разделов');
+    const inDb = m[1].match(/'[^']*'/g).map(x => x.slice(1, -1));
+    const w = load();
+    eq(JSON.stringify([...w.E.EXAM_SECTIONS]), JSON.stringify(inDb), 'списки разделов разошлись');
+});
+
+test('пока отрицательные не открыты всем, настоящего экзамена на них нет', async () => {
+    // Решение репетитора: отрицательные открываются ученикам только готовыми.
+    // В тот день эта проверка поменяется вместе со списком — и это правильно.
+    const w = load();
+    eq(w.E.EXAM_SECTIONS.indexOf('integer-'), -1, 'отрицательные уже в списке экзамена');
+    await w.E.examOpen('add', 'integer-');
+    eq(w.E.exam, null, 'настоящий экзамен на отрицательных начался');
+});
+
+test('пробный экзамен на отрицательных строит отрицательные примеры и ловушки', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer-', { trial: true });
+    assert(w.E.exam && w.E.exam.trial, 'пробный экзамен не начался');
+    assert(w.box.genNeg.length && w.box.genNeg.every(x => x), 'примеры строятся положительными');
+    assert(w.box.decoyNeg.length && w.box.decoyNeg.every(x => x), 'ловушки строятся положительными');
+});
+
+test('на положительных примеры и ловушки остались положительными', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+');
+    assert(w.box.genNeg.every(x => !x), 'положительный экзамен получил отрицательные примеры');
+    assert(w.box.decoyNeg.every(x => !x), 'положительный экзамен получил отрицательные ловушки');
+});
+
+test('пробный экзамен ничего не отправляет и прямо говорит, что ничего не открыл', async () => {
+    const w = load();
+    await w.E.examOpen('mul', 'integer-', { trial: true });
+    await passToCap(w);
+    const calls = w.box.calls || [];
+    eq(calls.join(','), '', 'пробный экзамен ходил на сервер');
+    assert(/Пробный: 3★/.test(w.byId.examResultCap.innerText), 'итог: ' + w.byId.examResultCap.innerText);
+    assert(/ничего не открыто/.test(w.byId.examResultText.innerText), 'не сказано, что ничего не открыто');
+    assert(!/Открыто до/.test(w.byId.examResultCap.innerText), 'пробный обещает открытые звёзды');
+});
+
+test('пробный экзамен только у репетитора', async () => {
+    const w = load({ notTutor: true });
+    await w.E.examOpen('add', 'integer-', { trial: true });
+    eq(w.E.exam, null, 'ученик запустил пробный экзамен');
+});
+
+test('на положительных сохранение зовёт старую дверь, без раздела', async () => {
+    // Так новое приложение работает и с базой, где exam-sections.sql ещё не запущен.
+    const w = load();
+    await w.E.examOpen('add', 'integer+');
+    await passToCap(w);
+    eq(w.box.sent.fn, 'session_take_exam', 'результат ушёл не туда');
+    assert(!('p_section' in w.box.sent.args), 'на положительных передан раздел: ' + JSON.stringify(w.box.sent.args));
+});
+
+test('в другом разделе сохранение передаёт раздел', async () => {
+    // Список пока из одних положительных — расширяем его прямо в песочнице.
+    const w = load();
+    w.E.EXAM_SECTIONS.push('integer-');
+    await w.E.examOpen('add', 'integer-');
+    await passToCap(w);
+    eq(w.box.sent.args.p_section, 'integer-', 'раздел не передан');
+});
+
+test('кнопка пробного экзамена видна только репетитору и только на одном действии целых', () => {
+    const body = slice('function examTrialAllowed', 'function startTrialExam', 'пробный экзамен');
+    assert(/getAccountType\(\) === 'self'/.test(body), 'пробный экзамен не ограничен репетитором');
+    assert(/isGuest\(\)/.test(body), 'гость мог бы увидеть пробный экзамен');
+    assert(/category !== 'integer'/.test(body), 'пробный экзамен предлагается не на целых');
+    assert(/ops\.length !== 1/.test(body), 'пробный экзамен — на нескольких действиях сразу');
 });
 
 (async () => {
