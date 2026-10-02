@@ -36,11 +36,14 @@ function slice(a, b) {
     return SCRIPT.slice(from, to);
 }
 
-const box = { console, Math, Number, Object, Array, String, JSON, Date, BACKUP_FORMAT: 1 };
+const box = { console, Math, Number, Object, Array, String, JSON, Date, BACKUP_FORMAT: 1,
+              t: (x) => x,
+              tf: function (x) { let r = x; for (let i = 1; i < arguments.length; i++) r = r.split('%' + i).join(String(arguments[i])); return r; } };
 box.globalThis = box;
 vm.createContext(box);
 vm.runInContext(
-    slice('function backupSummary(state)', 'async function importAllProgress')
+    require('./app-source').i18nHelpers()
+    + slice('function backupSummary(state)', 'async function importAllProgress')
     + '\n;globalThis.B = { parseBackup, backupSummary };',
     box, { filename: 'index.html<копия>' });
 const B = box.B;
@@ -110,7 +113,8 @@ test('в подтверждении названы имена и числа до
     // «Восстановил, и стало меньше» не должно быть неожиданностью: копия может быть
     // старее того, что на сервере, и увидеть это надо ДО замены, а не после.
     const body = slice('async function importAllProgress', 'async function exportAllProgress');
-    assert(/сейчас \$\{x\.before\}/.test(body) && /станет \$\{x\.after\}/.test(body),
+    // Строка собирается шаблоном перевода: «%1: сейчас %2 верных → станет %3».
+    assert(/сейчас %2 верных → станет %3', x\.label, x\.before, x\.after/.test(body),
         'в подтверждении нет чисел «сейчас» и «станет»');
 });
 

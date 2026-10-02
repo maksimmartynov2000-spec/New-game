@@ -4431,10 +4431,10 @@
             const { data, error } = await callAuthed(
                 'session_student_access', { p_student_code: studentCode });
             if (error || !data || !data.ok) {
-                // Экран репетитора, и подсказка адресована ему: он единственный, кто может
-                // запустить недостающий файл. Поэтому она нарочно НЕ идёт через t() —
-                // переводить её некому и незачем, а t() означает «это увидит ученик».
-                showToast(error ? 'Нужно запустить supabase/student-access.sql в Supabase.'
+                // Имя файла — в консоль, как у экзамена: на экране слова «SQL» и
+                // «Supabase» не место, а тот, кто будет чинить базу, откроет консоль.
+                if (error) console.warn('Доступ ученика: функции нет в базе. Запусти supabase/student-access.sql.');
+                showToast(error ? t('Эта часть ещё не включена на сервере.')
                                 : t('Не удалось прочитать доступ ученика.'), 'error');
                 return;
             }
@@ -5814,47 +5814,50 @@
         const PARENT_MAX_ITEMS = 2;          // сколько тем перечисляем поимённо, дальше «и ещё N»
 
         // Названия тем словами, а не подписями из интерфейса: «Положительные · Сложение»
-        // с точкой посередине — это вёрстка, а не русский язык.
+        // с точкой посередине — это вёрстка, а не язык. Всё через t(): сообщение пишется
+        // на языке приложения, и репетитор отправляет его родителям как есть.
         const PARENT_OP_WORDS = {
             add: 'сложение', sub: 'вычитание', mul: 'умножение', div: 'деление',
             simplify: 'сокращение дробей', toMixed: 'перевод дробей',
             toImproper: 'перевод дробей', fracOfNumber: 'дробь от числа'
         };
+        // Раздел — сразу в том падеже и с тем предлогом, в каком он стоит после
+        // действия: «сложение положительных чисел», «addition of positive numbers».
         const PARENT_CAT_WORDS = {
             'integer+': 'положительных чисел', 'integer-': 'отрицательных чисел',
             'decimal+': 'десятичных дробей', 'fraction+': 'дробей'
         };
-        // Ступени и лесенки — строчными и в том падеже, в каком они стоят в предложении.
-        // Свои строки, а не TIER_NAMES/LADDERS: те заглавные и переводятся, а тут русская
-        // проза, которую собирают из кусков.
+        // У особых действий дробей предмет уже назван («сокращение дробей»), раздел к
+        // ним не приписываем. Раньше это решалось поиском слова «дробей» внутри
+        // действия — по-русски, и у «дроби от числа» не срабатывало: выходило
+        // «дробь от числа дробей». В других языках такой поиск не работал бы вовсе.
+        const PARENT_OP_HAS_SUBJECT = { simplify: true, toMixed: true, toImproper: true, fracOfNumber: true };
+        // Ступени и лесенки — строчными и в том виде, в каком они стоят в предложении.
+        // Свои строки, а не TIER_NAMES/LADDERS: те — заголовки, а тут проза.
         const PARENT_TIER_WORDS = ['', 'бронза', 'серебро', 'золото', 'алмаз', 'легенда'];
         const PARENT_LADDER_WORDS = { s: 'по скорости', a: 'по точности', c: 'по количеству' };
         // Порядок перечисления фиксирован, а не «как легло в объект»: иначе одна и та же
         // награда у двух учеников описывалась бы разными по порядку словами.
         const PARENT_LADDER_ORDER = ['a', 's', 'c'];
 
-        // «A», «A и B», «A, B и C» — перечисление по-русски, а не через запятую до конца.
+        // «A», «A и B», «A, B и C» — союз на языке приложения.
         function joinRu(items) {
             if (items.length <= 1) return items[0] || '';
-            return items.slice(0, -1).join(', ') + ' и ' + items[items.length - 1];
+            return items.slice(0, -1).join(', ') + t(' и ') + items[items.length - 1];
         }
 
-        function parentPlural(n, one, few, many) {
-            const d100 = n % 100, d10 = n % 10;
-            if (d100 >= 11 && d100 <= 14) return many;
-            if (d10 === 1) return one;
-            if (d10 >= 2 && d10 <= 4) return few;
-            return many;
-        }
-
-        // «сложение положительных чисел, 1★». У дробей действие уже называет предмет
-        // («сокращение дробей»), и приписывать к нему ещё раз «дробей» незачем.
+        // «сложение положительных чисел, 1★».
         function parentTopicWords(key) {
             const p = parseTopicKey(key);
-            const op = PARENT_OP_WORDS[p.op] || p.op;
-            const cat = PARENT_CAT_WORDS[`${p.category}${p.sign || '+'}`] || '';
-            const full = (cat && op.indexOf(cat) < 0) ? `${op} ${cat}` : op;
+            const op = t(PARENT_OP_WORDS[p.op] || p.op);
+            const catWord = PARENT_CAT_WORDS[`${p.category}${p.sign || '+'}`];
+            const full = (catWord && !PARENT_OP_HAS_SUBJECT[p.op]) ? `${op} ${t(catWord)}` : op;
             return p.level ? `${full}, ${p.level}★` : full;
+        }
+
+        // «; и ещё 3» в конце перечисления.
+        function parentRest(rest) {
+            return rest ? tf('; и ещё %1', rest) : '';
         }
 
         // День последнего занятия внутри периода — чтобы заметить, что человек пропал.
@@ -5889,15 +5892,15 @@
             const solved = cur.c + cur.w;
 
             // --- 1. Ритм ---
-            if (!cur.days || !solved) return [`${periodWord} занятий не было.`];
+            if (!cur.days || !solved) return [tf('%1 занятий не было.', periodWord)];
 
             const acc = accuracyPct(cur.c, cur.w, 1);
-            const ex = `${solved} ${parentPlural(solved, 'пример', 'примера', 'примеров')}`;
+            const ex = tf(plural(solved, '%1 пример', '%1 примера', '%1 примеров'), solved);
             if (isOneDay) {
-                lines.push(`${periodWord} решено ${ex}, ${acc}% верных.`);
+                lines.push(tf('%1 решено %2, %3% верных.', periodWord, ex, acc));
             } else {
-                const les = `${cur.days} ${parentPlural(cur.days, 'занятие', 'занятия', 'занятий')}`;
-                lines.push(`${periodWord} — ${les}, решено ${ex}, ${acc}% верных.`);
+                const les = tf(plural(cur.days, '%1 занятие', '%1 занятия', '%1 занятий'), cur.days);
+                lines.push(tf('%1 — %2, решено %3, %4% верных.', periodWord, les, ex, acc));
             }
 
             // Молчание в конце периода — единственный факт, который родитель точно
@@ -5908,8 +5911,10 @@
                 if (gap >= PARENT_SILENCE_MIN) {
                     const weeks = Math.floor(gap / 7);
                     lines.push(weeks >= 2
-                        ? `Последние ${weeks} ${parentPlural(weeks, 'неделю', 'недели', 'недель')} занятий не было.`
-                        : 'Последнюю неделю занятий не было.');
+                        ? tf(plural(weeks, 'Последние %1 неделю занятий не было.',
+                                    'Последние %1 недели занятий не было.',
+                                    'Последние %1 недель занятий не было.'), weeks)
+                        : t('Последнюю неделю занятий не было.'));
                 }
             }
 
@@ -5920,9 +5925,10 @@
             const gates = gatePromotions(unlocks).filter(g => inPeriod(g.date));
             if (gates.length) {
                 const names = gates.slice(0, PARENT_MAX_ITEMS).map(g => parentTopicWords(g.topicKey));
-                const rest = gates.length - names.length;
-                lines.push((gates.length === 1 ? 'Открыта новая звезда: ' : 'Открыты новые звёзды: ')
-                    + names.join('; ') + (rest ? `; и ещё ${rest}` : '') + '.');
+                const list = names.join('; ') + parentRest(gates.length - names.length);
+                lines.push(gates.length === 1
+                    ? tf('Открыта новая звезда: %1.', list)
+                    : tf('Открыты новые звёзды: %1.', list));
             }
 
             // Ступени — только с серебра. Бронза по количеству это двадцать пять примеров:
@@ -5946,17 +5952,19 @@
                     const byTier = {};
                     PARENT_LADDER_ORDER.forEach(l => {
                         if (!slot[l]) return;
-                        (byTier[slot[l]] || (byTier[slot[l]] = [])).push(PARENT_LADDER_WORDS[l]);
+                        (byTier[slot[l]] || (byTier[slot[l]] = [])).push(t(PARENT_LADDER_WORDS[l]));
                     });
                     const words = Object.keys(byTier)
                         .sort((x, y) => Number(y) - Number(x))
-                        .map(tier => `${PARENT_TIER_WORDS[tier]} ${joinRu(byTier[tier])}`);
+                        .map(tier => `${t(PARENT_TIER_WORDS[tier])} ${joinRu(byTier[tier])}`);
                     return `${parentTopicWords(key)} — ${joinRu(words)}`;
                 };
                 const named = tierTopics.slice(0, PARENT_MAX_ITEMS).map(part);
                 const rest = tierTopics.length - named.length;
-                lines.push('Новые награды: ' + named.join('; ')
-                    + (rest ? `; и ещё в ${rest === 1 ? 'одной теме' : rest + ' темах'}` : '') + '.');
+                const tail = !rest ? ''
+                    : rest === 1 ? t('; и ещё в одной теме')
+                    : tf(plural(rest, '; и ещё в %1 теме', '; и ещё в %1 темах', '; и ещё в %1 темах'), rest);
+                lines.push(tf('Новые награды: %1.', named.join('; ') + tail));
             }
 
             // --- 3. Переход на новое ---
@@ -5973,9 +5981,7 @@
                     && ((cur.t[tk][0] || 0) + (cur.t[tk][1] || 0)) >= 5);
                 if (fresh.length) {
                     const named = fresh.slice(0, PARENT_MAX_ITEMS).map(parentTopicWords);
-                    const rest = fresh.length - named.length;
-                    lines.push('Начали новое: ' + named.join('; ')
-                        + (rest ? `; и ещё ${rest}` : '') + '.');
+                    lines.push(tf('Начали новое: %1.', named.join('; ') + parentRest(fresh.length - named.length)));
                 }
             }
 
@@ -5991,30 +5997,33 @@
                 // когда есть общие темы, — иначе мы сравниваем разные вещи.
                 if (cmp.mode === 'incomparable') {
                     lines.push(cmp.levelTo > cmp.levelFrom
-                        ? 'Во второй половине перешли на более сложные примеры — сравнивать с началом периода пока рано.'
-                        : 'Во второй половине примеры были проще, чем в начале периода.');
+                        ? t('Во второй половине перешли на более сложные примеры — сравнивать с началом периода пока рано.')
+                        : t('Во второй половине примеры были проще, чем в начале периода.'));
                 } else {
-                    if (cmp.mode === 'common') {
+                    const same = cmp.mode === 'common';
+                    if (same) {
                         lines.push(cmp.levelTo > cmp.levelFrom
-                            ? 'Во второй половине добавились более сложные примеры.'
-                            : 'Во второй половине примеры стали проще.');
+                            ? t('Во второй половине добавились более сложные примеры.')
+                            : t('Во второй половине примеры стали проще.'));
                     }
-                    const same = cmp.mode === 'common' ? ' на прежних темах' : '';
                     const accA = accuracyPct(cmp.a.c, cmp.a.w, MIN_HALF);
                     const accB = accuracyPct(cmp.b.c, cmp.b.w, MIN_HALF);
                     if (accA !== null && accB !== null && Math.abs(accB - accA) >= PARENT_ACC_MIN_DELTA) {
-                        lines.push(accB > accA
-                            ? `Точность${same} выросла: с ${accA}% до ${accB}%.`
-                            : `Точность${same} снизилась: с ${accA}% до ${accB}%.`);
+                        // Четыре целых предложения, а не вставка « на прежних темах» внутрь
+                        // одного: в других языках эта вставка стоит в другом месте.
+                        const tpl = accB > accA
+                            ? (same ? 'Точность на прежних темах выросла: с %1% до %2%.' : 'Точность выросла: с %1% до %2%.')
+                            : (same ? 'Точность на прежних темах снизилась: с %1% до %2%.' : 'Точность снизилась: с %1% до %2%.');
+                        lines.push(tf(tpl, accA, accB));
                     }
                     const spA = cmp.a.mc >= MIN_HALF ? cmp.a.ms / cmp.a.mc / 1000 : null;
                     const spB = cmp.b.mc >= MIN_HALF ? cmp.b.ms / cmp.b.mc / 1000 : null;
                     if (spA !== null && spB !== null && spA > 0
                         && Math.abs(spB - spA) / spA >= PARENT_SPEED_MIN_REL) {
-                        const num = (v) => v.toFixed(1).replace('.', ',');
-                        lines.push(spB < spA
-                            ? `Отвечает быстрее: с ${num(spA)} до ${num(spB)} секунды.`
-                            : `Отвечает медленнее: с ${num(spA)} до ${num(spB)} секунды.`);
+                        // num() из js/i18n.js — с разделителем языка: 2,5 по-русски, 2.5 по-английски.
+                        lines.push(tf(spB < spA
+                            ? 'Отвечает быстрее: с %1 до %2 секунды.'
+                            : 'Отвечает медленнее: с %1 до %2 секунды.', num(spA, 1), num(spB, 1)));
                     }
                 }
             }
@@ -6385,7 +6394,7 @@
             document.getElementById('statsAccuracyVal').innerText = accuracy === null ? '—' : accuracy + '%';
 
             const avgSec = cur.mc > 0 ? (cur.ms / cur.mc / 1000) : null;
-            document.getElementById('statsSpeedVal').innerText = avgSec === null ? '—' : avgSec.toFixed(1) + t(' с');
+            document.getElementById('statsSpeedVal').innerText = avgSec === null ? '—' : num(avgSec, 1) + t(' с');
 
             // Детский вид: те же три карточки, но справа — не оценка, а два счётчика
             // сделанного. Прятать две из трёх было нельзя: осталась бы одна карточка
@@ -6457,7 +6466,7 @@
                     // отрицательная разница, а не положительная.
                     if (Math.abs(d) >= 0.2) {
                         speedDeltaEl.className = 'stat-hero-delta ' + (d < 0 ? 'up' : 'down');
-                        speedDeltaEl.innerText = (d < 0 ? '↑ ' : '↓ ') + Math.abs(d).toFixed(1) + t(' с');
+                        speedDeltaEl.innerText = (d < 0 ? '↑ ' : '↓ ') + num(Math.abs(d), 1) + t(' с');
                     }
                 }
             }
@@ -6598,11 +6607,7 @@
         }
 
         function pluralMistakes(n) {
-            const d100 = n % 100, d10 = n % 10;
-            if (d100 >= 11 && d100 <= 14) return t('ошибок');
-            if (d10 === 1) return t('ошибка');
-            if (d10 >= 2 && d10 <= 4) return t('ошибки');
-            return t('ошибок');
+            return plural(n, 'ошибка', 'ошибки', 'ошибок');
         }
 
         // Список причин ошибок: строка на причину, полоска показывает долю.
@@ -6682,7 +6687,7 @@
                         if (m.speedSec === null) return;
                         const need = speedTiersFor(p.level, p.category)[tier - 1];
                         gap = m.speedSec - need;          // у скорости меньше — лучше
-                        nowText = m.speedSec.toFixed(1) + t(' с');
+                        nowText = num(m.speedSec, 1) + t(' с');
                         needText = need + t(' с');
                     }
                 }
@@ -6729,7 +6734,7 @@
                 goal('a');
             } else {
                 if (ctx.avgSec !== null) {
-                    lines.push(tf('%1 на пример за период', ctx.avgSec.toFixed(1) + t(' с')));
+                    lines.push(tf('%1 на пример за период', num(ctx.avgSec, 1) + t(' с')));
                     lines.push(tf('Это примерно %1 в минуту', Math.round(60 / ctx.avgSec)));
                 }
                 goal('s');
@@ -7186,11 +7191,7 @@
             return tf('Приходи примерно через %1 %2', rounded, pluralMinutes(rounded));
         }
         function pluralMinutes(n) {
-            const d100 = n % 100, d10 = n % 10;
-            if (d100 >= 11 && d100 <= 14) return t('минут');
-            if (d10 === 1) return t('минуту');
-            if (d10 >= 2 && d10 <= 4) return t('минуты');
-            return t('минут');
+            return plural(n, 'минуту', 'минуты', 'минут');
         }
 
         function renderMaintenance() {
@@ -8054,15 +8055,15 @@
         // Слово о периоде, с которого начинается абзац. «За месяц» вместо «за 30 дней»:
         // родитель мыслит месяцами, а не окнами в днях.
         function parentPeriodWord(period) {
-            if (period === 'today' || period === 1) return 'Сегодня';
-            if (period === 'yesterday') return 'Вчера';
-            if (period === 'all') return 'За всё время';
+            if (period === 'today' || period === 1) return t('Сегодня');
+            if (period === 'yesterday') return t('Вчера');
+            if (period === 'all') return t('За всё время');
             const n = Number(period);
-            if (n === 7) return 'За неделю';
-            if (n === 30) return 'За месяц';
-            if (n === 90) return 'За три месяца';
-            if (n === 180) return 'За полгода';
-            return `За ${n} ${parentPlural(n, 'день', 'дня', 'дней')}`;
+            if (n === 7) return t('За неделю');
+            if (n === 30) return t('За месяц');
+            if (n === 90) return t('За три месяца');
+            if (n === 180) return t('За полгода');
+            return tf(plural(n, 'За %1 день', 'За %1 дня', 'За %1 дней'), n);
         }
 
         let parentSummaryCache = '';
@@ -8074,7 +8075,7 @@
             document.getElementById('repParentText').innerText = parentSummaryCache;
             const btn = document.getElementById('repCopyBtn');
             btn.classList.remove('done');
-            btn.innerText = 'Скопировать';
+            btn.innerText = t('Скопировать');
         }
 
         async function copyParentSummary() {
@@ -8084,12 +8085,12 @@
             try {
                 await navigator.clipboard.writeText(text);
                 btn.classList.add('done');
-                btn.innerText = 'Скопировано';
+                btn.innerText = t('Скопировано');
                 showToast(t('Сообщение скопировано.'), 'ok');
             } catch (e) {
                 // Буфер обмена бывает недоступен (открыли файлом, старый браузер) —
                 // тогда просто показываем текст, чтобы его можно было выделить руками.
-                await showNotice({ title: 'Родителям', text, okText: t('Закрыть') });
+                await showNotice({ title: t('Родителям'), text, okText: t('Закрыть') });
             }
         }
 
@@ -8124,7 +8125,7 @@
                 if (!e) return;
                 const total = (e.c || 0) + (e.w || 0);
                 const acc = accuracyPct(e.c, e.w, 1);
-                const speed = e.mc > 0 ? (e.ms / e.mc / 1000).toFixed(1) + t(' с') : '—';
+                const speed = e.mc > 0 ? num(e.ms / e.mc / 1000, 1) + t(' с') : '—';
                 const card = document.createElement('div');
                 card.className = 'epoch-card';
                 card.innerHTML = `
@@ -8948,10 +8949,10 @@
                 const d = spB - spA;
                 const cls = d <= 0 ? 'up' : 'down';
                 addMetric(onCommon ? t('Скорость на общих темах') : t('Скорость ответа'),
-                    tf('%1 с → %2 с', spA.toFixed(1), spB.toFixed(1)),
-                    (comparable && Math.abs(d) >= 0.1) ? tf(' <span class="arrow %1">%2%3 с</span>', cls, d < 0 ? '−' : '+', Math.abs(d).toFixed(1)) : '');
+                    tf('%1 с → %2 с', num(spA, 1), num(spB, 1)),
+                    (comparable && Math.abs(d) >= 0.1) ? tf(' <span class="arrow %1">%2%3 с</span>', cls, d < 0 ? '−' : '+', num(Math.abs(d), 1)) : '');
             } else if (cur.mc > 0) {
-                addMetric(t('Скорость ответа'), tf('%1 с', (cur.ms / cur.mc / 1000).toFixed(1)), '');
+                addMetric(t('Скорость ответа'), tf('%1 с', num(cur.ms / cur.mc / 1000, 1)), '');
             }
 
             // Подпись зависит от того, что реально удалось показать: обещать "средние за
@@ -8959,7 +8960,7 @@
             const notes = [];
             if (cmp.mode !== 'plain' && rows.children.length) {
                 const harder = cmp.levelTo > cmp.levelFrom;
-                const lvls = tf('%1★ против %2★', cmp.levelTo.toFixed(1), cmp.levelFrom.toFixed(1));
+                const lvls = tf('%1★ против %2★', num(cmp.levelTo, 1), num(cmp.levelFrom, 1));
                 if (onCommon) {
                     notes.push(harder
                         ? tf('Во второй половине примеры стали сложнее: в среднем %1. Поэтому сравниваем по темам, которые встречались в обеих половинах.', lvls)
@@ -9350,10 +9351,7 @@
             return tf('до медали %1: %2', tierName, needText);
         }
         function pluralAnswers(n) {
-            const d10 = n % 10, d100 = n % 100;
-            if (d10 === 1 && d100 !== 11) return t('ответ');
-            if (d10 >= 2 && d10 <= 4 && (d100 < 12 || d100 > 14)) return t('ответа');
-            return t('ответов');
+            return plural(n, 'ответ', 'ответа', 'ответов');
         }
 
         // Развёрнутая клетка: три лесенки и строка о том, что нужно для следующей звезды.
@@ -9403,7 +9401,7 @@
                         m.accuracy !== null && m.accuracy >= ACCURACY_TIERS[next - 1],
                         m.count, LADDER_MIN_SAMPLE[next - 1]);
                 } else {
-                    nowText = m.speedSec === null ? '—' : m.speedSec.toFixed(1) + t(' с');
+                    nowText = m.speedSec === null ? '—' : num(m.speedSec, 1) + t(' с');
                     const need = speedTiersFor(p.level, p.category)[next - 1];
                     if (next <= 5) goalText = ladderGoalText(medal(next), tf('%1 с', need),
                         m.speedSec !== null && m.speedSec <= need,
@@ -9558,7 +9556,7 @@
             const sum = document.getElementById('accessSummary');
             const opened = (type !== 'linked') ? [] : ['integer-', 'decimal+', 'fraction+']
                 .filter(k => isSectionOpen(k))
-                .map(k => tf('%1%2', SECTION_TITLES[k], grantSummary(k) && grantSummary(k) !== 'открыт полностью' ? ' (' + grantSummary(k) + ')' : ''));
+                .map(k => tf('%1%2', SECTION_TITLES[k], grantSummary(k) && grantSummary(k) !== t('открыт полностью') ? ' (' + grantSummary(k) + ')' : ''));
             sum.innerText = opened.length ? t('Открыто кодами: ') + opened.join(', ') + '.' : '';
 
             // Заводить учеников может только сам репетитор (self) — сервер тоже это
@@ -9743,34 +9741,6 @@
         // падал весь список учеников — стоило одному ученику замолчать или появиться хоть
         // одной папке. Поэтому локальные имена здесь d10/d100.
         //
-        // Через t() эти слова НЕ проходят намеренно: предложения вокруг них («молчит %1 %2»,
-        // «не выходил%3 на связь») в словаре не лежат — экран репетитора остаётся русским.
-        // Переводить в нём одно только существительное значило бы выдавать «молчит 24 days».
-        function pluralStudents(n) {
-            const d100 = n % 100, d10 = n % 10;
-            if (d100 >= 11 && d100 <= 14) return 'учеников';
-            if (d10 === 1) return 'ученик';
-            if (d10 >= 2 && d10 <= 4) return 'ученика';
-            return 'учеников';
-        }
-
-        // Экран репетитора остаётся русским — см. пояснение у pluralStudents.
-        function pluralLogins(n) {
-            const d100 = n % 100, d10 = n % 10;
-            if (d100 >= 11 && d100 <= 14) return 'входов';
-            if (d10 === 1) return 'вход';
-            if (d10 >= 2 && d10 <= 4) return 'входа';
-            return 'входов';
-        }
-
-        function pluralProfiles(n) {
-            const d100 = n % 100, d10 = n % 10;
-            if (d100 >= 11 && d100 <= 14) return 'профилей';
-            if (d10 === 1) return 'профиль';
-            if (d10 >= 2 && d10 <= 4) return 'профиля';
-            return 'профилей';
-        }
-
         function lastSeenText(iso) {
             if (!iso) return '';
             const then = new Date(iso);
@@ -9780,7 +9750,7 @@
             if (days === 1) return t('вчера');
             if (days < 7) return tf('%1 дн. назад', days);
             if (days < 30) return tf('%1 нед. назад', Math.floor(days / 7));
-            return then.toLocaleDateString('ru-RU');
+            return then.toLocaleDateString(currentLang().locale);
         }
 
         async function renderStudentsList() {
@@ -9804,8 +9774,13 @@
             if (quietCount) {
                 const note = document.createElement('div');
                 note.className = 'students-summary';
-                note.innerText = tf('%1 %2 не выходил%3', quietCount, pluralStudents(quietCount), quietCount === 1 ? '' : 'и')
-                    + tf(' на связь больше недели. Проверь, занимается ли и доходит ли прогресс.');
+                // Целым предложением и без рода: «не выходил» говорило о каждом ученике
+                // в мужском роде, а склеенное из кусков не переводится.
+                note.innerText = tf(plural(quietCount,
+                        '%1 ученик не выходит на связь больше недели.',
+                        '%1 ученика не выходят на связь больше недели.',
+                        '%1 учеников не выходят на связь больше недели.'), quietCount)
+                    + t(' Проверь, занимается ли и доходит ли прогресс.');
                 wrap.appendChild(note);
             }
 
@@ -9850,9 +9825,10 @@
                     const warn = document.createElement('div');
                     warn.className = 'list-row-warn';
                     warn.innerText = days === null
-                        ? t('⚠️ ни разу не выходил на связь')
-                        : (days >= SILENT_DAYS ? tf('⚠️ молчит %1 %2', days, pluralDaysWord(days))
-                                               : tf('⏳ не было %1 %2', days, pluralDaysWord(days)));
+                        ? t('⚠️ на связи ещё не было ни разу')
+                        : (days >= SILENT_DAYS
+                            ? tf(plural(days, '⚠️ молчит %1 день', '⚠️ молчит %1 дня', '⚠️ молчит %1 дней'), days)
+                            : tf(plural(days, '⏳ не было %1 день', '⏳ не было %1 дня', '⏳ не было %1 дней'), days));
                     row.querySelector('.list-row-main').appendChild(warn);
                 }
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));
@@ -9870,14 +9846,14 @@
                     const head = document.createElement('div');
                     head.className = 'students-group';
                     head.innerText = (name ? `📁 ${name}` : t('📄 Без папки'))
-                        + ` · ${rows.length} ${pluralStudents(rows.length)}`;
+                        + ' · ' + tf(plural(rows.length, '%1 ученик', '%1 ученика', '%1 учеников'), rows.length);
                     wrap.appendChild(head);
                 }
                 rows.forEach(renderRow);
             });
             // Свёрнутый раздел без сводки — пустая дверь: сколько там учеников,
             // должно быть видно, не открывая.
-            setFoldSum('studentsSection', `${students.length} ${pluralStudents(students.length)}`);
+            setFoldSum('studentsSection', tf(plural(students.length, '%1 ученик', '%1 ученика', '%1 учеников'), students.length));
         }
 
         // Папку задаём текстом, но существующие названия предлагаем нажатием: если
@@ -10093,9 +10069,9 @@
         async function logoutOtherDevices() {
             if (Progress.getAccountType() === 'linked') return;
             const ok = await askConfirm({
-                title: 'Выйти на других устройствах?',
-                text: 'На всех остальных устройствах попросят войти заново — прогресс там останется на месте. Здесь ты продолжишь работать как ни в чём не бывало.',
-                okText: 'Выйти везде'
+                title: t('Выйти на других устройствах?'),
+                text: t('На всех остальных устройствах попросят войти заново — прогресс там останется на месте. Здесь ты продолжишь работать как ни в чём не бывало.'),
+                okText: t('Выйти везде')
             });
             if (!ok) return;
             const res = await callAuthed('session_logout_others', {});
@@ -10106,19 +10082,21 @@
                 // PostgREST отвечает кодом PGRST202, когда функции не существует.
                 const missing = res.error.code === 'PGRST202'
                     || /Could not find the function/i.test(res.error.message || '');
+                if (missing) console.warn('Выход на других устройствах: функции нет в базе. Запусти supabase/logout-others.sql.');
                 showToast(missing
-                    ? 'Нужно запустить supabase/logout-others.sql в Supabase.'
-                    : 'Не удалось связаться с сервером. Проверь интернет.', 'error');
+                    ? t('Эта часть ещё не включена на сервере.')
+                    : t('Не удалось связаться с сервером. Проверь интернет.'), 'error');
                 return;
             }
             if (!res.data || !res.data.ok) {
                 showToast(res.data && res.data.error === 'no_auth'
-                    ? 'Сначала войди заново — на этом устройстве нет действующего входа.'
-                    : 'Не удалось закрыть входы. Попробуй ещё раз.', 'error');
+                    ? t('Сначала войди заново — на этом устройстве нет действующего входа.')
+                    : t('Не удалось закрыть входы. Попробуй ещё раз.'), 'error');
                 return;
             }
             const n = res.data.closed || 0;
-            showToast(n ? `Закрыто ${n} ${pluralLogins(n)}.` : 'Других входов и не было.');
+            showToast(n ? tf(plural(n, 'Закрыт %1 вход.', 'Закрыто %1 входа.', 'Закрыто %1 входов.'), n)
+                        : t('Других входов и не было.'));
         }
 
         const BACKUP_FORMAT = 1;
@@ -10186,15 +10164,15 @@
         function parseBackup(text) {
             let data;
             try { data = JSON.parse(text); }
-            catch (e) { return { error: 'Это не файл копии: не разобрать.' }; }
+            catch (e) { return { error: t('Это не файл копии: не разобрать.') }; }
             if (!data || typeof data !== 'object' || !Array.isArray(data.profiles)) {
-                return { error: 'Это не файл копии: нет списка профилей.' };
+                return { error: t('Это не файл копии: нет списка профилей.') };
             }
             if (data.format !== BACKUP_FORMAT) {
-                return { error: `Копия другого формата (${data.format}), эта версия читает ${BACKUP_FORMAT}.` };
+                return { error: tf('Копия другого формата (%1), эта версия читает %2.', data.format, BACKUP_FORMAT) };
             }
             const profiles = data.profiles.filter(p => p && p.code && p.state && typeof p.state === 'object');
-            if (!profiles.length) return { error: 'В копии нет ни одного профиля с данными.' };
+            if (!profiles.length) return { error: t('В копии нет ни одного профиля с данными.') };
             return { data, profiles };
         }
 
@@ -10202,11 +10180,11 @@
             if (Progress.getAccountType() === 'linked') return;
 
             const text = await askForm({
-                title: 'Восстановить из копии',
-                text: 'Вставь сюда содержимое файла копии целиком.',
-                fields: [{ key: 'json', label: 'Копия', multiline: true,
-                           hint: 'Тот самый текст, который выдаёт «Выгрузить прогресс»' }],
-                okText: 'Разобрать'
+                title: t('Восстановить из копии'),
+                text: t('Вставь сюда содержимое файла копии целиком.'),
+                fields: [{ key: 'json', label: t('Копия'), multiline: true,
+                           hint: t('Тот самый текст, который выдаёт «Выгрузить прогресс»') }],
+                okText: t('Разобрать')
             });
             if (text === null || !text.json || !text.json.trim()) return;
 
@@ -10223,7 +10201,7 @@
             parsed.profiles.forEach(p => {
                 const after = backupSummary(p.state);
                 if (p.code === myCode) {
-                    plan.push({ code: p.code, label: 'Твой профиль', own: true,
+                    plan.push({ code: p.code, label: t('Твой профиль'), own: true,
                                 before: backupSummary(Progress.get()), after, state: p.state });
                 } else if (known[p.code]) {
                     plan.push({ code: p.code, label: known[p.code].label || p.code, own: false,
@@ -10237,24 +10215,24 @@
             const doable = plan.filter(x => !x.missing);
             const missing = plan.filter(x => x.missing);
             if (!doable.length) {
-                showToast('Ни один профиль из копии не найден: ни твой, ни ученики.', 'error');
+                showToast(t('Ни один профиль из копии не найден: ни твой, ни ученики.'), 'error');
                 return;
             }
 
             const lines = doable.map(x =>
-                `${x.label}: сейчас ${x.before} верных → станет ${x.after}`).join('\n');
+                tf('%1: сейчас %2 верных → станет %3', x.label, x.before, x.after)).join('\n');
             const note = missing.length
-                ? `\n\nНе найдены и тронуты не будут: ${missing.map(x => x.label).join(', ')}.`
+                ? '\n\n' + tf('Не найдены и тронуты не будут: %1.', missing.map(x => x.label).join(', '))
                 : '';
 
             const ok = await askConfirm({
-                title: 'Заменить прогресс?',
-                text: `Прогресс будет заменён содержимым копии. Отменить это нельзя.\n\n${lines}${note}`,
-                okText: 'Заменить', danger: true
+                title: t('Заменить прогресс?'),
+                text: t('Прогресс будет заменён содержимым копии. Отменить это нельзя.') + `\n\n${lines}${note}`,
+                okText: t('Заменить'), danger: true
             });
             if (!ok) return;
 
-            showToast('Восстанавливаю…');
+            showToast(t('Восстанавливаю…'));
             let done = 0, failed = [];
             for (const x of doable) {
                 try {
@@ -10271,15 +10249,14 @@
 
             if (failed.length) {
                 await showNotice({
-                    title: 'Восстановлено не всё',
-                    text: `Получилось: ${done}. Не получилось: ${failed.join(', ')}.\n\n`
-                        + 'Проверь интернет и попробуй ещё раз — уже восстановленное повторной '
-                        + 'попыткой не испортится.'
+                    title: t('Восстановлено не всё'),
+                    text: tf('Получилось: %1. Не получилось: %2.', done, failed.join(', ')) + '\n\n'
+                        + t('Проверь интернет и попробуй ещё раз — уже восстановленное повторной попыткой не испортится.')
                 });
             } else {
                 await showNotice({
-                    title: 'Готово',
-                    text: `Восстановлено профилей: ${done}. Приложение сейчас перезапустится.`
+                    title: t('Готово'),
+                    text: tf('Восстановлено профилей: %1. Приложение сейчас перезапустится.', done)
                 });
             }
             location.reload();
@@ -10287,29 +10264,28 @@
 
         async function exportAllProgress() {
             if (Progress.getAccountType() === 'linked') return;
-            showToast('Собираю данные…');
+            showToast(t('Собираю данные…'));
             let res;
             try {
                 res = await collectBackup();
             } catch (e) {
-                showNotice({ title: 'Не получилось',
-                             text: 'Не удалось собрать копию. Проверь интернет и попробуй ещё раз.' });
+                showNotice({ title: t('Не получилось'),
+                             text: t('Не удалось собрать копию. Проверь интернет и попробуй ещё раз.') });
                 return;
             }
             const text = JSON.stringify(res.data, null, 1);
             const count = res.data.profiles.length;
             const name = `kluch-backup-${Progress.dayKey()}.json`;
 
-            let note = `В копии ${count} ${pluralProfiles(count)}.`;
+            let note = tf(plural(count, 'В копии %1 профиль.', 'В копии %1 профиля.', 'В копии %1 профилей.'), count);
             if (res.failed === -1) {
-                note += ' До сервера достучаться не удалось, учеников в копии нет —'
-                     + ' проверь интернет и сделай копию ещё раз.';
+                note += t(' До сервера достучаться не удалось, учеников в копии нет — проверь интернет и сделай копию ещё раз.');
             } else if (res.failed > 0) {
-                note += ` Не удалось получить ещё ${res.failed} — попробуй позже.`;
+                note += tf(' Не удалось получить ещё %1 — попробуй позже.', res.failed);
             }
 
             openAppDialog(undefined, (card, submit) => {
-                dlgHead(card, 'Резервная копия', note);
+                dlgHead(card, t('Резервная копия'), note);
 
                 const area = document.createElement('textarea');
                 area.className = 'backup-text';
@@ -10323,7 +10299,7 @@
                 const copy = document.createElement('button');
                 copy.className = 'dlg-btn primary';
                 copy.type = 'button';
-                copy.innerText = 'Скопировать';
+                copy.innerText = t('Скопировать');
                 copy.addEventListener('click', async () => {
                     // Выделяем в любом случае: если запись в буфер не разрешена
                     // (не https, старый браузер), у человека остаётся выделенный текст.
@@ -10336,14 +10312,14 @@
                             ok = true;
                         }
                     } catch (e) { ok = false; }
-                    showToast(ok ? 'Скопировано' : 'Текст выделен — скопируй его сам.',
+                    showToast(ok ? t('Скопировано') : t('Текст выделен — скопируй его сам.'),
                               ok ? '' : 'error');
                 });
 
                 const save = document.createElement('button');
                 save.className = 'dlg-btn';
                 save.type = 'button';
-                save.innerText = 'Скачать файл';
+                save.innerText = t('Скачать файл');
                 save.addEventListener('click', () => {
                     try {
                         const blob = new Blob([text], { type: 'application/json' });
@@ -10356,14 +10332,14 @@
                         document.body.removeChild(a);
                         setTimeout(() => URL.revokeObjectURL(url), 10000);
                     } catch (e) {
-                        showToast('Скачать не вышло — скопируй текст.', 'error');
+                        showToast(t('Скачать не вышло — скопируй текст.'), 'error');
                     }
                 });
 
                 const close = document.createElement('button');
                 close.className = 'dlg-btn';
                 close.type = 'button';
-                close.innerText = 'Закрыть';
+                close.innerText = t('Закрыть');
                 close.addEventListener('click', () => submit(true));
 
                 row.appendChild(close);
@@ -10568,7 +10544,7 @@
             document.getElementById('live-acc').innerText =
                 done ? Math.round(correctCount / done * 100) + '%' : '—';
             document.getElementById('live-speed').innerText =
-                correctCount > 0 ? (sessionAnswerMs / correctCount / 1000).toFixed(1) + t(' с') : '—';
+                correctCount > 0 ? num(sessionAnswerMs / correctCount / 1000, 1) + t(' с') : '—';
 
             const wrap = document.getElementById('live-goal-wrap');
             const key = currentProblemMeta ? buildTopicKey(currentProblemMeta) : null;

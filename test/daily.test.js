@@ -55,6 +55,7 @@ function load(state) {
         Progress: { get: () => state.st, dayKey: () => state.today }
     };
     const src = [
+        require('./app-source').i18nHelpers(),
         slice('function shiftDayKey(key, deltaDays)', 'function isActiveDay', 'даты'),
         slice('function daysBetweenKeys(fromKey, toKey)', '\n\n', 'расстояние между днями'),
         slice('function pluralDaysWord(n)', '\n\n', 'склонение дней'),

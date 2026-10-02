@@ -334,6 +334,78 @@ test('кнопка «Войти» в списке профилей идёт че
     assert(/t\('Войти'\)/.test(body), 'кнопка «Войти» не берёт перевод');
 });
 
+// Ядро переводов в песочнице на нужном языке: plural() смотрит на LANG.
+function loadCore(lang) {
+    const box = { window: {}, navigator: { language: lang },
+                  localStorage: { getItem: () => lang, setItem() {}, removeItem() {} } };
+    vm.createContext(box);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'content/i18n.js'), 'utf8'), box);
+    vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/i18n.js'), 'utf8')
+        + ';globalThis.__c = { plural, t, tf, LANG };', box);
+    return box.__c;
+}
+
+test('слово при числе выбирается по правилу языка, а не по русскому', () => {
+    // Раньше слово подбиралось по-русски и переводилось само: 21 требует «день»,
+    // и по-английски выходило «21 day».
+    const en = loadCore('en'), fr = loadCore('fr'), de = loadCore('de'), ru = loadCore('ru');
+    const days = n => [n, 'день', 'дня', 'дней'];
+    eq(ru.plural(...days(21)), 'день', 'ru 21');
+    eq(ru.plural(...days(22)), 'дня', 'ru 22');
+    eq(ru.plural(...days(11)), 'дней', 'ru 11');
+    eq(en.plural(...days(21)), 'days', 'en 21');
+    eq(en.plural(...days(1)), 'day', 'en 1');
+    eq(de.plural(...days(21)), 'Tage', 'de 21');
+    eq(fr.plural(...days(0)), 'jour', 'fr 0 — во французском единственное');
+    eq(fr.plural(...days(2)), 'jours', 'fr 2');
+    // Целая фраза с падежом: по-немецки «in den letzten 21 Tagen».
+    eq(de.tf(de.plural(21, 'За %1 день', 'За %1 дня', 'За %1 дней'), 21), 'In den letzten 21 Tagen', 'de период');
+});
+
+test('детские счётчики идут через plural, а не через перевод русской формы', () => {
+    // «до медали: ещё 21 answer» — та же беда, что «21 day».
+    const charts = fs.readFileSync(path.join(ROOT, 'js/charts.js'), 'utf8');
+    assert(/function pluralDaysWord\(n\) \{\s*return plural\(/.test(charts), 'дни считаются мимо plural');
+    ['pluralMistakes', 'pluralMinutes', 'pluralAnswers'].forEach(name => {
+        const m = D.script.match(new RegExp('function ' + name + '\\(n\\) \\{([\\s\\S]*?)\\n        \\}'));
+        assert(m && /return plural\(/.test(m[1]), `${name} считает мимо plural`);
+    });
+});
+
+test('экраны репетитора переведены: исключений больше нет', () => {
+    // Раньше полсотни строк репетитора были русскими по решению. Решение поменялось,
+    // и вернуть исключение значит отменить его, а не починить тест.
+    const drift = fs.readFileSync(path.join(__dirname, 'i18n-drift.test.js'), 'utf8');
+    assert(/const TUTOR_ONLY = \[\];/.test(drift), 'в коде снова есть непереведённые строки репетитора');
+    assert(/const MARKUP_TUTOR_ONLY = \[\];/.test(drift), 'в разметке снова есть непереведённые строки репетитора');
+});
+
+test('сообщение родителям не собирает фразы по-русски', () => {
+    // Падеж и порядок слов в других языках другие: «Точность на прежних темах
+    // выросла» нельзя собрать вставкой куска внутрь чужого предложения.
+    const from = D.script.indexOf('function parentSummaryLines');
+    const body = D.script.slice(from, D.script.indexOf('function longestStreak', from));
+    const raw = body.match(/`[^`]*[А-Яа-яЁё][^`]*`/g) || [];
+    eq(raw.join(' | '), '', 'русский текст в шаблонной строке мимо перевода');
+    assert(!/same\s*\?\s*' на прежних/.test(body), 'вставка « на прежних темах» внутрь предложения вернулась');
+    // У особых действий дробей раздел не приписывается: было «дробь от числа дробей».
+    assert(/PARENT_OP_HAS_SUBJECT\[p\.op\]/.test(D.script), 'раздел приписывается к действию, которое его уже называет');
+});
+
+test('«заморозка» серии названа одним словом в каждом языке', () => {
+    // Во французском было «gel» и «protection», в немецком «Frost» и «Einfrierung».
+    const word = { fr: /\bgels?\b/i, de: /Serienschutz/ };
+    const banned = { fr: /protection/i, de: /Frost|Einfrierung/ };
+    ['fr', 'de'].forEach(lang => {
+        const keys = Object.keys(D[lang]).filter(k => /заморозк/i.test(k));
+        assert(keys.length >= 4, `[${lang}] ключей про заморозку ${keys.length}`);
+        keys.forEach(k => {
+            assert(word[lang].test(D[lang][k]), `[${lang}] «${k.trim()}» → ${D[lang][k]}`);
+            assert(!banned[lang].test(D[lang][k]), `[${lang}] второе слово: ${D[lang][k]}`);
+        });
+    });
+});
+
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
 if (failed) {
     console.log('\nУпавшие проверки:');

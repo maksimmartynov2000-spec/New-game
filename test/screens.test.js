@@ -199,6 +199,10 @@ const SCREENS = [
             Progress.get().playerCode = null;
             return {
                 visible, err, btns,
+                // Экран репетитора теперь переводится, а браузер проверки — английский.
+                // Ждём те же надписи на языке страницы, а не русские.
+                want: { copy: t('Скопировать'), save: t('Скачать файл'),
+                        offline: t(' До сервера достучаться не удалось, учеников в копии нет — проверь интернет и сделай копию ещё раз.').trim() },
                 noteText: note ? note.innerText : '',
                 format: parsed && parsed.format,
                 hasOwn: !!(parsed && parsed.profiles && parsed.profiles.length >= 1),
@@ -211,12 +215,12 @@ const SCREENS = [
                (r.hasOwn && typeof r.correct === 'number' && r.correct > 0)
                    ? null : `формат ${r.format}, верных ${r.correct}`);
         record('есть и копирование, и скачивание',
-               (r.btns.includes('Скопировать') && r.btns.includes('Скачать файл'))
+               (r.btns.includes(r.want.copy) && r.btns.includes(r.want.save))
                    ? null : `кнопки: ${r.btns.join(', ')}`);
         // Без сети учеников достать нельзя, и копия обязана об этом сказать: молчаливая
         // неполная копия хуже отсутствия копии — на неё понадеются.
         record('без связи с сервером копия честно предупреждает',
-               /достучаться не удалось/.test(r.noteText) ? null : `сказано: «${r.noteText}»`);
+               r.noteText.includes(r.want.offline) ? null : `сказано: «${r.noteText}»`);
     }
 
     // Шапка выбора миссии. Кнопка ☰ вынута из потока (position:absolute), поэтому
