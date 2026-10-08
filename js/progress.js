@@ -298,6 +298,29 @@ const Progress = (() => {
     // восемь секунд, так что живая вкладка в этот порог укладывается всегда.
     const FAREWELL_MAX_STALE_MS = 60000;
 
+    // Номер последнего изменения. dirty говорит «есть что отправить», но снимать его
+    // после записи можно, только если за время записи ничего нового не появилось:
+    // ответ, данный, пока запрос был в пути, в отправленный слепок уже не попал.
+    // Раньше dirty снимался всегда — и такой ответ ждал на устройстве следующего
+    // изменения, а значок «сохранено» сказал бы про него неправду.
+    let changeSeq = 0;
+    function markDirty() { dirty = true; changeSeq++; }
+
+    // Что можно честно сказать человеку о сохранении (значок «сохранено»). Не вся
+    // кухня синхронизации, а три факта: идёт ли отправка прямо сейчас, чем кончилась
+    // последняя и есть ли вообще чем подтвердить личность.
+    //   lastSyncOk: true — сервер принял последнюю запись, false — не принял (нет
+    //               связи), null — в этом запуске ещё не пробовали.
+    // flush() может перекрываться сам с собой (см. его комментарий), поэтому «идёт
+    // отправка» — счётчик, а не флаг: иначе первый закончившийся снял бы его за второй.
+    let lastSyncOk = null;
+    let syncInFlight = 0;
+    const syncListeners = [];
+    function notifySync() {
+        // Значок не должен ломать сохранение: ошибка в отрисовке остаётся в отрисовке.
+        syncListeners.forEach(fn => { try { fn(); } catch (e) { /* только значок */ } });
+    }
+
     // Локальный кэш ВСЕХ профилей, что когда-либо были активны на этом устройстве —
     // так два ребёнка на одном айпаде могут переключаться между своими аккаунтами,
     // не теряя офлайн-копию прогресса друг друга. Ключ — код профиля.
@@ -761,7 +784,7 @@ const Progress = (() => {
         trimTopicSpeed(state.daily);
         if (state.playerCode) profiles[state.playerCode] = state;
         localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
-        dirty = true;
+        markDirty();
     }
 
     // Корзина сегодняшнего дня, создаётся при первом обращении за день.
@@ -885,7 +908,8 @@ const Progress = (() => {
     function doSwitch(code, password, opts) {
         if (!code) return;
         // Доступ принадлежит профилю, а не устройству: при переключении забываем.
-        if (state.playerCode !== code) access = null;
+        // Итог прошлой отправки — тоже: он был про другой аккаунт.
+        if (state.playerCode !== code) { access = null; lastSyncOk = null; }
         if (state.playerCode && state.playerCode !== code) profiles[state.playerCode] = state;
         if (password) passwords[code] = password;
         if (profiles[code]) {
@@ -909,7 +933,8 @@ const Progress = (() => {
         // бы их — ровно так и произошло с студенческим аккаунтом, который "потерял"
         // привязку к репетитору после первого входа.
         localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
-        dirty = true;
+        markDirty();
+        notifySync();
     }
 
     return {
@@ -954,6 +979,7 @@ const Progress = (() => {
             tokens[code] = token;
             delete passwords[code];
             localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
+            notifySync();
         },
         // Сервер сказал, что токен больше не годится (погашен или протух).
         // Пароля тут уже нет, поэтому дальше нужен обычный вход.
@@ -961,6 +987,7 @@ const Progress = (() => {
             if (!code || !tokens[code]) return;
             delete tokens[code];
             localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
+            notifySync();
         },
         // Чем подтверждать запрос: токеном или паролем. Наружу нужно, чтобы
         // экраны репетитора выбирали серверную функцию под тот же способ.
@@ -1008,6 +1035,8 @@ const Progress = (() => {
             state = emptyState();
             localDriver.write({ activeCode: null, profiles, passwords, tokens, access });
             dirty = false;
+            lastSyncOk = null;
+            notifySync();
             return true;
         },
 
@@ -1285,7 +1314,7 @@ const Progress = (() => {
             touchDay().s++;
             secondsSincePersist++;
             if (secondsSincePersist >= 10) { secondsSincePersist = 0; persistLocal(); }
-            else { dirty = true; }
+            else { markDirty(); }
         },
 
         // --- журнал по дням ---
@@ -1344,6 +1373,8 @@ const Progress = (() => {
             const auth = authFor(state.playerCode);
             if (!auth) return; // подтвердить личность нечем — ждём входа
             if (!dirty && !force) return;
+            syncInFlight++;
+            notifySync();
             try {
                 // Чистим обе стороны до слияния. Слияние берёт максимум и
                 // объединение — почистить только одну сторону значит не почистить.
@@ -1351,16 +1382,46 @@ const Progress = (() => {
                 state = mergeState(remote, dropClosedSections(state));
                 profiles[state.playerCode] = state; // merge вернул новый объект — обновляем кэш
                 localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
+                // Слепок уходит таким, каким он есть сейчас. Всё, что изменится, пока
+                // запрос в пути, в него не попадёт — значит, и dirty тогда снимать нельзя.
+                const sentSeq = changeSeq;
                 await remoteDriver.write(state.playerCode, auth, state);
-                dirty = false;
+                if (changeSeq === sentSeq) dirty = false;
                 lastMergeAt = Date.now();
+                lastSyncOk = true;
                 return true;
             } catch (e) {
-                // Сеть недоступна — молча оставляем данные локально и попробуем позже.
-                // Игра при этом не должна ничего заметить.
+                // Сеть недоступна — оставляем данные локально и попробуем позже. Игра
+                // при этом не должна ничего заметить; заметит только значок «сохранено».
+                lastSyncOk = false;
                 return false;
+            } finally {
+                syncInFlight--;
+                notifySync();
             }
         },
+        // Что сказать человеку о сохранении — для значка «сохранено»:
+        //   'local'   — гость: прогресс живёт только на этом устройстве, сервера у
+        //               него нет вовсе;
+        //   'signin'  — подтвердить личность нечем: вход на устройстве закрыт (сменили
+        //               пароль, вышли на других устройствах). Само это не пройдёт —
+        //               нужно войти заново;
+        //   'saving'  — запрос в пути;
+        //   'offline' — последняя попытка не удалась, или сервера нет вовсе;
+        //   'saved'   — сервер принял последнюю запись;
+        //   null      — в этом запуске ещё не пробовали, сказать пока нечего.
+        syncStatus() {
+            const code = state.playerCode;
+            if (!code) return null;
+            if (code === GUEST_CODE) return 'local';
+            if (!remoteDriver) return 'offline';
+            if (!authFor(code)) return 'signin';
+            if (syncInFlight > 0) return 'saving';
+            if (lastSyncOk === false) return 'offline';
+            if (lastSyncOk === true) return 'saved';
+            return null;
+        },
+        onSyncChange(fn) { if (typeof fn === 'function') syncListeners.push(fn); },
         // Прощальная запись — на случай, когда приложение смахивают свайпом.
         //
         // Обычный flush() — это три шага: прочитать серверную копию, слить её с
@@ -1399,7 +1460,7 @@ const Progress = (() => {
             try { return !!remoteDriver.writeKeepalive(state.playerCode, auth, state); }
             catch (e) { return false; }
         },
-        attachRemote(driver) { remoteDriver = driver; },
+        attachRemote(driver) { remoteDriver = driver; notifySync(); },
         _merge: mergeState,
         _normalize: normalize
     };
