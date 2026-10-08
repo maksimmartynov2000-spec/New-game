@@ -590,6 +590,14 @@
             font-family: monospace; font-size: 1.1rem; color: var(--gold);
             letter-spacing: 2px; font-weight: bold;
         }
+        /* «Показать / спрятать» под логином: тихая кнопка, не главная на карточке. */
+        .login-toggle {
+            margin-top: 8px; padding: 5px 12px; border-radius: 8px; cursor: pointer;
+            background: transparent; border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #94a3b8; font: inherit; font-size: 0.78rem;
+        }
+        .login-toggle[hidden] { display: none; }
+        .login-toggle:active { background: rgba(255, 255, 255, 0.08); }
         header {
             display: flex; justify-content: center; align-items: center;
             padding: 8px;
@@ -1209,6 +1217,32 @@
         }
         .daily-streak.fire .flame { opacity: 1; }
 
+        /* --- Значок «сохранено» ---
+           Мелкая строка, а не плашка: когда всё в порядке, он не должен отвлекать.
+           Цветом выделяется только то, что требует внимания. */
+        .sync-badge {
+            width: 100%; max-width: 450px; margin: -8px auto 14px;
+            font-size: 0.74rem; line-height: 1.4; text-align: right; color: #64748b;
+        }
+        .sync-badge[hidden] { display: none; }
+        .sync-badge.ok { color: #5f8f78; }
+        .sync-badge.warn { color: #fbbf24; }
+        /* «Войди заново» само не пройдёт, поэтому это уже не подпись, а просьба:
+           рамка, текст слева, кнопка справа. */
+        .sync-badge.bad {
+            display: flex; align-items: center; gap: 10px; text-align: left;
+            margin: 0 auto 14px; padding: 8px 10px 8px 12px; border-radius: 10px;
+            color: #fca5a5; background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        .sync-badge button {
+            flex: 0 0 auto; padding: 6px 12px; border-radius: 8px; cursor: pointer;
+            border: 1px solid rgba(252, 165, 165, 0.45); background: rgba(239, 68, 68, 0.16);
+            color: #fecaca; font: inherit; font-weight: bold;
+        }
+        /* На экране итогов и в профиле — по центру карточки, без отрицательного отступа. */
+        .win-card .sync-badge, .menu-stat-card .sync-badge { margin: 10px 0 0; text-align: center; }
+        .win-card .sync-badge.bad, .menu-stat-card .sync-badge.bad { text-align: left; }
+
         /* --- Карта раздела --- */
         .map-block { margin-bottom: 14px; }
         .map-block:last-child { margin-bottom: 0; }
@@ -1700,6 +1734,21 @@
             padding: 8px 10px; border-radius: 8px; background: rgba(255,255,255,0.04);
         }
 
+        /* --- «Открыть нескольким»: выбор учеников --- */
+        .pick-list {
+            max-height: 46vh; overflow-y: auto; margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.10); border-radius: 10px; padding: 4px;
+        }
+        .pick-row {
+            display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px;
+            color: #e2e8f0; font-size: 0.9rem; cursor: pointer;
+        }
+        .pick-row:active { background: rgba(255,255,255,0.06); }
+        .pick-row input { width: 18px; height: 18px; flex: 0 0 18px; accent-color: var(--cyan); margin: 0; }
+        .pick-head { color: var(--cyan); font-weight: bold; font-size: 0.82rem; }
+        .pick-indent { padding-left: 26px; }
+        .pick-sub { margin-left: auto; color: #64748b; font-size: 0.74rem; font-family: monospace; }
+
         /* --- Разбор по типам примеров на экране статистики --- */
         .cls-table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
         .cls-table td { padding: 4px 3px; text-align: right; color: #cbd5e1; font-variant-numeric: tabular-nums; }
@@ -2128,10 +2177,11 @@
         <button class="menu-btn sound-toggle" onclick="toggleSound()">🔊 <span>Звук включён</span></button>
         <button class="menu-btn lang-toggle" onclick="openLangPicker()"><span class="lang-toggle-flag">🇷🇺</span> <span>Язык: Русский</span></button>
 
-        <div class="menu-section-label">Мой код</div>
+        <div class="menu-section-label">Мой логин</div>
         <div class="menu-stat-card" style="text-align:center;">
             <div class="menu-code-line" id="menuCodeVal">—</div>
-            <div class="menu-stat-label" style="margin-top:6px;">Открывает прогресс на другом устройстве</div>
+            <button class="login-toggle" id="menuLoginToggle" type="button" onclick="toggleLoginsShown()" hidden></button>
+            <div class="menu-stat-label" style="margin-top:6px;" id="menuCodeHint">Для входа на другом устройстве — вместе с паролем</div>
         </div>
 
         <div style="margin-top:18px;">
@@ -2460,8 +2510,11 @@
             <div class="config-section" data-fold="profile:account" id="accountSection">
                 <div class="config-section-title">Текущий аккаунт</div>
                 <div class="menu-stat-card" style="text-align:center;">
+                    <!-- Логин — точками, пока не попросили показать (см. shownLogin). -->
                     <div class="menu-code-line" id="profileCodeVal">—</div>
+                    <button class="login-toggle" id="profileLoginToggle" type="button" onclick="toggleLoginsShown()" hidden></button>
                     <div class="menu-stat-label" style="margin-top:6px;" id="profileTypeVal">Личный аккаунт</div>
+                    <div class="sync-badge" id="syncBadgeProfile" hidden></div>
                 </div>
                 <!-- Виден только гостю: единственное, что ему здесь по-настоящему нужно. -->
                 <div id="guestUpgradeRow" style="display:none; margin-top:10px;">
@@ -2501,6 +2554,7 @@
                 <div id="studentsBanner"></div>
                 <div id="studentsList"></div>
                 <button class="menu-btn" onclick="addStudent()">➕ <span>Добавить ученика</span></button>
+                <button class="menu-btn" onclick="openBulkAccess()">⭐ <span>Открыть нескольким</span></button>
             </div>
 
             <div class="config-section" data-fold="profile:devices2" id="sessionsSection">
@@ -2581,6 +2635,8 @@
              в игре не было вовсе: серия дней считалась, но жила в статистике, куда
              ученик заходит редко. -->
         <div class="daily-bar" id="dailyBar"></div>
+        <!-- Дошёл ли прогресс до сервера. Заполняет renderSyncBadges(). -->
+        <div class="sync-badge" id="syncBadgeConfig" hidden></div>
 
         <!-- Задания дня и недели. Раздел сворачивается общим механизмом: кому они не
              нужны, тот закроет один раз, и выбор запомнится. -->
@@ -2769,6 +2825,7 @@
             <div class="win-gate" id="winGate" style="display:none;"></div>
             <div id="winRows"></div>
             <div class="win-run" id="winRun"></div>
+            <div class="sync-badge" id="syncBadgeWin" hidden></div>
         </div>
         <div class="win-actions">
             <button class="btn-win secondary" id="btnWinMistakes" onclick="openMistakesScreen()" style="display:none;">📋 Разбор ошибок</button>
@@ -2809,10 +2866,10 @@
                     </svg>
                 </div>
                 <button class="btn-save-puzzle" id="btnOpenCollectionLive" style="margin-top:14px;">🏆 Моя коллекция парадоксов</button>
-                <button class="btn-save-puzzle" id="btnShowMyCode" style="margin-top:8px; background:rgba(255,255,255,0.08);">🔑 Мой код</button>
+                <button class="btn-save-puzzle" id="btnShowMyCode" style="margin-top:8px; background:rgba(255,255,255,0.08);">🔑 Мой логин</button>
             </div>
             <div id="myCodePanel" style="display:none; text-align:center; padding:10px 0;">
-                <p style="color:#94a3b8; margin-bottom:10px;">Твой код для входа на другом устройстве:</p>
+                <p style="color:#94a3b8; margin-bottom:10px;">Твой логин для входа на другом устройстве:</p>
                 <div id="myCodeValue" style="font-size:1.9rem; font-weight:900; color:var(--gold); letter-spacing:3px; margin-bottom:14px;"></div>
                 <button class="btn-save-puzzle" onclick="closeMyCodePanel()">← Назад к пазлу</button>
             </div>
@@ -4489,6 +4546,330 @@
             showToast(tf('Доступ обновлён: %1.', changed.map(x => x.title.replace(/^\S+\s/, '')).join(', ')), 'ok');
         }
 
+        // ===================== ОТКРЫТЬ НЕСКОЛЬКИМ =====================
+        // Тот же доступ, что по ⭐ у ученика, но сразу нескольким: пригодится в день,
+        // когда раздел откроется всем, — не нажимать ⭐ у каждого по очереди.
+        //
+        // Главное отличие от ⭐: здесь только ДОБАВЛЯЕТСЯ. У каждого ученика своё уже
+        // открытое, и одна сетка на всех не может быть «тем, что у него сейчас».
+        // Поэтому сетка начинается пустой, отмеченное прибавляется к выданному, и не
+        // закрывается ничего — ни у кого.
+
+        // Что открыто в действии: 'all' — открыто, звёзды за золото; список — эти звёзды
+        // открыты в обход золота; null — закрыто.
+        function grantOpOf(grant, op) {
+            if (grant === 'all') return 'all';
+            if (!grant || typeof grant !== 'object') return null;
+            const v = grant[op];
+            if (v === 'all') return 'all';
+            return Array.isArray(v) && v.length ? v : null;
+        }
+
+        // Прибавить отмеченное в сетке к тому, что уже открыто ученику, ничего не
+        // отнимая. Возвращает { grant, changed, skipped }.
+        //
+        // Почему не просто «старые отметки + новые → grantFromPicks». У открытого две
+        // формы: 'all' — «открыто, звёзды за золото», и список — «эти звёзды в обход
+        // золота». Сетка их не различает: полная строка в ней — это 'all'. Объединение
+        // через сетку молча превратило бы звёзды в обход золота в звёзды за золото, и
+        // ученик, которому открыли 3★ без золота на 2★, после «открыть всем» упёрся бы
+        // в ворота. А «открыто за золото, но 3★ без него» разрешение записать не умеет.
+        // Поэтому такие места не трогаем, а возвращаем в skipped — их называют
+        // репетитору, и он решает сам, через ⭐:
+        //   'named' — хотели открыть действие целиком, а там звёзды в обход золота;
+        //   'gated' — хотели звёзды в обход золота, а действие уже открыто целиком.
+        //
+        // На положительных всё проще: раздел открыт всем, и разрешение там — только
+        // список звёзд в обход золота. Списки просто складываются. Особый случай —
+        // сырое 'all', выданное до того, как сервер стал разворачивать его в пять
+        // звёзд: приложение такое 'all' поимённым не считает, и звёзды у ребёнка
+        // остаются за золотом. Если отмеченное задевает такое действие, пишем его
+        // развёрнутым — ровно то, что сделал бы сервер при любой новой выдаче.
+        function addToGrant(sec, before, picks) {
+            const want = grantFromPicks(sec, picks || {});
+            const skipped = [];
+            if (!want) return { grant: before || null, changed: false, skipped };
+            const out = {};
+            let changed = false;
+            const merge = (was, add) => [...new Set([...(was || []), ...add])].sort((a, b) => a - b);
+
+            if (sec.key === BASE_SECTION) {
+                sec.ops.forEach(op => {
+                    const raw = grantOpOf(before, op);
+                    const was = raw === 'all' ? [1, 2, 3, 4, 5] : raw;
+                    const add = grantOpOf(want, op);
+                    if (!add) { if (was) out[op] = was; return; }
+                    const merged = merge(was, add);
+                    if (raw === 'all' || !was || merged.length !== was.length) changed = true;
+                    out[op] = merged;
+                });
+                return { grant: changed ? out : (before || null), changed, skipped };
+            }
+
+            // Звёзды «в обход золота» на первой звезде ничего не меняют — у неё ворот нет.
+            // Значит, и называть такой пропуск незачем.
+            const beyondFirst = (list) => list.some(l => l >= 2);
+            if (before === 'all') {
+                sec.ops.forEach(op => {
+                    const add = grantOpOf(want, op);
+                    if (Array.isArray(add) && beyondFirst(add)) skipped.push({ op, why: 'gated' });
+                });
+                return { grant: 'all', changed: false, skipped };
+            }
+            sec.ops.forEach(op => {
+                const was = grantOpOf(before, op);
+                const add = grantOpOf(want, op);
+                if (!add) { if (was) out[op] = was; return; }
+                if (was === 'all') {
+                    out[op] = 'all';
+                    if (Array.isArray(add) && beyondFirst(add)) skipped.push({ op, why: 'gated' });
+                    return;
+                }
+                if (add === 'all') {
+                    if (!was) { out[op] = 'all'; changed = true; return; }
+                    out[op] = was;
+                    // Все пять звёзд в обход золота — это больше, чем «целиком за золото»:
+                    // добавлять нечего, и пропуском это не считается.
+                    if (was.length < 5) skipped.push({ op, why: 'named' });
+                    return;
+                }
+                const merged = merge(was, add);
+                if (!was || merged.length !== was.length) changed = true;
+                out[op] = merged;
+            });
+            if (!changed) return { grant: before || null, changed, skipped };
+            // Все действия открыты целиком — это и есть «весь раздел»: так пишет и сетка.
+            const all = sec.ops.every(op => out[op] === 'all');
+            return { grant: all ? 'all' : out, changed, skipped };
+        }
+
+        // Список учеников с галочками, разложенный по папкам, как на экране «Мои
+        // ученики». Галочка у папки отмечает её целиком — ради этого папки и заводят.
+        function buildStudentPicker(card, students, chosen) {
+            const box = document.createElement('div');
+            box.className = 'pick-list';
+            const groups = new Map();
+            students.forEach(s => {
+                const g = Progress.getStudentGroup(s.code);
+                if (!groups.has(g)) groups.set(g, []);
+                groups.get(g).push(s);
+            });
+            const names = [...groups.keys()].filter(Boolean).sort((a, b) => a.localeCompare(b, 'ru'));
+            if (groups.has('')) names.push('');
+            const showHeaders = names.some(Boolean);
+
+            const rows = [];
+            const heads = [];
+            const sync = () => {
+                rows.forEach(r => { r.input.checked = chosen.has(r.code); });
+                heads.forEach(h => {
+                    const n = h.members.filter(s => chosen.has(s.code)).length;
+                    h.input.checked = n > 0 && n === h.members.length;
+                    h.input.indeterminate = n > 0 && n < h.members.length;
+                });
+            };
+            const row = (cls, text, sub) => {
+                const lab = document.createElement('label');
+                lab.className = cls;
+                const input = document.createElement('input');
+                input.type = 'checkbox';
+                lab.appendChild(input);
+                const name = document.createElement('span');
+                name.innerText = text;
+                lab.appendChild(name);
+                if (sub) {
+                    const s = document.createElement('span');
+                    s.className = 'pick-sub';
+                    s.innerText = sub;
+                    lab.appendChild(s);
+                }
+                box.appendChild(lab);
+                return input;
+            };
+            const head = (text, members) => {
+                const input = row('pick-row pick-head', text);
+                input.addEventListener('change', () => {
+                    members.forEach(s => { if (input.checked) chosen.add(s.code); else chosen.delete(s.code); });
+                    sync();
+                });
+                heads.push({ members, input });
+            };
+
+            head(tf('Все ученики · %1', students.length), students);
+            names.forEach(name => {
+                const members = groups.get(name);
+                if (showHeaders) head((name ? `📁 ${name}` : t('📄 Без папки')) + ' · ' + members.length, members);
+                members.forEach(s => {
+                    // Логин рядом с именем: имена бывают одинаковыми, а открыть надо тому.
+                    const input = row('pick-row' + (showHeaders ? ' pick-indent' : ''), s.label || s.code, s.label ? s.code : '');
+                    input.addEventListener('change', () => {
+                        if (input.checked) chosen.add(s.code); else chosen.delete(s.code);
+                        sync();
+                    });
+                    rows.push({ code: s.code, input });
+                });
+            });
+            card.appendChild(box);
+            sync();
+        }
+
+        // Сама работа: по каждому ученику — прочитать, что открыто, прибавить, записать
+        // изменившиеся разделы. По три ученика разом: быстро, и сервер не засыпаем
+        // двадцатью запросами в одну секунду. Повторить безопасно: прибавление
+        // уже открытого ничего не меняет и не записывается.
+        async function runBulkAccess(students, picksBySec, onProgress) {
+            const sections = GRANT_SECTIONS.filter(sec => grantFromPicks(sec, picksBySec[sec.key] || {}));
+            const results = [];
+            let done = 0;
+            const one = async (s) => {
+                const r = { code: s.code, label: s.label || s.code, wrote: [], skipped: [], error: null };
+                try {
+                    const cur = await callAuthed('session_student_access', { p_student_code: s.code });
+                    if (cur.error || !cur.data || !cur.data.ok) throw new Error((cur.data && cur.data.error) || 'read_failed');
+                    const before = cur.data.access || {};
+                    for (const sec of sections) {
+                        const add = addToGrant(sec, before[sec.key], picksBySec[sec.key]);
+                        add.skipped.forEach(x => r.skipped.push({ sec, op: x.op, why: x.why }));
+                        if (!add.changed) continue;
+                        const res = await callAuthed('session_set_student_access',
+                            { p_student_code: s.code, p_section: sec.key, p_grant: add.grant });
+                        if (res.error || !res.data || !res.data.ok) throw new Error((res.data && res.data.error) || 'write_failed');
+                        r.wrote.push(sec);
+                    }
+                } catch (e) {
+                    r.error = (e && e.message) || 'failed';
+                }
+                results.push(r);
+                done++;
+                if (onProgress) onProgress(done, students.length);
+            };
+            const queue = students.slice();
+            await Promise.all([0, 1, 2].map(async () => { while (queue.length) await one(queue.shift()); }));
+            // Итог — в порядке списка, а не в порядке ответов сервера.
+            const order = new Map(students.map((s, i) => [s.code, i]));
+            results.sort((a, b) => order.get(a.code) - order.get(b.code));
+            return results;
+        }
+
+        // Итог словами. Пропуски называются поимённо: это ровно те места, куда
+        // репетитору стоит заглянуть самому.
+        function bulkAccessReport(results) {
+            const opened = results.filter(r => !r.error && r.wrote.length);
+            const already = results.filter(r => !r.error && !r.wrote.length && !r.skipped.length);
+            const failed = results.filter(r => r.error);
+            const where = (x) => `${x.sec.title.replace(/^\S+\s/, '')}, ${(OP_LABELS[x.op] || x.op).replace(/^\S+\s/, '').toLowerCase()}`;
+            const skippedAs = (why) => results.flatMap(r => r.skipped.filter(x => x.why === why).map(x => `${r.label} (${where(x)})`));
+            const named = skippedAs('named');
+            const gated = skippedAs('gated');
+            const lines = [];
+            if (opened.length) {
+                lines.push(tf(plural(opened.length, 'Открыто %1 ученику.', 'Открыто %1 ученикам.', 'Открыто %1 ученикам.'), opened.length));
+            }
+            if (already.length) {
+                lines.push(tf(plural(already.length,
+                    'У %1 ученика всё это уже было открыто.',
+                    'У %1 учеников всё это уже было открыто.',
+                    'У %1 учеников всё это уже было открыто.'), already.length));
+            }
+            if (named.length) {
+                lines.push(tf('Не тронуто, чтобы ничего не закрыть: там звёзды уже открыты в обход золота — %1.', named.join('; ')));
+            }
+            if (gated.length) {
+                lines.push(tf('Уже открыто целиком, звёзды за золото, — в обход золота не добавлено: %1.', gated.join('; ')));
+            }
+            if (named.length || gated.length) lines.push(t('Поправить можно через ⭐ у ученика.'));
+            if (failed.length) {
+                lines.push(tf('Не получилось: %1. Можно повторить — уже открытое не задвоится.', failed.map(r => r.label).join(', ')));
+            }
+            return lines.join('\n\n');
+        }
+
+        // Окно с ходом долгой работы. Закрыть его можно — работа от этого не встанет,
+        // просто итог придёт отдельным окном.
+        function openProgressDialog(title) {
+            let card = null, line = null, closeWith = null, open = true;
+            const closed = openAppDialog(undefined, (c, submit) => {
+                card = c;
+                closeWith = submit;
+                dlgHead(c, title, '');
+                line = document.createElement('div');
+                line.className = 'dlg-text';
+                c.appendChild(line);
+            });
+            closed.then(() => { open = false; });
+            return {
+                set(text) { if (open && line) line.innerText = text; },
+                finish(doneTitle, text) {
+                    if (!open) return showNotice({ title: doneTitle, text });
+                    card.innerHTML = '';
+                    dlgHead(card, doneTitle, text);
+                    const row = document.createElement('div');
+                    row.className = 'dlg-actions';
+                    const ok = document.createElement('button');
+                    ok.className = 'dlg-btn primary';
+                    ok.type = 'button';
+                    ok.innerText = t('Понятно');
+                    ok.addEventListener('click', () => closeWith(undefined));
+                    row.appendChild(ok);
+                    card.appendChild(row);
+                    setTimeout(() => ok.focus(), 0);
+                    return closed;
+                }
+            };
+        }
+
+        async function openBulkAccess() {
+            const status = {};
+            const students = await fetchMyStudents(status);
+            if (!students.length) {
+                showToast(status.ok ? t('Пока нет учеников.') : t('Нет соединения с сервером.'), 'error');
+                return;
+            }
+
+            // Шаг 1: кому.
+            const chosen = new Set();
+            const who = await askForm({
+                title: t('Кому открыть'),
+                text: t('Отметь учеников. Что открыть — на следующем шаге.'),
+                fields: [],
+                okText: t('Дальше'),
+                build: (card) => buildStudentPicker(card, students, chosen),
+                validate: () => chosen.size ? null : t('Отметь хотя бы одного ученика.')
+            });
+            if (who === null) return;
+            const picked = students.filter(s => chosen.has(s.code));
+
+            // Шаг 2: что. Та же сетка, что у ⭐, но пустая: см. addToGrant.
+            const state = { secIdx: 0, picks: {} };
+            GRANT_SECTIONS.forEach(sec => { state.picks[sec.key] = {}; });
+            const what = await askForm({
+                title: t('Что открыть'),
+                text: tf(plural(picked.length,
+                    'Отмеченное откроется %1 ученику и добавится к тому, что уже открыто. Закрыть здесь ничего нельзя.',
+                    'Отмеченное откроется %1 ученикам и добавится к тому, что уже открыто. Закрыть здесь ничего нельзя.',
+                    'Отмеченное откроется %1 ученикам и добавится к тому, что уже открыто. Закрыть здесь ничего нельзя.'),
+                    picked.length),
+                fields: [],
+                okText: t('Открыть'),
+                build: (card) => buildGrantGrid(card, state, {
+                    initial: () => ({}),
+                    summary: (sec, g) => g
+                        ? `${sec.title.replace(/^\S+\s/, '')}: ${grantHuman(sec, g)}.`
+                        : tf('%1: ничего не отмечено.', sec.title.replace(/^\S+\s/, ''))
+                }),
+                validate: () => GRANT_SECTIONS.some(sec => grantFromPicks(sec, state.picks[sec.key] || {}))
+                    ? null : t('Отметь, что открыть.')
+            });
+            if (what === null) return;
+
+            // Шаг 3: делаем — с ходом работы на экране.
+            const box = openProgressDialog(t('Открываю'));
+            box.set(tf('%1 из %2…', 0, picked.length));
+            const results = await runBulkAccess(picked, state.picks,
+                (done, total) => box.set(tf('%1 из %2…', done, total)));
+            await box.finish(t('Готово'), bulkAccessReport(results));
+        }
+
         // Код показывается крупно и не исчезает сам: его надо успеть переписать
         // или скопировать, а исчезающая через три секунды всплывашка для этого не годится.
 
@@ -4835,7 +5216,9 @@
             if (!code || Progress.isGuest()) return;
             try {
                 await navigator.clipboard.writeText(code);
-                showToast(tf('Логин скопирован: %1', code));
+                // Сам логин в подтверждении не повторяем: он на экране спрятан, и
+                // всплывающая строка показала бы его через плечо так же, как карточка.
+                showToast(t('Логин скопирован.'));
             } catch (e) {
                 // Буфер обмена бывает закрыт настройками браузера — тогда просто
                 // показываем логин, чтобы его можно было переписать руками.
@@ -5138,6 +5521,10 @@
         // сторожить.
 
         function openPuzzleModal() {
+            // «Мой логин» гостю не нужен: логина у него нет. Если панель с логином
+            // осталась открытой с прошлого раза, кнопка и так спрятана — не трогаем.
+            const panelOpen = document.getElementById('myCodePanel').style.display === 'block';
+            document.getElementById('btnShowMyCode').style.display = (Progress.isGuest() || panelOpen) ? 'none' : '';
             document.getElementById('puzzleModal').classList.add('active');
         }
         function closePuzzleModal() {
@@ -5500,6 +5887,7 @@
 
 
         function openMainMenu() {
+            loginsShown = false;   // каждый раз заново — спрятан (см. shownLogin)
             renderMenuStats();
             document.getElementById('menuOverlay').classList.add('open');
         }
@@ -5525,9 +5913,44 @@
                 total > 0 ? Math.round(correct / total * 100) + '%' : '—';
 
             renderTopicBreakdown(st.byTopic || {});
+            renderMenuLogin();
+        }
 
+        // ===================== ЛОГИН НА ЭКРАНЕ =====================
+        // Логин — половина ключа от аккаунта: зная его, остаётся подобрать пароль.
+        // Поэтому крупно на экране он не висит, а то его видно через плечо: вместо
+        // него точки, показать — по нажатию. Экран открыли заново — снова спрятан:
+        // забытое «показать» не должно доживать до следующего раза.
+        //
+        // Точек всегда восемь, какой бы длины ни был логин: длина — тоже подсказка.
+        const LOGIN_MASK = '••••••••';
+        let loginsShown = false;
+        function shownLogin(code) { return loginsShown ? code : LOGIN_MASK; }
+
+        // Одна кнопка на экран: показывает все логины на нём разом — свой, логин
+        // репетитора у ученика и логины в списке профилей устройства.
+        function toggleLoginsShown() {
+            loginsShown = !loginsShown;
+            renderAccountCard();
+            renderProfileList();
+            renderMenuLogin();
+        }
+        function paintLoginToggle(btn, visible) {
+            btn.hidden = !visible;
+            btn.innerText = loginsShown ? t('🙈 Спрятать') : t('👁 Показать');
+            btn.setAttribute('aria-pressed', loginsShown ? 'true' : 'false');
+        }
+
+        // «Мой логин» в меню игры. Служебный код гостя наружу не показываем: человек
+        // его не выбирал, и войти им на другом устройстве нельзя.
+        function renderMenuLogin() {
             const code = Progress.getCode();
-            document.getElementById('menuCodeVal').innerText = code || '—';
+            const guest = Progress.isGuest();
+            document.getElementById('menuCodeVal').innerText = guest ? t('Гость') : (code ? shownLogin(code) : '—');
+            document.getElementById('menuCodeHint').innerText = guest
+                ? t('Прогресс только на этом устройстве')
+                : t('Для входа на другом устройстве — вместе с паролем');
+            paintLoginToggle(document.getElementById('menuLoginToggle'), !guest && !!code);
         }
 
         // Разбор точности по темам: самое слабое место сверху, чтобы сразу было видно,
@@ -9517,6 +9940,7 @@
             openProfileScreen();
         }
         function openProfileScreen() {
+            loginsShown = false;   // каждый раз заново — спрятан (см. shownLogin)
             renderProfileScreen();
             document.getElementById('profileScreen').style.display = 'flex';
         }
@@ -9524,20 +9948,32 @@
             document.getElementById('profileScreen').style.display = 'none';
         }
 
-        function renderProfileScreen() {
+        // Карточка аккаунта: логин и тип. Логин — точками, пока не попросили показать.
+        // У ученика здесь же стоял логин репетитора, и он виден был всегда, — а это
+        // логин от аккаунта, через который открываются все ученики. Теперь он
+        // показывается только вместе со своим, по той же кнопке.
+        function renderAccountCard() {
             const code = Progress.getCode();
             const type = Progress.getAccountType();
             const owner = Progress.getOwnerCode();
             // Служебный код гостя наружу не показываем ни здесь, ни где-либо ещё:
             // человек его не выбирал и ввести обратно не сможет.
             const guest = Progress.isGuest();
-            document.getElementById('profileCodeVal').innerText = guest ? t('Гость') : (code || '—');
+            document.getElementById('profileCodeVal').innerText = guest ? t('Гость') : (code ? shownLogin(code) : '—');
+            document.getElementById('profileTypeVal').innerText = guest
+                ? t('Прогресс только на этом устройстве')
+                : (type !== 'linked' ? ACCOUNT_TYPE_LABELS.self
+                    : (loginsShown && owner ? tf('📚 Ученик · репетитор %1', owner) : ACCOUNT_TYPE_LABELS.linked));
+            paintLoginToggle(document.getElementById('profileLoginToggle'), !guest && !!code);
+        }
+
+        function renderProfileScreen() {
+            const type = Progress.getAccountType();
+            const guest = Progress.isGuest();
+            renderAccountCard();
             document.getElementById('profileSubtitle').innerText = guest
                 ? t('Игра без аккаунта')
                 : (Progress.getProfileLabel() || t('Управление аккаунтом'));
-            document.getElementById('profileTypeVal').innerText = guest
-                ? t('Прогресс только на этом устройстве')
-                : (type === 'linked' ? `${ACCOUNT_TYPE_LABELS.linked} ${owner || ''}` : ACCOUNT_TYPE_LABELS.self);
             // Гостю здесь главное — не настройки, а выход из гостевого положения.
             document.getElementById('guestUpgradeRow').style.display = guest ? '' : 'none';
             // Логин и смена пароля — только тому, кто сам себе хозяин. У ученика пароль
@@ -9619,7 +10055,9 @@
                 row.className = 'list-row' + (p.active ? ' active' : '');
                 row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    %1\n                ', p.active ? t('<span class="list-row-badge">Сейчас</span>') : '<button class="list-row-btn">' + t('Войти') + '</button>');
                 row.querySelector('.list-row-name').innerText = p.label || t('Без имени');
-                row.querySelector('.list-row-sub').innerText = p.code;
+                // Логины здесь — под той же кнопкой «показать», что и в карточке выше:
+                // иначе спрятанный там логин читался бы в этом списке.
+                row.querySelector('.list-row-sub').innerText = shownLogin(p.code);
                 if (!p.active) {
                     row.querySelector('.list-row-btn').addEventListener('click', () => profileLoginTo(p.code));
                 }
@@ -10471,7 +10909,8 @@
 
         function openMyCodePanel() {
             const code = Progress.getCode();
-            if (!code) return; // играет анонимно, кода ещё нет
+            // У гостя логина нет: служебный код наружу не показываем.
+            if (!code || Progress.isGuest()) return;
             document.getElementById('myCodeValue').innerText = code;
             document.getElementById('myCodePanel').style.display = 'block';
             document.getElementById('puzzleModalCount').parentElement.style.display = 'none'; // скрываем заголовок пазла
@@ -10484,7 +10923,7 @@
             document.getElementById('puzzleModalCount').parentElement.style.display = '';
             document.querySelector('#puzzleLiveSection .puzzle-big-thumb').style.display = '';
             document.getElementById('btnOpenCollectionLive').style.display = '';
-            document.getElementById('btnShowMyCode').style.display = '';
+            document.getElementById('btnShowMyCode').style.display = Progress.isGuest() ? 'none' : '';
         }
         document.getElementById('btnDetailBack').addEventListener('click', showCollectionList);
         document.getElementById('collectionCloseBtn').addEventListener('click', closeCollectionModal);
@@ -11725,6 +12164,55 @@
             if (!gameActive) return;
             Progress.flush(); // без force — уйдёт на сервер, только если реально что-то изменилось
         }, 8000);
+
+        // ===================== ЗНАЧОК «СОХРАНЕНО» =====================
+        // Говорит одно: дошёл ли прогресс до сервера. После сбоев синхронизации ребёнку
+        // и родителю важно видеть, что ничего не пропало, — а если не доходит, то
+        // почему и что сделать. Состояние знает Progress (syncStatus), здесь только слова.
+        //
+        // Гостю значок не показываем: сервера у него нет вовсе, и об этом уже говорит
+        // профиль. «Ещё не пробовали» (null) — тоже молчим: сказать пока нечего.
+        function syncBadgeView(status) {
+            switch (status) {
+                case 'saved':   return { cls: 'ok',   text: t('✓ Прогресс сохранён') };
+                case 'saving':  return { cls: 'busy', text: t('Сохраняю…') };
+                case 'offline': return { cls: 'warn', text: t('☁️ Нет связи — сохранится позже') };
+                // Само это не пройдёт: вход на устройстве закрыт (сменили пароль или
+                // вышли на других устройствах), и прогресс копится только здесь.
+                case 'signin':  return { cls: 'bad',  text: t('⚠️ Войди заново — пока прогресс сохраняется только на этом устройстве'),
+                                         action: t('Войти') };
+                default:        return null;
+            }
+        }
+        function renderSyncBadges() {
+            const view = syncBadgeView(Progress.syncStatus());
+            document.querySelectorAll('.sync-badge').forEach(el => {
+                el.hidden = !view;
+                if (!view) return;
+                el.className = 'sync-badge ' + view.cls;
+                el.textContent = view.text;
+                if (view.action) {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.textContent = view.action;
+                    btn.addEventListener('click', () => profileLoginTo(Progress.getCode()));
+                    el.appendChild(btn);
+                }
+            });
+        }
+        Progress.onSyncChange(renderSyncBadges);
+        renderSyncBadges();
+
+        // «Сохранится позже» должно сбываться само. Во время миссии и так пробуем каждые
+        // восемь секунд, а вне её значок «нет связи» висел бы до следующей миссии, даже
+        // когда связь давно есть. Поэтому, пока не удаётся, — повтор раз в полминуты и
+        // сразу, как только браузер скажет, что сеть вернулась.
+        function retrySyncIfOffline() {
+            if (document.visibilityState === 'hidden') return;
+            if (Progress.syncStatus() === 'offline') Progress.flush(true);
+        }
+        setInterval(retrySyncIfOffline, 30000);
+        window.addEventListener('online', retrySyncIfOffline);
 
         // Завершение миссии. Путь один на всех: и кнопка «Завершить», и окно
         // «цель взята» ведут сюда, чтобы итоги, разбор ошибок и показ собранных пазлов
