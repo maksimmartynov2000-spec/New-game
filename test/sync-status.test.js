@@ -316,6 +316,31 @@ test('«сохранится позже» сбывается само: повт�
             assert(!g.hidden, 'значок спрятан');
             assert(/Нет связи/.test(g.text) && /warn/.test(g.cls), `на значке: ${g.text} (${g.cls})`);
         });
+        // «Войди заново» → сказать нечего: плашка обязана исчезнуть с экрана. У неё свой
+        // display: flex, и спрятанная атрибутом hidden она оставалась видна.
+        {
+            const page = await browser.newPage();
+            await page.route('**/rest/v1/rpc/*', r => r.abort());
+            await page.route('**/content/maintenance.js*', r => r.fulfill({ status: 200,
+                contentType: 'application/javascript', body: 'window.MAINTENANCE={until:null,note:null};' }));
+            await page.goto('file://' + path.join(ROOT, 'index.html'));
+            await page.waitForFunction(`typeof renderSyncBadges === 'function'`);
+            const seen = await page.evaluate(`(() => {
+                window.MAINTENANCE = { until: null }; renderMaintenance();
+                Progress.switchTo('KID', null, { accountType: 'solo' });   // ключа нет — «войди заново»
+                enterApp();
+                const b = document.getElementById('syncBadgeConfig');
+                const before = getComputedStyle(b).display;
+                Progress.setToken('KID', 'tok');                             // ключ есть, отправок не было
+                return { before, after: getComputedStyle(b).display, text: b.textContent };
+            })()`);
+            try {
+                assert(seen.before !== 'none', 'плашка «войди заново» не показалась вовсе');
+                assert(seen.after === 'none', `плашка осталась на экране: display ${seen.after}, «${seen.text}»`);
+                record('плашка «войди заново» исчезает, когда сказать уже нечего', null);
+            } catch (e) { record('плашка «войди заново» исчезает, когда сказать уже нечего', e.message); }
+            await page.close();
+        }
         await browser.close();
     }
 

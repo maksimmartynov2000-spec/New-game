@@ -321,6 +321,32 @@ const Progress = (() => {
         syncListeners.forEach(fn => { try { fn(); } catch (e) { /* только значок */ } });
     }
 
+    // Тип аккаунта и владельца решает сервер: он прибивает их к своим колонкам при
+    // каждой записи (pin_identity в owner-columns.sql). Слияние «кто свежее» тут не
+    // годится: ученик, которого привязали к репетитору или отпустили, продолжает
+    // играть на втором устройстве, его копия всегда свежее серверной — и экран там
+    // показывал бы прежний тип, пока он играет.
+    //
+    // Берём только 'solo' и 'linked'. 'self' — репетитор — синхронизацией не
+    // присваивается никогда: законного пути из ученика в репетиторы нет, а
+    // незаконный уже был (см. mergeState, случай с открывшимися звёздами).
+    function serverIdentity(raw) {
+        if (!raw || typeof raw !== 'object') return null;
+        const type = raw.accountType;
+        if (type !== 'solo' && type !== 'linked') return null;
+        const owner = (type === 'linked' && typeof raw.ownerCode === 'string' && raw.ownerCode)
+            ? raw.ownerCode : null;
+        // Ученик без репетитора — запись сломана, верить ей незачем.
+        if (type === 'linked' && !owner) return null;
+        return { accountType: type, ownerCode: owner };
+    }
+    // Экранам надо знать, что аккаунт сменил хозяина: доступ теперь другой, и его
+    // нужно спросить заново.
+    const identityListeners = [];
+    function notifyIdentity() {
+        identityListeners.forEach(fn => { try { fn(); } catch (e) { /* только экраны */ } });
+    }
+
     // Локальный кэш ВСЕХ профилей, что когда-либо были активны на этом устройстве —
     // так два ребёнка на одном айпаде могут переключаться между своими аккаунтами,
     // не теряя офлайн-копию прогресса друг друга. Ключ — код профиля.
@@ -1376,10 +1402,22 @@ const Progress = (() => {
             syncInFlight++;
             notifySync();
             try {
+                const raw = await remoteDriver.read(state.playerCode, auth);
+                // Аккаунт сменил хозяина на сервере: привязали к репетитору или
+                // отпустили. Что мы знали о доступе — про прежнего хозяина, поэтому
+                // забываем: пока не спросили заново, открыто всё, и чистка закрытых
+                // разделов ничего не тронет. Иначе устаревший доступ стёр бы прогресс,
+                // ради которого сервер при привязке как раз открыл ученику эти разделы.
+                const who = serverIdentity(raw);
+                const changedHands = !!who && (who.accountType !== (state.accountType || 'self')
+                                               || who.ownerCode !== (state.ownerCode || null));
+                if (changedHands) access = null;
                 // Чистим обе стороны до слияния. Слияние берёт максимум и
                 // объединение — почистить только одну сторону значит не почистить.
-                const remote = dropClosedSections(normalize(await remoteDriver.read(state.playerCode, auth)));
+                const remote = dropClosedSections(normalize(raw));
                 state = mergeState(remote, dropClosedSections(state));
+                if (who) { state.accountType = who.accountType; state.ownerCode = who.ownerCode; }
+                if (changedHands) notifyIdentity();
                 profiles[state.playerCode] = state; // merge вернул новый объект — обновляем кэш
                 localDriver.write({ activeCode: state.playerCode, profiles, passwords, tokens, access });
                 // Слепок уходит таким, каким он есть сейчас. Всё, что изменится, пока
@@ -1422,6 +1460,7 @@ const Progress = (() => {
             return null;
         },
         onSyncChange(fn) { if (typeof fn === 'function') syncListeners.push(fn); },
+        onIdentityChange(fn) { if (typeof fn === 'function') identityListeners.push(fn); },
         // Прощальная запись — на случай, когда приложение смахивают свайпом.
         //
         // Обычный flush() — это три шага: прочитать серверную копию, слить её с

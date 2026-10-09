@@ -30,6 +30,8 @@
 --    14. supabase/lock-internals.sql   — закрыть внутренности от anon
 --    15. supabase/self-register.sql    — регистрация без репетитора
 --    16. supabase/exam-sections.sql    — экзамен по разделам
+--    17. supabase/password-null.sql    — пустой пароль больше не пускает
+--    18. supabase/account-link.sql     — привязка к репетитору, пауза после неверных паролей
 --
 --  Последние два обязательны и на новой базе: старые функции заводит второй шаг,
 --  а права анонимной роли Supabase раздаёт сам, каждой новой функции. Без этих
@@ -52,6 +54,8 @@
 --        supabase/exam-cap.test.sql
 --        supabase/logout-others.test.sql
 --        supabase/exam-sections.test.sql
+--        supabase/password-null.test.sql
+--        supabase/account-link.test.sql
 --  Запускать их на ТЕСТОВОЙ копии: они заводят и удаляют временные аккаунты.
 --  Все строки в выводе должны быть «ДА».
 -- =====================================================================

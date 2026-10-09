@@ -1,10 +1,12 @@
 // Тесты спрятанного логина.
 //
 // Логин — половина ключа от аккаунта: зная его, остаётся подобрать пароль. Раньше он
-// крупно висел в профиле и в меню игры, и его было видно через плечо. У ученика там
-// же стоял логин репетитора — а через аккаунт репетитора открываются все ученики.
-// Теперь вместо логинов точки, показать — по нажатию, и при новом открытии экрана
-// они снова спрятаны.
+// крупно висел в профиле и в меню игры, и его было видно через плечо. Теперь вместо
+// логинов точки, показать — по нажатию, и при новом открытии экрана они снова спрятаны.
+//
+// У ученика в профиле стоял логин репетитора — а через аккаунт репетитора открываются
+// все ученики. Его там больше нет вовсе, ни сразу, ни по «показать»: вместо него имя
+// из профиля репетитора, которое отдаёт сервер (session_my_tutor).
 //
 // Проверяется по тексту экрана целиком, а не по одному полю: спрятать логин в
 // карточке и оставить его строкой ниже — то же самое, что не прятать.
@@ -61,7 +63,8 @@ check('точек всегда одинаково, какой бы длины н
         page.on('pageerror', e => page.errs.push(e.message));
         await page.route('**/rest/v1/rpc/*', r => {
             const fn = r.request().url().split('/rpc/')[1];
-            const body = fn === 'session_state' ? { ok: true, state: remote || {} } : { ok: true };
+            const body = fn === 'session_state' ? { ok: true, state: remote || {} }
+                : fn === 'session_my_tutor' ? { ok: true, name: 'Максим' } : { ok: true };
             return r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(body) });
         });
         await page.route('**/content/maintenance.js*', r => r.fulfill({ status: 200,
@@ -80,7 +83,8 @@ check('точек всегда одинаково, какой бы длины н
     console.log('\nПрофиль ученика');
     const pupil = await open(`
         Progress.switchTo('PETYA2014', null, { accountType: 'linked', ownerCode: 'MAKSIM', profileLabel: 'Петя' });
-        Progress.switchTo('MASHA2015', null, { accountType: 'linked', ownerCode: 'MAKSIM' });`);
+        Progress.switchTo('MASHA2015', null, { accountType: 'linked', ownerCode: 'MAKSIM' });
+        Progress.setToken('MASHA2015', 'tok');`);
     const openProfile = () => pupil.evaluate(`document.querySelectorAll('.modal-screen').forEach(e => e.style.display = 'none');
         openProfileScreen(); document.querySelectorAll('#profileScreen .config-section[data-fold]').forEach(f => f.classList.remove('folded')); null`);
     await openProfile();
@@ -88,15 +92,19 @@ check('точек всегда одинаково, какой бы длины н
         const all = await text(pupil, '#profileScreen');
         ['MASHA2015', 'PETYA2014'].forEach(code => assert(!all.includes(code), `виден логин ${code}`));
     });
-    await live('логина репетитора у ученика не видно', async () => {
-        const all = await text(pupil, '#profileScreen');
-        assert(!all.includes('MAKSIM'), 'логин репетитора виден без «показать»');
-        assert(/Ученик/.test(await text(pupil, '#profileTypeVal')), 'пропало, что это аккаунт ученика');
+    await live('вместо логина репетитора — его имя', async () => {
+        await pupil.waitForFunction(`/Максим/.test(document.getElementById('profileTypeVal').innerText)`, null, { timeout: 4000 })
+            .catch(() => {});
+        const type = await text(pupil, '#profileTypeVal');
+        assert(/Ученик/.test(type), `пропало, что это аккаунт ученика: «${type}»`);
+        assert(/Максим/.test(type), `имени репетитора нет: «${type}»`);
+        assert(!(await text(pupil, '#profileScreen')).includes('MAKSIM'), 'логин репетитора виден');
     });
-    await live('«показать» открывает все логины на экране', async () => {
+    await live('«показать» открывает свои логины, но не логин репетитора', async () => {
         await pupil.evaluate(`document.getElementById('profileLoginToggle').click(); null`);
         const all = await text(pupil, '#profileScreen');
-        ['MASHA2015', 'PETYA2014', 'MAKSIM'].forEach(code => assert(all.includes(code), `после «показать» не виден ${code}`));
+        ['MASHA2015', 'PETYA2014'].forEach(code => assert(all.includes(code), `после «показать» не виден ${code}`));
+        assert(!all.includes('MAKSIM'), 'после «показать» виден логин репетитора');
         assert(/Спрятать/.test(await text(pupil, '#profileLoginToggle')), 'кнопка не стала «спрятать»');
     });
     await live('«спрятать» прячет обратно', async () => {
