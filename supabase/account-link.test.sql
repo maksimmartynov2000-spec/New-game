@@ -34,7 +34,7 @@ select coalesce((session_login('ZLPUPIL', 'pupilpassword'))->>'token', '∅') as
 -- =====================================================================
 --  1. Пауза после неверных паролей
 -- =====================================================================
-select case when count(*) = 5 and bool_and((r->>'error') = 'bad_credentials' and (r->>'wait')::int = 0)
+select case when count(*) = 5 and bool_and(coalesce(r->>'error', '') = 'bad_credentials' and coalesce((r->>'wait')::int, -1) = 0)
             then 'ДА  первые пять ошибок — без паузы'
             else 'НЕТ уже на первых ошибках пауза: ' || string_agg(r::text, ' ') end
   from (select session_login('ZLKID2', 'wrong' || g) as r from generate_series(1, 5) g) s;
@@ -167,7 +167,7 @@ select case when (session_peek_invite(:'tutor2', :'inv'))->>'error' = 'not_solo'
             else 'НЕТ репетитор привязался к репетитору' end;
 
 -- Подбор кода: те же пять ошибок, потом пауза — и верный код ждёт.
-select case when count(*) = 5 and bool_and((r->>'error') = 'bad_invite' and (r->>'wait')::int = 0)
+select case when count(*) = 5 and bool_and(coalesce(r->>'error', '') = 'bad_invite' and coalesce((r->>'wait')::int, -1) = 0)
             then 'ДА  неверный код — отказ, первые пять без паузы'
             else 'НЕТ на неверных кодах: ' || string_agg(r::text, ' ') end
   from (select session_peek_invite(:'kid2', 'ZZZZZZZ' || g) as r from generate_series(1, 5) g) s;
