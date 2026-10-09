@@ -145,6 +145,69 @@ test('в коде не осталось имён функций старого �
     assert(bad.length === 0, `упоминаются: ${bad.join(', ')}`);
 });
 
+// ---------------------------------------------------------------------
+// Приложение и база говорят на одном языке: каждая функция, которую зовёт
+// приложение, описана в миграциях, и с теми же именами параметров. PostgREST
+// находит функцию по имени И по набору параметров: опечатка в любом из них — и
+// вызов на живом сервере падает с «функция не найдена», а в браузере тестов, где
+// сервер подставной, всё выглядит рабочим.
+// ---------------------------------------------------------------------
+group('Приложение и база совпадают');
+
+// Последнее объявление каждой функции по миграциям, в порядке восстановления:
+// поздняя миграция переиздаёт раннюю, и верна именно она. Перегрузки (одно имя,
+// разные параметры) хранятся все.
+function sqlSignatures() {
+    const dir = path.join(ROOT, 'supabase');
+    const schema = fs.readFileSync(path.join(dir, 'schema.sql'), 'utf8');
+    const from = schema.indexOf('ЧТОБЫ ПОДНЯТЬ БАЗУ С НУЛЯ');
+    const order = [...schema.slice(from).matchAll(/supabase\/([a-z-]+\.sql)/g)].map(m => m[1])
+        .filter(f => !f.endsWith('.test.sql') && f !== 'bootstrap-tutor.sql');
+    const sigs = new Map();
+    [...new Set(order)].forEach(f => {
+        const src = fs.readFileSync(path.join(dir, f), 'utf8');
+        for (const m of src.matchAll(/create\s+or\s+replace\s+function\s+(\w+)\s*\(([^)]*)\)/gi)) {
+            const params = m[2].split(',').map(p => p.trim().split(/\s+/)[0]).filter(Boolean).sort();
+            const all = sigs.get(m[1]) || new Map();
+            all.set(params.join(','), params);
+            sigs.set(m[1], all);
+        }
+    });
+    return sigs;
+}
+
+// Вызовы из приложения: имя и ключи переданного объекта. callAuthed сам добавляет p_token.
+function appCalls() {
+    const calls = [];
+    for (const m of ALL.matchAll(/callAuthed\(\s*'([a-z_]+)'\s*,\s*\{([^}]*)\}/g)) {
+        const keys = [...m[2].matchAll(/(p_\w+)\s*:/g)].map(k => k[1]);
+        calls.push({ name: m[1], params: ['p_token', ...keys].sort() });
+    }
+    for (const m of ALL.matchAll(/\.rpc\(\s*'([a-z_]+)'\s*,\s*\{([^}]*)\}/g)) {
+        const keys = [...m[2].matchAll(/(p_\w+)\s*:/g)].map(k => k[1]);
+        calls.push({ name: m[1], params: keys.sort() });
+    }
+    return calls;
+}
+
+test('каждая функция, которую зовёт приложение, есть в миграциях', () => {
+    const sigs = sqlSignatures();
+    const missing = [...new Set(appCalls().map(c => c.name).filter(n => !sigs.has(n)))];
+    assert(missing.length === 0, `в миграциях нет: ${missing.join(', ')}`);
+});
+
+test('и параметры у них называются так же', () => {
+    const sigs = sqlSignatures();
+    const bad = appCalls().filter(c => sigs.has(c.name) && !sigs.get(c.name).has(c.params.join(',')))
+        .map(c => `${c.name}(${c.params.join(', ')})`);
+    assert(bad.length === 0, `в базе нет таких вызовов: ${[...new Set(bad)].join('; ')}`);
+});
+
+test('сверка не пустая: вызовов найдено много', () => {
+    const n = appCalls().length;
+    assert(n >= 30, `найдено всего ${n} вызовов — разбор вызовов сломался`);
+});
+
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
     console.log(`Все проверки пройдены: ${passed}`);

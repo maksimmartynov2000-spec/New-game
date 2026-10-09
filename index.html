@@ -597,6 +597,9 @@
             color: #94a3b8; font: inherit; font-size: 0.78rem;
         }
         .login-toggle[hidden] { display: none; }
+        /* Код приглашения — крупно: его диктуют вслух или переписывают с экрана. */
+        .invite-card { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-bottom: 10px; text-align: center; }
+        .invite-code { font-size: 1.5rem; letter-spacing: 4px; }
         .login-toggle:active { background: rgba(255, 255, 255, 0.08); }
         header {
             display: flex; justify-content: center; align-items: center;
@@ -2546,6 +2549,11 @@
                     <button class="menu-btn" style="margin-top:8px;" onclick="changeOwnPassword()">🔑 <span>Сменить пароль</span></button>
                     <div class="config-hint" style="margin-top:8px;">Пароль посмотреть нельзя — только задать новый.</div>
                 </div>
+                <!-- Только самостоятельному: код от репетитора делает его учеником со всем
+                     прогрессом. Ученику не нужна (репетитор уже есть), репетитору тем более. -->
+                <div id="linkTutorRow" style="display:none; margin-top:8px;">
+                    <button class="menu-btn" onclick="linkToTutor()">🔗 <span>У меня есть код репетитора</span></button>
+                </div>
                 <input id="profileLabelInput" type="text" placeholder="Имя (необязательно)"
                        style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
                               background:rgba(255,255,255,0.06); color:white; box-sizing:border-box; text-align:center; font-size:0.95rem;">
@@ -2569,6 +2577,7 @@
                 <div id="studentsBanner"></div>
                 <div id="studentsList"></div>
                 <button class="menu-btn" onclick="addStudent()">➕ <span>Добавить ученика</span></button>
+                <button class="menu-btn" onclick="createInvite()">✉️ <span>Пригласить ученика</span></button>
                 <button class="menu-btn" onclick="openBulkAccess()">⭐ <span>Открыть нескольким</span></button>
             </div>
 
@@ -4930,7 +4939,7 @@
                 loadingEl.style.display = 'none';
                 if (error) throw error;
                 if (!data || !data.ok) {
-                    errEl.innerText = t('Неверный код или пароль.');
+                    errEl.innerText = loginRefusalText(data);
                     errEl.style.display = 'block';
                     return;
                 }
@@ -5264,7 +5273,10 @@
             const why = res.data && res.data.error;
             if (res.error || !res.data || !res.data.ok) {
                 const messages = {
-                    bad_credentials: t('Старый пароль не подошёл.'),
+                    bad_credentials: (res.data && res.data.wait > 0)
+                        ? tf('Старый пароль не подошёл. Следующая попытка — через %1.', waitText(res.data.wait))
+                        : t('Старый пароль не подошёл.'),
+                    too_many: res.data ? tf('Слишком много неверных попыток. Попробуй через %1.', waitText(res.data.wait)) : '',
                     password_too_short: tf('Пароль должен быть от %1 знаков.', REG_PW_MIN),
                     not_allowed: t('Пароль ученика меняет репетитор.')
                 };
@@ -9958,28 +9970,46 @@
             loginsShown = false;   // каждый раз заново — спрятан (см. shownLogin)
             renderProfileScreen();
             document.getElementById('profileScreen').style.display = 'flex';
+            loadTutorName();
         }
         function closeProfileScreen() {
             document.getElementById('profileScreen').style.display = 'none';
         }
 
         // Карточка аккаунта: логин и тип. Логин — точками, пока не попросили показать.
-        // У ученика здесь же стоял логин репетитора, и он виден был всегда, — а это
-        // логин от аккаунта, через который открываются все ученики. Теперь он
-        // показывается только вместе со своим, по той же кнопке.
+        //
+        // У ученика здесь стоял логин репетитора — то есть половина ключа от аккаунта,
+        // через который открываются все ученики. Теперь вместо него имя из профиля
+        // репетитора (его отдаёт сервер, см. loadTutorName), а логин репетитора
+        // ученик не видит нигде. Имени нет — просто «Ученик».
         function renderAccountCard() {
             const code = Progress.getCode();
             const type = Progress.getAccountType();
-            const owner = Progress.getOwnerCode();
             // Служебный код гостя наружу не показываем ни здесь, ни где-либо ещё:
             // человек его не выбирал и ввести обратно не сможет.
             const guest = Progress.isGuest();
+            const tutor = (type === 'linked' && tutorNameCache.code === code) ? tutorNameCache.name : '';
             document.getElementById('profileCodeVal').innerText = guest ? t('Гость') : (code ? shownLogin(code) : '—');
             document.getElementById('profileTypeVal').innerText = guest
                 ? t('Прогресс только на этом устройстве')
                 : (type !== 'linked' ? ACCOUNT_TYPE_LABELS.self
-                    : (loginsShown && owner ? tf('📚 Ученик · репетитор %1', owner) : ACCOUNT_TYPE_LABELS.linked));
+                    : (tutor ? tf('📚 Ученик · репетитор %1', tutor) : ACCOUNT_TYPE_LABELS.linked));
             paintLoginToggle(document.getElementById('profileLoginToggle'), !guest && !!code);
+        }
+
+        // Имя репетитора для карточки ученика. Спрашиваем при каждом открытии
+        // профиля: репетитор мог его сменить. Пока ответа нет, в карточке просто
+        // «Ученик» — без имени, но и без логина.
+        let tutorNameCache = { code: null, name: '' };
+        async function loadTutorName() {
+            const code = Progress.getCode();
+            if (!code || Progress.getAccountType() !== 'linked' || !Progress.authFor(code)) return;
+            try {
+                const { data, error } = await callAuthed('session_my_tutor', {});
+                if (error || !data || !data.ok) return;
+                tutorNameCache = { code, name: typeof data.name === 'string' ? data.name : '' };
+                renderAccountCard();
+            } catch (e) { /* нет связи — остаётся «Ученик» */ }
         }
 
         function renderProfileScreen() {
@@ -9995,6 +10025,8 @@
             // меняет репетитор (так решено на сервере), у гостя пароля нет вовсе.
             document.getElementById('ownAccountRow').style.display =
                 (!guest && type !== 'linked') ? '' : 'none';
+            document.getElementById('linkTutorRow').style.display =
+                (!guest && type === 'solo') ? '' : 'none';
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
             renderProfileList();
 
@@ -10087,7 +10119,10 @@
             const res = await supabaseClient.rpc('session_login', { p_code: code, p_password: password });
             const token = res.data && res.data.ok ? res.data.token : null;
             const { data, error } = res;
-            if (error || !data || !data.ok) { showToast(t('Неверный код или пароль.'), 'error'); return false; }
+            if (error || !data || !data.ok) {
+                showToast(error ? t('Не удалось подключиться. Проверь интернет.') : loginRefusalText(data), 'error');
+                return false;
+            }
             Progress.switchTo(code, password);
             if (token) Progress.setToken(code, token); // пароль при этом стирается
             await Progress.flush(true);
@@ -10267,7 +10302,7 @@
                 row.className = 'list-row'
                     + (days === null || days >= SILENT_DAYS ? ' silent'
                        : days >= QUIET_DAYS ? ' quiet' : '');
-                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    <button class="list-row-btn" data-act="view">Смотреть</button>\n                    <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>\n                    <button class="list-row-btn" data-act="access" title="Что открыто">⭐</button>\n                    <button class="list-row-btn" data-act="group" title="Папка">📁</button>\n                    <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>\n                    <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>\n                ');
+                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    <button class="list-row-btn" data-act="view">Смотреть</button>\n                    <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>\n                    <button class="list-row-btn" data-act="access" title="Что открыто">⭐</button>\n                    <button class="list-row-btn" data-act="group" title="Папка">📁</button>\n                    <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>\n                    <button class="list-row-btn" data-act="release" title="Отпустить">🕊️</button>\n                    <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>\n                ');
                 row.querySelector('.list-row-name').innerText = s.label || s.code;
                 row.querySelector('.list-row-sub').innerText =
                     `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}${seen ? ' · ' + seen : ''}`;
@@ -10289,6 +10324,7 @@
                 row.querySelector('[data-act="access"]').addEventListener('click', () => openStudentAccess(s.code, s.label));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
                 row.querySelector('[data-act="group"]').addEventListener('click', () => editStudentGroup(s.code, s.label));
+                row.querySelector('[data-act="release"]').addEventListener('click', () => releaseStudent(s.code, s.label));
                 row.querySelector('[data-act="del"]').addEventListener('click', () => deleteStudentAccount(s.code));
                 wrap.appendChild(row);
             };
@@ -10426,6 +10462,148 @@
                 renderStudentsList();
             } catch (e) {
                 showToast(t('Не удалось создать ученика. Проверь интернет.'), 'error');
+            }
+        }
+
+        // ===================== ПРИГЛАШЕНИЕ И «ОТПУСТИТЬ» =====================
+        // Приглашение — для ученика, который уже завёл аккаунт сам. Завести ему второй
+        // аккаунт значило бы бросить весь прогресс; вместо этого он вводит код у себя в
+        // профиле и становится учеником со всем, что уже решил. Решает сервер: здесь
+        // только показать код и передать ответ.
+
+        // Сколько ждать — словами. Сервер отдаёт секунды; минуты понятнее, и округляем
+        // вверх: «через 0 минут» звучало бы как «уже можно».
+        function waitText(seconds) {
+            const m = Math.max(1, Math.ceil((Number(seconds) || 0) / 60));
+            // Неразрывный пробел: «3» в конце одной строки и «минуты» в начале
+            // следующей читаются как два разных сообщения.
+            return tf(plural(m, '%1 минуту', '%1 минуты', '%1 минут'), m).replace(/(\d) /, '$1 ');
+        }
+
+        // Почему сервер не пустил. После пяти неверных паролей подряд он делает паузу,
+        // и назвать её надо прямо: иначе ребёнок жмёт «Войти» снова и снова и решает,
+        // что приложение сломалось.
+        function loginRefusalText(data) {
+            const why = data && data.error;
+            if (why === 'too_many') return tf('Слишком много неверных попыток. Попробуй через %1.', waitText(data.wait));
+            if (data && data.wait > 0) return tf('Неверный код или пароль. Следующая попытка — через %1.', waitText(data.wait));
+            return t('Неверный код или пароль.');
+        }
+
+        function inviteRefusalText(data) {
+            const why = data && data.error;
+            if (why === 'too_many') return tf('Слишком много неверных кодов. Попробуй через %1.', waitText(data.wait));
+            if (why === 'bad_invite') {
+                return data.wait > 0
+                    ? tf('Такого кода нет или он уже не действует. Следующая попытка — через %1.', waitText(data.wait))
+                    : t('Такого кода нет или он уже не действует. Проверь буквы или попроси у репетитора новый.');
+            }
+            if (why === 'not_solo') return t('Этот аккаунт уже привязан к репетитору.');
+            return t('Не получилось. Попробуй ещё раз.');
+        }
+
+        async function createInvite() {
+            if (!supabaseClient) { showToast(t('Нет соединения с сервером.'), 'error'); return; }
+            if (!Progress.authFor()) { showToast(t('Сначала войди под своим логином.'), 'error'); return; }
+            let res;
+            try { res = await callAuthed('session_create_invite', {}); }
+            catch (e) { showToast(t('Не удалось подключиться. Проверь интернет.'), 'error'); return; }
+            const data = res && res.data;
+            if ((res && res.error) || !data || !data.ok || !data.code) {
+                const messages = {
+                    not_a_tutor: t('Приглашать учеников может только репетитор.'),
+                    too_many_invites: t('Неиспользованных приглашений уже тридцать. Подожди, пока часть из них истечёт.')
+                };
+                showToast(messages[data && data.error] || t('Не удалось создать приглашение.'), 'error');
+                return;
+            }
+            // Восемь знаков читаются легче двумя четвёрками; дефис сервер при вводе пропустит.
+            const shown = data.code.slice(0, 4) + '-' + data.code.slice(4);
+            const banner = document.getElementById('studentsBanner');
+            banner.innerHTML = '';
+            const box = document.createElement('div');
+            box.className = 'menu-stat-card invite-card';
+            const line = document.createElement('div');
+            line.className = 'menu-code-line invite-code';
+            line.innerText = shown;
+            const hint = document.createElement('div');
+            hint.className = 'menu-stat-label';
+            hint.innerText = t('Код приглашения. Действует 7 дней и только один раз. Ученик вводит его у себя: Профиль → «У меня есть код репетитора». Весь его прогресс сохранится.');
+            const copy = document.createElement('button');
+            copy.className = 'login-toggle';
+            copy.type = 'button';
+            copy.innerText = t('📋 Скопировать код');
+            copy.addEventListener('click', async () => {
+                try { await navigator.clipboard.writeText(shown); showToast(t('Код скопирован.')); }
+                catch (e) { await showNotice({ title: t('Код приглашения'), text: shown }); }
+            });
+            box.appendChild(line);
+            box.appendChild(copy);
+            box.appendChild(hint);
+            banner.appendChild(box);
+        }
+
+        // Самостоятельный аккаунт → ученик репетитора. До согласия ребёнок видит, к кому
+        // привязывается (имя, не логин) и что от этого изменится.
+        async function linkToTutor() {
+            if (Progress.isGuest() || Progress.getAccountType() !== 'solo') return;
+            if (!supabaseClient || !Progress.authFor()) { showToast(t('Нет соединения с сервером.'), 'error'); return; }
+            const vals = await askForm({
+                title: t('Код репетитора'),
+                text: t('Введи код, который дал тебе репетитор. Весь твой прогресс сохранится.'),
+                fields: [{ key: 'code', label: t('Код приглашения'), placeholder: 'ABCD-2345', autocapitalize: 'characters' }],
+                okText: t('Дальше'),
+                validate: (v) => v.code ? null : t('Введи код.')
+            });
+            if (!vals) return;
+            let peek;
+            try { peek = await callAuthed('session_peek_invite', { p_invite: vals.code }); }
+            catch (e) { showToast(t('Не удалось подключиться. Проверь интернет.'), 'error'); return; }
+            if (peek.error || !peek.data || !peek.data.ok) { showToast(inviteRefusalText(peek.data), 'error'); return; }
+            const name = peek.data.tutorName || '';
+            const agreed = await askConfirm({
+                title: name ? tf('Репетитор: %1', name) : t('Привязать к репетитору?'),
+                text: t('Репетитор будет видеть твой прогресс, открывать новые разделы и сможет сбросить пароль, если ты его забудешь. Весь прогресс сохранится. Отвязать аккаунт может только репетитор.'),
+                okText: t('Привязать')
+            });
+            if (!agreed) return;
+            let res;
+            try { res = await callAuthed('session_accept_invite', { p_invite: vals.code }); }
+            catch (e) { showToast(t('Не удалось подключиться. Проверь интернет.'), 'error'); return; }
+            if (res.error || !res.data || !res.data.ok) { showToast(inviteRefusalText(res.data), 'error'); return; }
+            // Новый доступ — из ответа сервера и до первой же отправки. Ученику репетитора
+            // приложение чистит прогресс в закрытых разделах, и по старому доступу эта
+            // чистка стёрла бы то, ради чего сервер при привязке открыл ученику разделы.
+            // Нет доступа в ответе — забываем старый: «не знаем» значит «ничего не трогать».
+            if (res.data.access && typeof res.data.access === 'object') Progress.setAccess(res.data.access);
+            else Progress.clearAccess();
+            Progress.setAccountType('linked', res.data.ownerCode);
+            tutorNameCache = { code: Progress.getCode(), name: res.data.tutorName || name };
+            await Progress.flush(true);
+            refreshSectionLocks();
+            renderProfileScreen();
+            showToast(name ? tf('Готово! Твой репетитор — %1.', name) : t('Готово! Аккаунт привязан к репетитору.'), 'ok');
+        }
+
+        // Отпустить — сделать ученика снова самостоятельным. Прогресс и открытые разделы
+        // остаются у него; из списка он пропадает, и пароль ему уже не сбросить.
+        async function releaseStudent(code, label) {
+            const name = label || code;
+            const ok = await askConfirm({
+                title: t('Отпустить ученика?'),
+                text: tf('«%1» станет самостоятельным аккаунтом. Прогресс и открытые разделы останутся у него, а из твоего списка он пропадёт, и пароль ему ты сбросить уже не сможешь. Вернуть — только новым приглашением.', name),
+                okText: t('Отпустить'),
+                danger: true
+            });
+            if (!ok) return;
+            try {
+                const { data, error } = await callAuthed('session_release_student', { p_student_code: code });
+                if (error) throw error;
+                if (!data || !data.ok) { showToast(t('Не удалось отпустить ученика.'), 'error'); return; }
+                showToast(tf('«%1» теперь занимается самостоятельно.', name), 'ok');
+                renderStudentsList();
+            } catch (e) {
+                showToast(t('Не удалось подключиться. Проверь интернет.'), 'error');
             }
         }
 
@@ -10823,7 +11001,17 @@
                 const { data, error } = await callAuthed('session_delete_account', { p_password: values.pw });
                 if (error) throw error;
                 // Ошибку пароля показываем отдельно от сетевой: это разные беды.
-                if (data && data.error === 'bad_credentials') { showToast(t('Неверный пароль — профиль не тронут.'), 'error'); return; }
+                if (data && data.error === 'bad_credentials') {
+                    showToast(data.wait > 0
+                        ? tf('Неверный пароль — профиль не тронут. Следующая попытка — через %1.', waitText(data.wait))
+                        : t('Неверный пароль — профиль не тронут.'), 'error');
+                    return;
+                }
+                if (data && data.error === 'too_many') {
+                    showToast(tf('Слишком много неверных попыток. Попробуй через %1.', waitText(data.wait)), 'error');
+                    return;
+                }
+                if (data && data.error === 'linked_account') { showToast(t('Аккаунт ученика удаляет репетитор.'), 'error'); return; }
                 if (!data || !data.ok) { showToast(t('Не удалось удалить профиль.'), 'error'); return; }
                 Progress.wipeAllLocal();
                 location.reload();
@@ -12217,6 +12405,16 @@
         }
         Progress.onSyncChange(renderSyncBadges);
         renderSyncBadges();
+
+        // Аккаунт сменил хозяина — привязали к репетитору или отпустили, на этом
+        // устройстве или на другом. Доступ теперь другой: спрашиваем заново и
+        // перерисовываем то, что от него зависит.
+        Progress.onIdentityChange(() => {
+            refreshAccess().then(() => {
+                refreshSectionLocks();
+                if (document.getElementById('profileScreen').style.display === 'flex') renderProfileScreen();
+            });
+        });
 
         // «Сохранится позже» должно сбываться само. Во время миссии и так пробуем каждые
         // восемь секунд, а вне её значок «нет связи» висел бы до следующей миссии, даже
