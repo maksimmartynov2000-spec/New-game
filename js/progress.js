@@ -25,6 +25,9 @@
 //  картинка не рассобирается, открытый скин не закрывается. Поэтому
 //  слияние = максимум по счётчикам и объединение по спискам, и потерять
 //  данные "последняя запись затёрла первую" структурно невозможно.
+//
+//  Исключение одно — копилка ошибок: выученные примеры из неё уходят, и
+//  слияние у неё своё (см. КОПИЛКА ОШИБОК ниже).
 // =====================================================================
 // Идентификатор ступени лесенки: '<ключ темы>:<лесенка><ступень>', например
 // 'integer+:add:1:s3'. Достижения «вообще» — старое 'streak7' и легаси
@@ -110,7 +113,20 @@ const Progress = (() => {
             // подчистка журнала безопасна: если старое устройство при слиянии вернёт
             // уже свёрнутый день, он просто снова подчистится, и двойного счёта
             // возникнуть не может.
-            epochs: {}
+            epochs: {},
+
+            // Копилка ошибок — из неё берёт примеры миссия «Повтори ошибки».
+            // Ключ записи — подпись примера (клетка + условие, см. problemSig в js/topics.js):
+            //   items: { подпись: { k, p, w, e, t, ok } }
+            //     k  — клетка, 'integer+:add:2';
+            //     p  — сам пример, как его выдал генератор: по нему пример и показывается снова;
+            //     w  — что ответил ученик; e — вид ошибки (код, не текст: переводить нельзя);
+            //     t  — когда ошибся в последний раз, мс;
+            //     ok — дни 'ГГГГ-ММ-ДД', когда после этой ошибки решил верно.
+            //   done: { подпись: t } — выученные. Хранится t той ошибки, которую выучили:
+            //     так старое устройство при слиянии не вернёт её обратно, а новая ошибка
+            //     в том же примере (она всегда позже) — вернёт, и это правильно.
+            mistakeBank: { items: {}, done: {} }
         };
     }
 
@@ -194,6 +210,108 @@ const Progress = (() => {
     }
 
     // =====================================================================
+    //  КОПИЛКА ОШИБОК
+    // ---------------------------------------------------------------------
+    //  Каждая ошибка в обычной игре кладёт пример сюда. Пример уходит, когда его
+    //  решили верно в BANK_DAYS разных дней: один верный ответ сразу после ошибки
+    //  ещё ничего не значит — пример только что был перед глазами. Новая ошибка в
+    //  том же примере начинает счёт дней заново.
+    //
+    //  Это НЕ счётчик «только растёт», как всё остальное здесь: записи уходят.
+    //  Поэтому слияние устроено по-своему:
+    //   - у одной записи на двух устройствах побеждает более поздняя ошибка (t);
+    //     при одной и той же ошибке дни верных ответов объединяются;
+    //   - выученное помнится в done вместе со временем своей ошибки, и запись,
+    //     ошибка которой не позже выученной, при слиянии выбрасывается. Без этого
+    //     телефон, где пример ещё не выучен, возвращал бы его в копилку снова и снова.
+    //
+    //  Размер ограничен: состояние уходит на сервер целиком при каждой отправке.
+    //  Пример весит до двухсот байт, пятьдесят записей — около десяти килобайт.
+    // =====================================================================
+    const BANK_MAX = 50;        // записей в копилке; уходят самые давние ошибки
+    const BANK_DONE_MAX = 50;   // памяти о выученном
+    const BANK_DAYS = 2;        // в стольких разных днях надо решить верно
+    const DAY_KEY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+    function emptyBank() { return { items: {}, done: {} }; }
+    function bankOf(s) {
+        if (!s.mistakeBank || typeof s.mistakeBank !== 'object') s.mistakeBank = emptyBank();
+        return s.mistakeBank;
+    }
+
+    // Выученное и лишнее уходит. Порядок важен: сначала то, что уже выучено (в том
+    // числе на другом устройстве), потом выученное только что, потом лишнее по счёту.
+    function trimBank(b) {
+        Object.keys(b.items).forEach(sig => {
+            const it = b.items[sig];
+            if ((b.done[sig] || 0) >= it.t) { delete b.items[sig]; return; }
+            if (it.ok.length >= BANK_DAYS) {
+                b.done[sig] = it.t;
+                delete b.items[sig];
+            }
+        });
+        // При равном времени порядок решает подпись — чтобы оба устройства
+        // выбросили одно и то же, а не каждое своё.
+        const keepNewest = (map, timeOf, max) => {
+            const keys = Object.keys(map);
+            if (keys.length <= max) return;
+            keys.sort((x, y) => (timeOf(y) - timeOf(x)) || (x < y ? -1 : 1));
+            keys.slice(max).forEach(k => { delete map[k]; });
+        };
+        keepNewest(b.items, sig => b.items[sig].t, BANK_MAX);
+        keepNewest(b.done, sig => b.done[sig], BANK_DONE_MAX);
+        return b;
+    }
+
+    // Приводит копилку к форме. Запись без клетки, без примера или без времени
+    // ошибки показать или слить нельзя — такую выбрасываем, а не чиним.
+    function cleanBank(raw) {
+        const out = emptyBank();
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+        const isMap = (v) => !!v && typeof v === 'object' && !Array.isArray(v);
+        const items = isMap(raw.items) ? raw.items : {};
+        Object.keys(items).forEach(sig => {
+            const it = items[sig];
+            if (!isMap(it) || typeof it.k !== 'string' || !it.k || !isMap(it.p)) return;
+            const t = Number(it.t);
+            if (!Number.isFinite(t) || t <= 0) return;
+            const days = Array.isArray(it.ok) ? it.ok.filter(d => typeof d === 'string' && DAY_KEY_RE.test(d)) : [];
+            out.items[sig] = {
+                k: it.k,
+                p: it.p,
+                w: it.w === undefined ? null : it.w,
+                e: typeof it.e === 'string' ? it.e : '',
+                t,
+                ok: [...new Set(days)].sort()
+            };
+        });
+        const done = isMap(raw.done) ? raw.done : {};
+        Object.keys(done).forEach(sig => {
+            const t = Number(done[sig]);
+            if (Number.isFinite(t) && t > 0) out.done[sig] = t;
+        });
+        return trimBank(out);
+    }
+
+    function mergeBank(x, y) {
+        const a = cleanBank(x), b = cleanBank(y);
+        const out = emptyBank();
+        new Set([...Object.keys(a.done), ...Object.keys(b.done)]).forEach(sig => {
+            out.done[sig] = Math.max(a.done[sig] || 0, b.done[sig] || 0);
+        });
+        new Set([...Object.keys(a.items), ...Object.keys(b.items)]).forEach(sig => {
+            const p = a.items[sig], q = b.items[sig];
+            const pick = (!p || !q) ? (p || q) : (p.t >= q.t ? p : q);
+            const it = Object.assign({}, pick, { ok: pick.ok.slice() });
+            // Одна и та же ошибка, верные ответы на разных устройствах — считаем
+            // все дни. Разные ошибки — дни прежней к новой отношения не имеют.
+            if (p && q && p.t === q.t) it.ok = [...new Set(p.ok.concat(q.ok))].sort();
+            out.items[sig] = it;
+        });
+        return trimBank(out);
+    }
+
+    // =====================================================================
     //  ДАННЫЕ ЗАКРЫТЫХ РАЗДЕЛОВ У УЧЕНИКА НЕ ХРАНЯТСЯ
     // ---------------------------------------------------------------------
     //  Ученик видит только те разделы, которые ему открыл репетитор, — и данных
@@ -251,6 +369,11 @@ const Progress = (() => {
             Object.keys(map || {}).forEach(key => { if (isClosed(key)) delete map[key]; });
         });
         Object.keys(s.unlocks || {}).forEach(key => { if (isClosed(key)) delete s.unlocks[key]; });
+        // Примеры из копилки: повторять закрытое ученик всё равно не сможет.
+        const bankItems = (s.mistakeBank && s.mistakeBank.items) || {};
+        Object.keys(bankItems).forEach(sig => {
+            if (isClosed((bankItems[sig] || {}).k || '')) delete bankItems[sig];
+        });
 
         Object.keys(s.daily || {}).forEach(dk => {
             const day = s.daily[dk];
@@ -602,6 +725,9 @@ const Progress = (() => {
             out.unlocks[id] = known.length ? known.sort()[0] : UNKNOWN_UNLOCK_DATE;
         });
 
+        // Копилка ошибок сливается по своим правилам — см. mergeBank.
+        out.mistakeBank = mergeBank(a.mistakeBank, b.mistakeBank);
+
         return out;
     }
 
@@ -694,6 +820,7 @@ const Progress = (() => {
         if (!s.studentNotes || typeof s.studentNotes !== 'object' || Array.isArray(s.studentNotes)) s.studentNotes = {};
         if (!s.studentGroups || typeof s.studentGroups !== 'object' || Array.isArray(s.studentGroups)) s.studentGroups = {};
         if (!s.epochs || typeof s.epochs !== 'object' || Array.isArray(s.epochs)) s.epochs = {};
+        s.mistakeBank = cleanBank(s.mistakeBank);
         trimTopicSpeed(s.daily);
         if (typeof s.profileLabel !== 'string') s.profileLabel = '';
         if (s.accountType !== 'linked' && s.accountType !== 'solo') s.accountType = 'self';
@@ -1375,6 +1502,52 @@ const Progress = (() => {
             state.unlocks[id] = dayKey();
             persistLocal();
             return true;
+        },
+
+        // --- копилка ошибок ---
+        // Записи только читать: менять их можно лишь через bankAdd и bankRight,
+        // иначе правило «два разных дня» и слияние перестанут сходиться.
+        getBank() { return bankOf(state); },
+        // Ошибка в примере: кладём его в копилку или, если он там уже есть,
+        // начинаем счёт дней заново. item — { k: клетка, p: пример, w: ответ, e: вид }.
+        //
+        // Время берём не меньше прежнего, а не просто «сейчас»: часы на двух
+        // устройствах расходятся, и новая ошибка, записанная временем раньше старой,
+        // проиграла бы ей слияние или сразу ушла бы как уже выученная.
+        bankAdd(sig, item) {
+            if (!sig || !item || typeof item.k !== 'string' || !item.k) return false;
+            if (!item.p || typeof item.p !== 'object' || Array.isArray(item.p)) return false;
+            const bank = bankOf(state);
+            const prev = bank.items[sig];
+            bank.items[sig] = {
+                k: item.k,
+                p: item.p,
+                w: item.w === undefined ? null : item.w,
+                e: typeof item.e === 'string' ? item.e : '',
+                t: Math.max(Date.now(), (prev ? prev.t : 0) + 1, (bank.done[sig] || 0) + 1),
+                ok: []
+            };
+            trimBank(bank);
+            persistLocal();
+            return true;
+        },
+        // Верный ответ на пример из копилки. Сегодняшний день засчитывается один
+        // раз, сколько бы верных ответов ни было. Возвращает:
+        //   'learned' — дней набралось BANK_DAYS, пример ушёл из копилки;
+        //   'counted' — день засчитан;
+        //   null      — засчитывать нечего: примера нет или сегодня уже засчитан.
+        bankRight(sig) {
+            const bank = bankOf(state);
+            const it = bank.items[sig];
+            if (!it) return null;
+            const today = dayKey();
+            if (it.ok.indexOf(today) >= 0) return null;
+            it.ok.push(today);
+            it.ok.sort();
+            const learned = it.ok.length >= BANK_DAYS;
+            trimBank(bank);
+            persistLocal();
+            return learned ? 'learned' : 'counted';
         },
 
         // Контрольная точка синхронизации. Пока сервера нет — ничего не делает.
