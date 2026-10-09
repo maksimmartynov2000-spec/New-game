@@ -633,25 +633,29 @@ grant execute on function session_accept_invite(text, text)          to anon;
 grant execute on function session_release_student(text, text)        to anon;
 grant execute on function session_my_tutor(text)                     to anon;
 
--- Проверки: все три строки должны быть «ДА».
-select case when count(*) = 0 then 'ДА — снаружи видны только session_*'
-            else 'НЕТ — открыто лишнего: ' || string_agg(p.proname, ', ') end as "Внутренности закрыты?"
+-- Проверка: все три строки должны начинаться с «ДА». Одним запросом, потому что
+-- Supabase показывает результат только последнего.
+select 1 as "№",
+       case when count(*) = 0 then 'ДА — снаружи видны только session_*'
+            else 'НЕТ — открыто лишнего: ' || string_agg(p.proname, ', ') end as "Проверка"
   from pg_proc p
   join pg_namespace ns on ns.oid = p.pronamespace
  where ns.nspname = 'public'
    and p.proname not like 'session\_%'
    and has_function_privilege('anon', p.oid, 'execute')
-   and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e');
-
-select case when not has_table_privilege('anon', 'citadel_throttle', 'select')
+   and not exists (select 1 from pg_depend d where d.objid = p.oid and d.deptype = 'e')
+union all
+select 2,
+       case when not has_table_privilege('anon', 'citadel_throttle', 'select')
              and not has_table_privilege('anon', 'citadel_invite', 'select')
             then 'ДА — новые таблицы снаружи не читаются'
-            else 'НЕТ — новые таблицы открыты наружу' end as "Таблицы закрыты?";
-
-select case when count(*) = 0 then 'ДА — пароль везде сравнивается строго'
+            else 'НЕТ — новые таблицы открыты наружу' end
+union all
+select 3,
+       case when count(*) = 0 then 'ДА — пароль везде сравнивается строго'
             else 'НЕТ — осталось сравнение «<> crypt»: ' || string_agg(p.proname, ', ') end
-       as "Пустой пароль не пускает?"
   from pg_proc p
   join pg_namespace ns on ns.oid = p.pronamespace
  where ns.nspname = 'public'
-   and p.prosrc ~ '<>\s*crypt\(';
+   and p.prosrc ~ '<>\s*crypt\('
+order by 1;
