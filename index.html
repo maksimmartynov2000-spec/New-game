@@ -1227,7 +1227,9 @@
             width: 100%; max-width: 450px; margin: -8px auto 14px;
             font-size: 0.74rem; line-height: 1.4; text-align: right; color: #64748b;
         }
-        .sync-badge[hidden] { display: none; }
+        /* !important — не украшение: у «войди заново» свой display: flex той же силы,
+           и без него спрятанная плашка оставалась на экране. */
+        .sync-badge[hidden] { display: none !important; }
         .sync-badge.ok { color: #5f8f78; }
         .sync-badge.warn { color: #fbbf24; }
         /* «Войди заново» само не пройдёт, поэтому это уже не подпись, а просьба:
@@ -12391,7 +12393,7 @@
             const view = syncBadgeView(Progress.syncStatus());
             document.querySelectorAll('.sync-badge').forEach(el => {
                 el.hidden = !view;
-                if (!view) return;
+                if (!view) { el.className = 'sync-badge'; el.textContent = ''; return; }
                 el.className = 'sync-badge ' + view.cls;
                 el.textContent = view.text;
                 if (view.action) {
