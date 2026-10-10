@@ -142,13 +142,20 @@ test('условие спрашивает', () => {
     }));
 });
 
-test('ответ отделён от разбора и в карточке достижений', () => {
-    // Два места показа не должны разъехаться: и там, и там сначала «Ответ», потом число.
-    const from = SCRIPT.indexOf('earnedChallenges(unlocks, key).forEach');
-    const body = SCRIPT.slice(from, SCRIPT.indexOf('return card;', from));
+test('ответ отделён от разбора и в карточке достижений, и во вкладке коллекции', () => {
+    // Места показа не должны разъехаться: везде сначала «Ответ», потом число.
+    // Карточка достижений и вкладка «Задачи» строят задачу одной функцией — значит,
+    // проверить её один раз и убедиться, что своей сборки ни у кого из двух нет.
+    const body = slice('function buildChallengeBox(', 'return box;', 'общая задача');
     assert(/ladder-challenge-answer-value/.test(body), 'нет отдельной строки ответа');
     assert(/ladder-challenge-answer-why/.test(body), 'нет отдельной строки разбора');
     assert(/item\.why/.test(body), 'разбор не берётся из задачи');
+    const card = slice('earnedChallenges(unlocks, key).forEach', 'return card;', 'карточка достижений');
+    const tab = slice('function renderCollectionTasks(', '\n        }\n', 'вкладка коллекции');
+    [['карточка достижений', card], ['вкладка коллекции', tab]].forEach(([what, src]) => {
+        assert(/buildChallengeBox\(/.test(src), `${what} не берёт общую задачу`);
+        assert(!/ladder-challenge-answer/.test(src), `${what} собирает задачу сама`);
+    });
 });
 
 test('задачи не повторяются', () => {
