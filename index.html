@@ -2339,7 +2339,7 @@
         <div id="menuTopicList"></div>
 
         <div class="menu-section-label">Разделы</div>
-        <button class="menu-btn" onclick="menuGoCollection()">🏆 <span>Коллекция парадоксов</span></button>
+        <button class="menu-btn" onclick="menuGoCollection()">🧩 <span>Коллекция пазлов</span></button>
         <button class="menu-btn" onclick="menuGoPuzzle()">🧩 <span>Текущий пазл</span></button>
         <button class="menu-btn" onclick="menuGoSettings()">🧭 <span>Сменить миссию</span></button>
         <button class="menu-btn sound-toggle" onclick="toggleSound()">🔊 <span>Звук включён</span></button>
@@ -3019,7 +3019,7 @@
          Теперь главное на экране — сколько осталось. Забег ушёл в одну строчку внизу. -->
     <div class="win-screen" id="winScreen">
         <div class="win-card" id="winCard">
-            <div class="win-kicker" id="winKicker">До картинки осталось</div>
+            <div class="win-kicker" id="winKicker">До конца пазла осталось</div>
             <div class="win-big" id="winBig">—</div>
             <div class="win-sub" id="winSub">верных ответов в этой клетке</div>
             <div class="win-art" id="winArt"></div>
@@ -3092,20 +3092,20 @@
         </div>
     </div>
 
-    <!-- Окно коллекции: собранные картинки и задачи за мастерство, две вкладки -->
+    <!-- Окно коллекции: собранные пазлы и задачи за мастерство, две вкладки -->
     <div class="puzzle-modal" id="collectionModal">
         <div class="puzzle-modal-inner">
             <button class="puzzle-close" id="collectionCloseBtn">✕</button>
             <div id="collectionListView">
                 <div class="puzzle-modal-title" id="collectionPicsTitle">🏆 Парадоксы математики: <span id="collectionCountLabel">0/20</span></div>
-                <div class="puzzle-modal-title" id="collectionTasksTitle" hidden>🧩 Задачи за мастерство: <span id="collectionTasksCount">0/0</span></div>
+                <div class="puzzle-modal-title" id="collectionTasksTitle" hidden>💎 Задачи за мастерство: <span id="collectionTasksCount">0/0</span></div>
                 <div class="collection-tabs" role="tablist">
-                    <button type="button" class="collection-tab active" id="collectionTabPics" role="tab" aria-selected="true">🖼️ Картинки</button>
-                    <button type="button" class="collection-tab" id="collectionTabTasks" role="tab" aria-selected="false">🧩 Задачи</button>
+                    <button type="button" class="collection-tab active" id="collectionTabPics" role="tab" aria-selected="true">🧩 Пазлы</button>
+                    <button type="button" class="collection-tab" id="collectionTabTasks" role="tab" aria-selected="false">💎 Задачи</button>
                 </div>
                 <div id="collectionPicsView">
                     <div id="collectionGroups"></div>
-                    <div class="puzzle-save-hint">Нажми на собранную картинку — узнаешь, что это за парадокс</div>
+                    <div class="puzzle-save-hint">Нажми на собранный пазл — узнаешь, что это за парадокс</div>
                 </div>
                 <div id="collectionTasksView" hidden>
                     <div id="collectionTasks"></div>
@@ -6004,7 +6004,7 @@
                 if (save) { openRegisterScreen(); return; }
                 const sure = await askConfirm({
                     title: t('Точно?'),
-                    text: t('Картинки и прогресс исчезнут насовсем.'),
+                    text: t('Пазлы и прогресс исчезнут насовсем.'),
                     okText: t('Выйти и стереть'),
                     cancelText: t('Отмена'),
                     danger: true
@@ -6455,7 +6455,7 @@
             // пугается. Две строки говорят то же самое.
             const yes = await askConfirm({
                 title: t('Сохранить прогресс?'),
-                text: tf('Собрано картинок: %1. Заведи аккаунт — и они не потеряются.', done),
+                text: tf('Собрано пазлов: %1. Заведи аккаунт — и они не потеряются.', done),
                 okText: t('Создать аккаунт'),
                 cancelText: t('Потом')
             });
@@ -11100,7 +11100,7 @@
                 return;
             }
             if (!data.me) {
-                friendsLine(box, 'friends-intro', t('Друзья видят твои звёзды, медали, серию дней и собранные картинки. Ошибки и точность не видит никто. Подружиться можно только по коду и только если согласны оба.'));
+                friendsLine(box, 'friends-intro', t('Друзья видят твои звёзды, медали, серию дней и собранные пазлы. Ошибки и точность не видит никто. Подружиться можно только по коду и только если согласны оба.'));
                 friendsButton(box, 'menu-btn', t('🤝 Включить друзей'), setupFriends);
                 setFoldSum('friendsSection', '');
                 return;
@@ -11326,7 +11326,7 @@
                 line(tf('⭐ Звёзд взято: %1', s.stars));
                 const medals = [1, 2, 3, 4, 5].filter(i => s.medals[i] > 0).map(i => `${TIER_ICONS[i]} ${s.medals[i]}`);
                 line(medals.length ? tf('Медали: %1', medals.join(' · ')) : t('Медалей пока нет.'), medals.length ? '' : 'muted');
-                if (s.tasks > 0) line(tf('🧩 Задач за мастерство: %1', s.tasks));
+                if (s.tasks > 0) line(tf('💎 Задач за мастерство: %1', s.tasks));
 
                 s.sections.forEach(sec => {
                     friendsLine(card, 'lesson-head', sec.label);
@@ -11345,7 +11345,7 @@
                 });
 
                 friendsLine(card, 'lesson-head', tf('🏆 Коллекция: %1 из %2', s.pics.length, PUZZLE_IMAGE_SRCS.length));
-                if (!s.pics.length) line(t('Картинок пока нет.'), 'muted');
+                if (!s.pics.length) line(t('Пазлов пока нет.'), 'muted');
                 else {
                     const grid = document.createElement('div');
                     grid.className = 'friend-pics';
@@ -14326,7 +14326,7 @@
                 // СЛЕДУЮЩАЯ картинка, и говорить надо об этом — сама собранная уже
                 // показана в очереди наград до этого экрана.
                 const заново = собрано === 0 && верных > 0;
-                kicker.innerText = заново ? t('До следующей картинки') : t('До картинки осталось');
+                kicker.innerText = заново ? t('До следующего пазла') : t('До конца пазла осталось');
                 big.innerText = String(PUZZLE_TOTAL - собрано);
                 sub.innerText = t('верных ответов в этой клетке');
 

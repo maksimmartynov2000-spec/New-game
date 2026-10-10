@@ -115,7 +115,7 @@ catch (e) {
     await grant('integer+:sub:2', 4, ['s', 'a']); // количество не дотянуло — мастерства нет
     await open();
     let v = await view();
-    await check('окно открывается на картинках', () => {
+    await check('окно открывается на пазлах', () => {
         assert(v.picsView && v.picsTitle && !v.tasksView && !v.tasksTitle, JSON.stringify(v));
         eq(v.activeTab.join(), 'collectionTabPics', 'активная вкладка');
         eq(v.selected.join(), 'collectionTabPics', 'aria-selected');
@@ -124,24 +124,24 @@ catch (e) {
         const r = m.querySelector('.puzzle-modal-inner').getBoundingClientRect();
         return { top: Math.round(r.top), bottom: Math.round(m.clientHeight - r.bottom), tall: m.scrollHeight > m.clientHeight }; })()`);
     await check('короткое окно стоит посередине, как и раньше', () => {
-        assert(!centre.tall, 'картинки не поместились — проверка ничего не проверяет');
+        assert(!centre.tall, 'пазлы не поместились — проверка ничего не проверяет');
         assert(centre.top > 40 && Math.abs(centre.top - centre.bottom) <= 2, JSON.stringify(centre));
     });
     await tab('collectionTabTasks');
     v = await view();
-    await check('«Задачи» прячет картинки и меняет заголовок', () => {
+    await check('«Задачи» прячет пазлы и меняет заголовок', () => {
         assert(v.tasksView && v.tasksTitle && !v.picsView && !v.picsTitle, JSON.stringify(v));
         eq(v.activeTab.join(), 'collectionTabTasks', 'активная вкладка');
         eq(v.selected.join(), 'collectionTabTasks', 'aria-selected');
     });
     await tab('collectionTabPics');
     v = await view();
-    await check('и обратно на картинки', () => assert(v.picsView && v.picsTitle && !v.tasksView && !v.tasksTitle, JSON.stringify(v)));
+    await check('и обратно на пазлы', () => assert(v.picsView && v.picsTitle && !v.tasksView && !v.tasksTitle, JSON.stringify(v)));
     await tab('collectionTabTasks');
     await page.evaluate(`closeCollectionModal(); null`);
     await open();
     v = await view();
-    await check('закрыл на задачах — снова открывается на картинках', () => assert(v.picsView && !v.tasksView, JSON.stringify(v)));
+    await check('закрыл на задачах — снова открывается на пазлах', () => assert(v.picsView && !v.tasksView, JSON.stringify(v)));
 
     console.log('\nЧто показано');
     await tab('collectionTabTasks');
@@ -256,7 +256,7 @@ catch (e) {
     const scrolled = await page.evaluate(`(() => { const m = document.getElementById('collectionModal');
         return { top: m.scrollTop, room: m.scrollHeight - m.clientHeight }; })()`);
     await check('новая вкладка начинается сверху', () => {
-        assert(scrolled.room >= 40, 'картинки помещаются целиком — проверка ничего не проверяет');
+        assert(scrolled.room >= 40, 'пазлы помещаются целиком — проверка ничего не проверяет');
         eq(scrolled.top, 0, 'прокрутка');
     });
     await page.setViewportSize({ width: 390, height: 844 });
@@ -309,9 +309,9 @@ catch (e) {
         first: document.querySelector('#collectionTasks .ladder-challenge-task').innerText,
         cap: document.querySelector('#collectionTasks .ladder-challenge-cap').innerText })`);
     await check('вкладки, заголовок и подсказка переведены, задача — из английского текста', () => {
-        eq(en.tab, '🧩 Problems', 'вкладка');
-        eq(en.pics, '🖼️ Pictures', 'вкладка картинок');
-        eq(en.title, '🧩 Mastery problems: 3/40', 'заголовок');
+        eq(en.tab, '💎 Problems', 'вкладка');
+        eq(en.pics, '🧩 Puzzles', 'вкладка пазлов');
+        eq(en.title, '💎 Mastery problems: 3/40', 'заголовок');
         assert(/^A problem opens when speed, accuracy and count/.test(en.hint), en.hint);
         eq(en.first, CONTENT.en['integer+:add:1'].diamond.task, 'условие');
         eq(en.cap, '💎 Mastery problem · 1★', 'ступень');
