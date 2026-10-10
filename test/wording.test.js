@@ -263,6 +263,39 @@ test('один и тот же вопрос не задаётся дважды', 
     assert(dupes.length === 0, `повторяется заголовок: ${dupes.join(', ')}`);
 });
 
+group('Как называется то, что собирают');
+
+// Во всём приложении это «пазл»: «Текущий пазл», «Пазл собран!», «Коллекция пазлов».
+// А в восьми строках жила «картинка», и ребёнок видел два названия одной вещи —
+// вплоть до вкладки «Картинки» внутри «Коллекции пазлов». Нашёл Максим.
+global.window = {};
+require(path.join(ROOT, 'content/i18n.js'));
+const DICT = global.window.TRANSLATIONS;
+
+test('собранное называется пазлом, а не картинкой', () => {
+    const bad = ALL.filter(x => /картин/i.test(x));
+    assert(bad.length === 0, `«картинка» в текстах: ${bad.map(x => `«${x.slice(0, 50)}»`).join('; ')}`);
+});
+
+test('и в переводах тоже пазл, а не picture, image, Bild', () => {
+    // «Bildschirm» (экран) сюда не попадает: границы слова.
+    const words = { en: /\bpictures?\b/i, fr: /\bimages?\b/i, de: /\bBild(er|ern)?\b/ };
+    const bad = [];
+    Object.keys(words).forEach(l => Object.keys(DICT[l]).forEach(k => {
+        if (words[l].test(DICT[l][k])) bad.push(`${l}: «${DICT[l][k].slice(0, 50)}»`);
+    }));
+    assert(bad.length === 0, bad.join('; '));
+});
+
+test('🧩 — значок пазла, и только его', () => {
+    // Задачам за мастерство значок 💎: их и дают за 💎 и 👑. Под 🧩 они читались
+    // бы как ещё один пазл — ровно так было со вкладкой «🧩 Задачи».
+    const withPuzzle = ALL.filter(x => x.includes('🧩'));
+    assert(withPuzzle.length >= 3, 'строк с 🧩 не нашлось — проверка стала пустой');
+    const bad = withPuzzle.filter(x => !/пазл/i.test(x));
+    assert(bad.length === 0, `🧩 не у пазла: ${bad.map(x => `«${x.slice(0, 50)}»`).join('; ')}`);
+});
+
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
     console.log(`Все проверки пройдены: ${passed}`);
