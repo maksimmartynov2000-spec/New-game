@@ -1934,6 +1934,31 @@
         }
         .dlg-pick.selected { background: rgba(6,182,212,0.15); border-color: var(--cyan); color: var(--cyan); }
         .dlg-err { color: #f87171; font-size: 0.84rem; margin-bottom: 12px; display: none; }
+        /* --- Кому нужна помощь --- */
+        .students-help {
+            margin: 4px 0 12px; padding: 10px 12px; border-radius: 12px;
+            background: rgba(6,182,212,0.06); border: 1px solid rgba(6,182,212,0.25);
+        }
+        .help-title { color: var(--cyan); font-weight: bold; font-size: 0.86rem; margin-bottom: 4px; }
+        .help-group { color: #94a3b8; font-size: 0.74rem; margin: 8px 0 2px; }
+        .help-empty { color: #94a3b8; font-size: 0.8rem; }
+        .help-line {
+            display: block; width: 100%; text-align: left; cursor: pointer;
+            padding: 6px 8px; margin: 2px 0; border-radius: 8px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            color: #cbd5e1; font-family: inherit; font-size: 0.8rem; line-height: 1.35;
+        }
+        .help-line b { color: #e2e8f0; margin-right: 2px; }
+        .help-line:active { background: rgba(255,255,255,0.08); }
+        /* --- Карточка к уроку --- */
+        .lesson-head { color: var(--cyan); font-size: 0.78rem; font-weight: bold; margin: 12px 0 4px;
+                       text-transform: uppercase; letter-spacing: 0.04em; }
+        .lesson-line { color: #e2e8f0; font-size: 0.86rem; line-height: 1.4; margin: 2px 0; }
+        .lesson-line.muted { color: #94a3b8; }
+        .lesson-line.kind { font-weight: bold; margin-top: 6px; }
+        .lesson-line.example { color: #cbd5e1; font-size: 0.8rem; padding-left: 10px;
+                               border-left: 2px solid rgba(251,191,36,0.5); }
+
         /* --- Домашние задания у репетитора --- */
         .hw-need-input { width: 140px; padding: 5px 10px; margin: 0; border-radius: 999px; font-size: 0.78rem; }
         .hw-summary {
@@ -2633,6 +2658,8 @@
             <div class="config-section" data-fold="profile:students" id="studentsSection">
                 <div class="config-section-title">Мои ученики</div>
                 <div id="studentsBanner"></div>
+                <!-- «Кому нужна помощь»: заполняет renderStudentsHelp() после списка. -->
+                <div class="students-help" id="studentsHelp" hidden></div>
                 <div id="studentsList"></div>
                 <button class="menu-btn" onclick="addStudent()">➕ <span>Добавить ученика</span></button>
                 <button class="menu-btn" onclick="createInvite()">✉️ <span>Пригласить ученика</span></button>
@@ -5138,6 +5165,7 @@
                     showToast((data && messages[data.error]) || t('Не удалось задать.'), 'error');
                     return false;
                 }
+                helpCache = null;   // в сводке теперь другое домашнее
                 await showNotice({ title: t('Задание выдано'), text: homeworkAssignReport(data, picked) });
                 return true;
             } catch (e) {
@@ -5250,11 +5278,345 @@
                         try {
                             const { data, error } = await callAuthed('session_cancel_homework', { p_ids: g.rows.map(r => r.id) });
                             if (error || !data || !data.ok) showToast(t('Не удалось снять задание.'), 'error');
+                            helpCache = null;
                         } catch (e) { showToast(t('Не удалось подключиться. Проверь интернет.'), 'error'); }
                     }
                     continue;
                 }
                 return;
+            }
+        }
+
+        // ===================== КОМУ НУЖНА ПОМОЩЬ И КАРТОЧКА К УРОКУ =====================
+        // Сводка над списком учеников и карточка одного ученика перед уроком. Новых
+        // данных тут нет: всё считается из того же состояния ученика, по которому ему
+        // самому выдаются задания дня и открываются звёзды, — поэтому репетитор и
+        // ученик видят одно и то же. Состояние каждого ученика сервер отдаёт отдельным
+        // запросом; тянем по три разом и помним три минуты, чтобы повторный заход в
+        // профиль не гонял их снова.
+        const HELP_WEEK = 7;               // «за неделю» — семь дней, сегодня включая
+        const HELP_MISTAKE_DAYS = 14;      // частые ошибки — за две недели: за неделю их мало
+        const HELP_STUCK_MIN = 10;         // меньше ответов в клетке за неделю — судить рано
+        const HELP_STUCK_ACCURACY = 70;    // ниже — клетка не идёт
+        const HELP_CACHE_MS = 3 * 60000;
+        let helpCache = null;              // { at, tutor, students: { код: { state, exams } }, homework }
+
+        // По N разом: быстро, и сервер не засыпаем двадцатью запросами в одну секунду.
+        async function mapLimit(items, limit, fn) {
+            const out = new Array(items.length);
+            let next = 0;
+            const worker = async () => {
+                while (next < items.length) { const i = next++; out[i] = await fn(items[i], i); }
+            };
+            await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+            return out;
+        }
+
+        // Состояние ученика с сервера приводим к форме тем же кодом, что и своё:
+        // старые записи и битые поля не должны ронять сводку.
+        function studentStateForView(raw) {
+            return raw ? (Progress._normalize(JSON.parse(JSON.stringify(raw))) || null) : null;
+        }
+
+        async function loadHelpData(students, force) {
+            const me = Progress.getCode();
+            const fresh = helpCache && helpCache.tutor === me && Date.now() - helpCache.at < HELP_CACHE_MS
+                && students.every(s => helpCache.students[s.code]);
+            if (fresh && !force) return helpCache;
+            const byCode = {};
+            await mapLimit(students, 3, async (s) => {
+                const state = studentStateForView(await fetchStudentState(s.code, null));
+                // Экзамены спрашиваем только у тех, кто заходил в последние две недели:
+                // у молчащего сдать за неделю экзамен не могло получиться.
+                let exams = [];
+                const days = daysSinceSync(s.updatedAt);
+                if (days !== null && days <= 14) {
+                    try {
+                        const r = await callAuthed('session_student_exams', { p_student_code: s.code });
+                        exams = (!r.error && r.data && r.data.ok && Array.isArray(r.data.exams)) ? r.data.exams : [];
+                    } catch (e) { exams = []; }
+                }
+                byCode[s.code] = { state, exams };
+            });
+            let homework = [];
+            try {
+                const r = await callAuthed('session_tutor_homework', {});
+                homework = (!r.error && r.data && r.data.ok && Array.isArray(r.data.homework)) ? r.data.homework : [];
+            } catch (e) { homework = []; }
+            helpCache = { at: Date.now(), tutor: me, students: byCode, homework };
+            return helpCache;
+        }
+
+        function topKind(kinds) {
+            let best = null;
+            Object.keys(kinds || {}).forEach(k => { if (!best || (kinds[k] || 0) > kinds[best]) best = k; });
+            return best;
+        }
+
+        // Что видно по одному ученику. Только то, с чем на уроке есть что делать:
+        //  - застрял: клетка, где за неделю много ответов и точность ниже 70%;
+        //  - готов к новой звезде: золото на звезде взято, а на следующей ещё ни одного ответа;
+        //  - сдал экзамен за неделю;
+        //  - домашнее просрочено или сделано за неделю.
+        function studentHelpSignals(st, exams, homeworkRows, todayKey) {
+            const out = { stuck: null, ready: [], exams: [], hwLate: [], hwDone: [] };
+            const from = shiftDayKey(todayKey, -(HELP_WEEK - 1));
+            if (st) {
+                const week = aggregateDaily(st.daily || {}, from, todayKey);
+                Object.keys(week.t).forEach(cell => {
+                    const v = week.t[cell] || [];
+                    const c = v[0] || 0, n = c + (v[1] || 0);
+                    if (n < HELP_STUCK_MIN) return;
+                    const accuracy = Math.round(c / n * 100);
+                    if (accuracy >= HELP_STUCK_ACCURACY) return;
+                    if (!out.stuck || accuracy < out.stuck.accuracy) {
+                        out.stuck = { cell, accuracy, wrong: v[1] || 0, attempts: n, kind: topKind(week.te[cell]) };
+                    }
+                });
+                const by = st.byTopic || {};
+                Object.keys(by).forEach(cell => {
+                    const p = parseTopicKey(cell);
+                    if (!p.sign || !p.level || p.level >= 5) return;
+                    if (!levelGatePassed(st.unlocks || {}, cell)) return;
+                    const next = `${p.category}${p.sign}:${p.op}:${p.level + 1}`;
+                    const nx = by[next] || {};
+                    if ((nx.correct || 0) + (nx.wrong || 0) > 0) return;
+                    out.ready.push({ cell, next });
+                });
+            }
+            out.exams = (exams || []).filter(x => x && x.passed && String(x.takenAt || '').slice(0, 10) >= from);
+            (homeworkRows || []).forEach(h => {
+                const fin = (Number(h.done) || 0) >= h.need;
+                if (!fin && h.dueOn && h.dueOn < todayKey) out.hwLate.push(h);
+                if (fin && h.doneOn && h.doneOn >= from) out.hwDone.push(h);
+            });
+            return out;
+        }
+
+        function examLineText(x) {
+            const opName = (OP_LABELS[x.op] || x.op || '').replace(/^\S+\s/, '');
+            const sec = x.section && x.section !== 'integer+' ? parseSectionKey(x.section) : null;
+            const name = sec ? `${categoryLabel(sec.category, sec.numberType === 'negative' ? '-' : '+')} · ${opName}` : opName;
+            return tf('%1 — открыто до %2★', name, x.level);
+        }
+
+        async function renderStudentsHelp(students) {
+            const box = document.getElementById('studentsHelp');
+            if (!box) return;
+            box.innerHTML = '';
+            box.hidden = !students.length;
+            if (!students.length) return;
+            const title = document.createElement('div');
+            title.className = 'help-title';
+            title.innerText = t('🧭 Кому нужна помощь');
+            box.appendChild(title);
+            const wait = document.createElement('div');
+            wait.className = 'help-empty';
+            wait.innerText = t('Смотрю, кто как занимается…');
+            box.appendChild(wait);
+
+            const data = await loadHelpData(students);
+            const today = Progress.dayKey();
+            const groups = [
+                { key: 'stuck', title: t('🧱 Застряли'), lines: [] },
+                { key: 'ready', title: t('🚀 Готовы к новой звезде'), lines: [] },
+                { key: 'exam', title: t('🎓 Сдали экзамен'), lines: [] },
+                { key: 'late', title: t('⏰ Домашнее просрочено'), lines: [] },
+                { key: 'done', title: t('✅ Сделали домашнее'), lines: [] }
+            ];
+            const add = (key, s, text) => groups.filter(g => g.key === key)[0].lines.push({ s, text });
+            students.forEach(s => {
+                const d = data.students[s.code] || {};
+                const sig = studentHelpSignals(d.state, d.exams, data.homework.filter(h => h.student === s.code), today);
+                if (sig.stuck) {
+                    add('stuck', s, tf('%1 — точность %2%, ошибок %3', topicLabelWithLevel(sig.stuck.cell),
+                        sig.stuck.accuracy, sig.stuck.wrong)
+                        + (sig.stuck.kind ? tf(', чаще всего: %1', mistakeLabel(sig.stuck.kind).toLowerCase()) : ''));
+                }
+                sig.ready.slice(0, 2).forEach(r => {
+                    add('ready', s, tf('%1 — золото взято, можно на %2★', topicLabel(r.cell), parseTopicKey(r.next).level));
+                });
+                sig.exams.slice(0, 2).forEach(x => add('exam', s, examLineText(x)));
+                sig.hwLate.forEach(h => add('late', s, `${topicLabelWithLevel(h.topic)} — ${Math.min(Number(h.done) || 0, h.need)} / ${h.need}`));
+                sig.hwDone.forEach(h => add('done', s, topicLabelWithLevel(h.topic)));
+            });
+            // Пока ждали ответа, список могли перерисовать для другого профиля.
+            if (!box.contains(wait)) return;
+            wait.remove();
+            const shown = groups.filter(g => g.lines.length);
+            if (!shown.length) {
+                const calm = document.createElement('div');
+                calm.className = 'help-empty';
+                calm.innerText = t('За неделю никто не застрял и ничего не ждёт — можно заниматься по плану.');
+                box.appendChild(calm);
+                return;
+            }
+            shown.forEach(g => {
+                const head = document.createElement('div');
+                head.className = 'help-group';
+                head.innerText = g.title;
+                box.appendChild(head);
+                g.lines.forEach(({ s, text }) => {
+                    const line = document.createElement('button');
+                    line.type = 'button';
+                    line.className = 'help-line';
+                    const who = document.createElement('b');
+                    who.innerText = s.label || s.code;
+                    const what = document.createElement('span');
+                    what.innerText = text;
+                    line.appendChild(who);
+                    line.appendChild(document.createTextNode(' '));
+                    line.appendChild(what);
+                    line.addEventListener('click', () => openLessonCard(s));
+                    box.appendChild(line);
+                });
+            });
+        }
+
+        // Пример из копилки — строкой, как его видел ученик, и что он ответил.
+        function fracText(f) { return f ? `${f.num}/${f.den}` : '?'; }
+        function bankAnswerText(meta, v) {
+            if (v === null || v === undefined) return '';
+            if (v === 'NO_SOLUTION') return t('нет решения');
+            if (typeof v === 'number') return String(v);
+            if (typeof v === 'object' && 'num' in v) return fracText(v);
+            if (typeof v === 'object' && 'intVal' in v) return decToString(v);
+            return '';
+        }
+        function bankExampleText(item) {
+            const meta = repeatMetaOf(item.k);
+            const p = item.p || {};
+            const sign = HINT_OP_SIGNS[meta.opKey] || '';
+            let q = '';
+            if (meta.category === 'fraction') {
+                if (meta.opKey === 'simplify') q = tf('сократить %1', fracText(p.given));
+                else if (meta.opKey === 'toMixed' || meta.opKey === 'toImproper') q = fracText(p.given);
+                else if (meta.opKey === 'fracOfNumber') q = tf('%1 от %2', `${p.fracNum}/${p.fracDen}`, p.N);
+                else q = `${fracText(p.f1)} ${sign} ${fracText(p.f2)}`;
+            } else if (meta.category === 'decimal') {
+                q = (p.d1 && p.d2) ? `${decToString(p.d1)} ${sign} ${decToString(p.d2)}` : '';
+            } else {
+                q = p.text || '';
+            }
+            const right = p.noSolution ? t('нет решения') : bankAnswerText(meta, p.answer);
+            const wrong = bankAnswerText(meta, item.w);
+            return wrong ? tf('%1 = %2, ответ был %3', q, right, wrong) : `${q} = ${right}`;
+        }
+
+        // Что сказать о клетке в «что взять на уроке».
+        function lessonPlan(st, todayKey) {
+            const plan = [];
+            const daily = st.daily || {};
+            const recent = aggregateDaily(daily, shiftDayKey(todayKey, -(TASK_CELL_WINDOW - 1)), todayKey);
+            const cells = Object.keys(recent.t);
+            const fix = roleFix(daily, todayKey, cells, null);
+            if (fix) {
+                const f = cellForm(daily, todayKey, fix.cell, TASK_CELL_WINDOW);
+                plan.push(tf('Подтянуть: %1 — точность %2% за две недели', topicLabelWithLevel(fix.cell), f.accuracy));
+            }
+            const adv = roleAdvance(st, cells, daily, todayKey, todayKey);
+            if (adv && (!fix || adv.cell !== fix.cell)) {
+                plan.push(tf('Продвинуть: %1 — до медали %2 ещё %3', topicLabelWithLevel(adv.cell), medal(adv.tier), adv.gap));
+            }
+            studentHelpSignals(st, [], [], todayKey).ready.slice(0, 2).forEach(r => {
+                plan.push(tf('Новая звезда: %1 — золото взято, на %2★ ответов ещё нет', topicLabel(r.cell), parseTopicKey(r.next).level));
+            });
+            return plan;
+        }
+
+        // Карточка ученика к уроку: неделя, частые ошибки с живыми примерами, что
+        // взять на уроке, домашние. Одно окно вместо статистики, отчёта и заданий.
+        async function openLessonCard(student) {
+            const s = student || {};
+            let st = null, rows = [];
+            const cached = helpCache && helpCache.tutor === Progress.getCode()
+                && Date.now() - helpCache.at < HELP_CACHE_MS ? helpCache : null;
+            if (cached && cached.students[s.code]) {
+                st = cached.students[s.code].state;
+                rows = cached.homework.filter(h => h.student === s.code);
+            } else {
+                st = studentStateForView(await fetchStudentState(s.code, null));
+                try {
+                    const r = await callAuthed('session_tutor_homework', {});
+                    rows = (!r.error && r.data && r.data.ok && Array.isArray(r.data.homework))
+                        ? r.data.homework.filter(h => h.student === s.code) : [];
+                } catch (e) { rows = []; }
+            }
+            if (!st) { showToast(t('Не удалось загрузить статистику ученика.'), 'error'); return; }
+            const today = Progress.dayKey();
+            const week = aggregateDaily(st.daily || {}, shiftDayKey(today, -(HELP_WEEK - 1)), today);
+            const fortnight = aggregateDaily(st.daily || {}, shiftDayKey(today, -(HELP_MISTAKE_DAYS - 1)), today);
+            const bank = (st.mistakeBank && st.mistakeBank.items) || {};
+
+            const act = await openAppDialog(null, (card, submit) => {
+                dlgHead(card, tf('🗒️ К уроку: %1', s.label || s.code), '');
+                const section = (title) => {
+                    const h = document.createElement('div');
+                    h.className = 'lesson-head';
+                    h.innerText = title;
+                    card.appendChild(h);
+                };
+                const line = (text, cls) => {
+                    const p = document.createElement('div');
+                    p.className = 'lesson-line' + (cls ? ' ' + cls : '');
+                    p.innerText = text;
+                    card.appendChild(p);
+                    return p;
+                };
+
+                section(t('За неделю'));
+                const answered = week.c + week.w;
+                if (!answered) line(t('Занятий не было.'), 'muted');
+                else {
+                    line(tf('Дней с занятиями: %1 из 7', week.days));
+                    line(tf('Верно %1, ошибок %2 — точность %3%', week.c, week.w, Math.round(week.c / answered * 100)));
+                    line(tf('Время за игрой: %1', formatDuration(week.s)));
+                }
+
+                section(t('Частые ошибки за две недели'));
+                const kinds = Object.keys(fortnight.e).filter(k => fortnight.e[k] > 0)
+                    .sort((x, y) => fortnight.e[y] - fortnight.e[x]).slice(0, 3);
+                if (!kinds.length) line(t('Ошибок не было.'), 'muted');
+                kinds.forEach(kind => {
+                    line(`${mistakeLabel(kind)} — ${fortnight.e[kind]}`, 'kind');
+                    // Живой пример — самый свежий из копилки с той же ошибкой.
+                    const ex = Object.keys(bank).map(sig => bank[sig]).filter(it => it.e === kind)
+                        .sort((x, y) => y.t - x.t)[0];
+                    if (ex) line(bankExampleText(ex), 'example');
+                });
+
+                section(t('Что взять на уроке'));
+                const plan = lessonPlan(st, today);
+                if (!plan.length) line(t('Пока мало ответов, чтобы что-то советовать.'), 'muted');
+                plan.forEach(p => line(p));
+
+                section(t('Домашние задания'));
+                if (!rows.length) line(t('Не задано.'), 'muted');
+                rows.forEach(h => line(`${topicLabelWithLevel(h.topic)} — ${homeworkLineText(h)}`));
+
+                const left = Object.keys(bank).length;
+                section(t('Копилка ошибок'));
+                line(left ? tf(plural(left, '%1 пример ждёт повтора', '%1 примера ждут повтора', '%1 примеров ждут повтора'), left)
+                          : t('Пусто — всё повторено.'), left ? '' : 'muted');
+
+                const row = document.createElement('div');
+                row.className = 'dlg-actions';
+                const close = document.createElement('button');
+                close.type = 'button';
+                close.className = 'dlg-btn';
+                close.innerText = t('Закрыть');
+                close.addEventListener('click', () => submit(null));
+                const give = document.createElement('button');
+                give.type = 'button';
+                give.className = 'dlg-btn primary';
+                give.innerText = t('📚 Задать домашнее');
+                give.addEventListener('click', () => submit('homework'));
+                row.appendChild(close);
+                row.appendChild(give);
+                card.appendChild(row);
+            });
+            if (act === 'homework') {
+                if (await openAssignHomework({ codes: [s.code] })) helpCache = null;
             }
         }
 
@@ -10617,6 +10979,7 @@
             if (!students.length) {
                 wrap.innerHTML = t('<div class="menu-empty">Пока нет учеников.<br>Добавь первого кнопкой ниже.</div>');
                 setFoldSum('studentsSection', t('пока никого'));
+                renderStudentsHelp([]);
                 return;
             }
             wrap.innerHTML = '';
@@ -10671,7 +11034,7 @@
                 row.className = 'list-row'
                     + (days === null || days >= SILENT_DAYS ? ' silent'
                        : days >= QUIET_DAYS ? ' quiet' : '');
-                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    <button class="list-row-btn" data-act="view">Смотреть</button>\n                    <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>\n                    <button class="list-row-btn" data-act="access" title="Что открыто">⭐</button>\n                    <button class="list-row-btn" data-act="group" title="Папка">📁</button>\n                    <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>\n                    <button class="list-row-btn" data-act="release" title="Отпустить">🕊️</button>\n                    <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>\n                ');
+                row.innerHTML = tf('\n                    <div class="list-row-main">\n                        <div class="list-row-name"></div>\n                        <div class="list-row-sub"></div>\n                    </div>\n                    <button class="list-row-btn" data-act="view">Смотреть</button>\n                    <button class="list-row-btn" data-act="lesson" title="К уроку">🗒️</button>\n                    <button class="list-row-btn" data-act="report" title="Отчёт родителям">📄</button>\n                    <button class="list-row-btn" data-act="access" title="Что открыто">⭐</button>\n                    <button class="list-row-btn" data-act="group" title="Папка">📁</button>\n                    <button class="list-row-btn" data-act="pw" title="Сменить пароль">🔑</button>\n                    <button class="list-row-btn" data-act="release" title="Отпустить">🕊️</button>\n                    <button class="list-row-btn" data-act="del" title="Удалить">🗑️</button>\n                ');
                 row.querySelector('.list-row-name').innerText = s.label || s.code;
                 row.querySelector('.list-row-sub').innerText =
                     `${s.code} · ✅ ${totals.correct || 0} · 🎯 ${pct}${seen ? ' · ' + seen : ''}`;
@@ -10689,6 +11052,7 @@
                     row.querySelector('.list-row-main').appendChild(warn);
                 }
                 row.querySelector('[data-act="view"]').addEventListener('click', () => viewStudentStats(s.code, s));
+                row.querySelector('[data-act="lesson"]').addEventListener('click', () => openLessonCard(s));
                 row.querySelector('[data-act="report"]').addEventListener('click', () => openReportFor(s.code, s));
                 row.querySelector('[data-act="access"]').addEventListener('click', () => openStudentAccess(s.code, s.label));
                 row.querySelector('[data-act="pw"]').addEventListener('click', () => resetStudentPassword(s.code));
@@ -10712,6 +11076,8 @@
             // Свёрнутый раздел без сводки — пустая дверь: сколько там учеников,
             // должно быть видно, не открывая.
             setFoldSum('studentsSection', tf(plural(students.length, '%1 ученик', '%1 ученика', '%1 учеников'), students.length));
+            // Сводка тянет состояния учеников с сервера — список её не ждёт.
+            renderStudentsHelp(students);
         }
 
         // Папку задаём текстом, но существующие названия предлагаем нажатием: если
