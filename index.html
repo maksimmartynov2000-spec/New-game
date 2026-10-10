@@ -1398,6 +1398,28 @@
         .exam-result-cap { font-size: 1.15rem; font-weight: bold; color: var(--gold); text-align: center; }
         .exam-result-text { font-size: 0.88rem; color: #cbd5e1; line-height: 1.5; text-align: center; margin: 12px 0 16px; }
         .exam-result-note { font-size: 0.78rem; color: #fbbf24; line-height: 1.45; text-align: center; margin-bottom: 14px; }
+        /* Счёт по ходу экзамена: кружок на каждый пример и сколько набрано из скольких
+           нужно. Значок внутри кружка — не только цвет: красное с зелёным различают не все. */
+        .exam-dots { display: flex; justify-content: center; gap: 5px; margin: 0 0 8px; }
+        .exam-dot {
+            width: 22px; height: 22px; flex: 0 0 auto; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.18); display: flex; align-items: center; justify-content: center;
+            font-size: 0.7rem; font-weight: 700; line-height: 1;
+        }
+        .exam-dot.now { border-color: var(--cyan); }
+        .exam-dot.right { border-color: #10b981; background: rgba(16,185,129,0.22); color: #34d399; }
+        .exam-dot.wrong { border-color: #ef4444; background: rgba(239,68,68,0.22); color: #f87171; }
+        .exam-goal { text-align: center; font-size: 0.78rem; color: #94a3b8; }
+        .exam-feedback { min-height: 1.5em; margin-top: 12px; text-align: center; font-size: 0.92rem; font-weight: 700; line-height: 1.4; }
+        .exam-feedback.right { color: #34d399; }
+        .exam-feedback.wrong { color: #f87171; }
+        .exam-mistakes {
+            margin: 0 0 6px; padding: 10px 12px; border-radius: 12px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+        }
+        .exam-mistakes-cap { font-size: 0.7rem; color: #94a3b8; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+        .exam-mistake-row { font-size: 0.86rem; color: #e2e8f0; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .exam-mistake-row:last-child { border-bottom: none; }
 
         /* --- Технические работы --- */
         .maintenance-screen {
@@ -2773,14 +2795,19 @@
                     <span class="exam-step" id="examStep"></span>
                     <span class="exam-time" id="examTime"></span>
                 </div>
+                <div class="exam-dots" id="examDots" aria-hidden="true"></div>
+                <div class="exam-goal" id="examGoal"></div>
                 <div class="exam-question" id="examQuestion"></div>
                 <div class="answers-grid" id="examAnswers"></div>
+                <div class="exam-feedback" id="examFeedback" aria-live="polite"></div>
                 <div class="config-hint">Экзамен не идёт в статистику и не портит медали.</div>
             </div>
             <div id="examResult" hidden>
                 <div class="exam-result-cap" id="examResultCap"></div>
                 <div class="exam-result-text" id="examResultText"></div>
                 <div class="exam-result-note" id="examResultNote" style="display:none;"></div>
+                <div class="exam-mistakes" id="examMistakes" hidden></div>
+                <button class="btn-config-continue ready" id="examPlay" hidden></button>
                 <button class="btn-config-continue ready" onclick="examClose()">Готово</button>
             </div>
         </div>
@@ -3523,16 +3550,23 @@
             const ops = Object.keys(exampleConfig.operations || {});
             if (!examTrialAllowed() || exampleConfig.category !== 'integer' || !exampleConfig.numberType) return null;
             if (ops.length !== 1 || EXAM_OPS.indexOf(ops[0]) < 0) return null;
-            return { op: ops[0], secKey: sectionKeyOf(exampleConfig.category, exampleConfig.numberType) };
+            // Экзамен сдают на одну звезду — пробный тоже: на выбранной, и только там,
+            // где бывает настоящий. Первая открыта всегда, выше потолка экзамена нет.
+            const level = Number(exampleConfig.operations[ops[0]]);
+            if (!(level >= 2 && level <= EXAM_MAX_GRANT)) return null;
+            return { op: ops[0], secKey: sectionKeyOf(exampleConfig.category, exampleConfig.numberType), level };
         }
         function updateTrialExamButton() {
             const btn = document.getElementById('btnTrialExam');
-            if (btn) btn.hidden = !trialExamTarget();
+            if (!btn) return;
+            const target = trialExamTarget();
+            btn.hidden = !target;
+            if (target) btn.innerText = tf('🎓 Пробный экзамен на %1★', target.level);
         }
         function startTrialExam() {
             const target = trialExamTarget();
             if (!target) return;
-            examOpen(target.op, target.secKey, { trial: true });
+            examOpen(target.op, target.secKey, target.level, { trial: true });
         }
 
         // ===================== РЕЖИМ ОБУЧЕНИЯ =====================
@@ -8176,18 +8210,18 @@
                 });
                 return;
             }
+            // Экзамен — на ту звезду, на которую нажали, и панель называет её прямо,
+            // вместе с порогом. Про «дальше открывает репетитор» здесь не пишем: это
+            // было неправдой — у ворот нет потолка, золото на 3★ открывает 4★.
             const go = await askConfirm({
                 title: tf('%1★ пока закрыта', level),
                 text: levelLockReason(secKey, op, level) + '\n\n'
-                    + tf('Или пройди экзамен по действию «%1»: %2 примеров, по %3 секунд на каждый. ', opName, EXAM_QUESTIONS, EXAM_SECONDS)
-                    // «Дальше открывает репетитор» было неправдой: у ворот нет потолка по
-                    // уровню, золото на 3★ открывает 4★, золото на 4★ — пятую. Фраза
-                    // должна была сказать «экзамен выше не поднимет», а сказала другое.
-                    + tf('Сдашь — откроются звёзды до %1★. Выше — только золотом.', EXAM_MAX_GRANT),
-                okText: t('Пройти экзамен'),
+                    + tf('Или пройди экзамен на %1★ по действию «%2»: %3 примеров по %4 секунд, нужно %5 верных. Сдашь — звезда откроется сразу, вместе со всеми, что ниже.',
+                         level, opName, EXAM_QUESTIONS, EXAM_SECONDS, EXAM_PASS),
+                okText: tf('Пройти экзамен на %1★', level),
                 cancelText: t('Не сейчас')
             });
-            if (go) await examOpen(op, secKey);
+            if (go) await examOpen(op, secKey, level);
         }
 
         // Список попыток экзамена — только на чужом экране, у репетитора. Ученику он
@@ -8210,7 +8244,7 @@
                 const name = sec ? `${categoryLabel(sec.category, sec.numberType === 'negative' ? '-' : '+')} · ${opName}` : opName;
                 el.innerText = row.passed
                     ? tf('%1 — открыто до %2★, %3', name, row.level, formatDayKeyHuman((row.takenAt || '').slice(0, 10)))
-                    : tf('%1 — не сдал, %2', name, formatDayKeyHuman((row.takenAt || '').slice(0, 10)));
+                    : tf('%1 — экзамен не сдан, %2', name, formatDayKeyHuman((row.takenAt || '').slice(0, 10)));
                 // Экзамен считается в браузере, а серверу сообщается готовое число.
                 // Сервер срезает всё, что выше потолка, но САМ ФАКТ заявки выше потолка
                 // честный экзамен дать не может: он туда просто не поднимается.
@@ -8228,9 +8262,18 @@
         }
 
         // ===================== ВВОДНЫЙ ЭКЗАМЕН =====================
-        // Ученик, который уже умеет считать, не должен набивать золото на первой звезде,
-        // чтобы добраться до четвёртой. Короткий экзамен по ОДНОМУ действию показывает,
-        // с какой звезды ему начинать, и открывает всё до неё включительно.
+        // Ученик, который уже умеет считать, не должен набивать золото на каждой звезде,
+        // чтобы добраться до следующей. Экзамен проверяет ОДНУ звезду — ту, на которую
+        // нажали, — и при сдаче открывает её вместе со всеми, что ниже.
+        //
+        // Раньше экзамен «нащупывал уровень»: всегда начинал со второй звезды и ходил
+        // вверх-вниз заходами по шесть примеров. А пользуются им для другого — открыть
+        // конкретную звезду, — и нащупывание мешало. Ребёнок с открытой 2★, который
+        // шёл за 3★, сначала пересдавал 2★; при 4 из 6 экзамен молча кончался ни с чем
+        // и тратил попытку дня; при провале спускался на 1★ и поздравлял «открыто до
+        // 1★», хотя первая открыта всегда. Посчитано: при точности 90% (порог золота)
+        // один заход сдаётся в 89% случаев, два подряд — в 78%. Каждый пятый, кто тянет
+        // 3★, срезался на звезде, которая у него уже есть. Нашёл Максим.
         //
         // Экзамен живёт своим экраном и своим обработчиком ответа, а не режимом внутри
         // игры. Это сделано нарочно: игровой ответ тянет за собой запись в журнал,
@@ -8250,14 +8293,13 @@
         // Сам экзамен на них уже готов: до открытия его видит только репетитор, как
         // пробный (examOpen с trial), и пробный ничего не открывает и не записывает.
         const EXAM_SECTIONS = ['integer+'];
-        const EXAM_QUESTIONS = 6;      // примеров в одном заходе
-        const EXAM_PASS = 5;           // сколько нужно верных, чтобы шагнуть вверх
-        const EXAM_FAIL = 3;           // столько и меньше — шаг вниз
-        const EXAM_START_LEVEL = 2;    // с какой звезды начинаем нащупывать
-        // Четыре захода, а не три: начиная со второй звезды, до пятой иначе не дотянуться
-        // (2→3→4→5), а пятая — как раз то, ради чего экзамен затевался. Четвёртый заход
-        // получает только тот, кто безошибочно прошёл три предыдущих.
-        const EXAM_ROUNDS = 4;
+        // Десять примеров, сдать — восемь. Шести было мало: один промах решал всё. При
+        // точности 90% десять с порогом восемь сдаются в 93% случаев, наугад — один раз
+        // из 2400 (шесть с порогом пять — один из 217). Досрочно экзамен не кончается,
+        // даже когда исход уже ясен: так решил Максим — ребёнок доходит до конца и
+        // видит весь свой счёт.
+        const EXAM_QUESTIONS = 10;
+        const EXAM_PASS = 8;
         // Потолок выдачи. Экзамен считается здесь, в браузере, а серверу сообщается
         // готовое число — то есть подделать его можно из отладчика. По-настоящему это
         // чинится только выдачей примеров с сервера, а это вторая копия правил
@@ -8269,6 +8311,11 @@
         // честный экзамен просто не поднимается выше и не заявляет лишнего.
         const EXAM_MAX_GRANT = 3;
         const EXAM_SECONDS = 30;       // на пример; вышло время — считается ошибкой
+        // Сколько держится подсветка ответа. Обратной связи не было вовсе: после нажатия
+        // сразу шёл следующий пример, и ребёнок не знал ни где ошибся, ни сколько уже
+        // набрал. Верный ответ — коротко, неверный — подольше: надо успеть прочесть
+        // правильный. Часы в это время стоят.
+        const EXAM_FEEDBACK_MS = { right: 700, wrong: 1800 };
 
         let exam = null;
 
@@ -8297,13 +8344,16 @@
             } catch (e) { return false; }
         }
 
-        // secKey — раздел экзамена. Пробный (opts.trial) — только для репетитора: тот же
-        // экзамен, те же примеры и правила, но результат никуда не уходит. Связь ему
-        // поэтому не нужна.
-        async function examOpen(op, secKey, opts) {
+        // level — звезда, которую сдают. Первая открыта всегда, а выше потолка экзамен
+        // ничего не открывает, поэтому таких экзаменов нет вовсе. Пробный (opts.trial) —
+        // только для репетитора: тот же экзамен, те же примеры и правила, но результат
+        // никуда не уходит. Связь ему поэтому не нужна.
+        async function examOpen(op, secKey, level, opts) {
             if (maintenanceActive()) { renderMaintenance(); return; }
             const section = secKey || EXAM_SECTIONS[0];
             const trial = !!(opts && opts.trial);
+            const lvl = Number(level);
+            if (!(lvl >= 2 && lvl <= EXAM_MAX_GRANT)) return;
             // Настоящий экзамен — только там, где он открывает звёзды. Закрытая дверь
             // здесь дублирует ту, что в openLockedStar, и стоит на случай нового пути сюда.
             if (!trial && EXAM_SECTIONS.indexOf(section) < 0) return;
@@ -8318,27 +8368,22 @@
                 });
                 return;
             }
-            exam = { op, section, negative: section.slice(-1) === '-', trial,
-                     level: EXAM_START_LEVEL, round: 0, asked: 0, right: 0,
-                     best: 0, low: 1, high: EXAM_MAX_GRANT, problem: null, answer: null,
-                     timer: null, left: EXAM_SECONDS, done: false };
+            exam = { op, section, negative: section.slice(-1) === '-', trial, level: lvl,
+                     asked: 0, right: 0, log: [], problem: null, set: null, buttons: [],
+                     timer: null, pause: null, left: EXAM_SECONDS, waiting: false, done: false };
             document.getElementById('examScreen').style.display = 'flex';
             document.getElementById('examResult').hidden = true;
             document.getElementById('examBody').hidden = false;
-            examNextRound();
+            examNextQuestion();
         }
 
         function examClose() {
             examStopTimer();
+            // Подсветка ответа ещё держится — следующий пример не должен прийти в закрытый
+            // экзамен, а тем более в новый, начатый сразу после.
+            if (exam && exam.pause) clearTimeout(exam.pause);
             exam = null;
             document.getElementById('examScreen').style.display = 'none';
-        }
-
-        function examNextRound() {
-            exam.round++;
-            exam.asked = 0;
-            exam.right = 0;
-            examNextQuestion();
         }
 
         function examStopTimer() {
@@ -8346,29 +8391,51 @@
         }
 
         function examNextQuestion() {
-            if (exam.asked >= EXAM_QUESTIONS) { examRoundOver(); return; }
+            if (exam.asked >= EXAM_QUESTIONS) { examFinish(); return; }
             exam.asked++;
+            exam.waiting = false;
             const problem = generateProblem(exam.op, exam.level, exam.negative);
             exam.problem = problem;
-            exam.answer = problem.answer;
+            exam.set = examOptions(problem, exam.op, exam.level, exam.negative);
 
             document.getElementById('examStep').innerText =
                 (exam.trial ? t('Пробный · ') : '')
                 + tf('%1★ · пример %2 из %3', exam.level, exam.asked, EXAM_QUESTIONS);
             document.getElementById('examQuestion').innerText = problem.text + ' = ?';
+            const feedback = document.getElementById('examFeedback');
+            feedback.className = 'exam-feedback';
+            feedback.innerText = '';
 
             const grid = document.getElementById('examAnswers');
             grid.innerHTML = '';
-            const set = examOptions(problem, exam.op, exam.level, exam.negative);
-            set.options.forEach(opt => {
+            exam.buttons = exam.set.options.map(opt => {
                 const btn = document.createElement('button');
                 btn.className = 'btn-answer';
                 btn.innerText = opt.label;
-                btn.addEventListener('click', () => examAnswer(opt.value === set.correct));
+                btn.addEventListener('click', () => examAnswer(opt));
                 grid.appendChild(btn);
+                return { btn, opt };
             });
 
+            examShowScore();
             examStartTimer();
+        }
+
+        // Кружки — по одному на пример: ✓, ✗ или ещё впереди. И сколько набрано из
+        // скольких нужно: ребёнок видит, где он, а не узнаёт всё разом в конце.
+        function examShowScore() {
+            const dots = document.getElementById('examDots');
+            dots.innerHTML = '';
+            for (let i = 0; i < EXAM_QUESTIONS; i++) {
+                const rec = exam.log[i];
+                const dot = document.createElement('span');
+                dot.className = 'exam-dot' + (rec ? (rec.right ? ' right' : ' wrong')
+                                                   : (i === exam.asked - 1 ? ' now' : ''));
+                dot.innerText = rec ? (rec.right ? '✓' : '✗') : '';
+                dots.appendChild(dot);
+            }
+            document.getElementById('examGoal').innerText =
+                tf('Верных: %1 · нужно %2 из %3', exam.right, EXAM_PASS, EXAM_QUESTIONS);
         }
 
         // Варианты ответа — ровно так же, как в обычной игре.
@@ -8416,7 +8483,7 @@
                 // Время вышло — это ошибка. Без ограничения экзамен сдавался бы счётом
                 // на пальцах, и ученик уезжал бы на звезду, где пороги скорости втрое
                 // жёстче и медалей ему не видать.
-                if (exam.left <= 0) examAnswer(false);
+                if (exam.left <= 0) examAnswer(null);
             }, 1000);
         }
         function examShowTime() {
@@ -8425,26 +8492,71 @@
             el.className = 'exam-time' + (exam.left <= 5 ? ' low' : '');
         }
 
-        function examAnswer(isRight) {
-            if (!exam || exam.done) return;
+        // opt — нажатый вариант; null — вышло время.
+        function examAnswer(opt) {
+            // Пока горит подсветка, второе нажатие не считается: иначе быстрый двойной
+            // тап засчитывал бы один пример дважды.
+            if (!exam || exam.done || exam.waiting) return;
             examStopTimer();
-            if (isRight) exam.right++;
-            examNextQuestion();
+            exam.waiting = true;
+            const right = !!opt && opt.value === exam.set.correct;
+            if (right) exam.right++;
+            const correct = exam.set.options.filter(o => o.value === exam.set.correct)[0];
+            const correctLabel = correct ? correct.label : '';
+            exam.log.push({ text: exam.problem.text, answer: correctLabel,
+                            given: opt ? opt.label : null, right });
+
+            // Те же цвета, что в игре: верный вариант зелёный, нажатый неверный —
+            // красный, остальные гаснут.
+            exam.buttons.forEach(({ btn, opt: o }) => {
+                btn.classList.add('locked');
+                if (o.value === exam.set.correct) btn.classList.add('btn-correct');
+                else if (o === opt) btn.classList.add('btn-wrong');
+            });
+            const feedback = document.getElementById('examFeedback');
+            feedback.className = 'exam-feedback ' + (right ? 'right' : 'wrong');
+            feedback.innerText = right ? t('✓ Верно')
+                : opt ? tf('✗ Неверно. Правильный ответ: %1', correctLabel)
+                      : tf('⏱ Время вышло. Правильный ответ: %1', correctLabel);
+            examShowScore();
+
+            const current = exam;
+            exam.pause = setTimeout(() => {
+                if (exam !== current || current.done) return;
+                current.pause = null;
+                examNextQuestion();
+            }, right ? EXAM_FEEDBACK_MS.right : EXAM_FEEDBACK_MS.wrong);
         }
 
-        // Ход вверх-вниз. Сдал заход — запоминаем звезду и пробуем следующую;
-        // провалил — спускаемся. Границы сужаются, поэтому третий заход всегда последний.
-        function examRoundOver() {
-            const passed = exam.right >= EXAM_PASS;
-            const failed = exam.right <= EXAM_FAIL;
-            if (passed) { exam.best = Math.max(exam.best, exam.level); exam.low = exam.level + 1; }
-            else if (failed) { exam.high = exam.level - 1; }
-            else { examFinish(); return; }   // серединка: ни вверх, ни вниз — на этом и стоим
+        // Где тренироваться после несданного экзамена: самая высокая открытая звезда
+        // ниже той, что сдавали. Первая открыта всегда.
+        function examPracticeLevel() {
+            for (let lvl = exam.level - 1; lvl >= 2; lvl--) {
+                if (isLevelOpen(exam.section, exam.op, lvl)) return lvl;
+            }
+            return 1;
+        }
 
-            if (exam.round >= EXAM_ROUNDS || exam.low > exam.high
-                || exam.low > EXAM_MAX_GRANT) { examFinish(); return; }
-            exam.level = passed ? exam.low : Math.max(1, exam.high);
-            examNextRound();
+        // Ошибки — списком, с верным ответом. Раньше в итоге не было ничего, кроме
+        // звезды: непонятно, где ошибся и что тренировать.
+        function examShowMistakes() {
+            const wrap = document.getElementById('examMistakes');
+            wrap.innerHTML = '';
+            const wrong = exam.log.filter(x => !x.right);
+            wrap.hidden = !wrong.length;
+            if (!wrong.length) return;
+            const cap = document.createElement('div');
+            cap.className = 'exam-mistakes-cap';
+            cap.innerText = t('Где были ошибки');
+            wrap.appendChild(cap);
+            wrong.forEach(x => {
+                const row = document.createElement('div');
+                row.className = 'exam-mistake-row';
+                row.innerText = x.given === null
+                    ? tf('%1 · верно: %2 · время вышло', x.text, x.answer)
+                    : tf('%1 · верно: %2 · твой ответ: %3', x.text, x.answer, x.given);
+                wrap.appendChild(row);
+            });
         }
 
         async function examFinish() {
@@ -8452,31 +8564,37 @@
             examStopTimer();
             document.getElementById('examBody').hidden = true;
             document.getElementById('examResult').hidden = false;
-            // Подстраховка на случай будущей правки хода экзамена: сервер всё равно
-            // срежет, но показывать ученику одно, а открывать другое — нельзя.
-            const level = Math.min(exam.best, EXAM_MAX_GRANT);
+            const passed = exam.right >= EXAM_PASS;
+            // Подстраховка на случай будущей правки: сервер всё равно срежет выше
+            // потолка, но показывать ученику одно, а открывать другое — нельзя.
+            const level = passed ? Math.min(exam.level, EXAM_MAX_GRANT) : 0;
+            const score = tf('Верных: %1 из %2', exam.right, EXAM_QUESTIONS);
 
             const cap = document.getElementById('examResultCap');
             const text = document.getElementById('examResultText');
             const note = document.getElementById('examResultNote');
+            const play = document.getElementById('examPlay');
 
             // Порядок здесь принципиален. Раньше «🔓 Открыто до 3★» писалось ДО ответа
             // сервера, и если связь пропадала посреди экзамена, экран поздравлял
             // звёздами, которых не открыл: заголовок обещал, а приписка под ним
             // сообщала, что ничего не сохранилось. Пока сервер не ответил — не
-            // обещаем ничего.
+            // обещаем ничего. Ошибки показываем сразу: они от сервера не зависят.
             cap.innerText = t('Считаем результат…');
             text.innerText = '';
             note.innerText = '';
             note.style.display = 'none';
+            play.hidden = true;
+            examShowMistakes();
 
             // Пробный экзамен никуда не пишет: ни звёзд, ни попытки дня. Говорим это
-            // прямо, иначе «до 3★» читается как открытые звёзды.
+            // прямо, иначе «сдана» читается как открытая звезда.
             if (exam.trial) {
-                cap.innerText = level
-                    ? tf('🎓 Пробный: %1★', level)
-                    : t('🎓 Пробный: не сдан');
-                text.innerText = t('Это проверка: ничего не открыто и не записано. У ученика здесь был бы такой же результат.');
+                cap.innerText = passed
+                    ? tf('🎓 Пробный: %1★ сдана', exam.level)
+                    : tf('🎓 Пробный: %1★ не сдана', exam.level);
+                text.innerText = score + '. '
+                    + t('Это проверка: ничего не открыто и не записано. У ученика здесь был бы такой же результат.');
                 return;
             }
 
@@ -8485,8 +8603,8 @@
                 // Результат называем — он честно заработан и был виден по ходу, — но
                 // про открытые звёзды молчим: их нет.
                 cap.innerText = t('Результат не сохранён');
-                text.innerText = level
-                    ? tf('Результат: %1★, но записать его не вышло. Пройди экзамен ещё раз, когда будет связь.', level)
+                text.innerText = passed
+                    ? tf('Экзамен на %1★ сдан, но записать результат не вышло. Пройди экзамен ещё раз, когда будет связь.', exam.level)
                     : t('Записать результат не вышло. Попробуй ещё раз позже.');
                 note.innerText = saved.error;
                 note.style.display = '';
@@ -8494,12 +8612,19 @@
                 return;
             }
 
-            cap.innerText = level
-                ? tf('🔓 Открыто до %1★', level)
-                : t('Пока начнём с первой звезды');
-            text.innerText = level
-                ? tf('Результат: %1★. Все звёзды до неё открыты — проходи их когда захочешь, ради пазлов и задач.', level)
-                : t('Ничего страшного: начнём с самого начала, а экзамен можно пересдать завтра.');
+            if (passed) {
+                cap.innerText = tf('🔓 %1★ открыта!', level);
+                text.innerText = tf('%1 — экзамен сдан. Звёзды до %2★ открыты: проходи их, когда захочешь, ради пазлов и задач.', score, level);
+                // Сразу играть на открытой звезде — тем же путём, что из окна открытой
+                // звезды после миссии.
+                const { op, section } = exam;
+                play.innerText = tf('🚀 Играть на %1★', level);
+                play.onclick = () => { examClose(); startMissionAt(op, level, section); };
+                play.hidden = false;
+            } else {
+                cap.innerText = tf('%1★ пока закрыта', exam.level);
+                text.innerText = tf('%1, а нужно %2. Потренируйся на %3★ и пересдай завтра.', score, EXAM_PASS, examPracticeLevel());
+            }
             refreshSectionLocks();
         }
 
