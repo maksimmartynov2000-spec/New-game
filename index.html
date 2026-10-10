@@ -1518,6 +1518,12 @@
             background: rgba(167, 139, 250, 0.10);
             border-color: rgba(167, 139, 250, 0.35);
         }
+        /* --- Домашнее задание --- */
+        /* Рамка бирюзовая — цвет «вперёд» у заданий: это то, что задали делать. */
+        .homework-wrap { margin-bottom: 16px; border-color: rgba(6, 182, 212, 0.35); }
+        .homework-wrap[hidden] { display: none !important; }
+        .hw-row.late .task-where { color: #fca5a5; }
+
         /* --- Повтори ошибки --- */
         /* Одна строка, как задание, но сама карточка — в рамке янтарного цвета, того
            же, которым задания отмечают «починить просевшее»: это то же дело, только про
@@ -1886,6 +1892,12 @@
             background: rgba(15, 18, 32, 0.98);
             border: 1px solid rgba(255, 255, 255, 0.14); border-radius: 16px;
             padding: 20px; flex-shrink: 0;
+            /* Автоотступы по вертикали. Они центрируют карточку, пока она ниже экрана, а
+               когда выше — прижимают к верху, и align-items фона тогда уже не действует.
+               Без них карточка выше экрана уезжала вверх поровну с низом: заголовок
+               оказывался за верхней границей, и прокруткой его было не достать. Так было
+               с окном «Что задать» у домашних на телефоне высотой 600 точек. */
+            margin: auto 0;
             box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
             animation: dlgIn 0.16s ease-out;
         }
@@ -1922,6 +1934,34 @@
         }
         .dlg-pick.selected { background: rgba(6,182,212,0.15); border-color: var(--cyan); color: var(--cyan); }
         .dlg-err { color: #f87171; font-size: 0.84rem; margin-bottom: 12px; display: none; }
+        /* --- Домашние задания у репетитора --- */
+        .hw-need-input { width: 140px; padding: 5px 10px; margin: 0; border-radius: 999px; font-size: 0.78rem; }
+        .hw-summary {
+            margin: 4px 0 8px; padding: 8px 10px; border-radius: 10px;
+            background: rgba(6,182,212,0.08); border: 1px solid rgba(6,182,212,0.25);
+            color: #e2e8f0; font-size: 0.82rem; line-height: 1.35;
+        }
+        .hw-add { width: 100%; margin: 4px 0 12px; }
+        .hw-note { margin: 0 0 14px; }
+        .hw-batch {
+            margin-bottom: 10px; padding: 10px 12px; border-radius: 12px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.10);
+        }
+        .hw-batch-head { color: #e2e8f0; font-size: 0.86rem; font-weight: bold; }
+        .hw-batch-meta { color: #94a3b8; font-size: 0.74rem; margin: 2px 0 6px; }
+        .hw-line {
+            display: flex; justify-content: space-between; gap: 10px; align-items: baseline;
+            padding: 5px 0; border-top: 1px solid rgba(255,255,255,0.06);
+            color: #cbd5e1; font-size: 0.8rem;
+        }
+        .hw-line b { font-variant-numeric: tabular-nums; white-space: nowrap; }
+        .hw-line.done b { color: #6ee7b7; }
+        .hw-line.late b { color: #fca5a5; }
+        .hw-drop {
+            margin-top: 6px; padding: 4px 10px; border-radius: 8px; cursor: pointer;
+            font-family: inherit; font-size: 0.72rem; color: #fca5a5;
+            background: transparent; border: 1px solid rgba(248,113,113,0.35);
+        }
         /* Текст резервной копии. Показывается всегда, а не только когда сработало
            скачивание: с домашнего экрана iPhone скачивание может молча не случиться,
            и тогда единственный способ забрать данные — выделить и скопировать. */
@@ -2597,6 +2637,7 @@
                 <button class="menu-btn" onclick="addStudent()">➕ <span>Добавить ученика</span></button>
                 <button class="menu-btn" onclick="createInvite()">✉️ <span>Пригласить ученика</span></button>
                 <button class="menu-btn" onclick="openBulkAccess()">⭐ <span>Открыть нескольким</span></button>
+                <button class="menu-btn" onclick="openHomeworkList()">📚 <span>Домашние задания</span></button>
             </div>
 
             <div class="config-section" data-fold="profile:devices2" id="sessionsSection">
@@ -2679,6 +2720,13 @@
         <div class="daily-bar" id="dailyBar"></div>
         <!-- Дошёл ли прогресс до сервера. Заполняет renderSyncBadges(). -->
         <div class="sync-badge" id="syncBadgeConfig" hidden></div>
+
+        <!-- Домашние задания от репетитора. Видна, только когда задания есть;
+             заполняет renderHomeworkCard(). Стоит первой: это то, что задали. -->
+        <div class="config-container homework-wrap" id="homeworkWrap" hidden>
+            <div class="config-section-title">📚 Домашнее задание</div>
+            <div id="homeworkList"></div>
+        </div>
 
         <!-- Повтор ошибок из копилки. Видна, только когда есть что повторять;
              заполняет renderRepeatCard(). -->
@@ -4256,6 +4304,8 @@
             if (!levelAllowedByAccess(secKey, op, level)) return false;
             if (!levelGateApplies()) return true;
             if (levelNamedByGrant(secKey, op, level)) return true;
+            // Звезда домашнего задания открыта, пока задание есть (см. homeworkOpensCell).
+            if (homeworkOpensCell(secKey, op, level)) return true;
             return levelGateOpen(secKey, op, level);
         }
 
@@ -4313,7 +4363,12 @@
                 refreshSectionLocks();
             } catch (e) {
                 // Сети нет — работаем с тем, что знали в прошлый раз.
+                return;
             }
+            // Задания — сразу за доступом: звезду задания сервер открывает при выдаче,
+            // и узнать о задании раньше, чем о доступе к ней, значило бы показать
+            // карточку, которую не сыграть.
+            await refreshHomework();
         }
 
         // Кнопки разделов. Закрытый раздел ученику НЕ ПОКАЗЫВАЕТСЯ вовсе — раньше он
@@ -4920,6 +4975,287 @@
             const results = await runBulkAccess(picked, state.picks,
                 (done, total) => box.set(tf('%1 из %2…', done, total)));
             await box.finish(t('Готово'), bulkAccessReport(results));
+        }
+
+        // ===================== ДОМАШНИЕ ЗАДАНИЯ: РЕПЕТИТОР =====================
+        // Задание — «N верных ответов в клетке» одному ученику, нескольким или всей
+        // папке (supabase/homework.sql). Сервер запоминает, сколько верных в клетке у
+        // ученика было при выдаче, и считает сделанное от этого числа; закрытую звезду
+        // задания он ученику открывает.
+        const HW_NEED_PRESETS = [10, 20, 30, 50];
+        const HW_DUE_PRESETS = [
+            { days: null, label: t('без срока') },
+            { days: 1, label: t('к завтра') },
+            { days: 3, label: t('через 3 дня') },
+            { days: 7, label: t('через неделю') }
+        ];
+
+        // Строка выбора «одно из нескольких» — те же кнопки, что у папок.
+        function hwPickRow(card, label, items, isOn, onPick) {
+            const lab = document.createElement('div');
+            lab.className = 'dlg-label';
+            lab.innerText = label;
+            card.appendChild(lab);
+            const row = document.createElement('div');
+            row.className = 'dlg-picks';
+            const btns = items.map(it => {
+                const b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'dlg-pick';
+                b.innerText = it.label;
+                b.addEventListener('click', () => onPick(it));
+                row.appendChild(b);
+                return { it, b };
+            });
+            card.appendChild(row);
+            const refresh = () => btns.forEach(x => x.b.classList.toggle('selected', isOn(x.it)));
+            refresh();
+            return { row, refresh };
+        }
+
+        // Что задать: раздел, действие, звезда, сколько, срок. Всё — нажатиями: посреди
+        // занятия печатать некогда. Своё число — единственное, что можно набрать.
+        function buildHomeworkPicker(card, st) {
+            const secOf = () => GRANT_SECTIONS.filter(s => s.key === st.sec)[0] || GRANT_SECTIONS[0];
+            const summary = document.createElement('div');
+            const showSummary = () => {
+                const due = st.days === null ? t('без срока')
+                    : tf('до %1', formatDayKeyHuman(shiftDayKey(Progress.dayKey(), st.days)));
+                summary.innerText = [topicLabelWithLevel(`${st.sec}:${st.op}:${st.level}`),
+                    tf(plural(st.need, '%1 верный ответ', '%1 верных ответа', '%1 верных ответов'), st.need), due].join(' · ');
+            };
+            let ops = null;
+            const secRow = hwPickRow(card, t('Раздел'), GRANT_SECTIONS.map(s => ({ key: s.key, label: s.title })),
+                it => it.key === st.sec,
+                it => {
+                    st.sec = it.key;
+                    if (secOf().ops.indexOf(st.op) < 0) st.op = 'add';
+                    secRow.refresh(); drawOps(); showSummary();
+                });
+            const opsBox = document.createElement('div');
+            card.appendChild(opsBox);
+            const drawOps = () => {
+                opsBox.innerHTML = '';
+                ops = hwPickRow(opsBox, t('Действие'), secOf().ops.map(op => ({ key: op, label: OP_LABELS[op] })),
+                    it => it.key === st.op,
+                    it => { st.op = it.key; ops.refresh(); showSummary(); });
+            };
+            drawOps();
+            const lvRow = hwPickRow(card, t('Звезда'), [1, 2, 3, 4, 5].map(n => ({ key: n, label: `${n}★` })),
+                it => it.key === st.level,
+                it => { st.level = it.key; lvRow.refresh(); showSummary(); });
+            const needRow = hwPickRow(card, t('Сколько верных ответов'), HW_NEED_PRESETS.map(n => ({ key: n, label: String(n) })),
+                it => it.key === st.need,
+                it => { st.need = it.key; custom.value = ''; needRow.refresh(); showSummary(); });
+            const custom = document.createElement('input');
+            custom.className = 'dlg-input hw-need-input';
+            custom.type = 'number';
+            custom.min = '1';
+            custom.max = '500';
+            custom.inputMode = 'numeric';
+            custom.placeholder = t('или своё число');
+            custom.addEventListener('input', () => {
+                const n = Math.floor(Number(custom.value));
+                st.need = (custom.value.trim() && Number.isFinite(n)) ? n : st.need;
+                needRow.refresh(); showSummary();
+            });
+            needRow.row.appendChild(custom);
+            const dueRow = hwPickRow(card, t('Срок'), HW_DUE_PRESETS.map(d => ({ key: d.days, label: d.label })),
+                it => it.key === st.days,
+                it => { st.days = it.key; dueRow.refresh(); showSummary(); });
+            summary.className = 'hw-summary';
+            card.appendChild(summary);
+            const note = document.createElement('div');
+            note.className = 'dlg-hint hw-note';
+            note.innerText = t('Засчитываются верные ответы в этой клетке без подсказок — с той минуты, как задание выдано. Если звезда у ученика закрыта, она откроется.');
+            card.appendChild(note);
+            showSummary();
+        }
+
+        // Что сказать после выдачи. Имена, а не логины: репетитор знает учеников по именам.
+        function homeworkAssignReport(data, picked) {
+            const nameOf = (code) => { const s = picked.filter(x => x.code === code)[0]; return (s && s.label) || code; };
+            const assigned = (data.assigned || []);
+            const lines = [tf(plural(assigned.length, 'Задано %1 ученику.', 'Задано %1 ученикам.', 'Задано %1 ученикам.'), assigned.length)];
+            if ((data.opened || []).length) {
+                lines.push(tf('Звезда открыта: %1.', data.opened.map(nameOf).join(', ')));
+            }
+            const skipped = (data.skipped || []);
+            const busy = skipped.filter(x => x.error === 'too_many').map(x => nameOf(x.code));
+            const gone = skipped.filter(x => x.error !== 'too_many').map(x => nameOf(x.code));
+            if (busy.length) lines.push(tf('Не задано — уже тридцать заданий: %1.', busy.join(', ')));
+            if (gone.length) lines.push(tf('Не задано — больше не твои ученики: %1.', gone.join(', ')));
+            return lines.join('\n');
+        }
+
+        async function openAssignHomework(preset) {
+            const status = {};
+            const students = await fetchMyStudents(status);
+            if (!students.length) {
+                showToast(status.ok ? t('Пока нет учеников.') : t('Нет соединения с сервером.'), 'error');
+                return false;
+            }
+
+            // Шаг 1: кому.
+            const chosen = new Set((preset && preset.codes) || []);
+            const who = await askForm({
+                title: t('Кому задать'),
+                text: t('Отметь учеников или папку целиком. Что задать — на следующем шаге.'),
+                fields: [],
+                okText: t('Дальше'),
+                build: (card) => buildStudentPicker(card, students, chosen),
+                validate: () => chosen.size ? null : t('Отметь хотя бы одного ученика.')
+            });
+            if (who === null) return false;
+            const picked = students.filter(s => chosen.has(s.code));
+
+            // Шаг 2: что, сколько и к какому сроку.
+            const st = { sec: 'integer+', op: 'add', level: 1, need: 20, days: null };
+            const what = await askForm({
+                title: t('Что задать'),
+                text: tf(plural(picked.length, 'Задание получит %1 ученик.', 'Задание получат %1 ученика.', 'Задание получат %1 учеников.'),
+                         picked.length),
+                fields: [],
+                okText: t('Задать'),
+                build: (card) => buildHomeworkPicker(card, st),
+                validate: () => (Number.isInteger(st.need) && st.need >= 1 && st.need <= 500)
+                    ? null : t('Сколько верных ответов — от 1 до 500.')
+            });
+            if (what === null) return false;
+
+            const due = st.days === null ? null : shiftDayKey(Progress.dayKey(), st.days);
+            const topic = `${st.sec}:${st.op}:${st.level}`;
+            try {
+                const { data, error } = await callAuthed('session_assign_homework',
+                    { p_students: picked.map(s => s.code), p_topic: topic, p_need: st.need, p_due: due });
+                if (error) throw error;
+                if (!data || !data.ok) {
+                    const messages = {
+                        not_a_tutor: t('Задавать домашние может только репетитор.'),
+                        bad_due: t('Срок не подошёл — выбери другой.'),
+                        bad_need: t('Сколько верных ответов — от 1 до 500.')
+                    };
+                    showToast((data && messages[data.error]) || t('Не удалось задать.'), 'error');
+                    return false;
+                }
+                await showNotice({ title: t('Задание выдано'), text: homeworkAssignReport(data, picked) });
+                return true;
+            } catch (e) {
+                showToast(t('Не удалось подключиться. Проверь интернет.'), 'error');
+                return false;
+            }
+        }
+
+        // Строка ученика в списке заданий: сколько сделано, выполнено ли и когда.
+        function homeworkLineText(row) {
+            const done = Math.min(Number(row.done) || 0, row.need);
+            if (done >= row.need) {
+                return row.doneOn ? `✅ ${formatDayKeyHuman(row.doneOn)}` : t('✅ выполнено');
+            }
+            const late = row.dueOn && row.dueOn < Progress.dayKey();
+            return (late ? '⏰ ' : '') + `${done} / ${row.need}`;
+        }
+
+        // Выдачи, сгруппированные: одна выдача нескольким ученикам — одна карточка.
+        function groupHomework(rows) {
+            const map = new Map();
+            rows.forEach(r => {
+                if (!map.has(r.batch)) map.set(r.batch, { batch: r.batch, topic: r.topic, need: r.need,
+                                                          dueOn: r.dueOn, createdAt: r.createdAt, rows: [] });
+                map.get(r.batch).rows.push(r);
+            });
+            return [...map.values()];
+        }
+
+        // Список выданного. Своего экрана у него нет — окно поверх профиля: открыл,
+        // посмотрел, закрыл. Действия из него (задать, снять) — отдельными окнами, после
+        // которых список открывается снова уже свежим.
+        async function openHomeworkList() {
+            for (;;) {
+                let res;
+                try { res = await callAuthed('session_tutor_homework', {}); }
+                catch (e) { res = { error: e }; }
+                if (res.error || !res.data || !res.data.ok) {
+                    showToast(t('Не удалось загрузить задания.'), 'error');
+                    return;
+                }
+                const groups = groupHomework(res.data.homework || []);
+                const act = await openAppDialog(null, (card, submit) => {
+                    dlgHead(card, t('📚 Домашние задания'),
+                        groups.length ? t('Сделанное обновляется, когда ученик выходит на связь.') : t('Пока ничего не задано.'));
+                    const add = document.createElement('button');
+                    add.type = 'button';
+                    add.className = 'dlg-btn primary hw-add';
+                    add.innerText = t('➕ Задать');
+                    add.addEventListener('click', () => submit({ act: 'new' }));
+                    card.appendChild(add);
+                    groups.forEach(g => {
+                        const box = document.createElement('div');
+                        box.className = 'hw-batch';
+                        const head = document.createElement('div');
+                        head.className = 'hw-batch-head';
+                        head.innerText = topicLabelWithLevel(g.topic);
+                        box.appendChild(head);
+                        const meta = document.createElement('div');
+                        meta.className = 'hw-batch-meta';
+                        meta.innerText = [tf(plural(g.need, '%1 верный ответ', '%1 верных ответа', '%1 верных ответов'), g.need),
+                            g.dueOn ? tf('до %1', formatDayKeyHuman(g.dueOn)) : t('без срока')].join(' · ');
+                        box.appendChild(meta);
+                        g.rows.forEach(r => {
+                            const line = document.createElement('div');
+                            const fin = (Number(r.done) || 0) >= r.need;
+                            const late = !fin && r.dueOn && r.dueOn < Progress.dayKey();
+                            line.className = 'hw-line' + (fin ? ' done' : '') + (late ? ' late' : '');
+                            const who = document.createElement('span');
+                            who.innerText = r.label || r.student;
+                            const how = document.createElement('b');
+                            how.innerText = homeworkLineText(r);
+                            line.appendChild(who);
+                            line.appendChild(how);
+                            box.appendChild(line);
+                        });
+                        const drop = document.createElement('button');
+                        drop.type = 'button';
+                        drop.className = 'hw-drop';
+                        drop.innerText = t('Снять');
+                        drop.addEventListener('click', () => submit({ act: 'cancel', group: g }));
+                        box.appendChild(drop);
+                        card.appendChild(box);
+                    });
+                    const row = document.createElement('div');
+                    row.className = 'dlg-actions';
+                    const close = document.createElement('button');
+                    close.type = 'button';
+                    close.className = 'dlg-btn';
+                    close.innerText = t('Закрыть');
+                    close.addEventListener('click', () => submit(null));
+                    row.appendChild(close);
+                    card.appendChild(row);
+                });
+                if (!act) return;
+                if (act.act === 'new') { await openAssignHomework(); continue; }
+                if (act.act === 'cancel') {
+                    const g = act.group;
+                    const ok = await askConfirm({
+                        title: t('Снять задание?'),
+                        text: tf(plural(g.rows.length,
+                            '«%2» больше не будет у %1 ученика. Решённое останется в его статистике.',
+                            '«%2» больше не будет у %1 учеников. Решённое останется в их статистике.',
+                            '«%2» больше не будет у %1 учеников. Решённое останется в их статистике.'),
+                            g.rows.length, topicLabelWithLevel(g.topic)),
+                        okText: t('Снять'),
+                        danger: true
+                    });
+                    if (ok) {
+                        try {
+                            const { data, error } = await callAuthed('session_cancel_homework', { p_ids: g.rows.map(r => r.id) });
+                            if (error || !data || !data.ok) showToast(t('Не удалось снять задание.'), 'error');
+                        } catch (e) { showToast(t('Не удалось подключиться. Проверь интернет.'), 'error'); }
+                    }
+                    continue;
+                }
+                return;
+            }
         }
 
         // Код показывается крупно и не исчезает сам: его надо успеть переписать
@@ -8440,6 +8776,7 @@
             if (!wrap) return;
             const st = (typeof Progress !== 'undefined' && Progress.get) ? Progress.get() : null;
             if (!st) { wrap.style.display = 'none'; return; }
+            renderHomeworkCard();
             renderRepeatCard();
             const res = renderTasks('tasksList', st, Progress.dayKey(), Progress.getCode(), true);
             wrap.style.display = res.shown ? '' : 'none';
@@ -9191,7 +9528,7 @@
 
         // Запуск миссии прямо из окна: тот же путь, что и с экрана выбора, но без
         // самого экрана. Ровно один режим и ровно одна звезда — как везде в приложении.
-        function startMissionAt(op, level, secKey, taskId) {
+        function startMissionAt(op, level, secKey, taskId, homeworkId) {
             document.getElementById('starUnlock').hidden = true;
             document.getElementById('winScreen').classList.remove('active');
             document.getElementById('mistakesScreen').style.display = 'none';
@@ -9216,6 +9553,7 @@
             exampleConfig.operations[op] = level;
             Progress.setConfig(exampleConfig);
             missionTaskId = taskId || null;
+            missionHomeworkId = homeworkId || null;
             document.getElementById('configScreen').style.display = 'none';
             startGame();
         }
@@ -9264,7 +9602,7 @@
             body.className = 'ach-body';
             const kicker = document.createElement('div');
             kicker.className = 'ach-kicker';
-            kicker.innerText = t('новое достижение');
+            kicker.innerText = a.kicker || t('новое достижение');
             const title = document.createElement('div');
             title.className = 'ach-title';
             title.innerText = a.title;     // innerText, не innerHTML: в названии бывает подпись профиля
@@ -11079,6 +11417,7 @@
             pendingChallengeReveals = [];
             pendingStarUnlock = null;
             missionTaskId = null;
+            missionHomeworkId = null;
             document.getElementById('challengeReveal').hidden = true;
             document.getElementById('starUnlock').hidden = true;
         }
@@ -11251,9 +11590,23 @@
         // всё остальное: своего состояния у заданий нет, поэтому строка не может разойтись
         // с тем, что показано на экране выбора миссии.
         let missionTaskId = null;
+        // Домашнее задание, с которого ученик сюда пришёл. Миссия из него — без
+        // подсказок: иначе ответы не шли бы в счёт задания, а ученик бы этого не знал.
+        let missionHomeworkId = null;
         function renderMissionTask() {
             const row = document.getElementById('missionTask');
             if (!row) return;
+            if (missionHomeworkId) {
+                const h = myHomework().filter(x => x.id === missionHomeworkId)[0];
+                if (!h) { row.style.display = 'none'; return; }
+                const done = homeworkIsDone(h);
+                row.style.display = '';
+                row.className = 'mission-task' + (done ? ' done' : '');
+                document.getElementById('missionTaskText').innerText = t('📚 Домашнее задание');
+                document.getElementById('missionTaskCount').innerText = done
+                    ? t('готово ✅') : tf('%1 из %2', Math.min(homeworkProgress(h), h.need), h.need);
+                return;
+            }
             const st = (typeof Progress !== 'undefined' && Progress.get) ? Progress.get() : null;
             if (!missionTaskId || !st) { row.style.display = 'none'; return; }
             const today = Progress.dayKey();
@@ -11436,6 +11789,182 @@
             if (!sig) return;
             if (outcome === 'correct') Progress.bankRight(sig);
             else Progress.bankAdd(sig, { k: buildTopicKey(meta), p: clone(p), w: clone(chosen), e: kind || '' });
+        }
+
+        // ===================== ДОМАШНИЕ ЗАДАНИЯ: УЧЕНИК =====================
+        // Что задал репетитор (supabase/homework.sql). Задание — «N верных ответов в
+        // клетке»; сделано = верных в клетке сейчас минус сколько было при выдаче (base).
+        // Ответы с подсказкой в счёт клетки не попадают — значит, и в задание не идут.
+        //
+        // Сам список — решение репетитора, а не прогресс: на устройстве лежит только
+        // его слепок, чтобы карточка была видна и без связи. Лежит отдельным ключом,
+        // у каждого профиля свой, и при каждом ответе сервера перезаписывается целиком:
+        // снятое задание должно исчезать, а не выживать в слиянии.
+        const HOMEWORK_KEY = 'mathCitadelHomework_v1';
+        const HOMEWORK_SHOW_DONE_DAYS = 2;   // выполненное видно ещё два дня — и уходит
+        let homeworkMem = null;              // { code, list }: звёзды проверяются часто, диск читать незачем
+
+        function validHomework(h) {
+            if (!h || typeof h !== 'object' || typeof h.topic !== 'string') return false;
+            const p = parseTopicKey(h.topic);
+            return Number.isFinite(h.id) && Number.isFinite(h.need) && h.need > 0
+                && Number.isFinite(h.base) && h.base >= 0
+                && ['integer', 'decimal', 'fraction'].indexOf(p.category) >= 0
+                && OP_ORDER.indexOf(p.op) >= 0 && p.level >= 1 && p.level <= 5;
+        }
+
+        function readHomeworkStore() {
+            let all = null;
+            try { all = JSON.parse(localStorage.getItem(HOMEWORK_KEY)); } catch (e) { all = null; }
+            return (all && typeof all === 'object' && !Array.isArray(all)) ? all : {};
+        }
+
+        // Задания есть только у ученика репетитора: у остальных их некому задать.
+        function myHomework() {
+            const code = Progress.getCode();
+            if (!code || Progress.getAccountType() !== 'linked') return [];
+            if (!homeworkMem || homeworkMem.code !== code) {
+                const list = readHomeworkStore()[code];
+                homeworkMem = { code, list: Array.isArray(list) ? list.filter(validHomework) : [] };
+            }
+            return homeworkMem.list;
+        }
+
+        function saveMyHomework(list) {
+            const code = Progress.getCode();
+            if (!code) return;
+            const clean = (Array.isArray(list) ? list : []).filter(validHomework);
+            homeworkMem = { code, list: clean };
+            const all = readHomeworkStore();
+            if (clean.length) all[code] = clean; else delete all[code];
+            try { localStorage.setItem(HOMEWORK_KEY, JSON.stringify(all)); } catch (e) { /* хранилище недоступно */ }
+        }
+
+        // Сколько сделано. Сбросил ученик прогресс — «сейчас» может оказаться меньше,
+        // чем было при выдаче: тогда ноль, а не минус.
+        function homeworkProgress(h) { return Math.max(0, topicCorrect(h.topic) - h.base); }
+        function homeworkIsDone(h) { return homeworkProgress(h) >= h.need; }
+
+        // Звезда задания открыта, пока задание есть: репетитор задал — значит, решать
+        // можно, и золото на прошлой звезде тут ни при чём. Доступ к самой звезде
+        // сервер открывает при выдаче (см. hw_open_cell).
+        function homeworkOpensCell(secKey, op, level) {
+            const key = `${secKey}:${op}:${level}`;
+            return myHomework().some(h => h.topic === key);
+        }
+
+        // Отмечает выполненные. Молча — то, что сделано раньше, чем мы о задании
+        // узнали (на другом устройстве, без связи); с плашкой — когда это случилось
+        // прямо сейчас, ответом в игре.
+        function noteHomeworkDone(topicKey, announce) {
+            const fresh = myHomework().filter(h =>
+                (!topicKey || h.topic === topicKey) && homeworkIsDone(h) && Progress.markHomeworkDone(h.id));
+            if (announce && fresh.length) {
+                announceAchievements(fresh.map(h => ({
+                    id: 'hw:' + h.id, icon: '📚',
+                    kicker: t('домашнее задание'),
+                    title: t('Выполнено!'),
+                    sub: topicLabelWithLevel(h.topic)
+                })));
+            }
+            return fresh;
+        }
+
+        async function refreshHomework() {
+            if (!supabaseClient || !Progress.authFor()) return;
+            if (Progress.getAccountType() !== 'linked') { renderHomeworkCard(); return; }
+            try {
+                const { data, error } = await callAuthed('session_my_homework', {});
+                if (error || !data || !data.ok || !Array.isArray(data.homework)) return;
+                saveMyHomework(data.homework);
+                noteHomeworkDone(null, false);
+                renderHomeworkCard();
+                refreshSectionLocks();
+            } catch (e) { /* сети нет — остаётся прошлый слепок */ }
+        }
+
+        // Что показать: невыполненные — всегда, выполненные — ещё пару дней, чтобы
+        // галочку было видно. Просроченные первыми, дальше по сроку; без срока — в конце.
+        function visibleHomework() {
+            const today = Progress.dayKey();
+            const since = shiftDayKey(today, -HOMEWORK_SHOW_DONE_DAYS);
+            const doneOn = Progress.getHomeworkDone();
+            const due = (h) => (typeof h.dueOn === 'string' && h.dueOn) ? h.dueOn : '9999-12-31';
+            return myHomework()
+                .filter(h => !homeworkIsDone(h) || (doneOn[String(h.id)] || today) >= since)
+                .sort((x, y) => (homeworkIsDone(x) - homeworkIsDone(y))
+                    || (due(x) < due(y) ? -1 : due(x) > due(y) ? 1 : 0) || (x.id - y.id));
+        }
+
+        // Срок словами. Сегодня и завтра — словами: «до 9 октября», когда девятое
+        // сегодня, заставляет считать, а не читать.
+        function homeworkDueText(h) {
+            if (typeof h.dueOn !== 'string' || !h.dueOn) return t('без срока');
+            const today = Progress.dayKey();
+            if (h.dueOn < today) return tf('⏰ срок был %1', formatDayKeyHuman(h.dueOn));
+            if (h.dueOn === today) return t('⏰ срок — сегодня');
+            if (h.dueOn === shiftDayKey(today, 1)) return t('срок — завтра');
+            return tf('до %1', formatDayKeyHuman(h.dueOn));
+        }
+
+        function renderHomeworkCard() {
+            const wrap = document.getElementById('homeworkWrap');
+            const box = document.getElementById('homeworkList');
+            if (!wrap || !box) return;
+            const list = (typeof Progress !== 'undefined' && Progress.get) ? visibleHomework() : [];
+            wrap.hidden = !list.length;
+            box.innerHTML = '';
+            list.forEach(h => {
+                const done = homeworkIsDone(h);
+                const have = Math.min(homeworkProgress(h), h.need);
+                const p = parseTopicKey(h.topic);
+                const secKey = `${p.category}${p.sign || '+'}`;
+                const late = !done && typeof h.dueOn === 'string' && h.dueOn && h.dueOn < Progress.dayKey();
+
+                const row = document.createElement('div');
+                row.className = 'task-row hw-row' + (done ? ' done' : '') + (late ? ' late' : '');
+                const mark = document.createElement('span');
+                mark.className = 'task-mark' + (done ? ' done' : '');
+                mark.setAttribute('aria-hidden', 'true');
+                mark.innerText = done ? '✓' : '';
+                row.appendChild(mark);
+
+                const body = document.createElement('div');
+                body.className = 'task-body';
+                const text = document.createElement('div');
+                text.className = 'task-text';
+                text.innerText = topicLabelWithLevel(h.topic);
+                body.appendChild(text);
+                const sub = document.createElement('div');
+                sub.className = 'task-sub';
+                const when = document.createElement('span');
+                when.className = 'task-where';
+                when.innerText = done ? t('сделано') : homeworkDueText(h);
+                const count = document.createElement('span');
+                count.className = 'task-count';
+                count.innerText = `${have} / ${h.need}`;
+                sub.appendChild(when);
+                sub.appendChild(count);
+                body.appendChild(sub);
+                const meter = document.createElement('div');
+                meter.className = 'task-meter';
+                const fill = document.createElement('span');
+                fill.style.width = `${Math.round(have / h.need * 100)}%`;
+                meter.appendChild(fill);
+                body.appendChild(meter);
+                row.appendChild(body);
+
+                if (!done && isLevelOpen(secKey, p.op, p.level)) {
+                    const btn = document.createElement('button');
+                    btn.className = 'task-go';
+                    btn.type = 'button';
+                    btn.innerText = t('Играть');
+                    btn.setAttribute('aria-label', `${t('Играть')}: ${topicLabelWithLevel(h.topic)}`);
+                    btn.addEventListener('click', () => startMissionAt(p.op, p.level, secKey, null, h.id));
+                    row.appendChild(btn);
+                }
+                box.appendChild(row);
+            });
         }
 
         // Карточка на экране выбора миссии. Видна, только когда есть что повторять.
@@ -11977,7 +12506,7 @@
             // Режим фиксируется на всю миссию. Менять его по ходу нельзя: тогда часть
             // ответов попала бы в статистику, а часть нет. Повтор ошибок — всегда без
             // подсказок: он ради того и затеян, чтобы проверить, выучено ли.
-            trainActive = trainWanted && !repeatRun;
+            trainActive = trainWanted && !repeatRun && !missionHomeworkId;
             resizeCanvas();
             initPuzzle();
             generateMath();
@@ -12346,6 +12875,7 @@
                 if (trainActive) Progress.recordTrainingAnswer();
                 else Progress.recordAnswer(topicKey, 'correct', elapsedMs);
                 bankOnAnswer('correct', chosen, null);
+                if (!trainActive) noteHomeworkDone(topicKey, true);
 
                 state.combo++;
                 const badge = document.getElementById('comboBadge');
@@ -12406,6 +12936,9 @@
                 if (!trainActive) {
                     Progress.recordAnswer(topicKey, 'almost', elapsedMs);
                     Progress.recordMistakeKind(topicKey, 'не сократил');   // код, а не текст: переводить нельзя
+                    // «Почти» — верный ответ по счёту, в клетку он идёт верным; значит,
+                    // и задание им может закончиться.
+                    noteHomeworkDone(topicKey, true);
                 }
                 // Пропускаем штраф за пазл и не портим статистику "Ошибки" — это не ошибка в счёте.
             } else {
@@ -12803,6 +13336,14 @@
                 gate.style.display = '';
             }
 
+            // Пришёл из домашнего задания — первой строкой, сколько по нему сделано.
+            const hw = missionHomeworkId ? myHomework().filter(x => x.id === missionHomeworkId)[0] : null;
+            if (hw) {
+                const hwDone = homeworkIsDone(hw);
+                rows.appendChild(winRow(t('📚 Домашнее задание'), hwDone ? t('готово ✅')
+                    : tf('%1 из %2', Math.min(homeworkProgress(hw), hw.need), hw.need), hwDone));
+            }
+
             const daily = (Progress.get() || {}).daily || {};
             const today = Progress.dayKey();
             const d = dailyProgress(daily, today);
@@ -12828,6 +13369,8 @@
         function winPlayAgain() {
             // После повтора «Ещё раз» — снова повтор, из того, что в копилке осталось.
             if (repeatRun) { startRepeatMission(); return; }
+            // «Ещё раз» после домашнего — снова домашнее: и без подсказок, и со строкой.
+            const homeworkId = missionHomeworkId;
             document.getElementById('winScreen').classList.remove('active');
             document.getElementById('mistakesScreen').style.display = 'none';
             sessionMistakes = [];
@@ -12848,6 +13391,7 @@
                 if (закрыто) showToast(t('Это действие больше не открыто — выбери другое.'), 'error');
                 return;
             }
+            missionHomeworkId = homeworkId;
             startGame();
         }
 

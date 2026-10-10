@@ -126,7 +126,13 @@ const Progress = (() => {
             //   done: { подпись: t } — выученные. Хранится t той ошибки, которую выучили:
             //     так старое устройство при слиянии не вернёт её обратно, а новая ошибка
             //     в том же примере (она всегда позже) — вернёт, и это правильно.
-            mistakeBank: { items: {}, done: {} }
+            mistakeBank: { items: {}, done: {} },
+
+            // Выполненные домашние задания: { id задания: 'ГГГГ-ММ-ДД' } — день по часам
+            // ученика. Сами задания живут на сервере (supabase/homework.sql) и сюда не
+            // попадают: это решение репетитора, его снимают — и оно должно исчезать.
+            // Здесь только отметка, когда сделано: по ней репетитор видит дату.
+            hwDone: {}
         };
     }
 
@@ -309,6 +315,33 @@ const Progress = (() => {
             out.items[sig] = it;
         });
         return trimBank(out);
+    }
+
+    // Отметки о выполненных домашних. Ключ — номер задания на сервере, значение —
+    // день. Мусор выбрасываем; больше ста не храним — уходят самые давние: задания
+    // на сервере живут три месяца, и отметки к ним дольше не нужны.
+    const HW_DONE_MAX = 100;
+    function cleanHwDone(raw) {
+        const out = {};
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+        Object.keys(raw).forEach(id => {
+            const d = raw[id];
+            if (/^[0-9]{1,18}$/.test(id) && typeof d === 'string' && DAY_KEY_RE.test(d)) out[id] = d;
+        });
+        const ids = Object.keys(out);
+        if (ids.length > HW_DONE_MAX) {
+            ids.sort((x, y) => (out[x] < out[y] ? 1 : out[x] > out[y] ? -1 : (x < y ? -1 : 1)));
+            ids.slice(HW_DONE_MAX).forEach(id => { delete out[id]; });
+        }
+        return out;
+    }
+    // Слияние: объединение, при расхождении — более РАННИЙ день. Как у достижений:
+    // первое выполнение и есть правда, второе устройство о нём просто не знало.
+    function mergeHwDone(x, y) {
+        const a = cleanHwDone(x), b = cleanHwDone(y);
+        const out = Object.assign({}, a);
+        Object.keys(b).forEach(id => { if (!out[id] || b[id] < out[id]) out[id] = b[id]; });
+        return cleanHwDone(out);
     }
 
     // =====================================================================
@@ -727,6 +760,7 @@ const Progress = (() => {
 
         // Копилка ошибок сливается по своим правилам — см. mergeBank.
         out.mistakeBank = mergeBank(a.mistakeBank, b.mistakeBank);
+        out.hwDone = mergeHwDone(a.hwDone, b.hwDone);
 
         return out;
     }
@@ -821,6 +855,7 @@ const Progress = (() => {
         if (!s.studentGroups || typeof s.studentGroups !== 'object' || Array.isArray(s.studentGroups)) s.studentGroups = {};
         if (!s.epochs || typeof s.epochs !== 'object' || Array.isArray(s.epochs)) s.epochs = {};
         s.mistakeBank = cleanBank(s.mistakeBank);
+        s.hwDone = cleanHwDone(s.hwDone);
         trimTopicSpeed(s.daily);
         if (typeof s.profileLabel !== 'string') s.profileLabel = '';
         if (s.accountType !== 'linked' && s.accountType !== 'solo') s.accountType = 'self';
@@ -1548,6 +1583,21 @@ const Progress = (() => {
             trimBank(bank);
             persistLocal();
             return learned ? 'learned' : 'counted';
+        },
+
+        // --- домашние задания ---
+        getHomeworkDone() { return state.hwDone || {}; },
+        // Задание выполнено — отмечаем день. Один раз: повторная отметка дату не
+        // сдвигает. true — отметка новая.
+        markHomeworkDone(id) {
+            const key = String(id);
+            if (!/^[0-9]{1,18}$/.test(key)) return false;
+            if (!state.hwDone || typeof state.hwDone !== 'object') state.hwDone = {};
+            if (state.hwDone[key]) return false;
+            state.hwDone[key] = dayKey();
+            state.hwDone = cleanHwDone(state.hwDone);
+            persistLocal();
+            return true;
         },
 
         // Контрольная точка синхронизации. Пока сервера нет — ничего не делает.
