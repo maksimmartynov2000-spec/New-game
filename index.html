@@ -1959,6 +1959,38 @@
         .lesson-line.example { color: #cbd5e1; font-size: 0.8rem; padding-left: 10px;
                                border-left: 2px solid rgba(251,191,36,0.5); }
 
+        /* --- Друзья --- */
+        .friends-intro { color: #cbd5e1; font-size: 0.85rem; line-height: 1.45; margin-bottom: 10px; }
+        .friends-sub {
+            font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase;
+            color: #94a3b8; font-weight: 700; margin: 14px 0 6px;
+        }
+        .friend-name-line { color: #cbd5e1; font-size: 0.82rem; margin: 2px 0 10px; }
+        .friend-name-line button { margin: 0 0 0 6px; }
+        .friend-row { cursor: pointer; text-align: left; width: 100%; font-family: inherit; color: inherit; }
+        .friend-row .list-row-main { flex: 1 1 0; }
+        .friend-meta { color: #94a3b8; font-size: 0.76rem; white-space: nowrap; }
+        .friend-compare {
+            display: flex; align-items: center; gap: 10px; cursor: pointer;
+            margin-top: 14px; color: #e2e8f0; font-size: 0.9rem; font-weight: bold;
+        }
+        .friend-compare input { width: 20px; height: 20px; accent-color: var(--gold); flex-shrink: 0; }
+        .friend-table { margin-top: 8px; }
+        .friend-table-row {
+            display: flex; gap: 8px; align-items: baseline; padding: 6px 2px;
+            border-top: 1px solid rgba(255,255,255,0.06); color: #cbd5e1; font-size: 0.84rem;
+        }
+        .friend-table-row.me { color: var(--gold); font-weight: bold; }
+        .friend-table-row .place { width: 22px; flex-shrink: 0; color: #94a3b8; font-variant-numeric: tabular-nums; }
+        .friend-table-row .who { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .friend-table-row .score { white-space: nowrap; font-variant-numeric: tabular-nums; }
+        /* Страница друга: те же звёзды, что на экране достижений, но не кнопки —
+           их не развернуть, это витрина, а не разбор. */
+        .ach-star.static { cursor: default; }
+        .friend-pics { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; margin-top: 4px; }
+        .friend-pics img { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px;
+                           border: 1px solid rgba(255,215,0,0.35); display: block; }
+
         /* --- Домашние задания у репетитора --- */
         .hw-need-input { width: 140px; padding: 5px 10px; margin: 0; border-radius: 999px; font-size: 0.78rem; }
         .hw-summary {
@@ -2010,6 +2042,10 @@
         }
         .dlg-btn.primary { background: var(--gold); border-color: var(--gold); color: #1a1400; }
         .dlg-btn.danger { background: #dc2626; border-color: #dc2626; color: white; }
+        /* Тихая опасная кнопка: на странице друга главное — посмотреть, а не удалить,
+           и красная заливка рядом с «Закрыть» звала бы палец не туда. Подтверждение
+           всё равно спрашивается отдельно. */
+        .dlg-btn.soft-danger { background: transparent; border-color: rgba(248,113,113,0.4); color: #fca5a5; }
         .dlg-btn:active { transform: scale(0.98); }
 
         /* Короткие сообщения, которые не требуют ответа: раньше это были alert(). */
@@ -2647,6 +2683,13 @@
                      нажать случайно легко. Отдельного раздела не заводим — это действие
                      про текущий аккаунт и живёт там же, где всё остальное про него. -->
                 <button class="btn-logout" id="btnLogout" onclick="logoutHere()">Выйти из профиля</button>
+            </div>
+
+            <!-- Друзья — только у учеников: самостоятельных и учеников репетитора.
+                 Содержимое собирает renderFriends() по ответу сервера. -->
+            <div class="config-section" data-fold="profile:friends" id="friendsSection" style="display:none;">
+                <div class="config-section-title">Друзья</div>
+                <div id="friendsBody"></div>
             </div>
 
             <div class="config-section" data-fold="profile:devices" id="devicesSection">
@@ -5528,6 +5571,10 @@
         // взять на уроке, домашние. Одно окно вместо статистики, отчёта и заданий.
         async function openLessonCard(student) {
             const s = student || {};
+            // Имена друзей ученика — отдельным запросом, параллельно с остальным.
+            const friendsAsk = callAuthed('session_student_friends', { p_student_code: s.code })
+                .then(r => (!r.error && r.data && r.data.ok && Array.isArray(r.data.names)) ? r.data.names : null)
+                .catch(() => null);
             let st = null, rows = [];
             const cached = helpCache && helpCache.tutor === Progress.getCode()
                 && Date.now() - helpCache.at < HELP_CACHE_MS ? helpCache : null;
@@ -5543,6 +5590,7 @@
                 } catch (e) { rows = []; }
             }
             if (!st) { showToast(t('Не удалось загрузить статистику ученика.'), 'error'); return; }
+            const friendNames = await friendsAsk;
             const today = Progress.dayKey();
             const week = aggregateDaily(st.daily || {}, shiftDayKey(today, -(HELP_WEEK - 1)), today);
             const fortnight = aggregateDaily(st.daily || {}, shiftDayKey(today, -(HELP_MISTAKE_DAYS - 1)), today);
@@ -5598,6 +5646,11 @@
                 section(t('Копилка ошибок'));
                 line(left ? tf(plural(left, '%1 пример ждёт повтора', '%1 примера ждут повтора', '%1 примеров ждут повтора'), left)
                           : t('Пусто — всё повторено.'), left ? '' : 'muted');
+
+                // Только имена: что видят друзья, репетитору знать незачем.
+                section(t('Друзья в приложении'));
+                if (friendNames === null) line(t('Не удалось узнать.'), 'muted');
+                else line(friendNames.length ? friendNames.join(', ') : t('Друзей пока нет.'), friendNames.length ? '' : 'muted');
 
                 const row = document.createElement('div');
                 row.className = 'dlg-actions';
@@ -10743,6 +10796,434 @@
             } catch (e) { /* нет связи — остаётся «Ученик» */ }
         }
 
+        // ===================== ДРУЗЬЯ =====================
+        // Дружат только по коду дружбы и только взаимно; переписки нет. Друг видит имя,
+        // серию дней, медали и собранные картинки — и ничего больше: ни ошибок, ни
+        // точности, ни времени. Что именно уходит другу, решает сервер
+        // (supabase/friends.sql): здесь только показать то, что он прислал.
+        //
+        // Друзья есть у учеников — самостоятельных и учеников репетитора. У репетитора и
+        // у гостя раздела нет вовсе.
+        const FRIEND_NAME_RE = /^[A-Za-zÀ-ÖØ-öø-ÿĀ-žЀ-џҐґ0-9 .'’-]+$/;
+        const FRIEND_LETTER_RE = /[A-Za-zÀ-ÖØ-öø-ÿĀ-žЀ-џҐґ]/;
+        let friendsState = { code: null, data: null, failed: false };
+
+        function friendsAvailable() {
+            const type = Progress.getAccountType();
+            return !Progress.isGuest() && (type === 'solo' || type === 'linked') && !!Progress.authFor();
+        }
+
+        // Те же правила, что у сервера (fr_clean_name): сказать сразу понятнее,
+        // чем отправить и получить отказ.
+        function friendNameProblem(raw) {
+            const v = String(raw || '').replace(/\s+/g, ' ').trim();
+            if (v.length < 2) return t('Имя — хотя бы две буквы.');
+            if (v.length > 20) return t('Имя — не длиннее 20 знаков.');
+            if (!FRIEND_NAME_RE.test(v)) return t('В имени — только буквы, цифры, пробел и дефис.');
+            if ((v.match(/[0-9]/g) || []).length > 4) return t('Слишком много цифр: телефон в имени писать нельзя.');
+            if (!FRIEND_LETTER_RE.test(v)) return t('В имени нужна хотя бы одна буква.');
+            return null;
+        }
+
+        // Шесть знаков читаются легче двумя тройками; дефис сервер при вводе пропустит.
+        function friendCodeShown(code) {
+            const c = String(code || '');
+            return c.length === 6 ? `${c.slice(0, 3)}-${c.slice(3)}` : c;
+        }
+
+        // Понедельник недели, в которую входит день.
+        function weekStartKey(todayKey) {
+            const [y, m, d] = todayKey.split('-').map(Number);
+            return shiftDayKey(todayKey, -((new Date(y, m - 1, d).getDay() + 6) % 7));
+        }
+
+        // Ответ сервера или {ok:false}, если не дошли. Принимает уже начатый вызов
+        // callAuthed, а не имя функции: так каждый вызов виден проверке
+        // test/server-calls.test.js, которая сверяет имена параметров с базой.
+        async function friendCall(request) {
+            try {
+                const res = await request;
+                if (res.error || !res.data) return { ok: false, error: 'network' };
+                return res.data;
+            } catch (e) { return { ok: false, error: 'network' }; }
+        }
+
+        async function refreshFriends() {
+            const code = Progress.getCode();
+            if (!friendsAvailable()) return;
+            if (friendsState.code !== code) friendsState = { code, data: null, failed: false };
+            renderFriends();
+            const data = await friendCall(callAuthed('session_friends', { p_today: Progress.dayKey() }));
+            // Пока шёл ответ, могли переключить профиль: чужой ответ не рисуем.
+            if (Progress.getCode() !== code) return;
+            friendsState = { code, data: data.ok ? data : friendsState.data, failed: !data.ok };
+            renderFriends();
+        }
+
+        // Что из медалей друга показывать и считать. Только разделы, открытые тому, кто
+        // смотрит: на экране достижений закрытых разделов нет, и страница друга не
+        // должна рассказывать о них в обход.
+        function friendStats(f) {
+            const unlocks = {};
+            (Array.isArray(f.ladders) ? f.ladders : []).forEach(id => { if (typeof id === 'string') unlocks[id] = '1'; });
+            const out = { stars: 0, medals: [0, 0, 0, 0, 0, 0], tasks: 0, sections: [] };
+            MAP_SECTIONS.forEach(sec => {
+                const secKey = `${sec.cat}${sec.sign}`;
+                if (!isSectionOpen(secKey)) return;
+                let any = false;
+                const rows = sec.ops.map(op => {
+                    const chips = [];
+                    for (let lvl = 1; lvl <= 5; lvl++) {
+                        const key = `${secKey}:${op}:${lvl}`;
+                        let has = false;
+                        ['s', 'a', 'c'].forEach(l => {
+                            const tier = ladderTierEarned(unlocks, key, l);
+                            if (tier) { out.medals[tier]++; has = true; }
+                        });
+                        const mastery = topicMasteryTier(unlocks, key);
+                        const gate = levelGatePassed(unlocks, key);
+                        if (gate) out.stars++;
+                        out.tasks += earnedChallenges(unlocks, key).length;
+                        if (has) any = true;
+                        chips.push(mastery >= MASTERY_MIN_TIER ? { cls: 'mastery', mark: TIER_ICONS[mastery] }
+                            : gate ? { cls: 'gold', mark: TIER_ICONS[LEVEL_GATE_TIER] }
+                            : { cls: has ? 'active' : 'idle', mark: '' });
+                    }
+                    return { op, chips };
+                });
+                if (any) out.sections.push({ label: sec.label, rows });
+            });
+            out.pics = (Array.isArray(f.pics) ? f.pics : [])
+                .filter(i => Number.isInteger(i) && i >= 0 && i < PUZZLE_IMAGE_SRCS.length);
+            return out;
+        }
+
+        function friendsLine(parent, cls, text) {
+            const el = document.createElement('div');
+            el.className = cls;
+            el.innerText = text;
+            parent.appendChild(el);
+            return el;
+        }
+
+        function friendsButton(parent, cls, text, onClick) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = cls;
+            btn.innerText = text;
+            btn.addEventListener('click', (e) => { e.stopPropagation(); onClick(); });
+            parent.appendChild(btn);
+            return btn;
+        }
+
+        function renderFriends() {
+            const sec = document.getElementById('friendsSection');
+            const box = document.getElementById('friendsBody');
+            if (!sec || !box) return;
+            if (!friendsAvailable()) { sec.style.display = 'none'; return; }
+            sec.style.display = '';
+            box.innerHTML = '';
+            // Чужого здесь не бывает: при смене профиля refreshFriends сбрасывает состояние
+            // до первой отрисовки, а опоздавший ответ прежнего профиля не сохраняет.
+            const data = friendsState.data;
+            if (!data) {
+                if (friendsState.failed) {
+                    friendsLine(box, 'friends-intro', t('Не удалось загрузить друзей. Проверь интернет.'));
+                    friendsButton(box, 'menu-btn', t('🔄 Попробовать ещё раз'), refreshFriends);
+                } else {
+                    friendsLine(box, 'friends-intro', t('Загружаю друзей…'));
+                }
+                setFoldSum('friendsSection', '');
+                return;
+            }
+            if (!data.me) {
+                friendsLine(box, 'friends-intro', t('Друзья видят твои звёзды, медали, серию дней и собранные картинки. Ошибки и точность не видит никто. Подружиться можно только по коду и только если согласны оба.'));
+                friendsButton(box, 'menu-btn', t('🤝 Включить друзей'), setupFriends);
+                setFoldSum('friendsSection', '');
+                return;
+            }
+            const friends = Array.isArray(data.friends) ? data.friends : [];
+            const incoming = Array.isArray(data.incoming) ? data.incoming : [];
+            const outgoing = Array.isArray(data.outgoing) ? data.outgoing : [];
+
+            // Свой код — крупно: его диктуют вслух или переписывают с экрана.
+            const card = document.createElement('div');
+            card.className = 'menu-stat-card invite-card';
+            friendsLine(card, 'menu-stat-label', t('Мой код дружбы'));
+            friendsLine(card, 'menu-code-line invite-code friend-code', friendCodeShown(data.me.code));
+            const btns = document.createElement('div');
+            friendsButton(btns, 'login-toggle', t('📋 Скопировать'), () => copyFriendCode(data.me.code));
+            btns.appendChild(document.createTextNode(' '));
+            friendsButton(btns, 'login-toggle', t('🔄 Новый код'), newFriendCode);
+            card.appendChild(btns);
+            friendsLine(card, 'menu-stat-label', t('Покажи код другу — пусть введёт его у себя. Давай код только тем, кого знаешь. Если код попал к чужим, нажми «Новый код» — старый перестанет работать.'));
+            box.appendChild(card);
+
+            const nameLine = friendsLine(box, 'friend-name-line', tf('Друзья видят тебя как «%1»', data.me.name));
+            friendsButton(nameLine, 'login-toggle', t('✏️ Изменить'), () => setupFriends(data.me.name));
+
+            friendsButton(box, 'menu-btn', t('➕ Добавить друга'), addFriend);
+
+            if (incoming.length) {
+                friendsLine(box, 'friends-sub', t('Хотят дружить'));
+                incoming.forEach(r => {
+                    const row = document.createElement('div');
+                    row.className = 'list-row';
+                    const main = document.createElement('div');
+                    main.className = 'list-row-main';
+                    friendsLine(main, 'list-row-name', r.name);
+                    row.appendChild(main);
+                    friendsButton(row, 'list-row-btn', t('Принять'), () => acceptFriend(r.id));
+                    friendsButton(row, 'list-row-btn', t('Отклонить'), () => dropFriendRow(r.id));
+                    box.appendChild(row);
+                });
+            }
+            if (outgoing.length) {
+                friendsLine(box, 'friends-sub', t('Ждут ответа'));
+                outgoing.forEach(r => {
+                    const row = document.createElement('div');
+                    row.className = 'list-row';
+                    const main = document.createElement('div');
+                    main.className = 'list-row-main';
+                    friendsLine(main, 'list-row-name', r.name);
+                    row.appendChild(main);
+                    friendsButton(row, 'list-row-btn', t('Отменить'), () => dropFriendRow(r.id));
+                    box.appendChild(row);
+                });
+            }
+
+            friendsLine(box, 'friends-sub', tf('Друзья · %1', friends.length));
+            if (!friends.length) friendsLine(box, 'friends-intro', t('Пока никого. Обменяйтесь кодами — и увидите успехи друг друга.'));
+            friends.forEach(f => {
+                const s = friendStats(f);
+                const row = document.createElement('button');
+                row.type = 'button';
+                row.className = 'list-row friend-row';
+                const main = document.createElement('div');
+                main.className = 'list-row-main';
+                friendsLine(main, 'list-row-name', f.name);
+                row.appendChild(main);
+                const meta = [];
+                if (f.streak > 0) meta.push(`🔥 ${f.streak}`);
+                meta.push(`⭐ ${s.stars}`, `🏆 ${s.pics.length}`);
+                friendsLine(row, 'friend-meta', meta.join(' · '));
+                row.addEventListener('click', () => openFriendPage(f));
+                box.appendChild(row);
+            });
+
+            // Сравнение — только по желанию, и видят его только те, кто сам включил.
+            const label = document.createElement('label');
+            label.className = 'friend-compare';
+            const check = document.createElement('input');
+            check.type = 'checkbox';
+            check.checked = !!data.me.compare;
+            check.addEventListener('change', () => setFriendCompare(check.checked));
+            label.appendChild(check);
+            label.appendChild(document.createTextNode(t('📊 Участвовать в сравнении')));
+            box.appendChild(label);
+            friendsLine(box, 'config-hint', t('Сравниваем верные ответы за неделю и серию дней. Видят только друзья, которые тоже включили сравнение. Неделя начинается в понедельник.'));
+            if (data.me.compare) renderFriendTable(box, data.me, friends);
+
+            setFoldSum('friendsSection', String(friends.length));
+        }
+
+        // Таблица недели: я и друзья, которые тоже участвуют. Свои цифры — с этого
+        // устройства: они свежее серверных, ответы последних минут могли ещё не доехать.
+        function renderFriendTable(box, me, friends) {
+            const st = Progress.get();
+            const today = Progress.dayKey();
+            const rows = friends.filter(f => typeof f.week === 'number')
+                .map(f => ({ name: f.name, week: f.week, streak: f.streak || 0, me: false }));
+            friendsLine(box, 'friends-sub', t('Эта неделя'));
+            if (!rows.length) {
+                friendsLine(box, 'friends-intro', t('Пока никто из друзей не включил сравнение.'));
+                return;
+            }
+            rows.push({ name: me.name, week: aggregateDaily(st.daily || {}, weekStartKey(today), today).c,
+                        streak: currentStreak(st.daily || {}, today), me: true });
+            rows.sort((x, y) => y.week - x.week || y.streak - x.streak || (x.name < y.name ? -1 : 1));
+            const table = document.createElement('div');
+            table.className = 'friend-table';
+            rows.forEach((r, i) => {
+                const line = document.createElement('div');
+                line.className = 'friend-table-row' + (r.me ? ' me' : '');
+                friendsLine(line, 'place', `${i + 1}.`);
+                friendsLine(line, 'who', r.me ? tf('%1 (ты)', r.name) : r.name);
+                friendsLine(line, 'score', `✅ ${r.week} · 🔥 ${r.streak}`);
+                table.appendChild(line);
+            });
+            box.appendChild(table);
+        }
+
+        async function setupFriends(current) {
+            const vals = await askForm({
+                title: t('Имя для друзей'),
+                text: t('Так тебя будут видеть друзья. Лучше только имя — без фамилии и телефона.'),
+                fields: [{ key: 'name', label: t('Имя'), value: current || Progress.getProfileLabel() || '',
+                           autocapitalize: 'words' }],
+                okText: t('Сохранить'),
+                validate: (v) => friendNameProblem(v.name)
+            });
+            if (!vals) return;
+            const res = await friendCall(callAuthed('session_friend_setup', { p_name: vals.name }));
+            if (!res.ok) {
+                showToast(res.error === 'bad_name' ? t('Такое имя не подходит.') : t('Не получилось. Попробуй ещё раз.'), 'error');
+                return;
+            }
+            await refreshFriends();
+        }
+
+        async function copyFriendCode(code) {
+            const shown = friendCodeShown(code);
+            try { await navigator.clipboard.writeText(shown); showToast(t('Код скопирован.')); }
+            catch (e) { await showNotice({ title: t('Мой код дружбы'), text: shown }); }
+        }
+
+        async function newFriendCode() {
+            const ok = await askConfirm({
+                title: t('Новый код дружбы?'),
+                text: t('Старый код перестанет работать сразу. Друзья и запросы останутся.'),
+                okText: t('Сменить код')
+            });
+            if (!ok) return;
+            const res = await friendCall(callAuthed('session_friend_new_code', {}));
+            if (!res.ok) { showToast(t('Не получилось. Попробуй ещё раз.'), 'error'); return; }
+            showToast(t('Готово: код новый, старый больше не работает.'), 'ok');
+            await refreshFriends();
+        }
+
+        function friendAddRefusalText(res) {
+            const why = res && res.error;
+            if (why === 'too_many') return tf('Слишком много неверных кодов. Попробуй через %1.', waitText(res.wait));
+            if (why === 'bad_code') {
+                return res.wait > 0
+                    ? tf('Такого кода нет. Следующая попытка — через %1.', waitText(res.wait))
+                    : t('Такого кода нет. Проверь буквы и цифры.');
+            }
+            if (why === 'self') return t('Это твой собственный код.');
+            if (why === 'too_many_friends') return t('Друзей уже пятьдесят — больше нельзя.');
+            if (why === 'too_many_requests') return t('Двадцать запросов уже ждут ответа. Подожди, пока на них ответят.');
+            if (why === 'target_full') return t('По этому коду сейчас нельзя подружиться — слишком много друзей и запросов.');
+            return t('Не получилось. Попробуй ещё раз.');
+        }
+
+        async function addFriend() {
+            const vals = await askForm({
+                title: t('Добавить друга'),
+                text: t('Введи код дружбы, который тебе показал друг.'),
+                fields: [{ key: 'code', label: t('Код дружбы'), placeholder: 'ABC-DEF', autocapitalize: 'characters' }],
+                okText: t('Позвать'),
+                validate: (v) => v.code.replace(/[^A-Za-z0-9]/g, '').length === 6 ? null : t('В коде шесть знаков.')
+            });
+            if (!vals) return;
+            const res = await friendCall(callAuthed('session_friend_add', { p_fcode: vals.code }));
+            if (!res.ok) { showToast(friendAddRefusalText(res), 'error'); return; }
+            const name = res.name || '';
+            const texts = {
+                sent: tf('Запрос отправлен. Когда %1 примет его, вы станете друзьями.', name),
+                friends: tf('Готово! %1 теперь в друзьях.', name),
+                already_sent: t('Этот запрос уже отправлен и ждёт ответа.'),
+                already_friends: tf('%1 уже в друзьях.', name)
+            };
+            showToast(texts[res.status] || t('Готово.'), 'ok');
+            await refreshFriends();
+        }
+
+        async function acceptFriend(id) {
+            const res = await friendCall(callAuthed('session_friend_accept', { p_id: id }));
+            if (!res.ok) {
+                showToast(res.error === 'not_found' ? t('Этот запрос уже не действует.') : friendAddRefusalText(res), 'error');
+            } else {
+                showToast(tf('Готово! %1 теперь в друзьях.', res.name || ''), 'ok');
+            }
+            await refreshFriends();
+        }
+
+        // Отклонить запрос, отозвать свой или удалить друга — одна и та же строка пары.
+        async function dropFriendRow(id) {
+            const res = await friendCall(callAuthed('session_friend_remove', { p_id: id }));
+            if (!res.ok) showToast(t('Не получилось. Попробуй ещё раз.'), 'error');
+            await refreshFriends();
+        }
+
+        async function setFriendCompare(on) {
+            const res = await friendCall(callAuthed('session_friend_compare', { p_on: !!on }));
+            if (!res.ok) showToast(t('Не получилось. Попробуй ещё раз.'), 'error');
+            await refreshFriends();
+        }
+
+        // Страница друга. Витрина, а не разбор: звёзды не разворачиваются, картинки
+        // не открываются и подписей не имеют — иначе это подсказка к чужим задачам.
+        async function openFriendPage(f) {
+            const s = friendStats(f);
+            const act = await openAppDialog(null, (card, submit) => {
+                dlgHead(card, '🤝 ' + f.name, '');
+                const line = (text, cls) => friendsLine(card, 'lesson-line' + (cls ? ' ' + cls : ''), text);
+                line(f.streak > 0 ? tf('🔥 Серия: %1 %2', f.streak, pluralDaysWord(f.streak)) : t('🔥 Серии сейчас нет'));
+                line(tf('⭐ Звёзд взято: %1', s.stars));
+                const medals = [1, 2, 3, 4, 5].filter(i => s.medals[i] > 0).map(i => `${TIER_ICONS[i]} ${s.medals[i]}`);
+                line(medals.length ? tf('Медали: %1', medals.join(' · ')) : t('Медалей пока нет.'), medals.length ? '' : 'muted');
+                if (s.tasks > 0) line(tf('🧩 Задач за мастерство: %1', s.tasks));
+
+                s.sections.forEach(sec => {
+                    friendsLine(card, 'lesson-head', sec.label);
+                    sec.rows.forEach(r => {
+                        const row = document.createElement('div');
+                        row.className = 'ach-op-row';
+                        friendsLine(row, 'ach-op-name', OP_LABELS[r.op] || r.op);
+                        const stars = document.createElement('div');
+                        stars.className = 'ach-stars';
+                        r.chips.forEach((c, i) => {
+                            friendsLine(stars, `ach-star static ${c.cls}`, `${i + 1}★${c.mark ? ' ' + c.mark : ''}`);
+                        });
+                        row.appendChild(stars);
+                        card.appendChild(row);
+                    });
+                });
+
+                friendsLine(card, 'lesson-head', tf('🏆 Коллекция: %1 из %2', s.pics.length, PUZZLE_IMAGE_SRCS.length));
+                if (!s.pics.length) line(t('Картинок пока нет.'), 'muted');
+                else {
+                    const grid = document.createElement('div');
+                    grid.className = 'friend-pics';
+                    s.pics.forEach(i => {
+                        const img = document.createElement('img');
+                        img.src = puzzleThumbSrc(i);
+                        img.alt = '';
+                        img.loading = 'lazy';
+                        img.decoding = 'async';
+                        grid.appendChild(img);
+                    });
+                    card.appendChild(grid);
+                }
+
+                const row = document.createElement('div');
+                row.className = 'dlg-actions';
+                row.style.marginTop = '14px';
+                const drop = document.createElement('button');
+                drop.type = 'button';
+                drop.className = 'dlg-btn soft-danger';
+                drop.innerText = t('Удалить из друзей');
+                drop.addEventListener('click', () => submit('remove'));
+                const close = document.createElement('button');
+                close.type = 'button';
+                close.className = 'dlg-btn primary';
+                close.innerText = t('Закрыть');
+                close.addEventListener('click', () => submit(null));
+                row.appendChild(drop);
+                row.appendChild(close);
+                card.appendChild(row);
+            });
+            if (act !== 'remove') return;
+            const ok = await askConfirm({
+                title: t('Удалить из друзей?'),
+                text: tf('«%1» пропадёт из твоего списка, а ты — из списка друга. Сообщения об этом никто не получит.', f.name),
+                okText: t('Удалить'),
+                danger: true
+            });
+            if (ok) await dropFriendRow(f.id);
+        }
+
         function renderProfileScreen() {
             const type = Progress.getAccountType();
             const guest = Progress.isGuest();
@@ -10760,6 +11241,8 @@
                 (!guest && type === 'solo') ? '' : 'none';
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
             renderProfileList();
+            // Друзья — только ученикам. Раздел появляется сразу, содержимое догружается.
+            if (friendsAvailable()) refreshFriends(); else renderFriends();
 
             // Ввод кода — только ученику: репетитору открыто всё и без кодов.
             // Заодно показываем, что уже открыто, чтобы не гадать.
