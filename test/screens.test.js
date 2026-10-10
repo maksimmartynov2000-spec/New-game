@@ -69,10 +69,12 @@ const SCREENS = [
     // и настоящий запрос висел бы до потолка в шесть секунд, а экран бы не открылся.
     // Подменяем проверку: здесь смотрят разметку экзамена, а не его связь с сервером
     // (это отдельно проверяет exam.test.js).
-    { name: 'экзамен',        open: `(async () => { examOnline = async () => true; await examOpen('add'); })()`,
+    { name: 'экзамен',        open: `(async () => { examOnline = async () => true; await examOpen('add', 'integer+', 3); })()`,
                               must: '#examQuestion' },
     { name: 'экзамен: итог',  open: `(async () => { examOnline = async () => true; examSave = async () => ({});
-                                     await examOpen('add'); exam.best = 3; await examFinish(); })()`,
+                                     await examOpen('add', 'integer+', 3); exam.right = 9; exam.asked = 10;
+                                     exam.log = [{ text: '7 × 8', answer: '56', given: '54', right: false }];
+                                     await examFinish(); })()`,
                               must: '#examResultCap' },
     { name: 'окно открытой звезды', open: `pendingStarUnlock = { key: 'integer+:add:2', level: 3 }; advanceMissionReveals();`, must: '#starUnlock' },
     { name: 'серия и заморозки', open: `document.querySelector('.daily-streak').click();`, must: '.dlg-card' }

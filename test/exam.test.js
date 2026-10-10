@@ -7,8 +7,9 @@
 //      которую ученик ещё не умеет, засеяли бы карту красным и испортили точность
 //      за период. Проверяется прямо: в коде экзамена не должно быть НИ ОДНОГО
 //      вызова записи.
-//   2) Ход вверх-вниз не должен выдавать звезду, которую не подтвердили. Открывается
-//      только та, на которой заход реально сдан.
+//   2) Экзамен проверяет ОДНУ звезду — ту, на которую нажали, — и открывает её, только
+//      если сдано 8 из 10. Раньше он ходил заходами вверх-вниз с 2★, и ребёнок с
+//      открытой 2★ пересдавал её, прежде чем увидеть 3★.
 //   3) Время на пример обязано считаться ошибкой. Без этого экзамен сдаётся счётом
 //      на пальцах, и ученик уезжает туда, где пороги скорости втрое жёстче.
 //
@@ -35,12 +36,21 @@ const EXAM_SRC = slice('// ===================== ВВОДНЫЙ ЭКЗАМЕН',
 function load(opts) {
     const o = opts || {};
     const byId = {};
-    const el = () => ({ innerText: '', className: '', hidden: false, style: {}, children: [],
-                        _html: '', set innerHTML(v) { this.children.length = 0; },
-                        appendChild(c) { this.children.push(c); return c; },
-                        addEventListener(n, f) { this.handlers = this.handlers || {}; this.handlers[n] = f; } });
+    const el = () => {
+        const cls = new Set();
+        return { innerText: '', hidden: false, style: {}, children: [], disabled: false,
+                 get className() { return [...cls].join(' '); },
+                 set className(v) { cls.clear(); String(v).split(/\s+/).filter(Boolean).forEach(c => cls.add(c)); },
+                 classList: { add: (c) => cls.add(c), remove: (c) => cls.delete(c), contains: (c) => cls.has(c),
+                              toggle: (c, on) => (on === undefined ? !cls.has(c) : on) ? cls.add(c) : cls.delete(c) },
+                 set innerHTML(v) { this.children.length = 0; },
+                 appendChild(c) { this.children.push(c); return c; },
+                 setAttribute() {},
+                 addEventListener(n, f) { this.handlers = this.handlers || {}; this.handlers[n] = f; } };
+    };
     ['examScreen', 'examBody', 'examResult', 'examStep', 'examTime', 'examQuestion',
-     'examAnswers', 'examResultCap', 'examResultText', 'examResultNote'].forEach(id => (byId[id] = el()));
+     'examAnswers', 'examResultCap', 'examResultText', 'examResultNote',
+     'examDots', 'examGoal', 'examFeedback', 'examMistakes', 'examPlay'].forEach(id => (byId[id] = el()));
     const box = {
         console, Math, Number, Object, Array, String, JSON, Date,
         t: (x) => x,
@@ -52,11 +62,18 @@ function load(opts) {
         // Часы проверки связи. Не запускаем по-настоящему: держать прогон шесть секунд
         // ради одного промиса незачем — а вот ЗАПОМНИТЬ срок полезно, по нему и
         // проверяется, что потолок вообще выставлен.
-        setTimeout: (fn, ms) => { box.probeCapMs = ms; return 0; },
-        clearTimeout: () => {},
+        // Таймеры копятся, а не запускаются: следующий пример приходит после подсветки
+        // ответа, и проверке нужно самой решать, когда пауза кончилась (см. answer()).
+        // Первый таймер — потолок ожидания проверки связи; его срок и запоминаем.
+        timers: [],
+        setTimeout: (fn, ms) => { box.timers.push({ fn, ms });
+                                  if (box.probeCapMs === undefined) box.probeCapMs = ms;
+                                  return box.timers.length; },
+        clearTimeout: (id) => { if (box.timers[id - 1]) box.timers[id - 1].cancelled = true; },
         Promise,
         // Пример всегда один и тот же: экзамен проверяем, а не генератор.
         generateProblem: (op, level, neg) => { box.genNeg = (box.genNeg || []).concat(!!neg);
+                                               box.genLevels = (box.genLevels || []).concat(level);
                                                return { text: `${level}0 + 1`, answer: level * 10 + 1, a: level * 10, b: 1 }; },
         buildDistractors: (op, a, b, ans, neg) => { box.decoyNeg = (box.decoyNeg || []).concat(!!neg); return [1, 2, 3]; },
         // Для «÷ 0» игра берёт варианты отсюда, а не из buildDistractors.
@@ -65,6 +82,9 @@ function load(opts) {
         examTrialAllowed: () => !o.notTutor,
         OP_LABELS: { add: '➕ Сложение' },
         levelAllowedByAccess: () => o.allowed !== false,
+        // Какие звёзды у ученика уже открыты — для совета, где тренироваться.
+        isLevelOpen: (sec, op, lvl) => (o.open || [1]).indexOf(lvl) >= 0,
+        startMissionAt: (op, level, sec) => { box.started = { op, level, sec }; },
         levelGateApplies: () => o.gated !== false,
         levelLockReason: () => 'нужно золото',
         showNotice: async () => undefined,
@@ -96,18 +116,35 @@ function load(opts) {
     box.globalThis = box;
     vm.createContext(box);
     vm.runInContext(EXAM_SRC
-        + '\n;globalThis.E = { examOpen, examClose, examAnswer, examRoundOver, examFinish,'
-        + ' EXAM_QUESTIONS, EXAM_PASS, EXAM_FAIL, EXAM_SECONDS, EXAM_ROUNDS, EXAM_START_LEVEL,'
+        + '\n;globalThis.E = { examOpen, examClose, examAnswer, examFinish, examPracticeLevel,'
+        + ' EXAM_QUESTIONS, EXAM_PASS, EXAM_SECONDS, EXAM_FEEDBACK_MS,'
         + ' EXAM_MAX_GRANT, EXAM_SECTIONS, examOptions,'
         + ' get exam() { return exam; }, set exam(v) { exam = v; } };',
         box, { filename: 'index.html<экзамен>' });
     return { E: box.E, box, byId };
 }
 
-// Отвечает на весь заход: сколько верных из шести.
-function answerRound(E, right) {
-    for (let i = 0; i < E.EXAM_QUESTIONS; i++) E.examAnswer(i < right);
+// Пауза подсветки кончилась: запускаем отложенный переход к следующему примеру.
+function endPause(w) {
+    const ms = [w.E.EXAM_FEEDBACK_MS.right, w.E.EXAM_FEEDBACK_MS.wrong];
+    w.box.timers.filter(x => !x.ran && !x.cancelled && ms.indexOf(x.ms) >= 0)
+        .forEach(x => { x.ran = true; x.fn(); });
 }
+// Вариант на кнопке: верный или любой неверный.
+function pick(w, right) {
+    const set = w.E.exam.set;
+    return set.options.filter(o => right ? o.value === set.correct : o.value !== set.correct)[0];
+}
+// Ответить на текущий пример и дождаться следующего.
+function answer(w, right) {
+    w.E.examAnswer(pick(w, right));
+    endPause(w);
+}
+// Весь экзамен: сколько верных из десяти, верные — первыми.
+function answerAll(w, right) {
+    for (let i = 0; i < w.E.EXAM_QUESTIONS; i++) answer(w, i < right);
+}
+const settle = () => new Promise(r => setImmediate(r));
 
 let passed = 0, failed = 0;
 const failures = [];
@@ -140,41 +177,83 @@ test('экзамен не выдаёт пазлы и не двигает дне�
         'экзамен задевает награды, которых не зарабатывал');
 });
 
-group('Ход вверх-вниз');
+group('Экзамен на одну звезду');
 
-test('сдал со второй звезды — идём на третью', async () => {
+test('экзамен идёт на ту звезду, на которую нажали, — все десять примеров', async () => {
     const w = load();
-    await w.E.examOpen('add');
-    eq(w.E.exam.level, w.E.EXAM_START_LEVEL, 'начинаем со второй');
-    answerRound(w.E, 5);
-    eq(w.E.exam.level, 3, 'после сданной второй');
-    eq(w.E.exam.best, 2, 'вторая подтверждена');
+    await w.E.examOpen('add', 'integer+', 3);
+    eq(w.E.exam.level, 3, 'звезда экзамена');
+    answerAll(w, 10);
+    eq(JSON.stringify(w.box.genLevels), JSON.stringify(Array(10).fill(3)), 'звёзды примеров');
 });
 
-test('провалил — спускаемся', async () => {
+test('десять примеров, сдать — восемь', async () => {
     const w = load();
-    await w.E.examOpen('add');
-    answerRound(w.E, 2);
-    eq(w.E.exam.level, 1, 'после провала второй');
-    eq(w.E.exam.best, 0, 'ничего не подтверждено');
+    eq(w.E.EXAM_QUESTIONS, 10, 'примеров');
+    eq(w.E.EXAM_PASS, 8, 'порог');
 });
 
-test('открывается только подтверждённая звезда, а не та, до которой дошли', async () => {
-    // Сдал вторую, провалил третью — открыть надо вторую.
+test('8 из 10 — сдано: на сервер уходит эта звезда', async () => {
     const w = load();
-    await w.E.examOpen('add');
-    answerRound(w.E, 6);   // 2★ сдана
-    answerRound(w.E, 1);   // 3★ провалена
-    eq(w.E.exam.best, 2, 'выдали звезду, которую не подтвердили');
+    await w.E.examOpen('add', 'integer+', 3);
+    answerAll(w, 8);
+    await settle();
+    eq(w.box.sent.args.p_level, 3, 'звезда');
 });
 
-test('серединка никуда не двигает и заканчивает экзамен', async () => {
-    // Четыре из шести — это не «умеет» и не «не умеет». Ходить дальше не по чему.
+test('7 из 10 — не сдано: на сервер уходит ноль', async () => {
     const w = load();
-    await w.E.examOpen('add');
-    answerRound(w.E, 4);
-    assert(w.E.exam.done, 'экзамен должен закончиться');
-    eq(w.E.exam.best, 0, 'серединка звезду не даёт');
+    await w.E.examOpen('add', 'integer+', 3);
+    answerAll(w, 7);
+    await settle();
+    eq(w.box.sent.args.p_level, 0, 'звезда');
+});
+
+test('на 2★ так же: сдал — уходит 2', async () => {
+    const w = load();
+    await w.E.examOpen('sub', 'integer+', 2);
+    answerAll(w, 9);
+    await settle();
+    eq(w.box.sent.args.p_level, 2, 'звезда');
+    eq(w.box.sent.args.p_op, 'sub', 'действие');
+});
+
+test('досрочно не кончается: и после трёх ошибок, и после восьми верных — до десятого', async () => {
+    // Решение Максима: ребёнок доходит до конца и видит весь свой счёт.
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 3);
+    for (let i = 0; i < 3; i++) answer(w, false);
+    assert(!w.E.exam.done, 'экзамен кончился после трёх ошибок');
+    eq(w.E.exam.asked, 4, 'после трёх ошибок идёт четвёртый пример');
+    const v = load();
+    await v.E.examOpen('add', 'integer+', 3);
+    for (let i = 0; i < 8; i++) answer(v, true);
+    assert(!v.E.exam.done, 'экзамен кончился после восьми верных');
+    for (let i = 0; i < 2; i++) answer(v, true);
+    assert(v.E.exam.done, 'после десятого примера экзамен не кончился');
+});
+
+test('вниз не спускается: после провала второго захода нет', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 3);
+    answerAll(w, 0);
+    assert(w.E.exam.done, 'экзамен не кончился');
+    eq(w.box.genLevels.length, 10, 'примеров всего');
+    assert(w.box.genLevels.every(l => l === 3), 'был заход на другой звезде: ' + w.box.genLevels.join(','));
+});
+
+test('первую звезду не экзаменуют — она открыта всегда', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 1);
+    eq(w.E.exam, null, 'экзамен на 1★ начался');
+});
+
+test('выше потолка экзамена нет', async () => {
+    for (const lvl of [4, 5, undefined]) {
+        const w = load();
+        await w.E.examOpen('add', 'integer+', lvl);
+        eq(w.E.exam, null, `экзамен на ${lvl}★ начался`);
+    }
 });
 
 // Потолок выдачи. Экзамен считается в браузере, а серверу сообщается готовое
@@ -182,25 +261,6 @@ test('серединка никуда не двигает и заканчива�
 // выдачей примеров с сервера, то есть второй копией правил сложности в SQL;
 // для дыры ценой в звёздочку такой размен не окупается. Вместо этого экзамен
 // открывает не больше трёх звёзд, а четвёртую и пятую открывает репетитор.
-// Раньше эти же проверки требовали ровно обратного — что экзамен доходит до
-// пятой; правило изменено сознательно, и проверки переписаны под него.
-test('дальше потолка не поднимаемся', async () => {
-    const w = load();
-    await w.E.examOpen('add');
-    w.E.exam.level = w.E.EXAM_MAX_GRANT; w.E.exam.low = w.E.EXAM_MAX_GRANT;
-    answerRound(w.E, 6);
-    assert(w.E.exam.done, 'экзамен должен закончиться на потолке');
-    eq(w.E.exam.best, w.E.EXAM_MAX_GRANT, 'подтверждён потолок');
-});
-
-test('безошибочный экзамен доходит ровно до потолка и не выше', async () => {
-    const w = load();
-    await w.E.examOpen('add');
-    for (let r = 0; r < 4; r++) answerRound(w.E, 6);
-    assert(w.E.exam.done, 'экзамен должен закончиться');
-    eq(w.E.exam.best, w.E.EXAM_MAX_GRANT, 'безошибочный экзамен должен давать ровно потолок');
-});
-
 test('потолок — три звезды, и он один на клиенте и на сервере', async () => {
     const w = load();
     eq(w.E.EXAM_MAX_GRANT, 3, 'потолок в приложении');
@@ -210,43 +270,127 @@ test('потолок — три звезды, и он один на клиент
     eq(Number(m[1]), w.E.EXAM_MAX_GRANT, 'потолок на сервере разошёлся с потолком в приложении');
 });
 
-test('экзамен ни при каком ходе не заявляет выше потолка', async () => {
-    // Перебираем все правдоподобные исходы заходов: 0-6 верных в каждом из четырёх.
+test('ни при каком счёте экзамен не заявляет чужую звезду', async () => {
+    // Перебор: обе звезды экзамена и любой счёт от 0 до 10. Уходит либо сама
+    // звезда (8 и больше), либо ноль — и никогда выше потолка.
     const bad = [];
-    for (let a = 0; a <= 6; a++) for (let b = 0; b <= 6; b++)
-        for (let c = 0; c <= 6; c++) for (let d = 0; d <= 6; d++) {
-            const w = load();
-            await w.E.examOpen('add');
-            for (const n of [a, b, c, d]) { if (w.E.exam.done) break; answerRound(w.E, n); }
-            if (w.E.exam.best > w.E.EXAM_MAX_GRANT) bad.push(`${a}${b}${c}${d} → ${w.E.exam.best}`);
-        }
-    assert(bad.length === 0, `заявка выше потолка: ${bad.slice(0, 3).join(', ')}`);
+    for (const lvl of [2, 3]) for (let right = 0; right <= 10; right++) {
+        const w = load();
+        await w.E.examOpen('add', 'integer+', lvl);
+        answerAll(w, right);
+        await settle();
+        const sent = w.box.sent.args.p_level;
+        const want = right >= 8 ? lvl : 0;
+        if (sent !== want || sent > w.E.EXAM_MAX_GRANT) bad.push(`${lvl}★, ${right} верных → ${sent}`);
+    }
+    assert(bad.length === 0, bad.slice(0, 4).join('; '));
 });
 
-test('больше четырёх заходов не бывает', async () => {
+group('Обратная связь');
+
+const btnOf = (w, right) => w.E.exam.buttons.filter(b => right ? b.opt.value === w.E.exam.set.correct
+                                                               : b.opt.value !== w.E.exam.set.correct)[0].btn;
+
+test('неверный ответ: нажатый — красный, верный подсвечен, назван правильный', async () => {
     const w = load();
-    await w.E.examOpen('add');
-    for (let r = 0; r < 4; r++) answerRound(w.E, 5);
-    assert(w.E.exam.done, `экзамен идёт пятый заход: ${w.E.exam.round}`);
+    await w.E.examOpen('add', 'integer+', 3);
+    const wrongBtn = btnOf(w, false), rightBtn = btnOf(w, true);
+    w.E.examAnswer(pick(w, false));
+    assert(wrongBtn.classList.contains('btn-wrong'), 'нажатый неверный не красный');
+    assert(rightBtn.classList.contains('btn-correct'), 'верный не подсвечен');
+    assert(w.E.exam.buttons.every(b => b.btn.classList.contains('locked')), 'кнопки не заперты на время подсветки');
+    eq(w.byId.examFeedback.innerText, '✗ Неверно. Правильный ответ: 31', 'подпись');
+    assert(w.byId.examFeedback.classList.contains('wrong'), 'подпись не красная');
+});
+
+test('верный ответ: зелёный и «Верно»', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 3);
+    const rightBtn = btnOf(w, true);
+    w.E.examAnswer(pick(w, true));
+    assert(rightBtn.classList.contains('btn-correct'), 'верный не зелёный');
+    assert(!w.E.exam.buttons.some(b => b.btn.classList.contains('btn-wrong')), 'что-то покраснело при верном ответе');
+    eq(w.byId.examFeedback.innerText, '✓ Верно', 'подпись');
+    assert(w.byId.examFeedback.classList.contains('right'), 'подпись не зелёная');
+});
+
+test('пока горит подсветка, часы стоят и второе нажатие не считается', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 3);
+    w.E.examAnswer(pick(w, true));
+    w.E.examAnswer(pick(w, true));
+    eq(w.E.exam.right, 1, 'двойное нажатие засчитано дважды');
+    eq(w.box.tick, null, 'часы идут во время подсветки');
+    eq(w.E.exam.asked, 1, 'следующий пример пришёл раньше конца подсветки');
+    endPause(w);
+    eq(w.E.exam.asked, 2, 'после подсветки следующий пример не пришёл');
+    assert(typeof w.box.tick === 'function', 'часы нового примера не пошли');
+});
+
+test('неверный ответ держится дольше верного — успеть прочесть правильный', async () => {
+    const w = load();
+    assert(w.E.EXAM_FEEDBACK_MS.wrong > w.E.EXAM_FEEDBACK_MS.right, JSON.stringify(w.E.EXAM_FEEDBACK_MS));
+    assert(w.E.EXAM_FEEDBACK_MS.wrong <= 2500, 'подсветка тянется слишком долго');
+});
+
+test('кружки: по одному на пример, ✓ и ✗ по порядку, текущий отмечен', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 3);
+    answer(w, true);
+    answer(w, false);
+    const dots = w.byId.examDots.children;
+    eq(dots.length, 10, 'кружков');
+    eq(dots[0].className, 'exam-dot right', 'первый');
+    eq(dots[0].innerText, '✓', 'значок первого');
+    eq(dots[1].className, 'exam-dot wrong', 'второй');
+    eq(dots[1].innerText, '✗', 'значок второго');
+    eq(dots[2].className, 'exam-dot now', 'текущий');
+    eq(dots[3].className, 'exam-dot', 'ещё впереди');
+});
+
+test('сколько набрано и сколько нужно — на экране', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 3);
+    eq(w.byId.examGoal.innerText, 'Верных: 0 · нужно 8 из 10', 'в начале');
+    answer(w, true);
+    answer(w, false);
+    eq(w.byId.examGoal.innerText, 'Верных: 1 · нужно 8 из 10', 'после двух ответов');
+});
+
+test('закрыл экзамен во время подсветки — следующий пример не приходит, и новый экзамен не сбивается', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 3);
+    w.E.examAnswer(pick(w, true));
+    const old = w.box.timers[w.box.timers.length - 1];
+    w.E.examClose();
+    assert(old.cancelled, 'переход к следующему примеру не отменён');
+    await w.E.examOpen('add', 'integer+', 3);
+    old.fn();   // даже если браузер всё-таки позовёт старый таймер
+    eq(w.E.exam.asked, 1, 'старый таймер пролистал новый экзамен');
 });
 
 group('Время на пример');
 
-test('время вышло — засчитывается ошибка', async () => {
+
+test('время вышло — засчитывается ошибка, и это сказано', async () => {
     const w = load();
-    await w.E.examOpen('add');
+    await w.E.examOpen('add', 'integer+', 3);
     const before = w.E.exam.right;
     for (let s = 0; s < w.E.EXAM_SECONDS; s++) w.box.tick();
     eq(w.E.exam.right, before, 'просроченный пример засчитали верным');
+    eq(w.byId.examFeedback.innerText, '⏱ Время вышло. Правильный ответ: 31', 'подпись');
+    endPause(w);
     eq(w.E.exam.asked, 2, 'после просрочки должен прийти следующий пример');
 });
 
 test('ответ останавливает часы, а не идёт поверх них', async () => {
     const w = load();
-    await w.E.examOpen('add');
-    w.E.examAnswer(true);
+    await w.E.examOpen('add', 'integer+', 3);
+    w.box.tick(); w.box.tick(); w.box.tick();
+    answer(w, true);
     // Новый пример завёл свои часы; старые не должны продолжать тикать в фоне.
     assert(typeof w.box.tick === 'function', 'часы нового примера не запустились');
+    eq(w.E.exam.left, w.E.EXAM_SECONDS, 'новый пример начал не с полного времени');
 });
 
 group('Экзамен и технические работы');
@@ -256,7 +400,7 @@ group('Экзамен и технические работы');
 // вопроса, не мог ответить, каждые тридцать секунд получал ошибку — и терял попытку дня.
 test('во время работ экзамен не начинается', async () => {
     const w = load({ maintenance: true });
-    await w.E.examOpen('add');
+    await w.E.examOpen('add', 'integer+', 3);
     eq(w.E.exam, null, 'экзамен запустился во время технических работ');
     assert(w.box.maintenanceShown, 'заглушку даже не показали');
 });
@@ -265,7 +409,7 @@ test('начавшийся экзамен замирает, а не сгорае
     // Работы начались посреди экзамена — часы обязаны встать, иначе ученик проиграет
     // экран, которого не видит.
     const w = load();
-    await w.E.examOpen('add');
+    await w.E.examOpen('add', 'integer+', 3);
     const before = w.E.exam.left;
     w.box.tick(); w.box.tick();
     assert(w.E.exam.left < before, 'часы не идут и в обычное время — проверка бессмысленна');
@@ -279,13 +423,12 @@ group('Что уходит на сервер');
 
 test('на сервер уходит подтверждённая звезда и действие', async () => {
     const w = load();
-    await w.E.examOpen('add');
-    answerRound(w.E, 6);
-    answerRound(w.E, 1);
-    await new Promise(r => setTimeout(r, 0));
+    await w.E.examOpen('add', 'integer+', 3);
+    answerAll(w, 9);
+    await settle();
     assert(w.box.sent, 'на сервер вообще ничего не ушло');
     eq(w.box.sent.args.p_op, 'add', 'действие');
-    eq(w.box.sent.args.p_level, 2, 'звезда');
+    eq(w.box.sent.args.p_level, 3, 'звезда');
 });
 
 // Раньше эта проверка ловила несохранённый результат на экране итогов: без связи
@@ -293,7 +436,7 @@ test('на сервер уходит подтверждённая звезда �
 // и проверять нужно это — экрана итогов быть не должно, потому что нечего итожить.
 test('без связи результат не выдаётся за сохранённый', async () => {
     const w = load({ offline: true });
-    await w.E.examOpen('add');
+    await w.E.examOpen('add', 'integer+', 3);
     eq(w.E.exam, null, 'экзамен начался без связи — его результат некуда деть');
     eq(w.byId.examResultCap.innerText, '', 'экран итогов показан, хотя экзамена не было');
     // Связь пропала посреди экзамена — случай остался, и он проверяется отдельно
@@ -327,6 +470,80 @@ test('панель не обещает, что выше открывает то�
     assert(!/репетитор/.test(texts), `панель снова отсылает к репетитору: ${texts}`);
 });
 
+test('панель называет звезду экзамена и порог и запускает экзамен на ней', async () => {
+    const body = slice('async function openLockedStar', 'ВВОДНЫЙ ЭКЗАМЕН', 'панель звезды');
+    assert(/examOpen\(op, secKey, level\)/.test(body), 'экзамен запускается не на нажатой звезде');
+    assert(/tf\('Или пройди экзамен на %1★[^']*нужно %5 верных/.test(body), 'в панели не названы звезда и порог');
+    assert(/level, opName, EXAM_QUESTIONS, EXAM_SECONDS, EXAM_PASS/.test(body), 'в панель подставлены не те числа');
+});
+
+group('Итог');
+
+test('сдал: звезда открыта, счёт и кнопка «Играть на 3★» ведёт в миссию на ней', async () => {
+    const w = load();
+    await w.E.examOpen('mul', 'integer+', 3);
+    answerAll(w, 9);
+    await settle();
+    eq(w.byId.examResultCap.innerText, '🔓 3★ открыта!', 'заголовок');
+    assert(/^Верных: 9 из 10 — экзамен сдан\./.test(w.byId.examResultText.innerText), w.byId.examResultText.innerText);
+    assert(!w.byId.examPlay.hidden, 'кнопки «Играть» нет');
+    eq(w.byId.examPlay.innerText, '🚀 Играть на 3★', 'кнопка');
+    w.byId.examPlay.onclick();
+    eq(JSON.stringify(w.box.started), JSON.stringify({ op: 'mul', level: 3, sec: 'integer+' }), 'миссия');
+    eq(w.E.exam, null, 'экран экзамена не закрылся');
+});
+
+test('не сдал: звезда закрыта, сколько не хватило и где тренироваться; играть не зовут', async () => {
+    const w = load({ open: [1, 2] });
+    await w.E.examOpen('add', 'integer+', 3);
+    answerAll(w, 6);
+    await settle();
+    eq(w.byId.examResultCap.innerText, '3★ пока закрыта', 'заголовок');
+    eq(w.byId.examResultText.innerText, 'Верных: 6 из 10, а нужно 8. Потренируйся на 2★ и пересдай завтра.', 'текст');
+    assert(w.byId.examPlay.hidden, 'зовут играть на закрытой звезде');
+});
+
+test('тренироваться — на самой высокой открытой звезде ниже', async () => {
+    const w = load({ open: [1] });   // 2★ тоже закрыта
+    await w.E.examOpen('add', 'integer+', 3);
+    eq(w.E.examPracticeLevel(), 1, 'при закрытой 2★');
+    const v = load({ open: [1, 2] });
+    await v.E.examOpen('add', 'integer+', 3);
+    eq(v.E.examPracticeLevel(), 2, 'при открытой 2★');
+});
+
+test('ошибки — списком: пример, верный ответ и свой ответ или «время вышло»', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 3);
+    const wrong = pick(w, false);
+    w.E.examAnswer(wrong); endPause(w);
+    for (let s = 0; s < w.E.EXAM_SECONDS; s++) w.box.tick();
+    endPause(w);
+    for (let i = 0; i < 8; i++) answer(w, true);
+    await settle();
+    const rows = w.byId.examMistakes.children.map(x => x.innerText);
+    assert(!w.byId.examMistakes.hidden, 'список ошибок спрятан');
+    eq(JSON.stringify(rows), JSON.stringify(['Где были ошибки', `30 + 1 · верно: 31 · твой ответ: ${wrong.label}`,
+                                             '30 + 1 · верно: 31 · время вышло']), 'список');
+});
+
+test('без ошибок списка нет', async () => {
+    const w = load();
+    await w.E.examOpen('add', 'integer+', 3);
+    answerAll(w, 10);
+    await settle();
+    assert(w.byId.examMistakes.hidden, 'пустой список ошибок показан');
+});
+
+test('в журнале экзаменов у репетитора нет рода', async () => {
+    // «Не сдал» про девочку — ошибка. Пишем про экзамен: «экзамен не сдан».
+    const body = slice('async function renderExamLog', '// ===================== ВВОДНЫЙ ЭКЗАМЕН', 'журнал экзаменов');
+    const texts = [...body.matchAll(/tf?\('([^']*)'/g)].map(m => m[1]);
+    assert(texts.length >= 2, 'строки журнала не нашлись — проверка стала пустой');
+    const bad = texts.filter(x => /(^|[^А-Яа-яЁё])(сдал|сдала|прош[её]л|прошла)([^А-Яа-яЁё]|$)/.test(x));
+    assert(bad.length === 0, 'род в журнале: ' + bad.join(' | '));
+});
+
 group('Серверная часть');
 
 group('Без связи экзамен не начинается');
@@ -336,13 +553,13 @@ group('Без связи экзамен не начинается');
 // сохранился»: единственная за день попытка потрачена впустую.
 test('нет сервера — экзамен не стартует', async () => {
     const w = load({ offline: true });
-    await w.E.examOpen('add');
+    await w.E.examOpen('add', 'integer+', 3);
     eq(w.E.exam, null, 'экзамен всё-таки начался без связи');
 });
 
 test('сервер не ответил — экзамен не стартует', async () => {
     const w = load({ probeFail: true });
-    await w.E.examOpen('add');
+    await w.E.examOpen('add', 'integer+', 3);
     eq(w.E.exam, null, 'экзамен начался, хотя проверка связи не прошла');
 });
 
@@ -351,15 +568,15 @@ test('сервер не ответил — экзамен не стартует'
 // Проверка эту болезнь и нашла — сначала на себе: прогон экранов повис намертво.
 test('проверка связи не ждёт вечно', async () => {
     const w = load();
-    await w.E.examOpen('add');
+    await w.E.examOpen('add', 'integer+', 3);
     assert(w.box.probeCapMs > 0 && w.box.probeCapMs <= 10000,
         `потолок ожидания не выставлен или слишком велик: ${w.box.probeCapMs}`);
 });
 
 test('связь есть — экзамен идёт как раньше', async () => {
     const w = load();
-    await w.E.examOpen('add');
-    assert(w.E.exam && w.E.exam.level === w.E.EXAM_START_LEVEL,
+    await w.E.examOpen('add', 'integer+', 3);
+    assert(w.E.exam && w.E.exam.level === 3 && w.E.exam.asked === 1,
         'проверка связи сломала обычный запуск');
 });
 
@@ -370,26 +587,24 @@ group('Экран не поздравляет звёздами, которых �
 // сохранилось. Ребёнок читает крупное.
 test('результат не сохранился — про открытые звёзды молчим', async () => {
     const w = load({ serverFail: 'save_failed' });
-    await w.E.examOpen('add');
-    answerRound(w.E, 5);   // сдал вторую
-    answerRound(w.E, 5);   // сдал третью — дошёл до потолка
-    await new Promise(r => setImmediate(r));
+    await w.E.examOpen('add', 'integer+', 3);
+    answerAll(w, 9);   // сдано
+    await settle();
     const cap = w.byId.examResultCap.innerText;
     const text = w.byId.examResultText.innerText;
-    assert(!/Открыто до/.test(cap + ' ' + text),
+    assert(!/открыт/i.test(cap + ' ' + text),
         `экран обещает открытые звёзды, хотя результат не сохранён: «${cap}» / «${text}»`);
     assert(w.byId.examResultNote.innerText,
         'приписка про несохранённый результат пропала — ученик не узнает, что случилось');
+    assert(w.byId.examPlay.hidden, 'зовут играть на звезде, которая не открылась');
 });
 
 test('результат сохранился — звёзды называются как прежде', async () => {
     const w = load();
-    await w.E.examOpen('add');
-    answerRound(w.E, 5);
-    answerRound(w.E, 5);
-    await new Promise(r => setImmediate(r));
-    assert(/Открыто до/.test(w.byId.examResultCap.innerText),
-        `сохранённый результат перестал называть звёзды: «${w.byId.examResultCap.innerText}»`);
+    await w.E.examOpen('add', 'integer+', 3);
+    answerAll(w, 9);
+    await settle();
+    eq(w.byId.examResultCap.innerText, '🔓 3★ открыта!', 'заголовок сохранённого результата');
     eq(w.byId.examResultNote.innerText, '', 'у успешного результата появилась приписка об ошибке');
 });
 
@@ -455,7 +670,7 @@ test('на кнопках нет служебных слов ни в одном 
 test('в живом вопросе нажатие «Нет решения» засчитано верным', async () => {
     const w = load();
     w.box.generateProblem = () => ({ text: '63 ÷ 0', answer: null, noSolution: true, a: 63, b: 0 });
-    await w.E.examOpen('div');
+    await w.E.examOpen('div', 'integer+', 2);
     const btn = w.byId.examAnswers.children.filter(b => b.innerText === 'Нет решения')[0];
     assert(btn, 'кнопки «Нет решения» нет на экране');
     btn.handlers.click();
@@ -464,10 +679,10 @@ test('в живом вопросе нажатие «Нет решения» за
 
 group('Экзамен по разделам');
 
-// Сдать два захода по 6 из 6 и третий на 5 из 6 — потолок 3★.
+// Сдать экзамен на 3★ без ошибок.
 async function passToCap(w) {
-    answerRound(w.E, 6); answerRound(w.E, 6);
-    await new Promise(r => setImmediate(r));
+    answerAll(w, 10);
+    await settle();
 }
 
 test('разделы, где экзамен открывает звёзды, одни и те же в приложении и в базе', async () => {
@@ -487,13 +702,13 @@ test('пока отрицательные не открыты всем, наст
     // В тот день эта проверка поменяется вместе со списком — и это правильно.
     const w = load();
     eq(w.E.EXAM_SECTIONS.indexOf('integer-'), -1, 'отрицательные уже в списке экзамена');
-    await w.E.examOpen('add', 'integer-');
+    await w.E.examOpen('add', 'integer-', 3);
     eq(w.E.exam, null, 'настоящий экзамен на отрицательных начался');
 });
 
 test('пробный экзамен на отрицательных строит отрицательные примеры и ловушки', async () => {
     const w = load();
-    await w.E.examOpen('add', 'integer-', { trial: true });
+    await w.E.examOpen('add', 'integer-', 3, { trial: true });
     assert(w.E.exam && w.E.exam.trial, 'пробный экзамен не начался');
     assert(w.box.genNeg.length && w.box.genNeg.every(x => x), 'примеры строятся положительными');
     assert(w.box.decoyNeg.length && w.box.decoyNeg.every(x => x), 'ловушки строятся положительными');
@@ -501,32 +716,34 @@ test('пробный экзамен на отрицательных строит
 
 test('на положительных примеры и ловушки остались положительными', async () => {
     const w = load();
-    await w.E.examOpen('add', 'integer+');
+    await w.E.examOpen('add', 'integer+', 3);
     assert(w.box.genNeg.every(x => !x), 'положительный экзамен получил отрицательные примеры');
     assert(w.box.decoyNeg.every(x => !x), 'положительный экзамен получил отрицательные ловушки');
 });
 
 test('пробный экзамен ничего не отправляет и прямо говорит, что ничего не открыл', async () => {
     const w = load();
-    await w.E.examOpen('mul', 'integer-', { trial: true });
+    await w.E.examOpen('mul', 'integer-', 3, { trial: true });
     await passToCap(w);
     const calls = w.box.calls || [];
     eq(calls.join(','), '', 'пробный экзамен ходил на сервер');
-    assert(/Пробный: 3★/.test(w.byId.examResultCap.innerText), 'итог: ' + w.byId.examResultCap.innerText);
+    eq(w.byId.examResultCap.innerText, '🎓 Пробный: 3★ сдана', 'итог');
+    assert(/Верных: 10 из 10/.test(w.byId.examResultText.innerText), 'нет счёта: ' + w.byId.examResultText.innerText);
     assert(/ничего не открыто/.test(w.byId.examResultText.innerText), 'не сказано, что ничего не открыто');
-    assert(!/Открыто до/.test(w.byId.examResultCap.innerText), 'пробный обещает открытые звёзды');
+    assert(!/открыта/.test(w.byId.examResultCap.innerText), 'пробный обещает открытые звёзды');
+    assert(w.byId.examPlay.hidden, 'пробный зовёт играть, как будто звезда открылась');
 });
 
 test('пробный экзамен только у репетитора', async () => {
     const w = load({ notTutor: true });
-    await w.E.examOpen('add', 'integer-', { trial: true });
+    await w.E.examOpen('add', 'integer-', 3, { trial: true });
     eq(w.E.exam, null, 'ученик запустил пробный экзамен');
 });
 
 test('на положительных сохранение зовёт старую дверь, без раздела', async () => {
     // Так новое приложение работает и с базой, где exam-sections.sql ещё не запущен.
     const w = load();
-    await w.E.examOpen('add', 'integer+');
+    await w.E.examOpen('add', 'integer+', 3);
     await passToCap(w);
     eq(w.box.sent.fn, 'session_take_exam', 'результат ушёл не туда');
     assert(!('p_section' in w.box.sent.args), 'на положительных передан раздел: ' + JSON.stringify(w.box.sent.args));
@@ -536,7 +753,7 @@ test('в другом разделе сохранение передаёт ра�
     // Список пока из одних положительных — расширяем его прямо в песочнице.
     const w = load();
     w.E.EXAM_SECTIONS.push('integer-');
-    await w.E.examOpen('add', 'integer-');
+    await w.E.examOpen('add', 'integer-', 3);
     await passToCap(w);
     eq(w.box.sent.args.p_section, 'integer-', 'раздел не передан');
 });
@@ -547,6 +764,10 @@ test('кнопка пробного экзамена видна только р�
     assert(/isGuest\(\)/.test(body), 'гость мог бы увидеть пробный экзамен');
     assert(/category !== 'integer'/.test(body), 'пробный экзамен предлагается не на целых');
     assert(/ops\.length !== 1/.test(body), 'пробный экзамен — на нескольких действиях сразу');
+    assert(/level >= 2 && level <= EXAM_MAX_GRANT/.test(body), 'пробный экзамен — на звезде, где настоящего не бывает');
+    const start = slice('function startTrialExam', '// ===================== РЕЖИМ ОБУЧЕНИЯ', 'запуск пробного');
+    assert(/examOpen\(target\.op, target\.secKey, target\.level, \{ trial: true \}\)/.test(start),
+        'пробный экзамен идёт не на выбранной звезде');
 });
 
 (async () => {
