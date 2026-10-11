@@ -68,6 +68,7 @@
             .dlg-card, .toast { animation: none !important; }
             .puzzle-complete-art .puzzle-complete-seams { transition-duration: 0.01s; transition-delay: 0s; }
             .pz-frame-fire { animation: none !important; }
+            .puzzle-complete-art.frame-burst, .puzzle-complete-art.frame-burst::after { animation: none !important; }
         }
 
         .modal-screen {
@@ -668,16 +669,36 @@
         .pz-frame-gold    { border-color: rgba(255, 215, 0, 0.7) !important; box-shadow: 0 0 14px rgba(255, 215, 0, 0.28) !important; }
         .pz-frame-diamond { border-color: #7dd3fc !important; box-shadow: 0 0 14px rgba(125, 211, 252, 0.5) !important; }
         .pz-frame-legend  { border-color: #c084fc !important; box-shadow: 0 0 16px rgba(192, 132, 252, 0.55) !important; }
+        /* Огонь мерцает. Через filter, а не box-shadow: тень выше стоит с !important,
+           а такую объявление анимации не перебивает — мерцания просто не было бы. */
         .pz-frame-fire    { border-color: #fb923c !important; box-shadow: 0 0 16px rgba(251, 146, 60, 0.6) !important;
                             animation: pzFireGlow 2.4s ease-in-out infinite; }
+        /* Радуга: тёмная середина под картинкой, радужная только рамка — иначе пустой
+           образец в полоске карточки залился бы радугой целиком. */
         .pz-frame-rainbow {
             border-color: transparent !important; box-shadow: 0 0 18px rgba(232, 121, 249, 0.45) !important;
-            background: conic-gradient(from 0deg, #f87171, #fbbf24, #a3e635, #22d3ee, #818cf8, #e879f9, #f87171) border-box !important;
+            background: linear-gradient(#0b0e18, #0b0e18) padding-box,
+                        conic-gradient(from 0deg, #f87171, #fbbf24, #a3e635, #22d3ee, #818cf8, #e879f9, #f87171) border-box !important;
         }
         @keyframes pzFireGlow {
-            0%, 100% { box-shadow: 0 0 12px rgba(251, 146, 60, 0.45); }
-            50%      { box-shadow: 0 0 22px rgba(251, 146, 60, 0.8); }
+            0%, 100% { filter: drop-shadow(0 0 0 rgba(251, 146, 60, 0)); }
+            50%      { filter: drop-shadow(0 0 7px rgba(251, 146, 60, 0.75)); }
         }
+        /* Новая рамка в окне сборки: когда швы растаяли, картинка вспыхивает и чуть
+           подаётся вперёд, по ней пробегает блик. Один раз, без повторов. */
+        .puzzle-complete-art.frame-burst { animation: frameBurst 1.4s ease-out 2.2s 1 both; }
+        .puzzle-complete-art::after {
+            content: ''; position: absolute; inset: 0; z-index: 2; pointer-events: none;
+            background: linear-gradient(105deg, transparent 38%, rgba(255, 255, 255, 0.55) 50%, transparent 62%);
+            background-size: 250% 100%; background-position: 150% 0;
+        }
+        .puzzle-complete-art.frame-burst::after { animation: frameShine 1.3s ease-out 2.3s 1 both; }
+        @keyframes frameBurst {
+            0%   { filter: none; transform: scale(1); }
+            30%  { filter: brightness(1.25) drop-shadow(0 0 18px rgba(255, 255, 255, 0.55)); transform: scale(1.035); }
+            100% { filter: none; transform: scale(1); }
+        }
+        @keyframes frameShine { from { background-position: 150% 0; } to { background-position: -60% 0; } }
         /* Мини-пазл в обычном виде с тонкой рамкой; с рамкой за сборы — потолще, иначе
            цвет на сотне пикселей не различить. */
         .puzzle-mini-thumb[class*="pz-frame-"] { border-width: 2px; }
@@ -776,8 +797,18 @@
             border-radius: 14px; border: 2px solid rgba(255, 215, 0, 0.35);
         }
         .collection-detail .puzzle-save-hint { margin-top: -6px; }
-        .detail-frame-line { color: #cbd5e1; font-size: 0.8rem; text-align: center; margin-top: -4px; }
-        .detail-frame-line:empty { display: none; }
+        /* Полоска рамок в карточке: все пять, с числом сборов под каждой. Взятые горят,
+           текущая крупнее, будущие приглушены — что впереди, видно без слов. */
+        .frame-ladder { display: flex; justify-content: center; align-items: flex-end; gap: 12px; margin-top: -2px; }
+        .frame-ladder:empty { display: none; }
+        .frame-step { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+        .frame-swatch { display: block; width: 26px; height: 26px; border-radius: 8px; box-sizing: border-box;
+                        border: 2px solid rgba(255, 255, 255, 0.25); background: #0b0e18; }
+        .frame-n { font-size: 0.7rem; font-weight: 700; color: #94a3b8; font-variant-numeric: tabular-nums; }
+        .frame-step.current .frame-swatch { width: 32px; height: 32px; border-radius: 9px; }
+        .frame-step.current .frame-n { color: #f1f5f9; }
+        .frame-step.future .frame-swatch { opacity: 0.28; box-shadow: none !important; animation: none; }
+        .frame-step.future .frame-n { opacity: 0.45; }
 
         /* Просмотр на весь экран. Поверх всего, включая коллекцию в перерыв (9100):
            открыли картинку — смотрим картинку. touch-action: none — жесты наши, а не
@@ -3230,7 +3261,7 @@
             <div class="collection-detail" id="collectionDetail">
                 <img id="detailImg" alt="Парадокс">
                 <div class="puzzle-save-hint">Нажми на пазл, чтобы рассмотреть его крупно</div>
-                <div class="detail-frame-line" id="detailFrameLine"></div>
+                <div class="frame-ladder" id="detailFrameLadder" aria-hidden="true"></div>
                 <div class="paradox-card">
                     <div class="paradox-name" id="detailName"></div>
                     <div class="paradox-era" id="detailEra"></div>
@@ -6442,12 +6473,17 @@
         // Пятьдесят и сто сборов не ставим нарочно: это 5000 и 10 000 верных в одной
         // клетке, десятки занятий подряд только в ней. Такую рамку не получил бы
         // никто, а гнаться за ней значило бы решать одно и то же вместо следующих звёзд.
+        //
+        // Названий у рамок нет — ни в карточке, ни в окне сборки. «Огонь» и «Радуга»
+        // словами звучали как клички, которые надо запоминать, а ребёнку они ничего
+        // не говорят. Рамка видна сама: в карточке — полоска из пяти рамок с «×N»,
+        // в окне сборки — вспышка и блик. Заодно переводить нечего.
         const PUZZLE_FRAMES = [
-            { from: 1,  id: 'gold',    icon: '🥇', name: t('Золото') },
-            { from: 2,  id: 'diamond', icon: '💎', name: t('Алмаз') },
-            { from: 3,  id: 'legend',  icon: '👑', name: t('Легенда') },
-            { from: 5,  id: 'fire',    icon: '🔥', name: t('Огонь') },
-            { from: 10, id: 'rainbow', icon: '🌈', name: t('Радуга') }
+            { from: 1,  id: 'gold' },
+            { from: 2,  id: 'diamond' },
+            { from: 3,  id: 'legend' },
+            { from: 5,  id: 'fire' },
+            { from: 10, id: 'rainbow' }
         ];
         // Рамка картинки, собранной times раз; null — ещё не собрана.
         function puzzleFrameFor(times) {
@@ -6840,19 +6876,19 @@
                 tf('⏱️ Время: %1  |  ✅ %2  |  ❌ %3  |  🧩 Пазлов собрано: %4', formatTime(totalSeconds), correctCount, wrongCount, allPuzzles);
             // Картинки повторяются: каждая новая сотня в клетке собирает ту же. Первый
             // раз — про коллекцию, дальше — про то, сколько раз собрана именно эта.
-            // Новая рамка — это и есть награда за повторный сбор, поэтому о ней говорим
-            // отдельной строкой. Первую, золотую, не объявляем: первый сбор и так
-            // празднуется строкой «Добавлено в коллекцию».
+            // Новая рамка — это и есть награда за повторный сбор: строка «Новая рамка!»
+            // и вспышка с бликом по картинке, когда швы растаяли. Первую, золотую, не
+            // объявляем: первый сбор и так празднуется строкой «Добавлено в коллекцию».
             const newFrame = item.times > 1 ? PUZZLE_FRAMES.filter(f => f.from === item.times)[0] : null;
             document.getElementById('collectionAddedLine').innerText = ((item.times > 1)
                 ? tf('🏆 Собрана снова: всего %1', item.times)
                 : tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length))
-                + (newFrame ? '\n' + tf('✨ Новая рамка: %1 %2!', newFrame.icon, newFrame.name) : '');
+                + (newFrame ? '\n' + t('✨ Новая рамка!') : '');
             setPuzzleFrame(document.getElementById('puzzleCompleteArt'), item.times);
 
             const art = document.getElementById('puzzleCompleteArt');
             const seams = document.getElementById('puzzleCompleteSeams');
-            art.classList.remove('melt');
+            art.classList.remove('melt', 'frame-burst');
             seams.removeAttribute('src');
             document.getElementById('puzzleCompleteImg').src = item.src;
             puzzleRevealSrc = item.src;
@@ -6861,7 +6897,10 @@
                     seams.onload = null;
                     // Два кадра: сначала швы должны появиться на экране, иначе браузер
                     // склеит оба состояния в одно и таять будет нечему.
-                    requestAnimationFrame(() => requestAnimationFrame(() => art.classList.add('melt')));
+                    requestAnimationFrame(() => requestAnimationFrame(() => {
+                        art.classList.add('melt');
+                        if (newFrame) art.classList.add('frame-burst');
+                    }));
                 };
                 seams.src = dataUrl;
             });
@@ -7083,19 +7122,33 @@
             document.getElementById('collectionListView').style.display = '';
             document.getElementById('collectionDetail').classList.remove('show');
         }
+        function renderFrameLadder(wrap, times) {
+            wrap.innerHTML = '';
+            const current = puzzleFrameFor(times);
+            if (!current) return;
+            PUZZLE_FRAMES.forEach(f => {
+                const step = document.createElement('div');
+                step.className = 'frame-step ' + (f === current ? 'current' : times >= f.from ? 'done' : 'future');
+                const sw = document.createElement('span');
+                sw.className = 'frame-swatch pz-frame-' + f.id;
+                const n = document.createElement('span');
+                n.className = 'frame-n';
+                n.innerText = `×${f.from}`;
+                step.appendChild(sw);
+                step.appendChild(n);
+                wrap.appendChild(step);
+            });
+        }
         function showParadoxDetail(index) {
             const px = resolveParadoxes()[index];
             if (!px) return;
             document.getElementById('detailImg').src = PUZZLE_IMAGE_SRCS[index];
             detailImageSrc = PUZZLE_IMAGE_SRCS[index];
-            // Рамка картинки и сколько до следующей. Сборы — значком «×», как на плитке:
-            // так не нужны склонения «раз/раза» на четырёх языках.
+            // Рамка картинки и полоска из всех пяти: какие уже взяты и что впереди.
+            // Сборы — значком «×», как на плитке, без слов и склонений.
             const times = collectionTimes()[index] || 0;
             setPuzzleFrame(document.getElementById('detailImg'), times);
-            const frame = puzzleFrameFor(times), next = nextPuzzleFrame(times);
-            document.getElementById('detailFrameLine').innerText = !frame ? ''
-                : next ? tf('Рамка: %1 %2 (×%3). Дальше — %4 %5 на ×%6.', frame.icon, frame.name, times, next.icon, next.name, next.from)
-                : tf('Рамка: %1 %2 (×%3) — самая высокая.', frame.icon, frame.name, times);
+            renderFrameLadder(document.getElementById('detailFrameLadder'), times);
             fillParadoxCard('detail', px);
             document.getElementById('collectionListView').style.display = 'none';
             document.getElementById('collectionDetail').classList.add('show');
