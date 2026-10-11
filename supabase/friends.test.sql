@@ -196,7 +196,8 @@ update citadel_progress set state = state || jsonb_build_object(
     'unlocks', '{"integer+:add:1:a3":"2026-01-01","integer+:add:1:c3":"2026-01-02","integer+:add:1:s1":"2026-01-02",
                  "fraction+:toMixed:2:c1":"2026-01-03","streak7":"2026-01-01","master:fraction:add":"x",
                  "integer+:add:3:x3":"2026-01-01","integer+:add:2:a1":null,"integer+:add:2:a2":""}'::jsonb,
-    'byTopic', '{"integer+:add:1":{"correct":150,"wrong":9},"integer+:sub:2":{"correct":99,"wrong":1}}'::jsonb,
+    'byTopic', '{"integer+:add:1":{"correct":150,"wrong":9},"integer+:sub:2":{"correct":99,"wrong":1},
+                 "integer+:mul:1":{"correct":520,"wrong":2},"integer-:add:2":{"correct":230,"wrong":4}}'::jsonb,
     'collections', jsonb_build_object('paradoxes', '[false,false,false,false,false,false,false,true]'::jsonb),
     'errorKinds', '{"integer+:add:1":{"ошибся в знаке":4}}'::jsonb,
     'mistakeBank', '{"items":{"integer+:add:1|3 + 4":{"k":"integer+:add:1","p":{"text":"3 + 4"},"w":8,"e":"не тот знак","t":1,"ok":[]}},"done":{}}'::jsonb,
@@ -206,16 +207,19 @@ update citadel_progress set state = state || jsonb_build_object(
 select session_friends(:'kid1', :'today') as r \gset
 select (:'r'::jsonb)->'friends'->0 as f \gset
 select case when jsonb_array_length((:'r'::jsonb)->'friends') = 1
-             and (select array_agg(k order by k) from jsonb_object_keys(:'f'::jsonb) k)
-                 = array['id', 'ladders', 'name', 'pics', 'streak']
-            then 'ДА  у друга ровно пять полей: номер, имя, серия, медали, картинки'
+             and (select array_agg(k order by k collate "C") from jsonb_object_keys(:'f'::jsonb) k)
+                 = array['id', 'ladders', 'name', 'pic_times', 'pics', 'streak']
+            then 'ДА  у друга ровно шесть полей: номер, имя, серия, медали, картинки и сколько раз собраны'
             else 'НЕТ поля друга: ' || :'f' end;
 select case when (:'f'::jsonb)->'ladders' = '["fraction+:toMixed:2:c1","integer+:add:1:a3","integer+:add:1:c3","integer+:add:1:s1"]'::jsonb
             then 'ДА  медали — только ступени лесенок, без дат и без пустых'
             else 'НЕТ медали: ' || ((:'f'::jsonb)->'ladders')::text end;
-select case when (:'f'::jsonb)->'pics' = '[0, 7]'::jsonb
-            then 'ДА  картинки: сотня в клетке и отметка в коллекции, 99 ответов — ещё нет'
+select case when (:'f'::jsonb)->'pics' = '[0, 7, 10, 21]'::jsonb
+            then 'ДА  картинки: сотня в клетке и отметка в коллекции, 99 ответов — ещё нет, отрицательные — с номера 20'
             else 'НЕТ картинки: ' || ((:'f'::jsonb)->'pics')::text end;
+select case when (:'f'::jsonb)->'pic_times' = '{"0": 1, "7": 1, "10": 5, "21": 2}'::jsonb
+            then 'ДА  сколько раз собрана каждая картинка: сотни ответов, отметка — один раз'
+            else 'НЕТ сборы: ' || ((:'f'::jsonb)->'pic_times')::text end;
 select case when ((:'f'::jsonb)->>'streak')::int = 9
             then 'ДА  серия считается с заморозкой, как в приложении'
             else 'НЕТ серия: ' || ((:'f'::jsonb)->>'streak') end;
@@ -348,6 +352,7 @@ select case when (:'r'::jsonb)->>'ok' = 'true'
              and (:'r'::jsonb)->'friends'->0->>'streak' = '0'
              and (:'r'::jsonb)->'friends'->0->'ladders' = '[]'::jsonb
              and (:'r'::jsonb)->'friends'->0->'pics' = '[]'::jsonb
+             and (:'r'::jsonb)->'friends'->0->'pic_times' = '{}'::jsonb
             then 'ДА  испорченный прогресс друга читается как пустой'
             else 'НЕТ сломанный друг: ' || :'r' end;
 

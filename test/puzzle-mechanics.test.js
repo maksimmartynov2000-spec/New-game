@@ -163,6 +163,36 @@ check('у замка есть шейка: головка шире основан
     assert(top > 0.2 && top < 0.35, `высота замка ${top}`);
 });
 
+console.log('\nРамка пазла за повторные сборы');
+
+const F = (() => {
+    const box = { Math, Array, String, Number, t: (x) => x };
+    vm.createContext(box);
+    vm.runInContext(slice('// ===== РАМКА ПАЗЛА — ЗА ПОВТОРНЫЕ СБОРЫ =====', '// У каждой из двадцати клеток положительных чисел', 'рамки')
+        + ';globalThis.R = { PUZZLE_FRAMES, puzzleFrameFor, nextPuzzleFrame };', box, { filename: 'index.html<рамки>' });
+    return box.R;
+})();
+check('рамка меняется на 1, 2, 3, 5 и 10 сборах', () => {
+    const at = (n) => (F.puzzleFrameFor(n) || { id: '—' }).id;
+    eq([0, 1, 2, 3, 4, 5, 9, 10, 37].map(at).join(' '), '— gold diamond legend legend fire fire rainbow rainbow', 'рамки');
+    eq((F.nextPuzzleFrame(3) || {}).from, 5, 'следующая после третьего сбора');
+    eq(F.nextPuzzleFrame(10), null, 'следующая после радуги');
+});
+check('первые три рамки — те же ступени, что в лесенке количества', () => {
+    // Рамка за k-й сбор — та ступень количества, что взята именно на нём: на 100 ответах
+    // золото, к двумстам — алмаз (150), к тремстам — легенда (250).
+    const tiers = (HTML.match(/const COUNT_TIERS = \[([^\]]*)\]/) || [])[1].split(',').map(Number);
+    const names = (HTML.match(/const TIER_NAMES = \[([^\]]*)\]/) || [])[1];
+    [['gold', 2, 'Золото'], ['diamond', 3, 'Алмаз'], ['legend', 4, 'Легенда']].forEach(([id, k, name]) => {
+        const f = F.PUZZLE_FRAMES.filter(x => x.id === id)[0];
+        assert(f, `нет рамки ${id}`);
+        assert(f.from * 100 >= tiers[k] && (f.from - 1) * 100 < tiers[k],
+            `рамка ${id} на ${f.from}-м сборе, а ступень количества — на ${tiers[k]} ответах`);
+        eq(f.name, name, `название рамки ${id}`);
+        assert(names.indexOf(`t('${name}')`) >= 0, `«${name}» нет среди ступеней лесенки`);
+    });
+});
+
 // ---------------------------------------------------------------------------------
 // Часть 2. В живом браузере.
 // ---------------------------------------------------------------------------------
@@ -464,6 +494,79 @@ catch (e) {
             return { a, b }; })()`);
         eq(JSON.stringify(r.a), JSON.stringify([true, false, true, false, false]), 'после дополнения');
         eq(JSON.stringify(r.b), JSON.stringify([true, false, false, false, false, true]), 'длинный массив');
+    });
+
+    console.log('\nРамки в коллекции, в игре и у друга');
+    // Сложение 2★ — собран раз (золото), сложение 1★ — дважды (алмаз), вычитание 1★ —
+    // трижды (легенда), умножение 1★ — пять раз (огонь), деление 1★ — десять (радуга),
+    // сложение 3★ — только начат.
+    await seed({ 'integer+:add:2': { correct: 100, wrong: 0 }, 'integer+:add:1': { correct: 230, wrong: 0 },
+                 'integer+:sub:1': { correct: 300, wrong: 0 }, 'integer+:mul:1': { correct: 520, wrong: 0 },
+                 'integer+:div:1': { correct: 1000, wrong: 0 }, 'integer+:add:3': { correct: 37, wrong: 0 } });
+    await page.evaluate(`Progress.get().collections.paradoxes = new Array(20).fill(false); openCollectionModal(); null`);
+    await page.waitForTimeout(300);
+    const frameOf = (sel) => page.evaluate(`(() => { const el = ${sel};
+        return el ? [...el.classList].filter(c => c.indexOf('pz-frame-') === 0).join(' ') : '∅'; })()`);
+    await checkAsync('плитки коллекции — в рамках по числу сборов', async () => {
+        const got = await page.evaluate(`(() => { const items = [...document.querySelectorAll('#collectionGroups .collection-item')];
+            return [1, 0, 5, 10, 15, 2].map(i => [...items[i].classList].filter(c => c.indexOf('pz-frame-') === 0).join(' ') || '—'); })()`);
+        eq(got.join(','), 'pz-frame-gold,pz-frame-diamond,pz-frame-legend,pz-frame-fire,pz-frame-rainbow,—', 'рамки плиток');
+    });
+    await checkAsync('в карточке — рамка и сколько до следующей', async () => {
+        await page.evaluate(`showParadoxDetail(0); null`);
+        const line = await page.evaluate(`document.getElementById('detailFrameLine').innerText`);
+        eq(line, 'Рамка: 💎 Алмаз (×2). Дальше — 👑 Легенда на ×3.', 'строка о рамке');
+        eq(await frameOf(`document.getElementById('detailImg')`), 'pz-frame-diamond', 'рамка картинки');
+        await page.evaluate(`showParadoxDetail(15); null`);
+        eq(await page.evaluate(`document.getElementById('detailFrameLine').innerText`),
+           'Рамка: 🌈 Радуга (×10) — самая высокая.', 'строка о высшей рамке');
+        eq(await frameOf(`document.getElementById('detailImg')`), 'pz-frame-rainbow', 'рамка картинки');
+    });
+    await checkAsync('мини-пазл в игре — в рамке своей клетки', async () => {
+        await startMission('mul', 1);
+        await page.waitForTimeout(300);
+        eq(await frameOf(`document.querySelector('.puzzle-mini-thumb')`), 'pz-frame-fire', 'рамка мини-пазла');
+        eq(await frameOf(`document.querySelector('#puzzleLiveSection .puzzle-big-thumb')`), 'pz-frame-fire', 'рамка большого пазла');
+        await startMission('add', 3);
+        await page.waitForTimeout(300);
+        eq(await frameOf(`document.querySelector('.puzzle-mini-thumb')`), '', 'рамка у несобранного');
+    });
+    // Сотый ответ в клетке: какая строка и какая рамка в окне собранного пазла.
+    const complete = async (key, op, level, before) => {
+        await seed({ [key]: { correct: before, wrong: 0 } });
+        await page.evaluate(`Progress.get().collections.paradoxes = new Array(20).fill(false); null`);
+        await startMission(op, level);
+        await page.waitForTimeout(300);
+        await page.evaluate(`checkAnswer(correctAnswer, null); null`);
+        await page.waitForTimeout(200);
+        await page.evaluate(`gameActive = false; showNextPuzzleReveal(); null`);
+        await page.waitForTimeout(200);
+        const r = { line: await page.evaluate(`document.getElementById('collectionAddedLine').innerText`),
+                    frame: await frameOf(`document.getElementById('puzzleCompleteArt')`) };
+        await page.evaluate(`closePuzzleModal(); null`);
+        return r;
+    };
+    await checkAsync('второй сбор — «Новая рамка: 💎 Алмаз»', async () => {
+        const r = await complete('integer+:add:2', 'add', 2, 199);
+        assert(/Новая рамка: 💎 Алмаз!/.test(r.line), r.line);
+        eq(r.frame, 'pz-frame-diamond', 'рамка в окне сборки');
+    });
+    await checkAsync('первый сбор — без «Новой рамки», в золотой рамке', async () => {
+        const r = await complete('integer+:add:2', 'add', 2, 99);
+        assert(!/Новая рамка/.test(r.line) && /Добавлено в коллекцию/.test(r.line), r.line);
+        eq(r.frame, 'pz-frame-gold', 'рамка в окне сборки');
+    });
+    await checkAsync('четвёртый сбор — рамка та же, и о новой не говорим', async () => {
+        const r = await complete('integer+:add:2', 'add', 2, 399);
+        assert(!/Новая рамка/.test(r.line) && /Собрана снова: всего 4/.test(r.line), r.line);
+        eq(r.frame, 'pz-frame-legend', 'рамка в окне сборки');
+    });
+    await checkAsync('у друга без числа сборов (SQL ещё не запущен) — золото', async () => {
+        const r = await page.evaluate(`(() => ({
+            none: friendStats({ pics: [0, 2], ladders: [] }).picTimes,
+            some: friendStats({ pics: [0, 2], ladders: [], pic_times: { '0': 5, '2': 'x', '3': 2 } }).picTimes }))()`);
+        eq(JSON.stringify(r.none), JSON.stringify({ 0: 1, 2: 1 }), 'без pic_times');
+        eq(JSON.stringify(r.some), JSON.stringify({ 0: 5, 2: 1 }), 'с pic_times');
     });
 
     await checkAsync('без ошибок на странице', async () => {

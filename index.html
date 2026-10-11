@@ -67,6 +67,7 @@
             .floating-reward { animation-duration: 0.35s !important; }
             .dlg-card, .toast { animation: none !important; }
             .puzzle-complete-art .puzzle-complete-seams { transition-duration: 0.01s; transition-delay: 0s; }
+            .pz-frame-fire { animation: none !important; }
         }
 
         .modal-screen {
@@ -661,6 +662,27 @@
             font-size: 2rem; color: rgba(255,255,255,0.35); font-weight: bold;
         }
         .collection-item.unlocked { border-color: rgba(255, 215, 0, 0.5); box-shadow: 0 0 14px rgba(255,215,0,0.2); }
+        /* Рамки пазла за повторные сборы. Один набор классов на все места: плитка,
+           карточка, мини-пазл, окно собранного пазла, страница друга. Радуга — через
+           фон под прозрачной рамкой: border-image со скруглёнными углами не дружит. */
+        .pz-frame-gold    { border-color: rgba(255, 215, 0, 0.7) !important; box-shadow: 0 0 14px rgba(255, 215, 0, 0.28) !important; }
+        .pz-frame-diamond { border-color: #7dd3fc !important; box-shadow: 0 0 14px rgba(125, 211, 252, 0.5) !important; }
+        .pz-frame-legend  { border-color: #c084fc !important; box-shadow: 0 0 16px rgba(192, 132, 252, 0.55) !important; }
+        .pz-frame-fire    { border-color: #fb923c !important; box-shadow: 0 0 16px rgba(251, 146, 60, 0.6) !important;
+                            animation: pzFireGlow 2.4s ease-in-out infinite; }
+        .pz-frame-rainbow {
+            border-color: transparent !important; box-shadow: 0 0 18px rgba(232, 121, 249, 0.45) !important;
+            background: conic-gradient(from 0deg, #f87171, #fbbf24, #a3e635, #22d3ee, #818cf8, #e879f9, #f87171) border-box !important;
+        }
+        @keyframes pzFireGlow {
+            0%, 100% { box-shadow: 0 0 12px rgba(251, 146, 60, 0.45); }
+            50%      { box-shadow: 0 0 22px rgba(251, 146, 60, 0.8); }
+        }
+        /* Мини-пазл в обычном виде с тонкой рамкой; с рамкой за сборы — потолще, иначе
+           цвет на сотне пикселей не различить. */
+        .puzzle-mini-thumb[class*="pz-frame-"] { border-width: 2px; }
+        .friend-pics img[class*="pz-frame-"] { border-width: 2px; }
+
         /* Начатый пазл: собранные кусочки в цвете поверх тёмной плитки, вместо «?» — счёт. */
         .collection-item.locked.started::after { content: none; }
         .collection-item .collection-progress { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
@@ -754,6 +776,8 @@
             border-radius: 14px; border: 2px solid rgba(255, 215, 0, 0.35);
         }
         .collection-detail .puzzle-save-hint { margin-top: -6px; }
+        .detail-frame-line { color: #cbd5e1; font-size: 0.8rem; text-align: center; margin-top: -4px; }
+        .detail-frame-line:empty { display: none; }
 
         /* Просмотр на весь экран. Поверх всего, включая коллекцию в перерыв (9100):
            открыли картинку — смотрим картинку. touch-action: none — жесты наши, а не
@@ -3206,6 +3230,7 @@
             <div class="collection-detail" id="collectionDetail">
                 <img id="detailImg" alt="Парадокс">
                 <div class="puzzle-save-hint">Нажми на пазл, чтобы рассмотреть его крупно</div>
+                <div class="detail-frame-line" id="detailFrameLine"></div>
                 <div class="paradox-card">
                     <div class="paradox-name" id="detailName"></div>
                     <div class="paradox-era" id="detailEra"></div>
@@ -6406,6 +6431,43 @@
                 `🏆 ${collectionCollectedCount(collectionTimes())}/${PUZZLE_IMAGE_SRCS.length}`;
         }
 
+        // ===== РАМКА ПАЗЛА — ЗА ПОВТОРНЫЕ СБОРЫ =====
+        //
+        // Лесенка количества в клетке кончается на 250 верных — на «Легенде», и дальше
+        // клетка ничего не давала, кроме «×3» в углу плитки. Рамка продолжает её:
+        // первые три ступени совпадают с лесенкой (золото — 100 ответов, первый сбор;
+        // алмаз — 150, к второму сбору он уже взят; легенда — 250, взята к третьему),
+        // а дальше две новые, за 500 и 1000 ответов в одной клетке.
+        //
+        // Пятьдесят и сто сборов не ставим нарочно: это 5000 и 10 000 верных в одной
+        // клетке, десятки занятий подряд только в ней. Такую рамку не получил бы
+        // никто, а гнаться за ней значило бы решать одно и то же вместо следующих звёзд.
+        const PUZZLE_FRAMES = [
+            { from: 1,  id: 'gold',    icon: '🥇', name: t('Золото') },
+            { from: 2,  id: 'diamond', icon: '💎', name: t('Алмаз') },
+            { from: 3,  id: 'legend',  icon: '👑', name: t('Легенда') },
+            { from: 5,  id: 'fire',    icon: '🔥', name: t('Огонь') },
+            { from: 10, id: 'rainbow', icon: '🌈', name: t('Радуга') }
+        ];
+        // Рамка картинки, собранной times раз; null — ещё не собрана.
+        function puzzleFrameFor(times) {
+            let frame = null;
+            PUZZLE_FRAMES.forEach(f => { if (times >= f.from) frame = f; });
+            return frame;
+        }
+        function nextPuzzleFrame(times) {
+            return PUZZLE_FRAMES.filter(f => f.from > (times || 0))[0] || null;
+        }
+        // Ставит элементу класс рамки, снимая прежний. Один класс на все места —
+        // плитка, карточка, мини-пазл, окно сборки, страница друга, — и цвета
+        // рамок живут в одном месте стилей.
+        function setPuzzleFrame(el, times) {
+            if (!el) return;
+            PUZZLE_FRAMES.forEach(f => el.classList.remove('pz-frame-' + f.id));
+            const frame = puzzleFrameFor(times);
+            if (frame) el.classList.add('pz-frame-' + frame.id);
+        }
+
         // У каждой из двадцати клеток положительных чисел своя закреплённая картинка:
         // четыре действия по пять звёзд, ровно двадцать пазлов. Коллекция перестаёт
         // быть набором трофеев и становится картой пройденного — видно, откуда что.
@@ -6490,6 +6552,10 @@
             }
 
             currentPuzzleImageIndex = idx;
+            // Рамка клетки видна прямо во время решения — та же, что на плитке коллекции.
+            const frameTimes = collectionTimes()[idx] || 0;
+            setPuzzleFrame(document.querySelector('.puzzle-mini-thumb'), frameTimes);
+            setPuzzleFrame(document.querySelector('#puzzleLiveSection .puzzle-big-thumb'), frameTimes);
             const imgEl = document.getElementById('puzzleFullImg');
             imgEl.setAttribute('href', PUZZLE_IMAGE_SRCS[idx]);
             imgEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', PUZZLE_IMAGE_SRCS[idx]);
@@ -6774,9 +6840,15 @@
                 tf('⏱️ Время: %1  |  ✅ %2  |  ❌ %3  |  🧩 Пазлов собрано: %4', formatTime(totalSeconds), correctCount, wrongCount, allPuzzles);
             // Картинки повторяются: каждая новая сотня в клетке собирает ту же. Первый
             // раз — про коллекцию, дальше — про то, сколько раз собрана именно эта.
-            document.getElementById('collectionAddedLine').innerText = (item.times > 1)
+            // Новая рамка — это и есть награда за повторный сбор, поэтому о ней говорим
+            // отдельной строкой. Первую, золотую, не объявляем: первый сбор и так
+            // празднуется строкой «Добавлено в коллекцию».
+            const newFrame = item.times > 1 ? PUZZLE_FRAMES.filter(f => f.from === item.times)[0] : null;
+            document.getElementById('collectionAddedLine').innerText = ((item.times > 1)
                 ? tf('🏆 Собрана снова: всего %1', item.times)
-                : tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length);
+                : tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length))
+                + (newFrame ? '\n' + tf('✨ Новая рамка: %1 %2!', newFrame.icon, newFrame.name) : '');
+            setPuzzleFrame(document.getElementById('puzzleCompleteArt'), item.times);
 
             const art = document.getElementById('puzzleCompleteArt');
             const seams = document.getElementById('puzzleCompleteSeams');
@@ -7016,6 +7088,14 @@
             if (!px) return;
             document.getElementById('detailImg').src = PUZZLE_IMAGE_SRCS[index];
             detailImageSrc = PUZZLE_IMAGE_SRCS[index];
+            // Рамка картинки и сколько до следующей. Сборы — значком «×», как на плитке:
+            // так не нужны склонения «раз/раза» на четырёх языках.
+            const times = collectionTimes()[index] || 0;
+            setPuzzleFrame(document.getElementById('detailImg'), times);
+            const frame = puzzleFrameFor(times), next = nextPuzzleFrame(times);
+            document.getElementById('detailFrameLine').innerText = !frame ? ''
+                : next ? tf('Рамка: %1 %2 (×%3). Дальше — %4 %5 на ×%6.', frame.icon, frame.name, times, next.icon, next.name, next.from)
+                : tf('Рамка: %1 %2 (×%3) — самая высокая.', frame.icon, frame.name, times);
             fillParadoxCard('detail', px);
             document.getElementById('collectionListView').style.display = 'none';
             document.getElementById('collectionDetail').classList.add('show');
@@ -7096,6 +7176,7 @@
                 const unlocked = times > 0;
                 const item = document.createElement('div');
                 item.className = 'collection-item ' + (unlocked ? 'unlocked' : 'locked');
+                setPuzzleFrame(item, times);
                 const img = document.createElement('img');
                 img.src = puzzleThumbSrc(i);
                 img.loading = 'lazy';
@@ -11602,6 +11683,14 @@
             });
             out.pics = (Array.isArray(f.pics) ? f.pics : [])
                 .filter(i => Number.isInteger(i) && i >= 0 && i < PUZZLE_IMAGE_SRCS.length);
+            // Сколько раз друг собрал каждую картинку — для рамки. Сервер без этого поля
+            // (SQL ещё не обновлён) — рамка у всех собранных золотая, как первый сбор.
+            const times = (f.pic_times && typeof f.pic_times === 'object') ? f.pic_times : {};
+            out.picTimes = {};
+            out.pics.forEach(i => {
+                const n = Number(times[String(i)]);
+                out.picTimes[i] = Number.isInteger(n) && n >= 1 ? Math.min(n, 1000) : 1;
+            });
             return out;
         }
 
@@ -11895,6 +11984,7 @@
                     grid.className = 'friend-pics';
                     s.pics.forEach(i => {
                         const img = document.createElement('img');
+                        setPuzzleFrame(img, (s.picTimes || {})[i] || 1);
                         img.src = puzzleThumbSrc(i);
                         img.alt = '';
                         img.loading = 'lazy';
