@@ -742,7 +742,9 @@
         .paradox-probe-tap { color: #64748b; font-size: 0.68rem; margin-top: 6px; }
 
         /* Экран одного парадокса внутри окна коллекции */
-        .collection-detail { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
+        /* Сверху — место под крестик окна: картинка теперь во всю ширину, и без отступа
+           крестик ложился на её правый верхний угол. */
+        .collection-detail { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; padding-top: 46px; }
         .collection-detail.show { display: flex; }
         /* Картинка во всю ширину окна: подробные сцены и выбраны ради того, чтобы их
            рассматривать, а в 260 пикселях было видно меньше половины. Нажатие — на весь

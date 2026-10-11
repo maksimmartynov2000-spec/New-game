@@ -326,6 +326,14 @@ catch (e) {
         const w = await page.evaluate(`document.getElementById('detailImg').getBoundingClientRect().width`);
         assert(w >= 320, `ширина картинки ${Math.round(w)} px`);
     });
+    await checkAsync('крестик окна не ложится на картинку', async () => {
+        const r = await page.evaluate(`(() => {
+            const a = document.getElementById('collectionCloseBtn').getBoundingClientRect();
+            const b = document.getElementById('detailImg').getBoundingClientRect();
+            return { overlap: !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom),
+                     btnBottom: Math.round(a.bottom), imgTop: Math.round(b.top) }; })()`);
+        assert(!r.overlap, `крестик заходит на картинку: низ крестика ${r.btnBottom}, верх картинки ${r.imgTop}`);
+    });
     await page.click('#detailImg');
     await page.waitForTimeout(200);
     // offsetParent у position: fixed всегда null, поэтому видимость — по стилю.
