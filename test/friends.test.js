@@ -55,7 +55,11 @@ checkNow('серия: цель дня, заморозка и запас — те
         `заморозка в fr_streak не каждые ${every} дней и не до ${max}`);
 });
 checkNow('картинки: сотня ответов и порядок клеток — те же', () => {
-    const body = sqlFn('fr_collected');
+    // Считает сборы одна функция, fr_collected_times; fr_collected — только её номера.
+    // Две независимые копии одного правила рано или поздно разошлись бы.
+    assert(/jsonb_object_keys\(fr_collected_times\(p_state\)\)/.test(sqlFn('fr_collected')),
+        'fr_collected считает сама, а не берёт номера из fr_collected_times');
+    const body = sqlFn('fr_collected_times');
     const grid = num(/const PUZZLE_GRID = (\d+);/), levels = num(/const PUZZLE_CELL_LEVELS = (\d+);/);
     const ops = (HTML.match(/const PUZZLE_CELL_OPS = \[([^\]]*)\];/) || [])[1];
     assert(grid > 0 && levels > 0 && ops, 'не найдены числа пазла в index.html');
@@ -63,6 +67,19 @@ checkNow('картинки: сотня ответов и порядок клет
     assert(body.indexOf(`array[${ops}]`) >= 0, `порядок клеток в fr_collected не ${ops}`);
     assert(body.indexOf(`* ${levels} +`) >= 0 && body.indexOf(`generate_series(1, ${levels})`) >= 0,
         `звёзд в клетке не ${levels}`);
+    // Отрицательные идут сразу за положительными: номер сдвинут на число клеток
+    // одного раздела. Когда у отрицательных появятся картинки, приложение возьмёт
+    // те же номера — сервер трогать не придётся.
+    const cells = ops.split(',').length * levels;
+    assert(body.indexOf(`s.k * ${cells} +`) >= 0, `отрицательные не сдвинуты на ${cells}`);
+    assert(/\(values \(0, '\+'\), \(1, '-'\)\)/.test(body), 'разделы не «+», затем «−»');
+    // Сколько раз — частное от деления на сотню, как puzzleTimesFor.
+    assert(body.indexOf(`/ ${grid * grid}`) >= 0, `сборы считаются не по ${grid * grid} ответов`);
+});
+checkNow('страница друга получает и число сборов — для рамки', () => {
+    assert(/'pic_times', fr_collected_times\(s\.state\)/.test(sqlFn('impl_friends')), 'нет pic_times в ответе');
+    assert(/revoke execute on function fr_collected_times\(jsonb\)\s+from anon, authenticated, public;/.test(SQL),
+        'fr_collected_times открыта наружу');
 });
 checkNow('имя для друзей: приложение и сервер пропускают одни и те же знаки', () => {
     const js = (HTML.match(/const FRIEND_NAME_RE = \/\^\[([^\]]*)\]\+\$\//) || [])[1];
@@ -90,6 +107,8 @@ const day = (c) => ({ c, w: 1, a: 0, s: 300, p: 0, ms: 0, mc: 0, tr: 0, t: {}, e
 // за мастерство), бронза и серебро на вычитании, плюс медали в отрицательных —
 // а они у того, кто смотрит, закрыты.
 const PETYA = { id: 11, name: 'Петя', streak: 12, week: 140, pics: [0, 1, 5, 99, -1, 2.5],
+    // Рамки: 0 — собрана трижды (легенда), 1 — без числа (золото), 5 — десять раз (радуга).
+    pic_times: { '0': 3, '5': 10, '99': 50 },
     ladders: ['integer+:add:1:a3', 'integer+:add:1:c3', 'integer+:add:1:s2',
               'integer+:add:2:a4', 'integer+:add:2:c4', 'integer+:add:2:s4',
               'integer+:sub:1:a1', 'integer+:sub:1:c2', 'integer+:sub:1:c1',
@@ -307,6 +326,11 @@ const OLYA = { id: 13, name: 'Оля', streak: 3, ladders: [], pics: [] };   // 
         eq(pics.length, 3, 'картинок');
         assert(pics.every(p => /images\/thumbs\//.test(p.src)), JSON.stringify(pics));
         assert(/Коллекция: 3 из 20/i.test(card), card);
+    });
+    await check('у картинок друга — рамки по числу сборов', async () => {
+        const frames = await page.evaluate(`[...document.querySelectorAll('#appDialogCard .friend-pics img')]
+            .map(i => [...i.classList].filter(c => c.indexOf('pz-frame-') === 0).join(' '))`);
+        eq(frames.join(','), 'pz-frame-legend,pz-frame-gold,pz-frame-rainbow', 'рамки');
     });
     await check('картинки не подписаны и не открываются — это подсказка к чужим задачам', async () => {
         assert(pics.every(p => !p.alt && !p.title), JSON.stringify(pics));

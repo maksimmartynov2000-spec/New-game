@@ -23,7 +23,8 @@
 --     больше четырёх цифр — чтобы в имя не поместился ни телефон, ни ссылка.
 --
 --  4. Страница друга собирается ЗДЕСЬ, и наружу уходит только разрешённое: имя,
---     серия дней, медали (без дат), какие картинки коллекции собраны. Ни логина,
+--     серия дней, медали (без дат), какие картинки коллекции собраны и сколько
+--     раз (это рамка пазла — та же витрина, что медали). Ни логина,
 --     ни ошибок, ни точности, ни времени занятий, ни экзаменов, ни домашних. Если
 --     отдавать прогресс целиком и прятать лишнее в приложении, любой школьник с
 --     отладчиком прочитал бы чужие ошибки.
@@ -249,28 +250,50 @@ as $$
      and e.value not in ('null'::jsonb, 'false'::jsonb, '""'::jsonb, '0'::jsonb)
 $$;
 
--- Какие картинки коллекции собраны — номерами. Как collectionTimes в index.html:
--- отметка в коллекции или сотня верных ответов в клетке картинки. Клетки идут
--- так же: сложение, вычитание, умножение, деление, по пять звёзд, и сотня — это
--- PUZZLE_TOTAL. Совпадение стережёт test/friends.test.js.
+-- Сколько раз собрана каждая картинка коллекции: {"номер": раз}. Как collectionTimes
+-- в index.html: отметка в коллекции — один сбор, сотни верных ответов в клетке
+-- картинки — столько сборов, сколько сотен; берётся большее. Нужно для рамки пазла
+-- на странице друга: рамка меняется с числом сборов.
+--
+-- Клетки идут так же, как в приложении: сложение, вычитание, умножение, деление, по
+-- пять звёзд, и сотня — это PUZZLE_TOTAL. Сначала положительные (номера 0–19), за
+-- ними отрицательные (20–39): их картинки ещё рисуются, и приложение отбрасывает
+-- номера дальше своих картинок, — зато, когда картинки появятся, сервер трогать
+-- не придётся. Совпадение с приложением стережёт test/friends.test.js.
+create or replace function fr_collected_times(p_state jsonb)
+returns jsonb
+language sql
+immutable
+as $$
+  select coalesce(jsonb_object_agg(i::text, t), '{}'::jsonb) from (
+    select i, max(t) as t from (
+      select (e.ord - 1)::int as i, 1 as t
+        from jsonb_array_elements(case when jsonb_typeof(p_state -> 'collections' -> 'paradoxes') = 'array'
+                                       then p_state -> 'collections' -> 'paradoxes' else '[]'::jsonb end)
+             with ordinality as e(v, ord)
+       where e.ord <= 64
+         and e.v not in ('null'::jsonb, 'false'::jsonb, '""'::jsonb, '0'::jsonb)
+      union all
+      select (s.k * 20 + (o.k - 1) * 5 + (l.lvl - 1))::int,
+             hw_correct(p_state, 'integer' || s.sg || ':' || o.op || ':' || l.lvl) / 100
+        from (values (0, '+'), (1, '-')) as s(k, sg)
+       cross join unnest(array['add', 'sub', 'mul', 'div']) with ordinality as o(op, k)
+       cross join generate_series(1, 5) as l(lvl)
+       where hw_correct(p_state, 'integer' || s.sg || ':' || o.op || ':' || l.lvl) >= 100
+    ) x
+    group by i
+  ) y
+$$;
+
+-- Какие картинки собраны — номерами по порядку. Это номера из fr_collected_times:
+-- считать одно и то же двумя способами значило бы рано или поздно разойтись.
 create or replace function fr_collected(p_state jsonb)
 returns jsonb
 language sql
 immutable
 as $$
-  select coalesce(jsonb_agg(i order by i), '[]'::jsonb) from (
-    select (e.ord - 1)::int as i
-      from jsonb_array_elements(case when jsonb_typeof(p_state -> 'collections' -> 'paradoxes') = 'array'
-                                     then p_state -> 'collections' -> 'paradoxes' else '[]'::jsonb end)
-           with ordinality as e(v, ord)
-     where e.ord <= 64
-       and e.v not in ('null'::jsonb, 'false'::jsonb, '""'::jsonb, '0'::jsonb)
-    union
-    select ((o.k - 1) * 5 + (l.lvl - 1))::int
-      from unnest(array['add', 'sub', 'mul', 'div']) with ordinality as o(op, k)
-     cross join generate_series(1, 5) as l(lvl)
-     where hw_correct(p_state, 'integer+:' || o.op || ':' || l.lvl) >= 100
-  ) s
+  select coalesce(jsonb_agg(k::int order by k::int), '[]'::jsonb)
+    from jsonb_object_keys(fr_collected_times(p_state)) as k
 $$;
 
 -- ---------------------------------------------------------------------
@@ -357,7 +380,8 @@ begin
            jsonb_build_object('id', s.id, 'name', s.name,
                               'streak', fr_streak(s.state -> 'daily', v_today),
                               'ladders', fr_ladders(s.state -> 'unlocks'),
-                              'pics', fr_collected(s.state))
+                              'pics', fr_collected(s.state),
+                              'pic_times', fr_collected_times(s.state))
            || case when v_card.compare and s.compare
                    then jsonb_build_object('week', fr_week(s.state -> 'daily', v_today))
                    else '{}'::jsonb end
@@ -700,6 +724,7 @@ revoke execute on function fr_streak(jsonb, date)                    from anon, 
 revoke execute on function fr_week(jsonb, date)                      from anon, authenticated, public;
 revoke execute on function fr_ladders(jsonb)                         from anon, authenticated, public;
 revoke execute on function fr_collected(jsonb)                       from anon, authenticated, public;
+revoke execute on function fr_collected_times(jsonb)                 from anon, authenticated, public;
 revoke execute on function fr_student(text)                          from anon, authenticated, public;
 revoke execute on function fr_sweep(text)                            from anon, authenticated, public;
 revoke execute on function fr_friend_count(text)                     from anon, authenticated, public;
