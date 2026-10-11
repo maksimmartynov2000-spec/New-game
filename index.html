@@ -66,6 +66,7 @@
             #cityCanvas { display: none; }   /* холст с искрами — на нём больше ничего не рисуется */
             .floating-reward { animation-duration: 0.35s !important; }
             .dlg-card, .toast { animation: none !important; }
+            .puzzle-complete-art .puzzle-complete-seams { transition-duration: 0.01s; transition-delay: 0s; }
         }
 
         .modal-screen {
@@ -630,6 +631,18 @@
 
         .puzzle-mini-status { display: none; }
 
+        /* Вспышка только что вставшего кусочка. Кусочек мини-пазла — десять пикселей,
+           и просто проявиться ему мало: глаз ученика на примере, и прибавку не видно.
+           Золотой контур на мгновение показывает, что верный ответ что-то добавил.
+           Толщина в единицах картинки (1000 на сторону): в мини-пазле это около трёх
+           пикселей, в большом окне контур тоньше. */
+        .piece-flash {
+            fill: rgba(255, 215, 0, 0.35); stroke: #ffd700; stroke-width: 26; stroke-linejoin: round;
+            pointer-events: none; animation: pieceFlash 0.9s ease-out forwards;
+        }
+        #bigFlashGroup .piece-flash { stroke-width: 10; }
+        @keyframes pieceFlash { from { opacity: 1; } to { opacity: 0; } }
+
         /* ===== Коллекция собранных пазлов ===== */
         /* Пять картинок в ряд — по числу звёзд. Каждый ряд это одно действие, и
            коллекция читается той же картой, что в статистике: видно, что уже собрано
@@ -648,6 +661,14 @@
             font-size: 2rem; color: rgba(255,255,255,0.35); font-weight: bold;
         }
         .collection-item.unlocked { border-color: rgba(255, 215, 0, 0.5); box-shadow: 0 0 14px rgba(255,215,0,0.2); }
+        /* Начатый пазл: собранные кусочки в цвете поверх тёмной плитки, вместо «?» — счёт. */
+        .collection-item.locked.started::after { content: none; }
+        .collection-item .collection-progress { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+        .collection-item .collection-progress-count {
+            position: absolute; top: 3px; right: 3px; padding: 1px 5px; border-radius: 999px;
+            background: rgba(2,3,8,0.82); border: 1px solid rgba(255,255,255,0.3);
+            color: #e2e8f0; font-size: 0.52rem; font-weight: 700; line-height: 1.3;
+        }
         .collection-item.unlocked { cursor: pointer; }
         .collection-item.unlocked:active { transform: scale(0.96); }
         .collection-item .collection-cell {
@@ -723,10 +744,39 @@
         /* Экран одного парадокса внутри окна коллекции */
         .collection-detail { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; }
         .collection-detail.show { display: flex; }
+        /* Картинка во всю ширину окна: подробные сцены и выбраны ради того, чтобы их
+           рассматривать, а в 260 пикселях было видно меньше половины. Нажатие — на весь
+           экран, с увеличением. */
         .collection-detail img {
-            width: 100%; max-width: 260px; aspect-ratio: 1 / 1; object-fit: cover;
+            width: 100%; aspect-ratio: 1 / 1; object-fit: cover; cursor: zoom-in;
             border-radius: 14px; border: 2px solid rgba(255, 215, 0, 0.35);
         }
+        .collection-detail .puzzle-save-hint { margin-top: -6px; }
+
+        /* Просмотр на весь экран. Поверх всего, включая коллекцию в перерыв (9100):
+           открыли картинку — смотрим картинку. touch-action: none — жесты наши, а не
+           браузера: иначе двойное касание увеличивало бы всю страницу. */
+        .pic-viewer {
+            position: fixed; inset: 0; z-index: 9200; background: #03050c;
+            overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none;
+        }
+        .pic-viewer[hidden] { display: none; }
+        .pic-viewer img {
+            position: absolute; left: 0; top: 0; transform-origin: 0 0; max-width: none;
+            -webkit-user-drag: none; user-select: none; will-change: transform;
+        }
+        .pic-viewer-close {
+            position: absolute; z-index: 2; width: 44px; height: 44px; border-radius: 50%;
+            top: calc(12px + env(safe-area-inset-top)); right: calc(12px + env(safe-area-inset-right));
+            background: rgba(2,3,8,0.7); border: 1px solid rgba(255,255,255,0.3); color: #fff;
+            font-size: 1rem; cursor: pointer;
+        }
+        .pic-viewer-hint {
+            position: absolute; left: 0; right: 0; z-index: 2; text-align: center; pointer-events: none;
+            bottom: calc(14px + env(safe-area-inset-bottom)); color: rgba(226,232,240,0.75); font-size: 0.8rem;
+            padding: 0 16px; transition: opacity .4s ease;
+        }
+        .pic-viewer.zoomed .pic-viewer-hint { opacity: 0; }
         .btn-detail-back {
             background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: white;
             padding: 11px 24px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
@@ -771,11 +821,18 @@
         .puzzle-complete-panel.show { display: flex; }
         .puzzle-complete-panel p.title-line { color: var(--gold); font-size: 1.15rem; font-weight: bold; }
         .puzzle-complete-panel .stats-line { color: #94a3b8; font-size: 0.85rem; }
-        .puzzle-complete-img {
-            width: 100%; max-width: 280px; aspect-ratio: 1 / 1; object-fit: cover;
-            border-radius: 14px; border: 2px solid rgba(255, 215, 0, 0.35);
-            box-shadow: 0 0 25px rgba(0,0,0,0.5);
+        /* Собранный пазл: под низом чистая картинка, сверху та же картинка со швами.
+           Швы держатся мгновение — видно, что это был пазл, — и тают: пазл «склеился».
+           Нажатие открывает картинку на весь экран. */
+        .puzzle-complete-art {
+            position: relative; width: 100%; max-width: 280px; aspect-ratio: 1 / 1;
+            border-radius: 14px; overflow: hidden; border: 2px solid rgba(255, 215, 0, 0.35);
+            box-shadow: 0 0 25px rgba(0,0,0,0.5); cursor: zoom-in; background: #0b0e18;
         }
+        .puzzle-complete-art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+        .puzzle-complete-art .puzzle-complete-seams { transition: opacity 1.4s ease 0.9s; }
+        .puzzle-complete-art.melt .puzzle-complete-seams { opacity: 0; }
+        .puzzle-complete-art img:not([src]) { visibility: hidden; }
         .collection-added-line { color: #34d399; font-size: 0.9rem; font-weight: bold; }
         .btn-save-puzzle {
             background: linear-gradient(45deg, #0284c7, #06b6d4); border: none; color: white;
@@ -2959,6 +3016,7 @@
                         <rect width="1000" height="1000" fill="#0b0e18"></rect>
                         <g id="miniPiecesGroup"></g>
                         <g id="miniSeamGroup" opacity="0.45"></g>
+                        <g id="miniFlashGroup"></g>
                     </svg>
                 </div>
                 <div class="puzzle-mini-status">
@@ -3091,9 +3149,10 @@
                         <rect width="1000" height="1000" fill="#0b0e18"></rect>
                         <g id="bigPiecesGroup"></g>
                         <g id="bigSeamGroup" opacity="0.5"></g>
+                        <g id="bigFlashGroup"></g>
                     </svg>
                 </div>
-                <button class="btn-save-puzzle" id="btnOpenCollectionLive" style="margin-top:14px;">🏆 Моя коллекция парадоксов</button>
+                <button class="btn-save-puzzle" id="btnOpenCollectionLive" style="margin-top:14px;">🧩 <span>Коллекция пазлов</span></button>
                 <button class="btn-save-puzzle" id="btnShowMyCode" style="margin-top:8px; background:rgba(255,255,255,0.08);">🔑 Мой логин</button>
             </div>
             <div id="myCodePanel" style="display:none; text-align:center; padding:10px 0;">
@@ -3103,7 +3162,10 @@
             </div>
             <div class="puzzle-complete-panel" id="puzzleCompletePanel">
                 <p class="title-line">🎉 Пазл собран полностью!</p>
-                <img class="puzzle-complete-img" id="puzzleCompleteImg" alt="Собранный пазл">
+                <div class="puzzle-complete-art" id="puzzleCompleteArt">
+                    <img id="puzzleCompleteImg" alt="Собранный пазл">
+                    <img class="puzzle-complete-seams" id="puzzleCompleteSeams" alt="" aria-hidden="true">
+                </div>
                 <div class="paradox-card" id="completeParadoxCard">
                     <div class="paradox-name" id="completeParadoxName"></div>
                     <div class="paradox-era" id="completeParadoxEra"></div>
@@ -3113,7 +3175,7 @@
                 </div>
                 <p class="stats-line" id="puzzleCompleteStats"></p>
                 <p class="collection-added-line" id="collectionAddedLine">🏆 Добавлено в коллекцию!</p>
-                <button class="btn-save-puzzle" id="btnViewCollection">🖼️ Моя коллекция</button>
+                <button class="btn-save-puzzle" id="btnViewCollection">🧩 <span>Коллекция пазлов</span></button>
                 <button class="btn-restart-puzzle" id="btnContinuePlaying">▶️ Продолжить игру</button>
             </div>
         </div>
@@ -3124,7 +3186,7 @@
         <div class="puzzle-modal-inner">
             <button class="puzzle-close" id="collectionCloseBtn">✕</button>
             <div id="collectionListView">
-                <div class="puzzle-modal-title" id="collectionPicsTitle">🏆 Парадоксы математики: <span id="collectionCountLabel">0/20</span></div>
+                <div class="puzzle-modal-title" id="collectionPicsTitle">🧩 <span>Коллекция пазлов:</span> <span id="collectionCountLabel">0/20</span></div>
                 <div class="puzzle-modal-title" id="collectionTasksTitle" hidden>💎 Задачи за мастерство: <span id="collectionTasksCount">0/0</span></div>
                 <div class="collection-tabs" role="tablist">
                     <button type="button" class="collection-tab active" id="collectionTabPics" role="tab" aria-selected="true">🧩 Пазлы</button>
@@ -3141,6 +3203,7 @@
             </div>
             <div class="collection-detail" id="collectionDetail">
                 <img id="detailImg" alt="Парадокс">
+                <div class="puzzle-save-hint">Нажми на пазл, чтобы рассмотреть его крупно</div>
                 <div class="paradox-card">
                     <div class="paradox-name" id="detailName"></div>
                     <div class="paradox-era" id="detailEra"></div>
@@ -3151,6 +3214,14 @@
                 <button class="btn-detail-back" id="btnDetailBack">← К коллекции</button>
             </div>
         </div>
+    </div>
+
+    <!-- Картинка на весь экран: двойное касание приближает, двумя пальцами — крупнее
+         или мельче, одним — двигать. -->
+    <div class="pic-viewer" id="picViewer" hidden>
+        <img id="picViewerImg" alt="" draggable="false">
+        <button type="button" class="pic-viewer-close" id="picViewerClose" aria-label="Закрыть">✕</button>
+        <div class="pic-viewer-hint">Нажми дважды, чтобы приблизить</div>
     </div>
 
     <!-- Задача за мастерство. Первый тап раскрывает разбор, второй закрывает: сначала
@@ -3650,75 +3721,181 @@
         const PUZZLE_TOTAL = PUZZLE_GRID * PUZZLE_GRID; // 100
         const PUZZLE_SIZE = 1000; // координатное пространство SVG
         const PUZZLE_TILE = PUZZLE_SIZE / PUZZLE_GRID;
-        const PUZZLE_TAB = PUZZLE_TILE * 0.24; // высота "замка" пазла
 
-        // Случайное направление "замка" для каждой внутренней границы между кусочками.
-        // ampH[r][c] — граница между рядом r и r+1 в столбце c (горизонтальная линия, выступ по вертикали)
-        // ampV[r][c] — граница между столбцом c и c+1 в ряду r (вертикальная линия, выступ по горизонтали)
-        function buildAmpGrid(rows, cols) {
+        // ===== РАСКЛАДКА ПАЗЛА ВЫВОДИТСЯ, А НЕ ВЫПАДАЕТ =====
+        //
+        // Форма замков и порядок кусочков раньше брались из Math.random при каждой
+        // настройке пазла — а настраивается он при каждом старте миссии. Задумано было
+        // «новая картинка — новая раскладка», вышло «новая миссия — новая раскладка»:
+        // при тех же сорока собранных на прежних местах оставалось меньше половины.
+        // Вчера была собрана крыша, сегодня низ — пазл не ощущался вещью, которую
+        // собираешь.
+        //
+        // Теперь вся случайность идёт из числа, выведенного из клетки и номера сборки.
+        // Та же клетка и та же сотня ответов — та же раскладка, при каждом заходе и на
+        // любом устройстве. Хранить ничего не нужно: раскладка выводится так же, как
+        // число кусочков выводится из ответов. Новая сотня — новый номер сборки, и
+        // картинка собирается заново по-другому.
+        function puzzleSeed(text) {
+            // FNV-1a: короткий и ровный хеш строки в 32 бита.
+            let h = 0x811c9dc5;
+            for (let i = 0; i < text.length; i++) {
+                h ^= text.charCodeAt(i);
+                h = Math.imul(h, 0x01000193);
+            }
+            return h >>> 0;
+        }
+        function seededRandom(seed) {
+            // mulberry32: из одного числа — повторяемая последовательность в [0, 1).
+            let a = seed >>> 0;
+            return () => {
+                a = (a + 0x6D2B79F5) >>> 0;
+                let t = a;
+                t = Math.imul(t ^ (t >>> 15), t | 1);
+                t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+                return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+            };
+        }
+
+        // Направление «замка» для каждой внутренней границы между кусочками: +1 или −1.
+        // H[r][c] — граница между рядом r и r+1 в столбце c (горизонтальная линия, выступ по вертикали)
+        // V[r][c] — граница между столбцом c и c+1 в ряду r (вертикальная линия, выступ по горизонтали)
+        function buildAmpGrid(rows, cols, rnd) {
             const g = [];
             for (let i = 0; i < rows; i++) {
                 const row = [];
-                for (let j = 0; j < cols; j++) row.push(Math.random() < 0.5 ? -1 : 1);
+                for (let j = 0; j < cols; j++) row.push(rnd() < 0.5 ? -1 : 1);
                 g.push(row);
             }
             return g;
         }
-        let ampH = buildAmpGrid(PUZZLE_GRID - 1, PUZZLE_GRID);
-        let ampV = buildAmpGrid(PUZZLE_GRID, PUZZLE_GRID - 1);
 
-        // Строит одну "выпуклость" замка от точки (x1,y1) до (x2,y2). amp=0 — обычная прямая линия
-        // (используется на внешней границе всего пазла). Кривая строится перпендикулярно
-        // направлению отрезка — то есть одно и то же значение amp даёт ИДЕАЛЬНО совпадающую
-        // границу у двух соседних кусочков (не нужно инвертировать знак у соседа).
+        // Форма замка в долях стороны: плечо, узкая шейка, круглая головка — как у
+        // настоящего пазла. Прежний замок был широким бугорком, и кусочки походили на
+        // ромбики. u идёт вдоль стороны (0…1), v — поперёк. Форма симметрична
+        // относительно середины стороны, и это не красота, а условие: сосед проходит ту
+        // же границу в обратную сторону, и у симметричной формы его кривая совпадает с
+        // нашей точка в точку — кусочки сходятся без щелей и нахлёстов. Головка
+        // поднимается на 0,27 стороны, как прежний бугорок.
+        const PUZZLE_TAB_START = 0.37;   // где кончается плечо
+        const PUZZLE_TAB_SHAPE = [       // кубические кривые: опора, опора, конец
+            [0.41, 0, 0.42, 0.03, 0.42, 0.07],     // от плеча — в шейку
+            [0.42, 0.11, 0.35, 0.13, 0.35, 0.17],  // шейка расходится в головку
+            [0.35, 0.225, 0.42, 0.27, 0.5, 0.27],  // левая половина головки
+            [0.58, 0.27, 0.65, 0.225, 0.65, 0.17], // правая половина
+            [0.65, 0.13, 0.58, 0.11, 0.58, 0.07],
+            [0.58, 0.03, 0.59, 0, 0.63, 0]         // из шейки — на второе плечо
+        ];
+
+        // Одна сторона кусочка от (x1,y1) до (x2,y2). amp=0 — прямая (внешний край
+        // пазла), иначе знак amp говорит, в какую сторону торчит головка. Сторона
+        // поперёк считается в мировых осях (вниз или вправо), а не от направления
+        // обхода — поэтому одно и то же amp у двух соседей даёт одну и ту же границу.
         function bumpSeg(x1, y1, x2, y2, amp) {
             if (!amp) return `L ${x2} ${y2}`;
             const dx = x2 - x1, dy = y2 - y1;
-            let px = 0, py = 0;
-            if (Math.abs(dx) >= Math.abs(dy)) { py = 1; } else { px = 1; }
-            const lerp = (t) => ({ x: x1 + dx * t, y: y1 + dy * t });
-            const p1 = lerp(0.35), p2 = lerp(0.5), p3 = lerp(0.65);
-            const P1 = { x: p1.x + px * amp * 0.9, y: p1.y + py * amp * 0.9 };
-            const P2 = { x: p2.x + px * amp * 1.18, y: p2.y + py * amp * 1.18 };
-            const P3 = { x: p3.x + px * amp * 0.9, y: p3.y + py * amp * 0.9 };
-            return `C ${P1.x} ${P1.y} ${P1.x} ${P1.y} ${P2.x} ${P2.y} C ${P3.x} ${P3.y} ${P3.x} ${P3.y} ${x2} ${y2}`;
+            const len = Math.hypot(dx, dy);
+            const across = (amp > 0 ? 1 : -1) * len;
+            const horizontal = Math.abs(dx) >= Math.abs(dy);
+            const r2 = (n) => Math.round(n * 100) / 100;
+            const pt = (u, v) => horizontal
+                ? `${r2(x1 + dx * u)} ${r2(y1 + dy * u + v * across)}`
+                : `${r2(x1 + dx * u + v * across)} ${r2(y1 + dy * u)}`;
+            let d = `L ${pt(PUZZLE_TAB_START, 0)}`;
+            PUZZLE_TAB_SHAPE.forEach(([a, b, c, e, u, v]) => { d += ` C ${pt(a, b)} ${pt(c, e)} ${pt(u, v)}`; });
+            return d + ` L ${x2} ${y2}`;
         }
 
-        function buildPiecePath(r, c) {
+        function buildPiecePath(r, c, H, V) {
             const x0 = c * PUZZLE_TILE, y0 = r * PUZZLE_TILE;
-            const w = PUZZLE_TILE, h = PUZZLE_TILE;
-            const ampTop = r === 0 ? 0 : ampH[r - 1][c] * PUZZLE_TAB;
-            const ampRight = c === PUZZLE_GRID - 1 ? 0 : ampV[r][c] * PUZZLE_TAB;
-            const ampBottom = r === PUZZLE_GRID - 1 ? 0 : ampH[r][c] * PUZZLE_TAB;
-            const ampLeft = c === 0 ? 0 : ampV[r][c - 1] * PUZZLE_TAB;
-
-            const p0 = { x: x0, y: y0 }, p1 = { x: x0 + w, y: y0 }, p2 = { x: x0 + w, y: y0 + h }, p3 = { x: x0, y: y0 + h };
-
-            let d = `M ${p0.x} ${p0.y} `;
-            d += bumpSeg(p0.x, p0.y, p1.x, p1.y, ampTop) + ' ';
-            d += bumpSeg(p1.x, p1.y, p2.x, p2.y, ampRight) + ' ';
-            d += bumpSeg(p2.x, p2.y, p3.x, p3.y, ampBottom) + ' ';
-            d += bumpSeg(p3.x, p3.y, p0.x, p0.y, ampLeft) + ' Z';
-            return d;
+            const x1 = x0 + PUZZLE_TILE, y1 = y0 + PUZZLE_TILE;
+            const top = r === 0 ? 0 : H[r - 1][c];
+            const right = c === PUZZLE_GRID - 1 ? 0 : V[r][c];
+            const bottom = r === PUZZLE_GRID - 1 ? 0 : H[r][c];
+            const left = c === 0 ? 0 : V[r][c - 1];
+            return `M ${x0} ${y0} `
+                + bumpSeg(x0, y0, x1, y0, top) + ' '
+                + bumpSeg(x1, y0, x1, y1, right) + ' '
+                + bumpSeg(x1, y1, x0, y1, bottom) + ' '
+                + bumpSeg(x0, y1, x0, y0, left) + ' Z';
         }
 
-        const PUZZLE_PIECE_PATHS = []; // [r][c] -> d-строка пути кусочка
-        for (let r = 0; r < PUZZLE_GRID; r++) {
-            const row = [];
-            for (let c = 0; c < PUZZLE_GRID; c++) row.push(buildPiecePath(r, c));
-            PUZZLE_PIECE_PATHS.push(row);
+        // ===== ПОРЯДОК КУСОЧКОВ: ОСТРОВКАМИ =====
+        //
+        // Вразброс первые тридцать-сорок кусочков — конфетти, на котором ничего не
+        // узнать. Здесь каждый следующий кусочек встаёт рядом с уже собранными, как
+        // при сборке настоящего пазла, и уже на пятнадцати видны целые предметы.
+        //
+        // Чем больше у свободного места собранных соседей, тем охотнее оно выбирается
+        // (вес 3k − 1 при k соседях): островки растут плотными пятнами, а не змейками.
+        // Стартовых точек три и они далеко друг от друга, а когда собрана пятая часть,
+        // изредка (PUZZLE_ISLAND_NEW) начинается новый островок где угодно. Иначе
+        // картинка росла бы только из трёх точек, и угол между ними открывался бы
+        // последним. Раньше пятой части новых островков не бывает: на первых
+        // кусочках ученик должен видеть два-три целых места, а не россыпь.
+        const PUZZLE_ISLAND_SEEDS = 3;
+        const PUZZLE_ISLAND_NEW = 0.08;
+        const PUZZLE_ISLAND_NEW_FROM = 20;
+        function puzzleIslandOrder(rnd) {
+            const N = PUZZLE_GRID, total = N * N;
+            const got = new Array(total).fill(false);
+            const order = [], seeds = [];
+            const take = (i) => { got[i] = true; order.push([Math.floor(i / N), i % N]); };
+            const free = () => { const f = []; for (let i = 0; i < total; i++) if (!got[i]) f.push(i); return f; };
+            const near = (i) => {
+                const r = Math.floor(i / N), c = i % N;
+                return (r > 0 && got[i - N] ? 1 : 0) + (r < N - 1 && got[i + N] ? 1 : 0)
+                     + (c > 0 && got[i - 1] ? 1 : 0) + (c < N - 1 && got[i + 1] ? 1 : 0);
+            };
+            while (seeds.length < PUZZLE_ISLAND_SEEDS) {
+                const all = free();
+                const far = all.filter(i => seeds.every(j =>
+                    Math.max(Math.abs(Math.floor(i / N) - Math.floor(j / N)), Math.abs(i % N - j % N)) > 3));
+                const pool = far.length ? far : all;
+                const i = pool[Math.floor(rnd() * pool.length)];
+                seeds.push(i);
+                take(i);
+            }
+            while (order.length < total) {
+                const all = free();
+                let pick = -1;
+                const fresh = rnd() < PUZZLE_ISLAND_NEW && order.length >= PUZZLE_ISLAND_NEW_FROM;
+                if (!fresh) {
+                    const w = all.map(i => { const k = near(i); return k ? 3 * k - 1 : 0; });
+                    let left = rnd() * w.reduce((a, b) => a + b, 0);
+                    for (let q = 0; q < all.length; q++) {
+                        if (!w[q]) continue;
+                        pick = all[q];
+                        if (left < w[q]) break;
+                        left -= w[q];
+                    }
+                }
+                if (pick < 0) pick = all[Math.floor(rnd() * all.length)];
+                take(pick);
+            }
+            return order;
         }
 
-        // Базовый список всех 100 клеток — порядок их появления перемешивается заново
-        // для каждой новой картинки в shufflePuzzleFillOrder() (см. setupPuzzleForCell), поэтому
-        // кусочки проявляются в случайных свободных местах, а не строчка за строчкой.
-        let PUZZLE_FILL_ORDER = [];
-        for (let r = 0; r < PUZZLE_GRID; r++) {
-            for (let c = 0; c < PUZZLE_GRID; c++) PUZZLE_FILL_ORDER.push([r, c]);
+        // Раскладка пазла клетки на данной сборке: форма всех кусочков и порядок, в
+        // котором они встают. round — сколько раз картинка уже собрана в этой клетке.
+        function puzzleLayout(topicKey, round) {
+            const rnd = seededRandom(puzzleSeed(`${topicKey || ''}#${round || 0}`));
+            const H = buildAmpGrid(PUZZLE_GRID - 1, PUZZLE_GRID, rnd);
+            const V = buildAmpGrid(PUZZLE_GRID, PUZZLE_GRID - 1, rnd);
+            const paths = [];
+            for (let r = 0; r < PUZZLE_GRID; r++) {
+                const row = [];
+                for (let c = 0; c < PUZZLE_GRID; c++) row.push(buildPiecePath(r, c, H, V));
+                paths.push(row);
+            }
+            return { paths, order: puzzleIslandOrder(rnd) };
         }
-        function shufflePuzzleFillOrder() {
-            PUZZLE_FILL_ORDER = shuffleArray(PUZZLE_FILL_ORDER);
-        }
+
+        // Текущая раскладка на экране. До первой настройки — раскладка «ничьей» клетки:
+        // форма нужна уже при создании узлов SVG, а клетки ещё нет.
+        const PUZZLE_START_LAYOUT = puzzleLayout('', 0);
+        const PUZZLE_PIECE_PATHS = PUZZLE_START_LAYOUT.paths.map(row => row.slice()); // [r][c] -> d-строка
+        let PUZZLE_FILL_ORDER = PUZZLE_START_LAYOUT.order.slice();
 
         const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -3768,18 +3945,17 @@
             return rows;
         }
 
-        // Перегенерирует случайную форму замков (для нового пазла) и обновляет все уже
-        // существующие DOM-узлы на месте — без пересоздания элементов.
-        function regeneratePieceShapes() {
-            ampH = buildAmpGrid(PUZZLE_GRID - 1, PUZZLE_GRID);
-            ampV = buildAmpGrid(PUZZLE_GRID, PUZZLE_GRID - 1);
+        // Ставит на экран раскладку клетки: форму кусочков и порядок их появления.
+        // Узлы SVG не пересоздаются — у готовых меняется только атрибут 'd'.
+        function applyPuzzleLayout(layout) {
+            PUZZLE_FILL_ORDER = layout.order.slice();
             for (let r = 0; r < PUZZLE_GRID; r++) {
                 for (let c = 0; c < PUZZLE_GRID; c++) {
-                    const d = buildPiecePath(r, c);
+                    const d = layout.paths[r][c];
                     PUZZLE_PIECE_PATHS[r][c] = d;
-                    clipPathEls[r][c].setAttribute('d', d);
-                    seamPathElsMini[r][c].setAttribute('d', d);
-                    seamPathElsBig[r][c].setAttribute('d', d);
+                    if (clipPathEls[r]) clipPathEls[r][c].setAttribute('d', d);
+                    if (seamPathElsMini[r]) seamPathElsMini[r][c].setAttribute('d', d);
+                    if (seamPathElsBig[r]) seamPathElsBig[r][c].setAttribute('d', d);
                 }
             }
         }
@@ -3797,7 +3973,6 @@
 
         let puzzleFilled = 0;
         let puzzleRenderedCount = 0;
-        let puzzlesCompletedCount = 0;
         let currentPuzzleImageIndex = -1;
         // Клетка, картинку которой сейчас показываем. null — у клетки картинки нет
         // и мини-пазл спрятан.
@@ -6283,7 +6458,7 @@
                 level: cfg.operations[ops[0]], isNegative: cfg.numberType === 'negative' });
         }
 
-        // Готовит пазл под клетку: картинка клетки, свежая форма кусочков, прогресс
+        // Готовит пазл под клетку: картинка клетки, раскладка этой сборки, прогресс
         // из числа верных ответов. Вызывается при начале миссии и после того, как
         // картинка собралась.
         //
@@ -6302,6 +6477,7 @@
                 // сегодняшние примеры отношения не имеют.
                 document.getElementById('miniPiecesGroup').innerHTML = '';
                 document.getElementById('bigPiecesGroup').innerHTML = '';
+                clearPuzzleFlashes();
                 miniUseRefs.length = 0;
                 bigUseRefs.length = 0;
                 puzzleFilled = 0;
@@ -6316,11 +6492,12 @@
             imgEl.setAttribute('href', PUZZLE_IMAGE_SRCS[idx]);
             imgEl.setAttributeNS('http://www.w3.org/1999/xlink', 'href', PUZZLE_IMAGE_SRCS[idx]);
 
-            regeneratePieceShapes();
-            shufflePuzzleFillOrder();
+            // Раскладка этой клетки на этой сборке — та же, что была в прошлый раз.
+            applyPuzzleLayout(puzzleLayout(topicKey, puzzleTimesFor(topicKey)));
 
             document.getElementById('miniPiecesGroup').innerHTML = '';
             document.getElementById('bigPiecesGroup').innerHTML = '';
+            clearPuzzleFlashes();
             miniUseRefs.length = 0;
             bigUseRefs.length = 0;
             puzzleRenderedCount = 0;
@@ -6345,7 +6522,10 @@
             setupPuzzleForCell(currentMissionTopicKey());
         }
 
-        function renderPuzzleProgress() {
+        // flash — кусочек встал от верного ответа прямо сейчас, и это надо показать.
+        // При настройке пазла в начале миссии кусочки ставятся все разом, и вспышка
+        // сорока контуров была бы не наградой, а мельтешением.
+        function renderPuzzleProgress(flash) {
             document.getElementById('puzzleMiniCount').innerText = `${puzzleFilled}/100`;
             document.getElementById('puzzleModalCount').innerText = `${puzzleFilled}/100`;
 
@@ -6362,6 +6542,7 @@
                         miniUse.style.opacity = '1';
                         bigUse.style.opacity = '1';
                     });
+                    if (flash) flashPuzzlePiece(r, c);
                 }
             } else if (puzzleFilled < puzzleRenderedCount) {
                 for (let i = puzzleRenderedCount - 1; i >= puzzleFilled; i--) {
@@ -6372,6 +6553,24 @@
                 }
             }
             puzzleRenderedCount = puzzleFilled;
+        }
+
+        function flashPuzzlePiece(r, c) {
+            ['miniFlashGroup', 'bigFlashGroup'].forEach(id => {
+                const g = document.getElementById(id);
+                if (!g) return;
+                const path = document.createElementNS(SVG_NS, 'path');
+                path.setAttribute('d', PUZZLE_PIECE_PATHS[r][c]);
+                path.setAttribute('class', 'piece-flash');
+                g.appendChild(path);
+                setTimeout(() => path.remove(), 1000);
+            });
+        }
+        function clearPuzzleFlashes() {
+            ['miniFlashGroup', 'bigFlashGroup'].forEach(id => {
+                const g = document.getElementById(id);
+                if (g) g.innerHTML = '';
+            });
         }
 
         // Верный ответ добавил кусочек в картинку СВОЕЙ клетки. Считать ничего не надо:
@@ -6387,7 +6586,7 @@
             // миссии пазл спрятан, но сотую в каждой клетке всё равно замечаем.
             if (key === puzzleCellKey) {
                 puzzleFilled = done % PUZZLE_TOTAL;
-                renderPuzzleProgress();
+                renderPuzzleProgress(true);
             }
             if (done > 0 && done % PUZZLE_TOTAL === 0) onPuzzleComplete(idx, key);
         }
@@ -6497,7 +6696,6 @@
         }
 
         function onPuzzleComplete(completedIndex, topicKey) {
-            puzzlesCompletedCount++;
             // Счётчик «пазлов собрано за всё время» так и остаётся хранимым и только
             // растущим. Пересчитать его по клеткам задним числом было бы честнее, но у
             // тех, кто собирал картинки по старому правилу, он бы от этого УМЕНЬШИЛСЯ.
@@ -6511,7 +6709,8 @@
             updateCollectionBadge();
 
             // Та же картинка начинается заново: сотая по счёту клетка и есть новый
-            // ноль. Форма кусочков перегенерируется, чтобы собирать было не скучно.
+            // ноль. Номер сборки вырос, поэтому и раскладка новая — собирать ту же
+            // картинку второй раз не скучно.
             setupPuzzleForCell(topicKey);
 
             // Гостю напоминаем про аккаунт — но ПОСЛЕ показа собранной картинки, а не
@@ -6553,6 +6752,9 @@
             Progress.flush(); // контрольная точка синхронизации
         }
 
+        // Картинка, которая сейчас в окне собранного пазла, — для просмотра на весь экран.
+        let puzzleRevealSrc = null;
+
         // Собранные, но ещё не показанные пазлы. За одну миссию их обычно ноль или
         // один: картинка стоит сотни верных ответов, а миссия столько не длится.
         let pendingPuzzleReveals = [];
@@ -6563,17 +6765,32 @@
             if (!item) return false;
 
             fillParadoxCard('complete', resolveParadoxes()[item.index]);
+            // Пазлов — за всё время. Раньше здесь стоял счётчик с момента открытия
+            // приложения: не за миссию и не за всё время, и сверить его было не с чем.
+            const allPuzzles = ((Progress.get() || {}).totals || {}).puzzlesCompleted || 0;
             document.getElementById('puzzleCompleteStats').innerText =
-                tf('⏱️ Время: %1  |  ✅ %2  |  ❌ %3  |  🧩 Пазлов собрано: %4', formatTime(totalSeconds), correctCount, wrongCount, puzzlesCompletedCount);
+                tf('⏱️ Время: %1  |  ✅ %2  |  ❌ %3  |  🧩 Пазлов собрано: %4', formatTime(totalSeconds), correctCount, wrongCount, allPuzzles);
             // Картинки повторяются: каждая новая сотня в клетке собирает ту же. Первый
             // раз — про коллекцию, дальше — про то, сколько раз собрана именно эта.
             document.getElementById('collectionAddedLine').innerText = (item.times > 1)
                 ? tf('🏆 Собрана снова: всего %1', item.times)
                 : tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length);
 
-            const imgEl = document.getElementById('puzzleCompleteImg');
-            imgEl.removeAttribute('src');
-            renderSnapshotDataURL(item.src, item.paths, (dataUrl) => { imgEl.src = dataUrl; });
+            const art = document.getElementById('puzzleCompleteArt');
+            const seams = document.getElementById('puzzleCompleteSeams');
+            art.classList.remove('melt');
+            seams.removeAttribute('src');
+            document.getElementById('puzzleCompleteImg').src = item.src;
+            puzzleRevealSrc = item.src;
+            renderSnapshotDataURL(item.src, item.paths, (dataUrl) => {
+                seams.onload = () => {
+                    seams.onload = null;
+                    // Два кадра: сначала швы должны появиться на экране, иначе браузер
+                    // склеит оба состояния в одно и таять будет нечему.
+                    requestAnimationFrame(() => requestAnimationFrame(() => art.classList.add('melt')));
+                };
+                seams.src = dataUrl;
+            });
 
             setPuzzleCompleteVisible(true);
             openPuzzleModal();
@@ -6636,6 +6853,157 @@
             };
         }
 
+        // ===== КАРТИНКА НА ВЕСЬ ЭКРАН =====
+        //
+        // Подробную сцену в окне коллекции не рассмотреть: в ширину телефона влезает,
+        // а мелочи — лица, монеты, птица на крыше — остаются точками. Здесь картинка
+        // во весь экран, и её можно приблизить: дважды нажать (ещё раз — обратно),
+        // развести двумя пальцами, на компьютере — колёсиком. Приближенную двигают
+        // одним пальцем или мышью.
+        //
+        // Всё в одном преобразовании translate + scale от левого верхнего угла
+        // картинки: точка под пальцем при увеличении остаётся под пальцем, а края
+        // не уезжают внутрь экрана — пустоты вокруг приближенной картинки не бывает.
+        const PIC_ZOOM_MAX = 4;
+        const PIC_ZOOM_TAP = 2.5;
+        const picView = { k: 1, tx: 0, ty: 0, base: 0, left: 0, top: 0, pointers: new Map(),
+                          pinch: null, drag: null, lastTap: null, moved: false };
+        let detailImageSrc = null;
+
+        function picViewerApply() {
+            const img = document.getElementById('picViewerImg');
+            img.style.transform = `translate(${picView.tx}px, ${picView.ty}px) scale(${picView.k})`;
+            document.getElementById('picViewer').classList.toggle('zoomed', picView.k > 1.01);
+        }
+        // Держит картинку на экране: меньше экрана — по центру, больше — без пустот по краям.
+        function picViewerClamp() {
+            const vw = window.innerWidth, vh = window.innerHeight;
+            const size = picView.base * picView.k;
+            const fit = (screen, start, shift) => {
+                const pos = start + shift;
+                if (size <= screen) return (screen - size) / 2 - start;
+                return Math.min(0, Math.max(screen - size, pos)) - start;
+            };
+            picView.tx = fit(vw, picView.left, picView.tx);
+            picView.ty = fit(vh, picView.top, picView.ty);
+        }
+        // Увеличить до k, оставив на месте точку экрана (x, y).
+        function picViewerZoomAt(k, x, y) {
+            const next = Math.min(PIC_ZOOM_MAX, Math.max(1, k));
+            const ix = (x - picView.left - picView.tx) / picView.k;
+            const iy = (y - picView.top - picView.ty) / picView.k;
+            picView.k = next;
+            picView.tx = x - picView.left - ix * next;
+            picView.ty = y - picView.top - iy * next;
+            picViewerClamp();
+            picViewerApply();
+        }
+        function picViewerLayout() {
+            const vw = window.innerWidth, vh = window.innerHeight;
+            picView.base = Math.min(vw, vh);
+            picView.left = (vw - picView.base) / 2;
+            picView.top = (vh - picView.base) / 2;
+            const img = document.getElementById('picViewerImg');
+            img.style.width = img.style.height = picView.base + 'px';
+            img.style.left = picView.left + 'px';
+            img.style.top = picView.top + 'px';
+        }
+        function openPicViewer(src) {
+            if (!src) return;
+            const img = document.getElementById('picViewerImg');
+            img.src = src;
+            Object.assign(picView, { k: 1, tx: 0, ty: 0, pinch: null, drag: null, lastTap: null });
+            picView.pointers.clear();
+            document.getElementById('picViewer').hidden = false;
+            picViewerLayout();
+            picViewerApply();
+        }
+        function closePicViewer() {
+            document.getElementById('picViewer').hidden = true;
+            picView.pointers.clear();
+        }
+        function picViewerOpen() { return !document.getElementById('picViewer').hidden; }
+
+        (function bindPicViewer() {
+            const box = document.getElementById('picViewer');
+            const pinchFrom = () => {
+                const [a, b] = [...picView.pointers.values()];
+                return { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, k: picView.k,
+                         x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+            };
+            box.addEventListener('pointerdown', (e) => {
+                if (e.target.id === 'picViewerClose') return;
+                // Палец, ушедший за край картинки, не должен терять жест. Захват бывает
+                // недоступен (старый браузер, искусственное событие) — тогда без него.
+                try { box.setPointerCapture(e.pointerId); } catch (err) { /* без захвата */ }
+                picView.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                picView.moved = false;
+                if (picView.pointers.size === 2) { picView.pinch = pinchFrom(); picView.drag = null; }
+                else if (picView.pointers.size === 1) picView.drag = { x: e.clientX, y: e.clientY };
+            });
+            box.addEventListener('pointermove', (e) => {
+                if (!picView.pointers.has(e.pointerId)) return;
+                picView.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+                if (picView.pinch && picView.pointers.size >= 2) {
+                    const now = pinchFrom();
+                    picView.moved = true;
+                    // Разводим пальцы — крупнее; середина между пальцами ведёт картинку.
+                    picView.tx += now.x - picView.pinch.x;
+                    picView.ty += now.y - picView.pinch.y;
+                    picView.pinch.x = now.x; picView.pinch.y = now.y;
+                    picViewerZoomAt(picView.pinch.k * now.d / picView.pinch.d, now.x, now.y);
+                } else if (picView.drag) {
+                    const dx = e.clientX - picView.drag.x, dy = e.clientY - picView.drag.y;
+                    if (Math.abs(dx) + Math.abs(dy) > 6) picView.moved = true;
+                    if (picView.k > 1) {
+                        picView.tx += dx; picView.ty += dy;
+                        picView.drag = { x: e.clientX, y: e.clientY };
+                        picViewerClamp();
+                        picViewerApply();
+                    }
+                }
+            });
+            const up = (e) => {
+                if (!picView.pointers.has(e.pointerId)) return;
+                picView.pointers.delete(e.pointerId);
+                if (picView.pointers.size < 2) picView.pinch = null;
+                if (picView.pointers.size === 1) {
+                    const [p] = [...picView.pointers.values()];
+                    picView.drag = { x: p.x, y: p.y };
+                    return;
+                }
+                picView.drag = null;
+                if (picView.moved || e.type === 'pointercancel') return;
+                // Двойное нажатие: приблизить в эту точку, а приближенное — вернуть целиком.
+                const now = Date.now(), last = picView.lastTap;
+                if (last && now - last.t < 350 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 40) {
+                    picView.lastTap = null;
+                    if (picView.k > 1.01) picViewerZoomAt(1, e.clientX, e.clientY);
+                    else picViewerZoomAt(PIC_ZOOM_TAP, e.clientX, e.clientY);
+                } else {
+                    picView.lastTap = { t: now, x: e.clientX, y: e.clientY };
+                }
+            };
+            box.addEventListener('pointerup', up);
+            box.addEventListener('pointercancel', up);
+            box.addEventListener('wheel', (e) => {
+                e.preventDefault();
+                picViewerZoomAt(picView.k * (e.deltaY < 0 ? 1.15 : 1 / 1.15), e.clientX, e.clientY);
+            }, { passive: false });
+            document.getElementById('picViewerClose').addEventListener('click', closePicViewer);
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && picViewerOpen()) { e.preventDefault(); closePicViewer(); }
+            });
+            window.addEventListener('resize', () => {
+                if (!picViewerOpen()) return;
+                picViewerLayout();
+                picViewerClamp();
+                picViewerApply();
+            });
+            document.getElementById('detailImg').addEventListener('click', () => openPicViewer(detailImageSrc));
+            document.getElementById('puzzleCompleteArt').addEventListener('click', () => openPicViewer(puzzleRevealSrc));
+        })();
+
         // ===== ОКНО КОЛЛЕКЦИИ =====
         function showCollectionList() {
             document.getElementById('collectionListView').style.display = '';
@@ -6645,6 +7013,7 @@
             const px = resolveParadoxes()[index];
             if (!px) return;
             document.getElementById('detailImg').src = PUZZLE_IMAGE_SRCS[index];
+            detailImageSrc = PUZZLE_IMAGE_SRCS[index];
             fillParadoxCard('detail', px);
             document.getElementById('collectionListView').style.display = 'none';
             document.getElementById('collectionDetail').classList.add('show');
@@ -6690,6 +7059,35 @@
                 `${collectionCollectedCount(collection)}/${PUZZLE_IMAGE_SRCS.length}`;
         }
 
+        // Собранные кусочки начатого пазла — на холсте поверх тёмной плитки. Все
+        // кусочки идут одним контуром: соседние сходятся без щелей, и на плитке нет
+        // швов, которые в шестьдесят пикселей были бы просто сеткой.
+        function drawPuzzleProgress(canvas, src, topicKey, filled) {
+            const layout = puzzleLayout(topicKey, puzzleTimesFor(topicKey));
+            let d = '';
+            for (let k = 0; k < filled && k < layout.order.length; k++) {
+                const [r, c] = layout.order[k];
+                d += layout.paths[r][c] + ' ';
+            }
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const ctx = canvas.getContext('2d');
+                    const scale = canvas.width / PUZZLE_SIZE;
+                    ctx.save();
+                    ctx.scale(scale, scale);
+                    ctx.clip(new Path2D(d));
+                    ctx.drawImage(img, 0, 0, PUZZLE_SIZE, PUZZLE_SIZE);
+                    ctx.restore();
+                    canvas.dataset.pieces = String(filled);
+                } catch (e) {
+                    // Нет Path2D — останется тёмная плитка со счётом. Это всё ещё больше,
+                    // чем было: «37/100» видно и без картинки.
+                }
+            };
+            img.src = src;
+        }
+
         // Одна плитка коллекции.
         function buildCollectionItem(i, collection) {
                 const times = collection[i] || 0;
@@ -6713,10 +7111,29 @@
                     item.appendChild(rep);
                 }
 
+                // Начатый пазл показывает, сколько собрано. Раньше начатый и нетронутый
+                // выглядели одинаково — тёмный квадрат с «?», и по коллекции не было
+                // видно, где осталось всего ничего. Теперь собранные кусочки стоят в
+                // цвете на своих местах — тех же, что в игре, потому что раскладка
+                // выводится из клетки и сборки, — и рядом «37/100».
+                const cellKey = puzzleTopicForIndex(i);
+                const started = !unlocked && cellKey ? puzzleFilledFor(cellKey) : 0;
+                if (started > 0) {
+                    item.classList.add('started');
+                    const canvas = document.createElement('canvas');
+                    canvas.className = 'collection-progress';
+                    canvas.width = canvas.height = 256;
+                    item.appendChild(canvas);
+                    drawPuzzleProgress(canvas, puzzleThumbSrc(i), cellKey, started);
+                    const count = document.createElement('div');
+                    count.className = 'collection-progress-count';
+                    count.innerText = `${started}/${PUZZLE_TOTAL}`;
+                    item.appendChild(count);
+                }
+
                 // Звезда подписана у всех клеток, включая закрытые: по ней видно, за что
                 // картинка, а спойлером это не является — название по-прежнему только
                 // у собранных, и открывается тапом.
-                const cellKey = puzzleTopicForIndex(i);
                 if (cellKey) {
                     const p = parseTopicKey(cellKey);
                     const badge = document.createElement('div');
@@ -14459,7 +14876,13 @@
                 // мини-пазла, а не собираем заново: так на экране итогов не может
                 // оказаться картинка, отличная от той, что видел ученик в игре.
                 const mini = document.getElementById('miniPuzzleSvg');
-                if (mini) art.appendChild(mini.cloneNode(true));
+                if (mini) {
+                    const copy = mini.cloneNode(true);
+                    // Вспышка последнего кусочка могла ещё не догореть — в копии она
+                    // сыграла бы заново, уже на экране итогов.
+                    copy.querySelectorAll('.piece-flash').forEach(n => n.remove());
+                    art.appendChild(copy);
+                }
 
                 const note = winGateNote(key);
                 if (note) { gate.innerText = note; gate.style.display = ''; }

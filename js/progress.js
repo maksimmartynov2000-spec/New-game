@@ -1364,10 +1364,18 @@ const Progress = (() => {
         // Само поле state.puzzle осталось, чтобы не выбрасывать уже сохранённые данные.
 
         // --- коллекции ---
+        // Массив короче нужного дополняется, а не обнуляется. Раньше при любой разнице
+        // в длине коллекцию заводили заново — и при переходе с двадцати картинок на
+        // сорок пропали бы отметки всех собранных. Длиннее нужного — оставляем как
+        // есть: лишние места читать некому, а на другом устройстве может стоять версия
+        // новее, и затирать её отметки нельзя.
         getCollection(id, size) {
             let arr = state.collections[id];
-            if (!Array.isArray(arr) || arr.length !== size) {
+            if (!Array.isArray(arr)) {
                 arr = new Array(size).fill(false);
+                state.collections[id] = arr;
+            } else if (arr.length < size) {
+                arr = arr.concat(new Array(size - arr.length).fill(false));
                 state.collections[id] = arr;
             }
             return arr;
