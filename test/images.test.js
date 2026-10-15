@@ -44,6 +44,13 @@ function listed() {
     assert(from > 0 && to > 0, 'не найден список PUZZLE_IMAGE_SRCS');
     return [...HTML.slice(from, to).matchAll(/'(images\/[^']+)'/g)].map(m => m[1]);
 }
+// Новые картинки, которые пока видит только репетитор: индекс клетки → файл.
+function previewListed() {
+    const from = HTML.indexOf('const PUZZLE_PREVIEW_SRCS');
+    const to = HTML.indexOf('};', from);
+    assert(from > 0 && to > 0, 'не найден список PUZZLE_PREVIEW_SRCS');
+    return [...HTML.slice(from, to).matchAll(/(\d+):\s*'(images\/[^']+)'/g)].map(m => ({ idx: +m[1], src: m[2] }));
+}
 
 console.log('\nКартинки коллекции');
 
@@ -63,13 +70,14 @@ test('ни одна картинка не подменена под прежни
 // лежать его старое содержимое. Файл можно убрать из игры, но не переиспользовать.
 test('исчезнувшие имена не всплывают заново', () => {
     const gone = Object.keys(PRINTS).filter(rel => !fs.existsSync(path.join(ROOT, rel)));
-    const back = gone.filter(rel => listed().indexOf(rel) >= 0);
+    const inGame = listed().concat(previewListed().map(p => p.src));
+    const back = gone.filter(rel => inGame.indexOf(rel) >= 0);
     eq(back.join(', '), '', `имена вернулись в игру после того, как ушли: ${back.join(', ')}`);
 });
 
 test('каждая картинка из списка лежит на диске — и полная, и превью', () => {
     const lost = [];
-    listed().forEach(rel => {
+    listed().concat(previewListed().map(p => p.src)).forEach(rel => {
         if (!fs.existsSync(path.join(ROOT, rel))) lost.push(rel);
         const thumb = rel.replace('images/', 'images/thumbs/');
         if (!fs.existsSync(path.join(ROOT, thumb))) lost.push(thumb);
@@ -93,6 +101,27 @@ test('картинок ровно столько, сколько парадок�
         const h = hash(rel);
         assert(!byHash[h], `${rel} и ${byHash[h]} — это одна и та же картинка`);
         byHash[h] = rel;
+    });
+});
+
+// Новые картинки репетитора идут к ученикам потом, и тогда у них в кеше уже не должно
+// оказаться ничего чужого под этими именами. Поэтому правило то же: своё имя, свой
+// слепок, ни одна не совпадает с прежней — ни именем, ни содержимым.
+test('новые картинки репетитора: свои имена, в слепке, не повторяют прежние', () => {
+    const prev = previewListed();
+    const old = listed();
+    assert(prev.length > 0, 'список новых картинок пуст — проверка ничего не проверяет');
+    const oldHashes = new Set(old.map(hash));
+    const seen = new Set();
+    prev.forEach(({ idx, src }) => {
+        assert(Number.isInteger(idx) && idx >= 0 && idx < old.length, `${src}: индекса ${idx} нет среди картинок`);
+        assert(old.indexOf(src) < 0, `${src} уже есть среди картинок учеников`);
+        assert(!seen.has(src), `${src} повторяется`);
+        seen.add(src);
+        [src, src.replace('images/', 'images/thumbs/')].forEach(rel => {
+            assert(PRINTS[rel], `${rel} нет в слепке test/image-fingerprints.json`);
+        });
+        assert(!oldHashes.has(hash(src)), `${src} — та же картинка, что одна из прежних`);
     });
 });
 

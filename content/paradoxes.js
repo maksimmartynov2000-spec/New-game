@@ -670,3 +670,180 @@ window.PARADOX_CONTENT = {
         }
     ]
 };
+
+// Новые карточки к новым картинкам пазлов. Пока их видит только репетитор: так новые
+// картинки проверяются в игре до того, как их увидят ученики (см. PUZZLE_PREVIEW_SRCS
+// и seesPuzzlePreview в index.html). Ключ — индекс парадокса, тот же, что у картинки
+// в PUZZLE_PREVIEW_SRCS: карточка заменяет прежнюю на том же месте. Поля и правила
+// формы те же, что выше. Когда новые картинки откроются всем, карточки переедут в
+// PARADOX_CONTENT на свои места, а этот объект опустеет.
+window.PARADOX_PREVIEW = {
+    ru: {
+        0: {
+            name: 'Тайна игрального кубика',
+            era: 'Устройство игрального кубика',
+            hook: 'Посмотри на кубик сверху — и узнаешь, что у него снизу.',
+            body: 'На игральном кубике напротив единицы стоит шестёрка, напротив тройки — четвёрка. Сложи — выйдет 7.\n\nТак устроены почти все кубики на свете: любые две противоположные грани вместе дают 7. Брось кубик, посмотри на верх — и скажешь, сколько точек снизу, не переворачивая его.',
+            probe: 'Сверху 5 точек. Сколько снизу? 5 + ? = 7',
+            answer: '2. Напротив пятёрки всегда двойка.'
+        },
+        1: {
+            name: 'Черепаха с волшебным панцирем',
+            era: 'Квадрат Ло Шу, древнекитайская легенда',
+            hook: 'Девять чисел в квадрате — и любая строка даёт 15.',
+            body: 'По древней китайской легенде из реки Ло вышла черепаха, а на её панцире был узор из точек: числа от 1 до 9, уложенные квадратом три на три.\n\nСложи любую строку, любой столбец или диагональ — всегда выйдет 15. Такие квадраты потом назвали магическими.',
+            probe: 'Верхняя строка панциря: 4, 9 и ещё одно число. 4 + 9 + ? = 15',
+            answer: '2. Весь панцирь: 4 9 2, 3 5 7, 8 1 6 — проверь любую строку.'
+        },
+        2: {
+            name: 'Мальчик, который не стал считать подряд',
+            era: 'Биография Гаусса, Сарториус фон Вальтерсхаузен, 1856',
+            hook: 'Учитель задал сложить числа от 1 до 100 — маленький Гаусс справился за минуту.',
+            body: 'Рассказывают, что учитель хотел надолго занять класс, а Карл Фридрих Гаусс почти сразу написал ответ: 5050.\n\nОн заметил пары: 1 + 100, 2 + 99, 3 + 98 — каждая даёт 101, и таких пар 50. Мальчик вырос одним из величайших математиков в истории.',
+            probe: 'Сложи 1 + 2 + … + 10 по-гауссовски — первое с последним: 1 + 10, 2 + 9, 3 + 8, 4 + 7, 5 + 6. 11 + 11 + 11 + 11 + 11 = ?',
+            answer: '55. Пять пар по 11 — и ни одно число не осталось без пары, совсем как у Гаусса.'
+        },
+        3: {
+            name: 'Ряд, который растёт в шишке',
+            era: 'Леонардо Пизанский, «Книга абака», 1202',
+            hook: 'Простой ряд чисел прячется в каждой шишке и в каждом подсолнухе.',
+            body: 'Начни с 1 и 1, а дальше складывай два последних числа: 1 + 1 = 2, 1 + 2 = 3, 2 + 3 = 5, 3 + 5 = 8, потом 13, 21, 34… Больше 800 лет назад этот ряд описал в своей книге итальянец Леонардо Пизанский — теперь его называют Фибоначчи.\n\nА потом оказалось, что так же «считает» природа. Возьми сосновую шишку и посчитай спирали из чешуек: часто их 8 в одну сторону и 13 в другую — два соседних числа из ряда. У подсолнуха спирали из семечек: 34 и 55, а у крупных — 55 и 89.',
+            probe: 'Продолжи ряд: 21 + 34 = 55, а 34 + 55 = ?',
+            answer: '89 — и это тоже спирали: у крупных подсолнухов их 55 в одну сторону и 89 в другую.'
+        },
+        4: {
+            name: 'Сколько квадратов на шахматной доске?',
+            era: 'Старинная задача про шахматную доску',
+            hook: 'На шахматной доске 64 клетки. А квадратов — 204.',
+            body: 'Начни с маленькой доски, 3 на 3. Клеток 9, а квадратов больше: 9 маленьких, ещё 4 средних — каждый из четырёх клеток, они налезают друг на друга, — и 1 большой, вся доска. Всего 9 + 4 + 1 = 14.\n\nНа шахматной доске так же, только размеров больше: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. Выходит, две трети квадратов на доске прячутся у всех на виду.',
+            probe: 'На доске поменьше, 6 на 6, квадратов: 36 + 25 + 16 + 9 + 4 + 1 = ?',
+            answer: '91. Клеток там всего 36, а квадратов — в два с половиной раза больше.'
+        }
+    },
+    en: {
+        0: {
+            name: 'The Secret of the Die',
+            era: 'How a die is made',
+            hook: 'Look at the top of a die and you will know what is underneath.',
+            body: 'On a die, the six is opposite the one, and the four is opposite the three. Add them up and you get 7.\n\nAlmost every die in the world is made this way: any two opposite faces add up to 7. Roll a die, look at the top, and you can tell how many dots are on the bottom without turning it over.',
+            probe: 'The top shows 5 dots. How many are on the bottom? 5 + ? = 7',
+            answer: '2. The two is always opposite the five.'
+        },
+        1: {
+            name: 'The Turtle with the Magic Shell',
+            era: 'The Lo Shu square, an ancient Chinese legend',
+            hook: 'Nine numbers in a square — and every row adds up to 15.',
+            body: 'An ancient Chinese legend says that a turtle came out of the River Lo, and its shell had a pattern of dots: the numbers from 1 to 9, arranged in a three-by-three square.\n\nAdd up any row, any column or either diagonal — you always get 15. Squares like this were later called magic squares.',
+            probe: 'The top row of the shell: 4, 9 and one more number. 4 + 9 + ? = 15',
+            answer: '2. The whole shell is 4 9 2, 3 5 7, 8 1 6 — check any row.'
+        },
+        2: {
+            name: 'The Boy Who Did Not Add One by One',
+            era: 'Biography of Gauss by Sartorius von Waltershausen, 1856',
+            hook: 'The teacher set a sum of all the numbers from 1 to 100 — little Gauss did it in a minute.',
+            body: 'The story goes that the teacher wanted to keep the class busy for a long time, but Carl Friedrich Gauss wrote the answer almost at once: 5050.\n\nHe noticed pairs: 1 + 100, 2 + 99, 3 + 98 — each makes 101, and there are 50 such pairs. The boy grew up to be one of the greatest mathematicians in history.',
+            probe: 'Add 1 + 2 + … + 10 the Gauss way — first with last: 1 + 10, 2 + 9, 3 + 8, 4 + 7, 5 + 6. 11 + 11 + 11 + 11 + 11 = ?',
+            answer: '55. Five pairs of 11 — and no number is left without a partner, just like in Gauss\'s sum.'
+        },
+        3: {
+            name: 'The Sequence That Grows in a Pine Cone',
+            era: 'Leonardo of Pisa, Liber Abaci, 1202',
+            hook: 'A simple row of numbers hides in every pine cone and every sunflower.',
+            body: 'Start with 1 and 1, then keep adding the last two numbers: 1 + 1 = 2, 1 + 2 = 3, 2 + 3 = 5, 3 + 5 = 8, then 13, 21, 34… More than 800 years ago the Italian Leonardo of Pisa described this sequence in his book — today we call him Fibonacci.\n\nLater it turned out that nature "counts" the same way. Take a pine cone and count the spirals of its scales: often there are 8 one way and 13 the other — two neighbouring numbers of the sequence. A sunflower has spirals of seeds: 34 and 55, and in big ones 55 and 89.',
+            probe: 'Continue the sequence: 21 + 34 = 55, and 34 + 55 = ?',
+            answer: '89 — and these are spirals too: big sunflowers have 55 one way and 89 the other.'
+        },
+        4: {
+            name: 'How Many Squares Are on a Chessboard?',
+            era: 'An old chessboard puzzle',
+            hook: 'A chessboard has 64 cells. But it has 204 squares.',
+            body: 'Start with a small board, 3 by 3. It has 9 cells but more squares: 9 small ones, 4 medium ones — each made of four cells, and they overlap — and 1 big one, the whole board. That makes 9 + 4 + 1 = 14.\n\nA chessboard works the same way, just with more sizes: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. So two thirds of the squares on the board are hiding in plain sight.',
+            probe: 'On a smaller board, 6 by 6, the squares are 36 + 25 + 16 + 9 + 4 + 1 = ?',
+            answer: '91. There are only 36 cells, but two and a half times as many squares.'
+        }
+    },
+    fr: {
+        0: {
+            name: 'Le secret du dé',
+            era: 'La construction d’un dé à jouer',
+            hook: 'Regarde le dessus d’un dé — et tu sauras ce qu’il y a dessous.',
+            body: 'Sur un dé, le six est en face du un, et le quatre en face du trois. Additionne : cela fait 7.\n\nPresque tous les dés du monde sont faits ainsi : deux faces opposées font toujours 7 ensemble. Lance un dé, regarde le dessus — et tu sauras combien de points il y a dessous, sans le retourner.',
+            probe: 'Le dessus montre 5 points. Combien y en a-t-il dessous ? 5 + ? = 7',
+            answer: '2. En face du cinq, il y a toujours le deux.'
+        },
+        1: {
+            name: 'La tortue à la carapace magique',
+            era: 'Le carré Lo Shu, légende de la Chine ancienne',
+            hook: 'Neuf nombres dans un carré — et chaque ligne fait 15.',
+            body: 'Selon une légende de la Chine ancienne, une tortue sortit du fleuve Lo, et sa carapace portait un motif de points : les nombres de 1 à 9, rangés en un carré de trois sur trois.\n\nAdditionne n’importe quelle ligne, colonne ou diagonale — tu obtiens toujours 15. Plus tard, on a appelé de tels carrés des carrés magiques.',
+            probe: 'La ligne du haut de la carapace : 4, 9 et encore un nombre. 4 + 9 + ? = 15',
+            answer: '2. Toute la carapace : 4 9 2, 3 5 7, 8 1 6 — vérifie n’importe quelle ligne.'
+        },
+        2: {
+            name: 'Le garçon qui n’a pas compté dans l’ordre',
+            era: 'Biographie de Gauss par Sartorius von Waltershausen, 1856',
+            hook: 'Le maître a demandé d’additionner les nombres de 1 à 100 — le petit Gauss a fini en une minute.',
+            body: 'On raconte que le maître voulait occuper la classe longtemps, mais Carl Friedrich Gauss a écrit la réponse presque tout de suite : 5050.\n\nIl avait remarqué des paires : 1 + 100, 2 + 99, 3 + 98 — chacune fait 101, et il y a 50 paires de ce genre. Le garçon est devenu l’un des plus grands mathématiciens de l’histoire.',
+            probe: 'Additionne 1 + 2 + … + 10 à la manière de Gauss — le premier avec le dernier : 1 + 10, 2 + 9, 3 + 8, 4 + 7, 5 + 6. 11 + 11 + 11 + 11 + 11 = ?',
+            answer: '55. Cinq paires de 11 — et aucun nombre ne reste sans partenaire, exactement comme chez Gauss.'
+        },
+        3: {
+            name: 'La suite qui pousse dans une pomme de pin',
+            era: 'Léonard de Pise, Liber abaci, 1202',
+            hook: 'Une suite de nombres toute simple se cache dans chaque pomme de pin et chaque tournesol.',
+            body: 'Commence par 1 et 1, puis additionne toujours les deux derniers nombres : 1 + 1 = 2, 1 + 2 = 3, 2 + 3 = 5, 3 + 5 = 8, puis 13, 21, 34… Il y a plus de 800 ans, l’Italien Léonard de Pise a décrit cette suite dans son livre — aujourd’hui on l’appelle Fibonacci.\n\nPlus tard, on a découvert que la nature « compte » de la même façon. Prends une pomme de pin et compte les spirales de ses écailles : souvent 8 dans un sens et 13 dans l’autre — deux nombres voisins de la suite. Le tournesol a des spirales de graines : 34 et 55, et chez les grands, 55 et 89.',
+            probe: 'Continue la suite : 21 + 34 = 55, et 34 + 55 = ?',
+            answer: '89 — et ce sont aussi des spirales : les grands tournesols en ont 55 dans un sens et 89 dans l’autre.'
+        },
+        4: {
+            name: 'Combien de carrés sur un échiquier ?',
+            era: 'Une vieille énigme de l’échiquier',
+            hook: 'Un échiquier a 64 cases. Mais il compte 204 carrés.',
+            body: 'Commence par un petit plateau de 3 sur 3. Il a 9 cases, mais plus de carrés : 9 petits, encore 4 moyens — chacun fait de quatre cases, et ils se chevauchent — et 1 grand, tout le plateau. En tout 9 + 4 + 1 = 14.\n\nSur un échiquier, c’est pareil, avec plus de tailles : 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. Les deux tiers des carrés de l’échiquier se cachent donc sous nos yeux.',
+            probe: 'Sur un plateau plus petit, de 6 sur 6, les carrés font : 36 + 25 + 16 + 9 + 4 + 1 = ?',
+            answer: '91. Il n’y a que 36 cases, mais deux fois et demie plus de carrés.'
+        }
+    },
+    de: {
+        0: {
+            name: 'Das Geheimnis des Würfels',
+            era: 'Wie ein Spielwürfel gebaut ist',
+            hook: 'Schau oben auf einen Würfel — und du weißt, was unten ist.',
+            body: 'Auf einem Spielwürfel liegt die Sechs gegenüber der Eins und die Vier gegenüber der Drei. Zähl zusammen: Es kommt 7 heraus.\n\nSo sind fast alle Würfel der Welt gebaut: Zwei gegenüberliegende Seiten ergeben zusammen immer 7. Wirf einen Würfel, schau auf die Oberseite — und du weißt, wie viele Augen unten sind, ohne ihn umzudrehen.',
+            probe: 'Oben sind 5 Augen. Wie viele sind unten? 5 + ? = 7',
+            answer: '2. Gegenüber der Fünf liegt immer die Zwei.'
+        },
+        1: {
+            name: 'Die Schildkröte mit dem Zauberpanzer',
+            era: 'Das Lo-Shu-Quadrat, eine altchinesische Legende',
+            hook: 'Neun Zahlen in einem Quadrat — und jede Zeile ergibt 15.',
+            body: 'Eine altchinesische Legende erzählt, dass aus dem Fluss Lo eine Schildkröte stieg. Auf ihrem Panzer war ein Muster aus Punkten: die Zahlen von 1 bis 9, angeordnet in einem Quadrat von drei mal drei.\n\nZähl eine beliebige Zeile, Spalte oder Diagonale zusammen — es kommt immer 15 heraus. Solche Quadrate nannte man später magische Quadrate.',
+            probe: 'Die obere Zeile des Panzers: 4, 9 und noch eine Zahl. 4 + 9 + ? = 15',
+            answer: '2. Der ganze Panzer: 4 9 2, 3 5 7, 8 1 6 — prüf eine beliebige Zeile.'
+        },
+        2: {
+            name: 'Der Junge, der nicht der Reihe nach rechnete',
+            era: 'Gauß-Biografie von Sartorius von Waltershausen, 1856',
+            hook: 'Der Lehrer ließ die Zahlen von 1 bis 100 addieren — der kleine Gauß war in einer Minute fertig.',
+            body: 'Man erzählt, der Lehrer wollte die Klasse lange beschäftigen, doch Carl Friedrich Gauß schrieb die Antwort fast sofort hin: 5050.\n\nEr hatte Paare entdeckt: 1 + 100, 2 + 99, 3 + 98 — jedes ergibt 101, und solche Paare gibt es 50. Der Junge wurde einer der größten Mathematiker der Geschichte.',
+            probe: 'Rechne 1 + 2 + … + 10 wie Gauß — die erste mit der letzten Zahl: 1 + 10, 2 + 9, 3 + 8, 4 + 7, 5 + 6. 11 + 11 + 11 + 11 + 11 = ?',
+            answer: '55. Fünf Paare zu je 11 — und keine Zahl bleibt ohne Partner, ganz wie bei Gauß.'
+        },
+        3: {
+            name: 'Die Zahlenfolge im Kiefernzapfen',
+            era: 'Leonardo von Pisa, Liber Abaci, 1202',
+            hook: 'Eine einfache Zahlenreihe versteckt sich in jedem Zapfen und in jeder Sonnenblume.',
+            body: 'Fang mit 1 und 1 an und addiere dann immer die letzten zwei Zahlen: 1 + 1 = 2, 1 + 2 = 3, 2 + 3 = 5, 3 + 5 = 8, dann 13, 21, 34… Vor über 800 Jahren beschrieb der Italiener Leonardo von Pisa diese Folge in seinem Buch — heute nennt man ihn Fibonacci.\n\nSpäter stellte sich heraus, dass die Natur genauso „zählt“. Nimm einen Kiefernzapfen und zähl die Spiralen seiner Schuppen: Oft sind es 8 in die eine und 13 in die andere Richtung — zwei benachbarte Zahlen der Folge. Die Sonnenblume hat Spiralen aus Kernen: 34 und 55, bei großen 55 und 89.',
+            probe: 'Setz die Folge fort: 21 + 34 = 55, und 34 + 55 = ?',
+            answer: '89 — und auch das sind Spiralen: Große Sonnenblumen haben 55 in die eine und 89 in die andere Richtung.'
+        },
+        4: {
+            name: 'Wie viele Quadrate hat ein Schachbrett?',
+            era: 'Ein altes Schachbrett-Rätsel',
+            hook: 'Ein Schachbrett hat 64 Felder. Aber 204 Quadrate.',
+            body: 'Fang mit einem kleinen Brett an, 3 mal 3. Es hat 9 Felder, aber mehr Quadrate: 9 kleine, dazu 4 mittlere — jedes aus vier Feldern, sie überlappen sich — und 1 großes, das ganze Brett. Zusammen 9 + 4 + 1 = 14.\n\nBeim Schachbrett ist es genauso, nur mit mehr Größen: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. Zwei Drittel der Quadrate auf dem Brett verstecken sich also vor aller Augen.',
+            probe: 'Auf einem kleineren Brett, 6 mal 6, gibt es so viele Quadrate: 36 + 25 + 16 + 9 + 4 + 1 = ?',
+            answer: '91. Dort gibt es nur 36 Felder, aber zweieinhalbmal so viele Quadrate.'
+        }
+    }
+};
