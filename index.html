@@ -868,6 +868,13 @@
             color: var(--gold); font-size: 1.1rem; font-weight: bold; margin-bottom: 12px;
             text-align: center; padding-inline: 52px; line-height: 1.3; text-wrap: balance;
         }
+        /* Пазл открыли посреди миссии — время стоит, и это сказано словами: иначе ребёнок
+           не знает, можно ли спокойно разглядывать картинку или пример тем временем горит. */
+        .puzzle-paused-note {
+            width: fit-content; margin: -4px auto 12px; padding: 5px 14px; border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #e2e8f0; font-size: 0.95rem; font-weight: bold; text-align: center;
+        }
         .puzzle-big-thumb {
             width: 100%; aspect-ratio: 1 / 1; border-radius: 16px; overflow: hidden;
             border: 2px solid rgba(255, 215, 0, 0.28); box-shadow: 0 0 35px rgba(0,0,0,0.55);
@@ -3201,6 +3208,7 @@
             <button class="puzzle-close" id="puzzleCloseBtn">✕</button>
             <div id="puzzleLiveSection">
                 <div class="puzzle-modal-title">🧩 Пазл собирается: <span id="puzzleModalCount">0/100</span></div>
+                <div class="puzzle-paused-note" id="puzzlePausedNote" style="display:none;">⏸ Время на паузе</div>
                 <div class="puzzle-big-thumb">
                     <svg viewBox="0 0 1000 1000" id="bigPuzzleSvg">
                         <rect width="1000" height="1000" fill="#0b0e18"></rect>
@@ -3210,12 +3218,6 @@
                     </svg>
                 </div>
                 <button class="btn-save-puzzle" id="btnOpenCollectionLive" style="margin-top:14px;">🧩 <span>Коллекция пазлов</span></button>
-                <button class="btn-save-puzzle" id="btnShowMyCode" style="margin-top:8px; background:rgba(255,255,255,0.08);">🔑 Мой логин</button>
-            </div>
-            <div id="myCodePanel" style="display:none; text-align:center; padding:10px 0;">
-                <p style="color:#94a3b8; margin-bottom:10px;">Твой логин для входа на другом устройстве:</p>
-                <div id="myCodeValue" style="font-size:1.9rem; font-weight:900; color:var(--gold); letter-spacing:3px; margin-bottom:14px;"></div>
-                <button class="btn-save-puzzle" onclick="closeMyCodePanel()">← Назад к пазлу</button>
             </div>
             <div class="puzzle-complete-panel" id="puzzleCompletePanel">
                 <p class="title-line">🎉 Пазл собран полностью!</p>
@@ -6753,15 +6755,27 @@
         // это стало не правилом, которое надо соблюдать, а свойством, которое не надо
         // сторожить.
 
+        // Пазл, открытый посреди миссии, — это пауза. Раньше окно просто ложилось поверх
+        // игры, а миссия шла дальше: тикали часы (и время занятий в отчёте), ползла
+        // полоска, а время, пока ребёнок разглядывал картинку, прибавлялось к ответу на
+        // текущий пример — и ответ засчитывался медленным. Экран паузы тут не нужен:
+        // пример и так закрыт пазлом, а что время стоит, говорит надпись в окне.
+        //
+        // При закрытии пазл снимает только ту паузу, которую поставил сам. Если миссия
+        // уже стояла (пауза → меню → «Пазл»), закрытый пазл возвращает на экран паузы.
+        let puzzlePause = false;
+
         function openPuzzleModal() {
-            // «Мой логин» гостю не нужен: логина у него нет. Если панель с логином
-            // осталась открытой с прошлого раза, кнопка и так спрятана — не трогаем.
-            const panelOpen = document.getElementById('myCodePanel').style.display === 'block';
-            document.getElementById('btnShowMyCode').style.display = (Progress.isGuest() || panelOpen) ? 'none' : '';
+            if (gameActive && !paused) { holdTime(); puzzlePause = true; }
+            document.getElementById('puzzlePausedNote').style.display = gameActive ? '' : 'none';
             document.getElementById('puzzleModal').classList.add('active');
         }
         function closePuzzleModal() {
             document.getElementById('puzzleModal').classList.remove('active');
+            if (puzzlePause) {
+                puzzlePause = false;
+                if (gameActive && paused) releaseTime();
+            }
         }
         // Показывает либо "живой" пазл в процессе сборки, либо экран с готовой картинкой —
         // никогда не оба сразу, чтобы не путать пустой новый пазл с только что собранным.
@@ -7457,7 +7471,6 @@
         document.getElementById('btnOpenCollectionLive').addEventListener('click', openCollectionModal);
         document.getElementById('collectionTabPics').addEventListener('click', () => showCollectionTab('pics'));
         document.getElementById('collectionTabTasks').addEventListener('click', () => showCollectionTab('tasks'));
-        document.getElementById('btnShowMyCode').addEventListener('click', openMyCodePanel);
 
         // ===================== ГЛАВНОЕ МЕНЮ =====================
         const CATEGORY_LABELS = { integer: t('Целые'), decimal: t('Десятичные'), fraction: t('Дроби') };
@@ -13145,7 +13158,7 @@
             forcedProblem = null;
             // Миссию можно завершить и с паузы — тогда экран паузы остался бы висеть
             // поверх итогов.
-            paused = false; pausedAt = 0;
+            paused = false; pausedAt = 0; puzzlePause = false;
             document.getElementById('pauseScreen').style.display = 'none';
             refreshPauseButton();
             correctCount = 0; wrongCount = 0; totalSeconds = 0; state.combo = 0;
@@ -13229,24 +13242,6 @@
             document.getElementById('btn-exam').click();
         }
 
-        function openMyCodePanel() {
-            const code = Progress.getCode();
-            // У гостя логина нет: служебный код наружу не показываем.
-            if (!code || Progress.isGuest()) return;
-            document.getElementById('myCodeValue').innerText = code;
-            document.getElementById('myCodePanel').style.display = 'block';
-            document.getElementById('puzzleModalCount').parentElement.style.display = 'none'; // скрываем заголовок пазла
-            document.querySelector('#puzzleLiveSection .puzzle-big-thumb').style.display = 'none';
-            document.getElementById('btnOpenCollectionLive').style.display = 'none';
-            document.getElementById('btnShowMyCode').style.display = 'none';
-        }
-        function closeMyCodePanel() {
-            document.getElementById('myCodePanel').style.display = 'none';
-            document.getElementById('puzzleModalCount').parentElement.style.display = '';
-            document.querySelector('#puzzleLiveSection .puzzle-big-thumb').style.display = '';
-            document.getElementById('btnOpenCollectionLive').style.display = '';
-            document.getElementById('btnShowMyCode').style.display = Progress.isGuest() ? 'none' : '';
-        }
         document.getElementById('btnDetailBack').addEventListener('click', showCollectionList);
         document.getElementById('collectionCloseBtn').addEventListener('click', closeCollectionModal);
 
@@ -13864,20 +13859,35 @@
         let paused = false;
         let pausedAt = 0;
 
-        function pauseGame() {
-            if (!gameActive || paused) return;
+        // Сами часы — остановить и пустить. Экран паузы отдельно, в pauseGame/resumeGame:
+        // пазл посреди миссии время останавливает, а экрана паузы не показывает
+        // (см. openPuzzleModal).
+        function holdTime() {
             paused = true;
             pausedAt = Date.now();
+        }
+
+        function releaseTime() {
+            paused = false;
+            // Начало отсчёта сдвигаем ровно на длину паузы. Меряем то, сколько пример был
+            // ПЕРЕД ГЛАЗАМИ, а не сколько прошло по настенным часам: на паузе его не видно.
+            // Пример мог и прийти посреди паузы: после ошибки следующий появляется через
+            // полторы секунды, а пазл открывают раньше. Перед глазами он тогда только с
+            // этой минуты, и сдвигать надо от его появления, а не от начала паузы, —
+            // иначе начало отсчёта уезжало в будущее и ответ выходил мгновенным.
+            if (questionShownAt && pausedAt) questionShownAt += Date.now() - Math.max(pausedAt, questionShownAt);
+            pausedAt = 0;
+        }
+
+        function pauseGame() {
+            if (!gameActive || paused) return;
+            holdTime();
             document.getElementById('pauseScreen').style.display = 'flex';
         }
 
         function resumeGame() {
             if (!paused) return;
-            paused = false;
-            // Начало отсчёта сдвигаем ровно на длину паузы. Меряем то, сколько пример был
-            // ПЕРЕД ГЛАЗАМИ, а не сколько прошло по настенным часам: на паузе его не видно.
-            if (questionShownAt && pausedAt) questionShownAt += Date.now() - pausedAt;
-            pausedAt = 0;
+            releaseTime();
             document.getElementById('pauseScreen').style.display = 'none';
         }
 
@@ -15152,7 +15162,7 @@
             // Выбор миссии возвращаем сразу, а сама миссия повтора живёт до ухода с экрана
             // итогов: ему и кнопке «Ещё раз» нужно знать, что это был повтор.
             restoreRepeatConfig();
-            paused = false; pausedAt = 0;
+            paused = false; pausedAt = 0; puzzlePause = false;
             document.getElementById('pauseScreen').style.display = 'none';
             refreshPauseButton();
             renderWinSummary();
