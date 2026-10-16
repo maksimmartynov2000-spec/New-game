@@ -102,7 +102,7 @@ function finish() {
     });
     let v = await look();
     await checkAsync('пазл миссии: новые картинки на сложении 1★ и 5★', async () => {
-        eq(v.add1, 'images/IMG_2453.webp', 'сложение 1★');
+        eq(v.add1, 'images/IMG_2458.webp', 'сложение 1★');
         eq(v.add1, v.next[0], 'сложение 1★ из списка новых');
         eq(v.add5, v.next[4], 'сложение 5★');
     });
