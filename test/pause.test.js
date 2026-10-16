@@ -293,6 +293,164 @@ function record(name, err) {
         await page.evaluate(`closeCollectionModal(); resumeGame(); null;`);
     }
 
+    console.log('\nПазл посреди миссии');
+    {
+        // Пазл открывают тапом по миниатюре прямо из примера. Раньше миссия под ним шла
+        // дальше: часы тикали, полоска ползла, а время на разглядывание картинки
+        // прибавлялось к ответу на пример. Теперь пазл — та же пауза, только без экрана
+        // паузы: пример и так закрыт окном, а что время стоит, говорит надпись.
+        const пазл = () => page.evaluate(`(() => {
+            const note = document.getElementById('puzzlePausedNote');
+            return {
+                открыт: document.getElementById('puzzleModal').classList.contains('active'),
+                надпись: getComputedStyle(note).display !== 'none' ? note.innerText.trim() : null,
+                наПаузе: paused
+            };
+        })()`);
+        const тап = (sel) => page.evaluate(`document.querySelector(${JSON.stringify(sel)}).click(); null;`);
+        const раздумье = () => page.evaluate(`Date.now() - questionShownAt`);
+        const часыИдут = () => page.evaluate(`(async () => {
+            const было = document.getElementById('clockTimeText').innerText;
+            await new Promise(r => setTimeout(r, 2200));
+            return document.getElementById('clockTimeText').innerText !== было;
+        })()`);
+
+        await startMission();
+        await page.waitForTimeout(1200);
+        errors.length = 0;
+        const доПазла = await раздумье();
+        await тап('#puzzleMiniBtn');
+        await page.waitForTimeout(150);
+        const открыли = { ...(await look()), ...(await пазл()) };
+        record('пазл открылся', открыли.открыт ? null : 'окно пазла не открылось');
+        record('пока открыт пазл, миссия на паузе', открыли.наПаузе ? null : 'пазл открыт, а миссия идёт');
+        record('в окне пазла надпись «⏸ Время на паузе»',
+               открыли.надпись === '⏸ Время на паузе' ? null : `надпись: ${JSON.stringify(открыли.надпись)}`);
+        record('экран паузы под пазлом не открывается',
+               открыли.экранПаузы ? 'под пазлом открылся ещё и экран паузы' : null);
+
+        await page.waitForTimeout(2600);           // пазл разглядывают — время стоит
+        const стоим = await look();
+        record('часы стоят, пока открыт пазл',
+               стоим.часы === открыли.часы ? null : `${открыли.часы} → ${стоим.часы}`);
+        record('занятое время не капает, пока открыт пазл',
+               стоим.занято === открыли.занято ? null : `${открыли.занято}с → ${стоим.занято}с`);
+        record('полоска времени стоит, пока открыт пазл',
+               стоим.полоска === открыли.полоска ? null : `${открыли.полоска} → ${стоим.полоска}`);
+
+        // Закрыли крестиком — игра сразу идёт дальше, без лишнего экрана паузы.
+        await тап('#puzzleCloseBtn');
+        await page.waitForTimeout(150);
+        const послеПазла = await раздумье();
+        const закрыли = { ...(await look()), ...(await пазл()) };
+        record('крестик закрывает пазл', закрыли.открыт ? 'окно пазла осталось' : null);
+        record('после пазла игра идёт сама, без экрана паузы',
+               !закрыли.наПаузе && !закрыли.экранПаузы ? null
+                   : `пауза: ${закрыли.наПаузе}, экран паузы: ${закрыли.экранПаузы}`);
+        record('после пазла пример снова виден', закрыли.примерВиден ? null : 'примера не видно');
+        // Пазл был открыт почти три секунды. В раздумье над примером их быть не должно.
+        record('время на пазл не попало в ответ на пример',
+               послеПазла < доПазла + 1300 ? null : `до пазла ${доПазла} мс, после ${послеПазла} мс`);
+        record('раздумье до пазла не потерялось',
+               послеПазла >= доПазла ? null : `до пазла ${доПазла} мс, после ${послеПазла} мс`);
+        record('часы снова идут после пазла', await часыИдут() ? null : 'часы не пошли');
+
+        // После ошибки следующий пример приходит через полторы секунды — и пазл успевают
+        // открыть раньше, так что пример появляется посреди паузы. Перед глазами он только
+        // с закрытия пазла: раньше отсчёт уезжал в будущее, и ответ выходил мгновенным.
+        await тап('#puzzleMiniBtn');
+        await page.waitForTimeout(700);
+        await page.evaluate(`generateMath(); null;`);   // то, что делает отложенный переход
+        await page.waitForTimeout(1500);
+        await тап('#puzzleCloseBtn');
+        const новыйПример = await раздумье();
+        record('пример пришёл посреди паузы — отсчёт с закрытия пазла',
+               новыйПример >= 0 && новыйПример < 600 ? null
+                   : `через миг после закрытия раздумье ${новыйПример} мс`);
+
+        // Из пазла уходят в коллекцию — миссия всё это время стоит, а закрытая
+        // коллекция возвращает к пазлу с той же надписью.
+        await тап('#puzzleMiniBtn');
+        await тап('#btnOpenCollectionLive');
+        await page.waitForTimeout(200);
+        const коллекция = await page.evaluate(`({
+            открыта: document.getElementById('collectionModal').classList.contains('active'), наПаузе: paused })`);
+        record('из пазла открылась коллекция, миссия стоит',
+               коллекция.открыта && коллекция.наПаузе ? null : JSON.stringify(коллекция));
+        await тап('#collectionCloseBtn');
+        await page.waitForTimeout(150);
+        const вернулись = await пазл();
+        record('после коллекции снова пазл, миссия всё ещё стоит',
+               вернулись.открыт && вернулись.наПаузе && вернулись.надпись ? null : JSON.stringify(вернулись));
+        await тап('#puzzleCloseBtn');
+        await page.waitForTimeout(150);
+        record('закрыли пазл после коллекции — миссия пошла',
+               await page.evaluate(`paused`) ? 'миссия осталась на паузе' : null);
+
+        // Свернули приложение с открытым пазлом: пауза уже стоит, экран паузы поверх
+        // пазла не нужен. Вернулись — пазл на месте, время стоит, пока его не закроют.
+        const свернуть = (состояние) => page.evaluate(`
+            Object.defineProperty(document, 'visibilityState', { configurable: true, value: '${состояние}' });
+            document.dispatchEvent(new Event('visibilitychange')); null;`);
+        await тап('#puzzleMiniBtn');
+        await свернуть('hidden');
+        await page.waitForTimeout(150);
+        const свёрнуто = { ...(await look()), ...(await пазл()) };
+        await page.waitForTimeout(2600);
+        const потом = await look();
+        await свернуть('visible');
+        await page.waitForTimeout(300);
+        const развернули = { ...(await look()), ...(await пазл()) };
+        record('свернули с пазлом — время стоит',
+               свёрнуто.наПаузе && потом.часы === свёрнуто.часы ? null : `${свёрнуто.часы} → ${потом.часы}`);
+        record('вернулись — пазл на месте и время ещё стоит',
+               развернули.открыт && развернули.наПаузе && развернули.надпись ? null : JSON.stringify(развернули));
+        await тап('#puzzleCloseBtn');
+        await page.waitForTimeout(150);
+        record('закрыли пазл после возврата — миссия пошла',
+               await page.evaluate(`paused`) ? 'миссия осталась на паузе' : null);
+
+        // Миссия уже стояла на паузе (пауза → меню → «Текущий пазл»). Закрытый пазл эту
+        // паузу не снимает: возвращает туда, откуда пришли, — на экран паузы.
+        await тап('#btnPause');
+        await тап('#pauseScreen button[onclick*="openMainMenu"]');
+        await тап('button[onclick*="menuGoPuzzle"]');
+        await page.waitForTimeout(150);
+        const изМеню = await пазл();
+        record('пазл из меню паузы открылся, время стоит, надпись есть',
+               изМеню.открыт && изМеню.наПаузе && изМеню.надпись ? null : JSON.stringify(изМеню));
+        await тап('#puzzleCloseBtn');
+        await page.waitForTimeout(150);
+        const наПаузе = { ...(await look()), ...(await пазл()) };
+        record('закрытый пазл не снимает паузу, поставленную кнопкой',
+               наПаузе.наПаузе && наПаузе.экранПаузы ? null
+                   : `пауза: ${наПаузе.наПаузе}, экран паузы: ${наПаузе.экранПаузы}`);
+        await тап('#pauseScreen button');
+        await page.waitForTimeout(150);
+
+        // Пазл снимает только свою паузу — и не из прошлой миссии. Открыли пазл, миссия
+        // сменилась, новую поставили на паузу кнопкой: закрытие пазла её не трогает.
+        await тап('#puzzleMiniBtn');
+        await startMission();
+        await page.waitForTimeout(150);
+        await тап('#btnPause');
+        await page.evaluate(`closePuzzleModal(); null;`);
+        record('пазл из прошлой миссии не снимает паузу новой',
+               await page.evaluate(`paused`) ? null : 'пауза новой миссии снялась закрытием пазла');
+        await тап('#pauseScreen button');
+
+        // Вне миссии время не идёт, и надпись была бы неправдой.
+        await page.evaluate(`resetSessionCounters(); null;`);
+        await page.evaluate(`openPuzzleModal(); null;`);
+        const внеМиссии = await пазл();
+        record('вне миссии надписи «время на паузе» нет',
+               внеМиссии.надпись === null ? null : `надпись: ${JSON.stringify(внеМиссии.надпись)}`);
+        record('вне миссии пазл ничего не ставит на паузу',
+               внеМиссии.наПаузе ? 'вне миссии поднялся флаг паузы' : null);
+        await page.evaluate(`closePuzzleModal(); null;`);
+        record('пазл посреди миссии — без ошибок на странице', errors.length ? errors.join(' | ') : null);
+    }
+
     console.log('\nЗавершение миссии с паузы');
     {
         await startMission();

@@ -142,6 +142,19 @@ check('точек всегда одинаково, какой бы длины н
         await pupil.evaluate(`closeMainMenu(); openMainMenu(); null`);
         assert(!(await menu()).includes('MASHA2015'), 'забытое «показать» дожило до следующего открытия');
     });
+
+    // В окне пазла раньше была кнопка «Мой логин»: она показывала логин крупно и без
+    // точек — мимо всего, что спрятано выше. Логин живёт в меню игры, а здесь его нет.
+    console.log('\nОкно пазла');
+    const puzzleText = (page) => page.evaluate(`(() => {
+        closeMainMenu(); openPuzzleModal();
+        const s = document.getElementById('puzzleModal').innerText;
+        closePuzzleModal(); return s; })()`);
+    await live('в окне пазла нет ни логина, ни кнопки «Мой логин»', async () => {
+        const s = await puzzleText(pupil);
+        assert(!s.includes('MASHA2015'), 'в окне пазла виден логин');
+        assert(!/логин/i.test(s), `в окне пазла осталось про логин: «${s.replace(/\s+/g, ' ').slice(0, 120)}»`);
+    });
     await live('ошибок на странице нет', async () => {
         assert(!pupil.errs.length, pupil.errs.join('; '));
     });
@@ -157,13 +170,10 @@ check('точек всегда одинаково, какой бы длины н
         const btn = await guest.evaluate(`document.getElementById('menuLoginToggle').hidden`);
         assert(btn, 'гостю показана кнопка «показать» — показывать нечего');
     });
-    await live('в окне пазла у гостя нет кнопки «Мой логин», и панель не открывается', async () => {
-        await guest.evaluate(`closeMainMenu(); openPuzzleModal(); null`);
-        const shown = await guest.evaluate(`getComputedStyle(document.getElementById('btnShowMyCode')).display`);
-        assert(shown === 'none', 'кнопка «Мой логин» видна гостю');
-        await guest.evaluate(`openMyCodePanel(); null`);
-        const val = await guest.evaluate(`document.getElementById('myCodeValue').innerText`);
-        assert(!val.includes('guest'), `панель показала служебный код: «${val}»`);
+    await live('в окне пазла у гостя нет ни служебного кода, ни кнопки «Мой логин»', async () => {
+        const s = await puzzleText(guest);
+        assert(!s.includes('guest'), 'в окне пазла виден служебный код');
+        assert(!/логин/i.test(s), `в окне пазла осталось про логин: «${s.replace(/\s+/g, ' ').slice(0, 120)}»`);
     });
     await live('ошибок на странице нет', async () => {
         assert(!guest.errs.length, guest.errs.join('; '));
