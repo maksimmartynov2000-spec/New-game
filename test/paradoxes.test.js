@@ -16,19 +16,21 @@ const ROOT = path.join(__dirname, '..');
 const HTML = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
 const SCRIPT = HTML.match(/<script>([\s\S]*)<\/script>/)[1];
 
-function loadContent() {
+function loadWindow() {
     const box = { window: {} };
     vm.createContext(box);
     vm.runInContext(fs.readFileSync(path.join(ROOT, 'content', 'paradoxes.js'), 'utf8'), box,
         { filename: 'content/paradoxes.js' });
-    return box.window.PARADOX_CONTENT;
+    return box.window;
 }
+function loadContent() { return loadWindow().PARADOX_CONTENT; }
 
 // resolveParadoxes вырезаем и исполняем: именно она решает, что делать, когда файла нет.
-function loadResolver(windowObj) {
+// extra — что ещё положить в песочницу (например, seesPuzzlePreview).
+function loadResolver(windowObj, extra) {
     const from = SCRIPT.indexOf('function resolveParadoxes()');
     const to = SCRIPT.indexOf('\n\n', from);
-    const box = { window: windowObj, LANG: 'ru' };
+    const box = Object.assign({ window: windowObj, LANG: 'ru' }, extra || {});
     vm.createContext(box);
     vm.runInContext(SCRIPT.slice(from, to) + ';globalThis.R = resolveParadoxes;', box);
     return box;
@@ -47,6 +49,8 @@ function group(name) { console.log(`\n${name}`); }
 const CONTENT = loadContent();
 const RU = CONTENT.ru;
 const LANGS = Object.keys(CONTENT);
+// Новые карточки к новым картинкам: пока их видит только репетитор.
+const PREVIEW = loadWindow().PARADOX_PREVIEW;
 const FIELDS = ['name', 'era', 'hook', 'body', 'probe', 'answer'];
 
 group('Состав');
@@ -115,7 +119,12 @@ test('названия не повторяются', () => {
 
 group('Форма текста');
 
-const each = (fn) => LANGS.forEach(lang => CONTENT[lang].forEach((px, i) => fn(px, lang, i)));
+// Новые карточки репетитора подчиняются тем же правилам формы: потом они займут места
+// прежних, и разбираться с длиной и абзацами тогда будет поздно.
+const each = (fn) => {
+    LANGS.forEach(lang => CONTENT[lang].forEach((px, i) => fn(px, lang, i)));
+    Object.keys(PREVIEW || {}).forEach(lang => Object.keys(PREVIEW[lang]).forEach(k => fn(PREVIEW[lang][k], lang, +k)));
+};
 
 test('в теле два абзаца: что происходит и в чём подвох', () => {
     each((px, lang) => {
@@ -148,6 +157,90 @@ test('ответ не бывает пустым и не повторяет во�
         assert(px.answer.length >= 20, `[${lang}] ответ у «${px.name}» слишком короткий`);
         assert(px.answer.trim() !== px.probe.trim(), `[${lang}] ответ у «${px.name}» повторяет вопрос`);
     });
+});
+
+group('Новые карточки (пока только у репетитора)');
+
+// Индексы, у которых есть новая картинка, — прямо из index.html.
+const PREVIEW_IDX = (() => {
+    const from = SCRIPT.indexOf('const PUZZLE_PREVIEW_SRCS = {');
+    const body = SCRIPT.slice(from, SCRIPT.indexOf('};', from));
+    return [...body.matchAll(/(\d+):\s*'images\//g)].map(m => m[1]).sort().join(',');
+})();
+
+test('новые карточки есть на всех языках, что и прежние', () => {
+    assert(PREVIEW && typeof PREVIEW === 'object', 'window.PARADOX_PREVIEW не задан');
+    eq(Object.keys(PREVIEW).sort().join(','), LANGS.slice().sort().join(','), 'языки новых карточек');
+});
+
+test('в каждом языке ровно те клетки, у которых есть новая картинка', () => {
+    assert(PREVIEW_IDX.length > 0, 'в index.html не нашлось PUZZLE_PREVIEW_SRCS');
+    LANGS.forEach(lang => {
+        eq(Object.keys(PREVIEW[lang]).sort().join(','), PREVIEW_IDX, `[${lang}] клетки новых карточек`);
+    });
+});
+
+test('у новых карточек заполнены все поля, а в переводах нет русского', () => {
+    LANGS.forEach(lang => Object.keys(PREVIEW[lang]).forEach(k => {
+        const px = PREVIEW[lang][k];
+        FIELDS.forEach(f => {
+            assert(typeof px[f] === 'string' && px[f].trim().length > 0, `[${lang}] новая карточка ${k}: пусто поле ${f}`);
+            if (lang !== 'ru') assert(!/[А-Яа-яЁё]/.test(px[f]), `[${lang}] новая карточка ${k}, поле ${f}: остался русский текст`);
+        });
+    }));
+});
+
+test('у новых карточек во всех языках тот же год', () => {
+    // Та же сверка порядка, что и у прежних: год в строке «кто и когда» один на всех.
+    const year = (era) => { const m = /\d{3,4}/.exec(era); return m ? m[0] : null; };
+    Object.keys(PREVIEW.ru).forEach(k => {
+        const ruYear = year(PREVIEW.ru[k].era);
+        LANGS.forEach(lang => eq(year(PREVIEW[lang][k].era), ruYear, `[${lang}] год новой карточки ${k}`));
+    });
+});
+
+test('новые названия не совпадают ни с прежними, ни между собой', () => {
+    const seen = {};
+    RU.forEach(px => { seen[px.name] = true; });
+    Object.keys(PREVIEW.ru).forEach(k => {
+        const name = PREVIEW.ru[k].name;
+        assert(!seen[name], `«${name}» уже есть`);
+        seen[name] = true;
+    });
+});
+
+test('репетитор получает новые карточки на своих местах, остальное — прежнее', () => {
+    LANGS.forEach(lang => {
+        const box = loadResolver({ PARADOX_CONTENT: CONTENT, PARADOX_PREVIEW: PREVIEW },
+                                 { seesPuzzlePreview: () => true, LANG: lang });
+        const got = box.R();
+        eq(got.length, RU.length, `[${lang}] карточек`);
+        got.forEach((px, i) => {
+            const want = Object.prototype.hasOwnProperty.call(PREVIEW[lang], i) ? PREVIEW[lang][i] : CONTENT[lang][i];
+            eq(px.name, want.name, `[${lang}] карточка ${i}`);
+        });
+    });
+});
+
+test('ученик видит прежние карточки', () => {
+    const box = loadResolver({ PARADOX_CONTENT: CONTENT, PARADOX_PREVIEW: PREVIEW }, { seesPuzzlePreview: () => false });
+    eq(box.R().map(px => px.name).join('|'), RU.map(px => px.name).join('|'), 'список карточек');
+});
+
+test('без проверки репетитора и без новых карточек — прежние, и ничего не падает', () => {
+    // Вырезанная отдельно функция не знает seesPuzzlePreview — так же, как страница,
+    // где скрипт оборвался на середине. Это не повод показывать новое кому попало.
+    const alone = loadResolver({ PARADOX_CONTENT: CONTENT, PARADOX_PREVIEW: PREVIEW });
+    eq(alone.R()[0].name, RU[0].name, 'без seesPuzzlePreview');
+    const noNew = loadResolver({ PARADOX_CONTENT: CONTENT }, { seesPuzzlePreview: () => true });
+    eq(noNew.R()[0].name, RU[0].name, 'без PARADOX_PREVIEW');
+});
+
+test('язык, которого нет, и у репетитора откатывается на русский', () => {
+    const box = loadResolver({ PARADOX_CONTENT: CONTENT, PARADOX_PREVIEW: PREVIEW },
+                             { seesPuzzlePreview: () => true, LANG: 'es' });
+    eq(box.R()[0].name, PREVIEW.ru[0].name, 'испанского нет — новая карточка по-русски');
+    eq(box.R()[5].name, RU[5].name, 'и прежняя — по-русски');
 });
 
 group('Связь с приложением');

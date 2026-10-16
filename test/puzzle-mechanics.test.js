@@ -378,7 +378,7 @@ catch (e) {
     let v = await viewer();
     await checkAsync('нажатие открывает картинку на весь экран', async () => {
         assert(v.open, 'просмотр не открылся');
-        const want = await page.evaluate(`PUZZLE_IMAGE_SRCS[10]`);
+        const want = await page.evaluate(`puzzleSrc(10)`);
         assert(v.src.endsWith(want), `в просмотре ${v.src}, ждали ${want}`);
     });
     await page.mouse.dblclick(195, 422);
@@ -434,7 +434,7 @@ catch (e) {
         base: document.getElementById('puzzleCompleteImg').getAttribute('src') || '',
         seams: (document.getElementById('puzzleCompleteSeams').getAttribute('src') || '').slice(0, 11),
         stats: document.getElementById('puzzleCompleteStats').innerText,
-        want: PUZZLE_IMAGE_SRCS[1] }))()`);
+        want: puzzleSrc(1) }))()`);
     await checkAsync('снизу чистая картинка, сверху — она же со швами', async () => {
         assert(shown, 'собранный пазл не показался');
         assert(fin.base.endsWith(fin.want), `снизу ${fin.base}`);
