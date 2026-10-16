@@ -199,13 +199,19 @@ test('у новых карточек во всех языках тот же го
     });
 });
 
-test('новые названия не совпадают ни с прежними, ни между собой', () => {
-    const seen = {};
-    RU.forEach(px => { seen[px.name] = true; });
-    Object.keys(PREVIEW.ru).forEach(k => {
-        const name = PREVIEW.ru[k].name;
-        assert(!seen[name], `«${name}» уже есть`);
-        seen[name] = true;
+// Повтор названия виден, только когда обе карточки на виду одновременно. У репетитора
+// новая карточка заменяет прежнюю на том же месте, поэтому сверяется его коллекция
+// целиком — новые на своих местах, прежние на остальных — и на каждом языке. Так новый
+// «Корабль Тесея» (вычитание 5★) законен: прежний «Корабль Тесея» стоял на месте, которое
+// у репетитора заняла шахматная доска. А второй такой же рядом с ним — уже нет.
+test('у репетитора названия не повторяются ни на одном языке', () => {
+    LANGS.forEach(lang => {
+        const seen = {};
+        CONTENT[lang].forEach((old, i) => {
+            const px = Object.prototype.hasOwnProperty.call(PREVIEW[lang], i) ? PREVIEW[lang][i] : old;
+            assert(!seen[px.name], `[${lang}] «${px.name}» встречается дважды`);
+            seen[px.name] = true;
+        });
     });
 });
 
@@ -240,7 +246,7 @@ test('язык, которого нет, и у репетитора откаты
     const box = loadResolver({ PARADOX_CONTENT: CONTENT, PARADOX_PREVIEW: PREVIEW },
                              { seesPuzzlePreview: () => true, LANG: 'es' });
     eq(box.R()[0].name, PREVIEW.ru[0].name, 'испанского нет — новая карточка по-русски');
-    eq(box.R()[5].name, RU[5].name, 'и прежняя — по-русски');
+    eq(box.R()[10].name, RU[10].name, 'и прежняя — по-русски');
 });
 
 group('Связь с приложением');

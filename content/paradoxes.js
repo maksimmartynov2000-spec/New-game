@@ -718,6 +718,46 @@ window.PARADOX_PREVIEW = {
             body: 'Начни с маленькой доски, 3 на 3. Клеток 9, а квадратов больше: 9 маленьких, ещё 4 средних — каждый из четырёх клеток, они налезают друг на друга, — и 1 большой, вся доска. Всего 9 + 4 + 1 = 14.\n\nНа шахматной доске так же, только размеров больше: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. Выходит, две трети квадратов на доске прячутся у всех на виду.',
             probe: 'На доске поменьше, 6 на 6, квадратов: 36 + 25 + 16 + 9 + 4 + 1 = ?',
             answer: '91. Клеток там всего 36, а квадратов — в два с половиной раза больше.'
+        },
+        5: {
+            name: 'Обратный отсчёт придумали в кино',
+            era: 'Фриц Ланг, фильм «Женщина на Луне», 1929',
+            hook: '«Десять, девять, восемь… пуск!» — так считать придумал не инженер, а кинорежиссёр.',
+            body: 'Считается, что отсчёт назад перед стартом ракеты придумал режиссёр Фриц Ланг для фильма «Женщина на Луне» в 1929 году.\n\nПочему назад, а не вперёд? Когда считаешь вперёд — «один, два, три…», — непонятно, когда старт. А при счёте назад каждое число говорит, сколько секунд осталось, а пуск — ровно на нуле. Инженерам идея понравилась, и теперь так стартуют настоящие ракеты.',
+            probe: 'Отсчёт начали с 10, прошло 4 секунды: 10 − 4 = ?',
+            answer: '6. Столько секунд осталось до старта — при счёте назад это число и звучит.'
+        },
+        6: {
+            name: 'Когда куча перестаёт быть кучей?',
+            era: 'Евбулид Милетский, IV век до н. э.',
+            hook: 'Убери из кучи одну конфету — куча останется. А если повторять?',
+            body: '20 конфет — точно куча. Съешь одну: 19 — всё ещё куча, одна конфета ничего не решает. И так шаг за шагом, пока не останется одна конфета — а её кучей уже не назовёшь. Где же была граница? Её нет: у слова «куча» нет точного числа. Об этом спорили ещё древние греки.\n\nВот почему в правилах пишут числа, а не «много»: «детям до 12 лет», «не больше 10 предметов». С числом не поспоришь.',
+            probe: 'Каждый день съедаешь по 4 конфеты из 20. Через 4 дня: 20 − 4 − 4 − 4 − 4 = ? Это ещё куча?',
+            answer: '4 конфеты. Куча это или нет — решать тебе: точного ответа нет, в этом и парадокс.'
+        },
+        7: {
+            name: 'Куда пропала монета?',
+            era: 'Старинная задача-обманка',
+            hook: 'Путники заплатили 27 монет, посыльный оставил себе 2. А где тридцатая?',
+            body: 'Трое путников заплатили за комнату 30 монет. Хозяйка вспомнила, что комната стоит 25, и отправила посыльного вернуть 5. Пять на троих не делится, и он отдал каждому по монете, а две оставил себе. Выходит, каждый заплатил по 9, вместе 27, да у посыльного 2 — всего 29. Где тридцатая?\n\nПосчитай, где лежит каждая монета. Из 27 монет путников 25 — у хозяйки, 2 — у посыльного. А ещё 3 вернулись путникам в карманы: 27 + 3 = 30. Все монеты на месте! Ошибка — прибавлять 2 к 27: эти две монеты уже входят в 27.',
+            probe: 'Путники отдали 27, у хозяйки 25. Сколько у посыльного? 27 − 25 = ?',
+            answer: '2. Эти 2 монеты — часть 27, поэтому прибавлять их к 27 нельзя. Правильный счёт: 25 у хозяйки + 2 у посыльного + 3 вернули путникам = 30.'
+        },
+        8: {
+            name: 'Десять дней, которых не было',
+            era: 'Календарная реформа 1582 года',
+            hook: 'В 1582 году люди легли спать 4 октября, а проснулись 15-го.',
+            body: 'В старом календаре год был на 11 минут длиннее настоящего. Мелочь — но за тысячу с лишним лет набежало 10 дней, и весна по календарю начиналась не тогда, когда на самом деле.\n\nЧтобы всё вернуть на место, лишние дни просто вычеркнули: в Италии, Испании, Португалии и Польше после четверга 4 октября сразу наступила пятница 15-го. Другие страны переходили позже — в Британии в 1752 году пропали уже 11 дней. По этому календарю сегодня живёт почти весь мир.',
+            probe: 'В обычном октябре 31 день, а в 1582-м выпало 10: 31 − 10 = ?',
+            answer: '21. В том октябре было всего 21 день.'
+        },
+        9: {
+            name: 'Корабль Тесея',
+            era: 'Плутарх, «Сравнительные жизнеописания», около 100 года',
+            hook: 'Заменили все доски по одной. Это тот же корабль или уже другой?',
+            body: 'В корабле 150 досок, каждый год меняют одну. Через 150 лет от прежнего корабля не осталось ни доски, а все эти годы никто не сказал бы, что его подменили.\n\nА если из старых досок собрать второй корабль — какой из двух настоящий? Строгого ответа нет — люди спорят об этом уже две тысячи лет.',
+            probe: 'Из 150 досок заменили 120. Сколько старых осталось? 150 − 120 = ?',
+            answer: '30. А если из 120 снятых досок собрать второй корабль — какой из двух настоящий?'
         }
     },
     en: {
@@ -760,6 +800,46 @@ window.PARADOX_PREVIEW = {
             body: 'Start with a small board, 3 by 3. It has 9 cells but more squares: 9 small ones, 4 medium ones — each made of four cells, and they overlap — and 1 big one, the whole board. That makes 9 + 4 + 1 = 14.\n\nA chessboard works the same way, just with more sizes: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. So two thirds of the squares on the board are hiding in plain sight.',
             probe: 'On a smaller board, 6 by 6, the squares are 36 + 25 + 16 + 9 + 4 + 1 = ?',
             answer: '91. There are only 36 cells, but two and a half times as many squares.'
+        },
+        5: {
+            name: 'The Countdown Was Invented for a Film',
+            era: 'Fritz Lang, the film "Woman in the Moon", 1929',
+            hook: '"Ten, nine, eight… lift-off!" — counting like this was invented not by an engineer but by a film director.',
+            body: 'It is said that the countdown before a rocket launch was invented by the director Fritz Lang for his film "Woman in the Moon" in 1929.\n\nWhy count down instead of up? When you count up — "one, two, three…" — nobody knows when the launch will be. But in a countdown every number tells you how many seconds are left, and the launch comes exactly at zero. Engineers liked the idea, and real rockets are launched this way today.',
+            probe: 'The countdown started at 10, and 4 seconds have passed: 10 − 4 = ?',
+            answer: '6. That is how many seconds are left before the launch — and in a countdown it is exactly the number you hear.'
+        },
+        6: {
+            name: 'When Does a Heap Stop Being a Heap?',
+            era: 'Eubulides of Miletus, 4th century BC',
+            hook: 'Take one sweet from a heap — it is still a heap. But what if you keep going?',
+            body: '20 sweets are definitely a heap. Eat one: 19 is still a heap — one sweet makes no difference. And so on, step by step, until only one sweet is left — and nobody would call that a heap. So where was the line? There is none: the word "heap" has no exact number. The ancient Greeks were already arguing about it.\n\nThat is why rules use numbers, not "lots": "for children under 12", "no more than 10 items". You cannot argue with a number.',
+            probe: 'Every day you eat 4 of the 20 sweets. After 4 days: 20 − 4 − 4 − 4 − 4 = ? Is it still a heap?',
+            answer: '4 sweets. Whether that is a heap is up to you: there is no exact answer — and that is the paradox.'
+        },
+        7: {
+            name: 'Where Did the Coin Go?',
+            era: 'An old trick puzzle',
+            hook: 'The travellers paid 27 coins, and the porter kept 2. So where is the thirtieth?',
+            body: 'Three travellers paid 30 coins for a room. The innkeeper remembered that the room cost only 25 and sent the porter to give back 5. Five does not split three ways, so he gave each traveller one coin and kept two for himself. So each paid 9, together 27, plus the porter\'s 2 — that makes 29. Where is the thirtieth?\n\nWork out where every coin is. Of the travellers\' 27 coins, 25 are with the innkeeper and 2 with the porter. And 3 more went back into the travellers\' pockets: 27 + 3 = 30. All the coins are there! The mistake is adding 2 to 27: those two coins are already part of the 27.',
+            probe: 'The travellers gave 27, and the innkeeper has 25. How many does the porter have? 27 − 25 = ?',
+            answer: '2. Those 2 coins are part of the 27, so you cannot add them to 27. The right count: 25 with the innkeeper + 2 with the porter + 3 given back to the travellers = 30.'
+        },
+        8: {
+            name: 'The Ten Days That Never Happened',
+            era: 'The calendar reform of 1582',
+            hook: 'In 1582, people went to bed on 4 October and woke up on the 15th.',
+            body: 'In the old calendar the year was 11 minutes longer than the real one. A tiny difference — but over more than a thousand years it added up to 10 days, and spring began on the calendar at the wrong time.\n\nTo put things right, the extra days were simply crossed out: in Italy, Spain, Portugal and Poland, Thursday 4 October was followed straight away by Friday 15 October. Other countries switched later — in Britain, in 1752, as many as 11 days disappeared. Almost the whole world lives by this calendar today.',
+            probe: 'A normal October has 31 days, but in 1582 ten were dropped: 31 − 10 = ?',
+            answer: '21. That October had only 21 days.'
+        },
+        9: {
+            name: 'The Ship of Theseus',
+            era: 'Plutarch, Parallel Lives, around AD 100',
+            hook: 'Every plank was replaced, one at a time. Is it the same ship or a different one?',
+            body: 'A ship has 150 planks, and one is replaced every year. After 150 years not a single plank of the old ship is left, yet in all those years nobody would have said it had been swapped.\n\nAnd if you build a second ship from the old planks — which of the two is the real one? There is no strict answer — people have been arguing about it for two thousand years.',
+            probe: 'Of the 150 planks, 120 have been replaced. How many old ones are left? 150 − 120 = ?',
+            answer: '30. And if you build a second ship from the 120 planks that came off — which of the two is the real one?'
         }
     },
     fr: {
@@ -802,6 +882,46 @@ window.PARADOX_PREVIEW = {
             body: 'Commence par un petit plateau de 3 sur 3. Il a 9 cases, mais plus de carrés : 9 petits, encore 4 moyens — chacun fait de quatre cases, et ils se chevauchent — et 1 grand, tout le plateau. En tout 9 + 4 + 1 = 14.\n\nSur un échiquier, c’est pareil, avec plus de tailles : 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. Les deux tiers des carrés de l’échiquier se cachent donc sous nos yeux.',
             probe: 'Sur un plateau plus petit, de 6 sur 6, les carrés font : 36 + 25 + 16 + 9 + 4 + 1 = ?',
             answer: '91. Il n’y a que 36 cases, mais deux fois et demie plus de carrés.'
+        },
+        5: {
+            name: 'Le compte à rebours est né au cinéma',
+            era: 'Fritz Lang, le film « La Femme sur la Lune », 1929',
+            hook: '« Dix, neuf, huit… décollage ! » — ce compte, c’est un cinéaste qui l’a inventé, pas un ingénieur.',
+            body: 'On dit que le compte à rebours avant le lancement d’une fusée a été inventé par le réalisateur Fritz Lang pour son film « La Femme sur la Lune », en 1929.\n\nPourquoi compter à rebours et pas dans l’ordre ? Quand on compte « un, deux, trois… », on ne sait pas quand aura lieu le départ. Mais à rebours, chaque nombre dit combien de secondes il reste, et le départ tombe pile sur zéro. L’idée a plu aux ingénieurs, et aujourd’hui les vraies fusées décollent ainsi.',
+            probe: 'Le compte à rebours a commencé à 10, et 4 secondes sont passées : 10 − 4 = ?',
+            answer: '6. C’est le nombre de secondes avant le départ — et dans un compte à rebours, c’est justement ce nombre qu’on entend.'
+        },
+        6: {
+            name: 'Quand un tas cesse-t-il d’être un tas ?',
+            era: 'Eubulide de Milet, IVe siècle av. J.-C.',
+            hook: 'Enlève un bonbon d’un tas — c’est toujours un tas. Et si tu continues ?',
+            body: '20 bonbons, c’est sûrement un tas. Mange-en un : 19, c’est toujours un tas — un seul bonbon ne change rien. Et ainsi de suite, pas à pas, jusqu’à ce qu’il ne reste qu’un bonbon — et celui-là, on ne peut plus l’appeler un tas. Où était donc la limite ? Il n’y en a pas : le mot « tas » n’a pas de nombre exact. Les Grecs anciens en débattaient déjà.\n\nVoilà pourquoi les règles donnent des nombres et pas « beaucoup » : « pour les enfants de moins de 12 ans », « pas plus de 10 articles ». Avec un nombre, impossible de discuter.',
+            probe: 'Chaque jour, tu manges 4 des 20 bonbons. Au bout de 4 jours : 20 − 4 − 4 − 4 − 4 = ? Est-ce encore un tas ?',
+            answer: '4 bonbons. Tas ou pas tas, c’est à toi de décider : il n’y a pas de réponse exacte, et c’est tout le paradoxe.'
+        },
+        7: {
+            name: 'Où est passée la pièce ?',
+            era: 'Une vieille énigme piège',
+            hook: 'Les voyageurs ont payé 27 pièces, le garçon en a gardé 2. Où est la trentième ?',
+            body: 'Trois voyageurs ont payé 30 pièces pour une chambre. L’aubergiste s’est souvenue que la chambre coûtait 25 et a envoyé le garçon rendre 5 pièces. Cinq ne se partage pas en trois : il a rendu une pièce à chacun et en a gardé deux. Chacun a donc payé 9, ensemble 27, plus 2 chez le garçon — cela fait 29. Où est la trentième ?\n\nCherche où se trouve chaque pièce. Sur les 27 pièces des voyageurs, 25 sont chez l’aubergiste et 2 chez le garçon. Et 3 sont retournées dans les poches des voyageurs : 27 + 3 = 30. Toutes les pièces sont là ! L’erreur, c’est d’ajouter 2 à 27 : ces deux pièces font déjà partie des 27.',
+            probe: 'Les voyageurs ont donné 27, l’aubergiste en a 25. Combien en a le garçon ? 27 − 25 = ?',
+            answer: '2. Ces 2 pièces font partie des 27, on ne peut donc pas les ajouter à 27. Le bon compte : 25 chez l’aubergiste + 2 chez le garçon + 3 rendues aux voyageurs = 30.'
+        },
+        8: {
+            name: 'Les dix jours qui n’ont jamais existé',
+            era: 'La réforme du calendrier de 1582',
+            hook: 'En 1582, les gens se sont couchés le 4 octobre et se sont réveillés le 15.',
+            body: 'Dans l’ancien calendrier, l’année durait 11 minutes de plus que la vraie. Une broutille — mais en plus de mille ans, cela faisait déjà 10 jours, et le printemps du calendrier ne commençait plus au bon moment.\n\nPour tout remettre en place, on a simplement supprimé les jours en trop : en Italie, en Espagne, au Portugal et en Pologne, le jeudi 4 octobre a été suivi directement du vendredi 15 octobre. D’autres pays ont changé plus tard — en Grande-Bretagne, en 1752, ce sont 11 jours qui ont disparu. Aujourd’hui, presque le monde entier vit selon ce calendrier.',
+            probe: 'Un octobre normal compte 31 jours, mais en 1582, 10 ont disparu : 31 − 10 = ?',
+            answer: '21. Cet octobre-là n’a compté que 21 jours.'
+        },
+        9: {
+            name: 'Le bateau de Thésée',
+            era: 'Plutarque, Vies parallèles, vers l’an 100',
+            hook: 'On a remplacé toutes les planches, une par une. Est-ce le même bateau ou un autre ?',
+            body: 'Un bateau compte 150 planches, et on en change une chaque année. Au bout de 150 ans, il ne reste plus une seule planche de l’ancien bateau — et pourtant, pendant toutes ces années, personne n’aurait dit qu’on l’avait remplacé.\n\nEt si on construit un second bateau avec les vieilles planches — lequel des deux est le vrai ? Il n’y a pas de réponse stricte — on en débat depuis deux mille ans.',
+            probe: 'Sur 150 planches, 120 ont été remplacées. Combien d’anciennes reste-t-il ? 150 − 120 = ?',
+            answer: '30. Et si on construit un second bateau avec les 120 planches retirées — lequel des deux est le vrai ?'
         }
     },
     de: {
@@ -844,6 +964,46 @@ window.PARADOX_PREVIEW = {
             body: 'Fang mit einem kleinen Brett an, 3 mal 3. Es hat 9 Felder, aber mehr Quadrate: 9 kleine, dazu 4 mittlere — jedes aus vier Feldern, sie überlappen sich — und 1 großes, das ganze Brett. Zusammen 9 + 4 + 1 = 14.\n\nBeim Schachbrett ist es genauso, nur mit mehr Größen: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. Zwei Drittel der Quadrate auf dem Brett verstecken sich also vor aller Augen.',
             probe: 'Auf einem kleineren Brett, 6 mal 6, gibt es so viele Quadrate: 36 + 25 + 16 + 9 + 4 + 1 = ?',
             answer: '91. Dort gibt es nur 36 Felder, aber zweieinhalbmal so viele Quadrate.'
+        },
+        5: {
+            name: 'Der Countdown kam aus dem Kino',
+            era: 'Fritz Lang, Film „Frau im Mond“, 1929',
+            hook: '„Zehn, neun, acht … Start!“ — so zu zählen hat kein Ingenieur erfunden, sondern ein Filmregisseur.',
+            body: 'Man sagt, den Countdown vor einem Raketenstart hat der Regisseur Fritz Lang erfunden — 1929, für seinen Film „Frau im Mond“.\n\nWarum rückwärts und nicht vorwärts? Wenn man vorwärts zählt — „eins, zwei, drei …“ —, weiß niemand, wann der Start ist. Beim Rückwärtszählen sagt jede Zahl, wie viele Sekunden noch bleiben, und gestartet wird genau bei null. Den Ingenieuren gefiel die Idee, und heute starten echte Raketen genau so.',
+            probe: 'Der Countdown begann bei 10, und 4 Sekunden sind vergangen: 10 − 4 = ?',
+            answer: '6. So viele Sekunden bleiben bis zum Start — und beim Countdown hört man genau diese Zahl.'
+        },
+        6: {
+            name: 'Wann ist ein Haufen kein Haufen mehr?',
+            era: 'Eubulides von Milet, 4. Jh. v. Chr.',
+            hook: 'Nimm ein Bonbon aus einem Haufen — es bleibt ein Haufen. Und wenn du so weitermachst?',
+            body: '20 Bonbons sind sicher ein Haufen. Iss eins: 19 sind immer noch ein Haufen — ein Bonbon macht keinen Unterschied. So geht es Schritt für Schritt weiter, bis nur noch ein Bonbon übrig ist — und das nennt niemand mehr einen Haufen. Wo war also die Grenze? Es gibt keine: Das Wort „Haufen“ hat keine genaue Zahl. Darüber stritten schon die alten Griechen.\n\nDeshalb stehen in Regeln Zahlen und nicht „viel“: „für Kinder unter 12 Jahren“, „nicht mehr als 10 Teile“. Mit einer Zahl kann man nicht streiten.',
+            probe: 'Jeden Tag isst du 4 der 20 Bonbons. Nach 4 Tagen: 20 − 4 − 4 − 4 − 4 = ? Ist das noch ein Haufen?',
+            answer: '4 Bonbons. Ob das ein Haufen ist, entscheidest du: Eine genaue Antwort gibt es nicht — genau das ist das Paradox.'
+        },
+        7: {
+            name: 'Wo ist die Münze geblieben?',
+            era: 'Ein altes Trickrätsel',
+            hook: 'Die Reisenden zahlten 27 Münzen, der Bote behielt 2. Wo ist die dreißigste?',
+            body: 'Drei Reisende zahlten für ein Zimmer 30 Münzen. Die Wirtin erinnerte sich, dass das Zimmer nur 25 kostete, und schickte den Boten los, um 5 zurückzugeben. Fünf lässt sich nicht durch drei teilen, also gab er jedem eine Münze und behielt zwei für sich. Jeder hat also 9 bezahlt, zusammen 27, dazu 2 beim Boten — macht 29. Wo ist die dreißigste?\n\nRechne nach, wo jede Münze liegt. Von den 27 Münzen der Reisenden hat die Wirtin 25 und der Bote 2. Und 3 sind zurück in den Taschen der Reisenden: 27 + 3 = 30. Alle Münzen sind da! Der Fehler ist, 2 zu 27 zu addieren: Diese zwei Münzen stecken schon in den 27.',
+            probe: 'Die Reisenden gaben 27, die Wirtin hat 25. Wie viele hat der Bote? 27 − 25 = ?',
+            answer: '2. Diese 2 Münzen sind ein Teil der 27, deshalb darf man sie nicht zu 27 addieren. Richtig gerechnet: 25 bei der Wirtin + 2 beim Boten + 3 zurück an die Reisenden = 30.'
+        },
+        8: {
+            name: 'Zehn Tage, die es nie gab',
+            era: 'Die Kalenderreform von 1582',
+            hook: '1582 gingen die Menschen am 4. Oktober schlafen und wachten am 15. auf.',
+            body: 'Im alten Kalender war das Jahr 11 Minuten länger als das echte. Eine Kleinigkeit — doch in über tausend Jahren kamen 10 Tage zusammen, und der Frühling begann im Kalender nicht dann, wenn er wirklich anfing.\n\nUm alles wieder geradezurücken, strich man die überzähligen Tage einfach: In Italien, Spanien, Portugal und Polen folgte auf Donnerstag, den 4. Oktober, direkt Freitag, der 15. Andere Länder stellten später um — in Großbritannien verschwanden 1752 sogar 11 Tage. Nach diesem Kalender lebt heute fast die ganze Welt.',
+            probe: 'Ein normaler Oktober hat 31 Tage, doch 1582 fielen 10 weg: 31 − 10 = ?',
+            answer: '21. Dieser Oktober hatte nur 21 Tage.'
+        },
+        9: {
+            name: 'Das Schiff des Theseus',
+            era: 'Plutarch, Parallelbiographien, um 100 n. Chr.',
+            hook: 'Alle Planken wurden eine nach der anderen ersetzt. Ist es noch dasselbe Schiff?',
+            body: 'Ein Schiff hat 150 Planken, jedes Jahr wird eine ausgetauscht. Nach 150 Jahren ist keine einzige Planke des alten Schiffs mehr übrig — und doch hätte in all den Jahren niemand gesagt, dass es ausgetauscht wurde.\n\nUnd wenn man aus den alten Planken ein zweites Schiff baut — welches der beiden ist das echte? Eine eindeutige Antwort gibt es nicht — darüber streiten die Menschen seit zweitausend Jahren.',
+            probe: 'Von 150 Planken wurden 120 ersetzt. Wie viele alte sind noch übrig? 150 − 120 = ?',
+            answer: '30. Und wenn man aus den 120 ausgebauten Planken ein zweites Schiff baut — welches der beiden ist das echte?'
         }
     }
 };
