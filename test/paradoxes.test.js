@@ -200,27 +200,61 @@ test('у новых карточек во всех языках тот же го
 });
 
 // Задача в строке «проверь» — пример той же клетки, только с историей. Берём последнее
-// равенство, где ровно один «?» и только плюсы и минусы: «5 + ? = 7», «4 + 9 + ? = 15»,
-// «34 + 55 = ?», «20 − 4 − 4 − 4 − 4 = ?». Время «5:49» и числа в словах сюда не попадают.
-const EQUATION = /(?:\d+|\?)(?:\s*[+−-]\s*(?:\d+|\?))*\s*=\s*(?:\d+|\?)/g;
+// равенство, где ровно один «?» и только знаки действий: «5 + ? = 7», «34 + 55 = ?»,
+// «20 − 4 − 4 − 4 − 4 = ?», «2 × 2 × 2 = ?», «24 ÷ 2 + 24 ÷ 3 = ?». Время «5:49» и числа
+// в словах сюда не попадают.
+const EQUATION = /(?:\d+|\?)(?:\s*[+−×÷-]\s*(?:\d+|\?))*\s*=\s*(?:\d+|\?)/g;
 function probeEquation(probe) {
     const all = (probe.match(EQUATION) || []).filter(s => (s.match(/\?/g) || []).length === 1);
     return all.length ? all[all.length - 1].replace(/\s+/g, ' ').replace(/-/g, '−') : null;
 }
-// Чему равен «?» и самое большое число равенства — сумма или уменьшаемое.
-function solveEquation(equation) {
-    const [lhs, rhs] = equation.split('=').map(s => s.trim());
+// Сторона равенства — слагаемые со знаком, каждое слагаемое — цепочка «× и ÷»: так и
+// порядок действий школьный, умножение и деление раньше сложения и вычитания.
+function parseSide(side) {
     const terms = [];
     let sign = 1;
-    lhs.split(/\s*([+−])\s*/).forEach(tok => {
+    side.split(/\s*([+−])\s*/).forEach(tok => {
         if (tok === '+') sign = 1;
         else if (tok === '−') sign = -1;
-        else if (tok) { terms.push({ sign, v: tok }); sign = 1; }
+        else if (tok) {
+            const parts = tok.split(/\s*([×÷])\s*/), chain = [{ op: '×', v: parts[0] }];
+            for (let i = 1; i < parts.length; i += 2) chain.push({ op: parts[i], v: parts[i + 1] });
+            terms.push({ sign, chain });
+            sign = 1;
+        }
     });
-    const known = terms.filter(t => t.v !== '?').reduce((s, t) => s + t.sign * Number(t.v), 0);
-    const value = rhs === '?' ? known : (Number(rhs) - known) * terms.find(t => t.v === '?').sign;
-    const numbers = terms.filter(t => t.v !== '?').map(t => Number(t.v)).concat(rhs === '?' ? [] : [Number(rhs)]);
-    return { value, biggest: Math.max(value, ...numbers) };
+    return terms;
+}
+// Значение цепочки и её шаги умножения: «2 × 2 × 2» — это 2 × 2, а потом 4 × 2.
+function evalChain(chain, unknown) {
+    let acc = null;
+    const facts = [];
+    chain.forEach(({ op, v }) => {
+        const n = v === '?' ? unknown : Number(v);
+        if (acc === null) acc = n;
+        else if (op === '×') { facts.push([acc, n]); acc *= n; }
+        else acc /= n;
+    });
+    return { value: acc, facts };
+}
+// Чему равен «?», самое большое число равенства (сумма или уменьшаемое) и все шаги умножения.
+function solveEquation(equation) {
+    const [lhs, rhs] = equation.split('=').map(s => s.trim());
+    const terms = parseSide(lhs);
+    let value;
+    if (rhs === '?') value = terms.reduce((s, t) => s + t.sign * evalChain(t.chain).value, 0);
+    else {
+        // «?» слева. Остальные слагаемые известны, а своё слагаемое «?» меняет пропорционально:
+        // как множитель или делимое — прямо, как делитель — обратно.
+        const tq = terms.find(t => t.chain.some(c => c.v === '?'));
+        const rest = terms.filter(t => t !== tq).reduce((s, t) => s + t.sign * evalChain(t.chain).value, 0);
+        const need = (Number(rhs) - rest) * tq.sign, atOne = evalChain(tq.chain, 1).value;
+        const q = tq.chain.find(c => c.v === '?');
+        value = q.op === '÷' && tq.chain.indexOf(q) > 0 ? atOne / need : need / atOne;
+    }
+    const numbers = [...equation.matchAll(/\d+/g)].map(m => Number(m[0]));
+    return { value, biggest: Math.max(value, ...numbers),
+             facts: [].concat(...terms.map(t => evalChain(t.chain, value).facts)) };
 }
 
 // Ответ обязан сходиться с примером на каждом языке: переводчик ошибётся в одной цифре —
@@ -262,6 +296,45 @@ test('у новых карточек сложения и вычитания за
         const { biggest } = solveEquation(probeEquation(PREVIEW.ru[k].probe));
         if (biggest < lo) bad.push(`карточка ${k} (${+k < 5 ? 'сложение' : 'вычитание'} ${level}★): `
             + `самое большое число ${biggest}, а главная полоса этой звезды в игре — ${lo}–${hi}`);
+    });
+    assert(bad.length === 0, bad.join('; '));
+});
+
+// То же для умножения. Там важен не размер чисел, а приём (см. MUL_GROUPS в js/generator.js):
+// 9 × 9 = 81 мельче 50 × 2 = 100, но труднее. Поэтому задача на звезде должна содержать шаг
+// не легче главной группы этой звезды — той, что занимает в MUL_SHARES наибольшую долю.
+// Ступени приёмов: ×0, ×1, ×10 — без счёта; удвоение и пятёрки; тройки, четвёрки и девятки;
+// ядро 6–8 × 6–8; круглое на однозначное; двузначное. Ровно на этом попались бы черновики:
+// 10 × 10 × 10 на 4★ и 10 × 9 ÷ 2 на 5★ — одни «приписать ноль». Клетки 10–14 — умножение.
+const MUL_SHARES = vm.runInNewContext('(' +
+    /const MUL_SHARES = (\{[\s\S]*?\n\});/.exec(fs.readFileSync(path.join(ROOT, 'js', 'generator.js'), 'utf8'))[1] + ')');
+const MUL_STEP = { triv: 0, two: 1, twoExt: 1, five: 1, small: 2, nine: 2, core: 3, round: 4,
+                   tworound: 5, twoPlain: 5, twoCarry: 5 };
+function mulStep(a, b) {
+    const triv = n => n === 0 || n === 1 || (n >= 10 && /^10*$/.test(String(n)));
+    const plain = n => n >= 11 && n % 10 !== 0;                // двузначное (и больше) не круглое
+    const round = n => n >= 20 && n % 10 === 0;
+    if (triv(a) || triv(b)) return 0;
+    if (plain(a) || plain(b)) return 5;
+    if (round(a) || round(b)) return 4;
+    if (a === 2 || b === 2 || a === 5 || b === 5) return 1;
+    if (a === 9 || b === 9) return 2;
+    if ([6, 7, 8].includes(a) && [6, 7, 8].includes(b)) return 3;
+    return 2;
+}
+test('у новых карточек умножения задача не легче своей звезды', () => {
+    const keys = Object.keys(PREVIEW.ru).filter(k => +k >= 10 && +k < 15);
+    assert(keys.length > 0, 'новых карточек умножения не нашлось — проверять нечего');
+    const bad = [];
+    keys.forEach(k => {
+        const level = +k % 5 + 1;
+        const main = MUL_SHARES[level].reduce((m, g) => g[1] > m[1] ? g : m)[0];
+        assert(main in MUL_STEP, `в MUL_SHARES новая группа «${main}» — допиши её ступень в MUL_STEP`);
+        const equation = probeEquation(PREVIEW.ru[k].probe);
+        const steps = solveEquation(equation).facts.map(([a, b]) => ({ a, b, step: mulStep(a, b) }));
+        const top = steps.reduce((m, s) => s.step > m.step ? s : m, { step: -1 });
+        if (top.step < MUL_STEP[main]) bad.push(`карточка ${k} (умножение ${level}★): в «${equation}» самый трудный шаг `
+            + (top.step < 0 ? 'не найден' : `${top.a} × ${top.b}`) + `, а главная группа этой звезды в игре — ${main}`);
     });
     assert(bad.length === 0, bad.join('; '));
 });
@@ -313,7 +386,7 @@ test('язык, которого нет, и у репетитора откаты
     const box = loadResolver({ PARADOX_CONTENT: CONTENT, PARADOX_PREVIEW: PREVIEW },
                              { seesPuzzlePreview: () => true, LANG: 'es' });
     eq(box.R()[0].name, PREVIEW.ru[0].name, 'испанского нет — новая карточка по-русски');
-    eq(box.R()[10].name, RU[10].name, 'и прежняя — по-русски');
+    eq(box.R()[15].name, RU[15].name, 'и прежняя — по-русски');
 });
 
 group('Связь с приложением');

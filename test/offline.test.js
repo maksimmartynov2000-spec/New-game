@@ -104,13 +104,30 @@ test('картинки перестали весить как фотоальбо
     // Было двадцать PNG 1024×1024 примерно по мегабайту: 20 МБ на приложение, которое
     // показывает их в 420 точек. WebP при том же качестве даёт в шестнадцать раз
     // меньше, и только после этого догрузка всех двадцати вообще имеет смысл.
+    //
+    // Меряется то, что скачивает одно устройство: картинки своей коллекции, их догружает
+    // preloadPuzzleImages. Вся папка — мерка неверная: пока новые картинки проверяет
+    // репетитор, в ней лежат и прежние, и новые, а ни один аккаунт не качает и те, и другие.
+    // Ученик берёт прежние, репетитор — новые там, где они есть (см. PUZZLE_PREVIEW_SRCS).
     const dir = path.join(ROOT, 'images');
     const files = fs.readdirSync(dir).filter(f => /\.(png|jpg|jpeg|webp)$/i.test(f));
     const png = files.filter(f => /\.(png|jpg|jpeg)$/i.test(f));
     assert(png.length === 0, `остались тяжёлые форматы: ${png.slice(0, 3).join(', ')}`);
-    const bytes = files.reduce((sum, f) => sum + fs.statSync(path.join(dir, f)).size, 0);
-    assert(bytes < 3 * 1024 * 1024,
-        `картинки весят ${(bytes / 1048576).toFixed(1)} МБ — больше трёх`);
+    const block = (start, end) => {
+        const from = HTML.indexOf(start);
+        assert(from > 0, `в index.html не найден ${start}`);
+        return HTML.slice(from, HTML.indexOf(end, from));
+    };
+    const old = [...block('const PUZZLE_IMAGE_SRCS = [', '];').matchAll(/'(images\/[^']+)'/g)].map(m => m[1]);
+    const next = {};
+    for (const m of block('const PUZZLE_PREVIEW_SRCS = {', '};').matchAll(/(\d+):\s*'(images\/[^']+)'/g)) next[+m[1]] = m[2];
+    assert(old.length > 0, 'список PUZZLE_IMAGE_SRCS пуст — мерить нечего');
+    const weigh = (list) => list.reduce((sum, rel) => sum + fs.statSync(path.join(ROOT, rel)).size, 0);
+    [['ученик', old], ['репетитор', old.map((rel, i) => next[i] || rel)]].forEach(([who, list]) => {
+        const bytes = weigh(list);
+        assert(bytes < 3 * 1024 * 1024,
+            `${who} скачивает картинки на ${(bytes / 1048576).toFixed(1)} МБ — больше трёх`);
+    });
 });
 
 console.log(`\n${'─'.repeat(50)}`);
