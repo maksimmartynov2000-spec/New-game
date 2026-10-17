@@ -716,8 +716,8 @@ window.PARADOX_PREVIEW = {
             era: 'Старинная задача про шахматную доску',
             hook: 'На шахматной доске 64 клетки. А квадратов — 204.',
             body: 'Начни с маленькой доски, 3 на 3. Клеток 9, а квадратов больше: 9 маленьких, ещё 4 средних — каждый из четырёх клеток, они налезают друг на друга, — и 1 большой, вся доска. Всего 9 + 4 + 1 = 14.\n\nНа шахматной доске так же, только размеров больше: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. Выходит, две трети квадратов на доске прячутся у всех на виду.',
-            probe: 'На доске поменьше, 6 на 6, квадратов: 36 + 25 + 16 + 9 + 4 + 1 = ?',
-            answer: '91. Клеток там всего 36, а квадратов — в два с половиной раза больше.'
+            probe: 'На шахматной доске квадратов в одну клетку — 64, а квадратов 2 на 2 — 49: 64 + 49 = ?',
+            answer: '113. И это только два самых маленьких размера — а всего их восемь.'
         },
         5: {
             name: 'Обратный отсчёт придумали в кино',
@@ -748,8 +748,8 @@ window.PARADOX_PREVIEW = {
             era: 'Календарная реформа 1582 года',
             hook: 'В 1582 году люди легли спать 4 октября, а проснулись 15-го.',
             body: 'В старом календаре год был на 11 минут длиннее настоящего. Мелочь — но за тысячу с лишним лет набежало 10 дней, и весна по календарю начиналась не тогда, когда на самом деле.\n\nЧтобы всё вернуть на место, лишние дни просто вычеркнули: в Италии, Испании, Португалии и Польше после четверга 4 октября сразу наступила пятница 15-го. Другие страны переходили позже — в Британии в 1752 году пропали уже 11 дней. По этому календарю сегодня живёт почти весь мир.',
-            probe: 'В обычном октябре 31 день, а в 1582-м выпало 10: 31 − 10 = ?',
-            answer: '21. В том октябре было всего 21 день.'
+            probe: 'По старому календарю в году 365 дней и 6 часов, а на самом деле — 365 дней, 5 часов и 49 минут. От 5:49 до 6:00: 60 − 49 = ?',
+            answer: '11. Всего 11 минут в год — но за века из них набежали 10 дней.'
         },
         9: {
             name: 'Корабль Тесея',
@@ -798,8 +798,8 @@ window.PARADOX_PREVIEW = {
             era: 'An old chessboard puzzle',
             hook: 'A chessboard has 64 cells. But it has 204 squares.',
             body: 'Start with a small board, 3 by 3. It has 9 cells but more squares: 9 small ones, 4 medium ones — each made of four cells, and they overlap — and 1 big one, the whole board. That makes 9 + 4 + 1 = 14.\n\nA chessboard works the same way, just with more sizes: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. So two thirds of the squares on the board are hiding in plain sight.',
-            probe: 'On a smaller board, 6 by 6, the squares are 36 + 25 + 16 + 9 + 4 + 1 = ?',
-            answer: '91. There are only 36 cells, but two and a half times as many squares.'
+            probe: 'On a chessboard there are 64 one-cell squares and 49 squares of 2 by 2: 64 + 49 = ?',
+            answer: '113. And that is only the two smallest sizes — there are eight sizes in all.'
         },
         5: {
             name: 'The Countdown Was Invented for a Film',
@@ -830,8 +830,8 @@ window.PARADOX_PREVIEW = {
             era: 'The calendar reform of 1582',
             hook: 'In 1582, people went to bed on 4 October and woke up on the 15th.',
             body: 'In the old calendar the year was 11 minutes longer than the real one. A tiny difference — but over more than a thousand years it added up to 10 days, and spring began on the calendar at the wrong time.\n\nTo put things right, the extra days were simply crossed out: in Italy, Spain, Portugal and Poland, Thursday 4 October was followed straight away by Friday 15 October. Other countries switched later — in Britain, in 1752, as many as 11 days disappeared. Almost the whole world lives by this calendar today.',
-            probe: 'A normal October has 31 days, but in 1582 ten were dropped: 31 − 10 = ?',
-            answer: '21. That October had only 21 days.'
+            probe: 'By the old calendar a year was 365 days and 6 hours, but in fact it is 365 days, 5 hours and 49 minutes. From 5:49 to 6:00: 60 − 49 = ?',
+            answer: '11. Only 11 minutes a year — but over the centuries they added up to 10 days.'
         },
         9: {
             name: 'The Ship of Theseus',
@@ -880,8 +880,8 @@ window.PARADOX_PREVIEW = {
             era: 'Une vieille énigme de l’échiquier',
             hook: 'Un échiquier a 64 cases. Mais il compte 204 carrés.',
             body: 'Commence par un petit plateau de 3 sur 3. Il a 9 cases, mais plus de carrés : 9 petits, encore 4 moyens — chacun fait de quatre cases, et ils se chevauchent — et 1 grand, tout le plateau. En tout 9 + 4 + 1 = 14.\n\nSur un échiquier, c’est pareil, avec plus de tailles : 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. Les deux tiers des carrés de l’échiquier se cachent donc sous nos yeux.',
-            probe: 'Sur un plateau plus petit, de 6 sur 6, les carrés font : 36 + 25 + 16 + 9 + 4 + 1 = ?',
-            answer: '91. Il n’y a que 36 cases, mais deux fois et demie plus de carrés.'
+            probe: 'Sur un échiquier, il y a 64 carrés d’une case et 49 carrés de 2 sur 2 : 64 + 49 = ?',
+            answer: '113. Et ce ne sont que les deux plus petites tailles — il y en a huit en tout.'
         },
         5: {
             name: 'Le compte à rebours est né au cinéma',
@@ -912,8 +912,8 @@ window.PARADOX_PREVIEW = {
             era: 'La réforme du calendrier de 1582',
             hook: 'En 1582, les gens se sont couchés le 4 octobre et se sont réveillés le 15.',
             body: 'Dans l’ancien calendrier, l’année durait 11 minutes de plus que la vraie. Une broutille — mais en plus de mille ans, cela faisait déjà 10 jours, et le printemps du calendrier ne commençait plus au bon moment.\n\nPour tout remettre en place, on a simplement supprimé les jours en trop : en Italie, en Espagne, au Portugal et en Pologne, le jeudi 4 octobre a été suivi directement du vendredi 15 octobre. D’autres pays ont changé plus tard — en Grande-Bretagne, en 1752, ce sont 11 jours qui ont disparu. Aujourd’hui, presque le monde entier vit selon ce calendrier.',
-            probe: 'Un octobre normal compte 31 jours, mais en 1582, 10 ont disparu : 31 − 10 = ?',
-            answer: '21. Cet octobre-là n’a compté que 21 jours.'
+            probe: 'Selon l’ancien calendrier, une année durait 365 jours et 6 heures, mais en réalité elle dure 365 jours, 5 heures et 49 minutes. De 5 h 49 à 6 h : 60 − 49 = ?',
+            answer: '11. Seulement 11 minutes par an — mais au fil des siècles, elles ont fait 10 jours.'
         },
         9: {
             name: 'Le bateau de Thésée',
@@ -962,8 +962,8 @@ window.PARADOX_PREVIEW = {
             era: 'Ein altes Schachbrett-Rätsel',
             hook: 'Ein Schachbrett hat 64 Felder. Aber 204 Quadrate.',
             body: 'Fang mit einem kleinen Brett an, 3 mal 3. Es hat 9 Felder, aber mehr Quadrate: 9 kleine, dazu 4 mittlere — jedes aus vier Feldern, sie überlappen sich — und 1 großes, das ganze Brett. Zusammen 9 + 4 + 1 = 14.\n\nBeim Schachbrett ist es genauso, nur mit mehr Größen: 64 + 49 + 36 + 25 + 16 + 9 + 4 + 1 = 204. Zwei Drittel der Quadrate auf dem Brett verstecken sich also vor aller Augen.',
-            probe: 'Auf einem kleineren Brett, 6 mal 6, gibt es so viele Quadrate: 36 + 25 + 16 + 9 + 4 + 1 = ?',
-            answer: '91. Dort gibt es nur 36 Felder, aber zweieinhalbmal so viele Quadrate.'
+            probe: 'Auf einem Schachbrett gibt es 64 Quadrate aus einem Feld und 49 Quadrate aus 2 mal 2 Feldern: 64 + 49 = ?',
+            answer: '113. Und das sind nur die zwei kleinsten Größen — insgesamt gibt es acht.'
         },
         5: {
             name: 'Der Countdown kam aus dem Kino',
@@ -994,8 +994,8 @@ window.PARADOX_PREVIEW = {
             era: 'Die Kalenderreform von 1582',
             hook: '1582 gingen die Menschen am 4. Oktober schlafen und wachten am 15. auf.',
             body: 'Im alten Kalender war das Jahr 11 Minuten länger als das echte. Eine Kleinigkeit — doch in über tausend Jahren kamen 10 Tage zusammen, und der Frühling begann im Kalender nicht dann, wenn er wirklich anfing.\n\nUm alles wieder geradezurücken, strich man die überzähligen Tage einfach: In Italien, Spanien, Portugal und Polen folgte auf Donnerstag, den 4. Oktober, direkt Freitag, der 15. Andere Länder stellten später um — in Großbritannien verschwanden 1752 sogar 11 Tage. Nach diesem Kalender lebt heute fast die ganze Welt.',
-            probe: 'Ein normaler Oktober hat 31 Tage, doch 1582 fielen 10 weg: 31 − 10 = ?',
-            answer: '21. Dieser Oktober hatte nur 21 Tage.'
+            probe: 'Nach dem alten Kalender hatte ein Jahr 365 Tage und 6 Stunden, in Wirklichkeit sind es 365 Tage, 5 Stunden und 49 Minuten. Von 5:49 bis 6:00: 60 − 49 = ?',
+            answer: '11. Nur 11 Minuten im Jahr — doch im Lauf der Jahrhunderte wurden daraus 10 Tage.'
         },
         9: {
             name: 'Das Schiff des Theseus',
