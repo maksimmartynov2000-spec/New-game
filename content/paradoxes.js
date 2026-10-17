@@ -758,6 +758,46 @@ window.PARADOX_PREVIEW = {
             body: 'В корабле 150 досок, каждый год меняют одну. Через 150 лет от прежнего корабля не осталось ни доски, а все эти годы никто не сказал бы, что его подменили.\n\nА если из старых досок собрать второй корабль — какой из двух настоящий? Строгого ответа нет — люди спорят об этом уже две тысячи лет.',
             probe: 'Из 150 досок заменили 120. Сколько старых осталось? 150 − 120 = ?',
             answer: '30. А если из 120 снятых досок собрать второй корабль — какой из двух настоящий?'
+        },
+        10: {
+            name: 'Лист бумаги до Луны',
+            era: 'Бритни Галливан, январь 2002',
+            hook: 'Сложи лист пополам 42 раза — и стопка достанет до Луны.',
+            body: 'Каждый раз, когда складываешь лист пополам, слоёв становится вдвое больше: 1, 2, 4, 8… Попробуй — обычный лист больше семи-восьми раз не сложить. Школьница Бритни Галливан в 2002 году сложила длинную бумажную ленту 12 раз и поставила рекорд.\n\nПодвох в том, как быстро растёт удвоение. Лист тоньше миллиметра, но после 42 сгибов слоёв было бы больше четырёх триллионов — и такая стопка дотянулась бы до Луны.',
+            probe: 'Сложили 3 раза. Сколько слоёв? 2 × 2 × 2 = ?',
+            answer: '8. Посмотри на лист на картинке: сгибы делят его ровно на 8 частей.'
+        },
+        11: {
+            name: 'Таблица на девять — на пальцах',
+            era: 'Старинный способ счёта на пальцах',
+            hook: 'Вся таблица умножения на 9 спрятана у тебя в руках.',
+            body: 'Положи руки на стол и загни палец с тем номером, на который умножаешь девять. Пальцы слева от загнутого — десятки, справа — единицы. Для 9 × 3 загни третий палец: слева 2, справа 7 — выходит 27.\n\nСекрет в том, что 9 × 3 — это 30 без 3. Десятков выходит на один меньше, чем множитель, а единиц — столько, сколько ему не хватает до десяти. Пальцы показывают ровно это.',
+            probe: 'Загни шестой палец и посчитай пальцы слева и справа. 9 × 6 = ?',
+            answer: '54. Слева от загнутого пальца 5, справа 4.'
+        },
+        12: {
+            name: 'Сколько стенок у сот?',
+            era: 'Варрон, I век до н. э.; Папп Александрийский; Томас Хейлз, 1999',
+            hook: 'У одной ячейки 6 стенок. А у семи — гораздо меньше, чем семь раз по шесть.',
+            body: 'Пчёлы строят соты из шестиугольников, и соседние ячейки делят общую стенку. Поэтому стенок выходит меньше, чем кажется, — а значит, и воска нужно меньше.\n\nПочему соты именно шестиугольные, спрашивали ещё в Древнем Риме. А доказать, что на шестиугольные ячейки уходит меньше всего воска, смог только математик Томас Хейлз в 1999 году.',
+            probe: '7 ячеек: одна в центре и шесть вокруг. Будь у каждой свои стенки, их было бы 7 × 6 = ?',
+            answer: '42. Но 12 стенок общие — каждая служит сразу двум ячейкам, поэтому на деле стенок 42 − 12 = 30.'
+        },
+        13: {
+            name: 'Обезьяна за печатной машинкой',
+            era: 'Эмиль Борель, 1913',
+            hook: 'Обезьяна, которая бьёт по клавишам наугад, когда-нибудь напечатает «Гамлета».',
+            body: 'Шанс, что случайные нажатия сложатся в слово, крошечный, но не нулевой. А то, у чего шанс не ноль, при бесконечном числе попыток обязательно случится.\n\nТолько ждать придётся невообразимо долго: каждая новая буква умножает число попыток. На машинке с картинки 10 клавиш, и слово из трёх букв выйдет на ней в среднем за 10 × 10 × 10 = 1000 попыток. А на одну строчку из «Гамлета» не хватило бы всего времени, что существует Вселенная.',
+            probe: 'На настоящей машинке около 30 букв. Слово из двух букв выйдет в среднем за 30 × 30 = ? попыток',
+            answer: '900. А слово из трёх букв — уже 27 000 попыток.'
+        },
+        14: {
+            name: 'Парадокс дней рождения',
+            era: 'Рихард фон Мизес, 1939',
+            hook: 'В компании из 23 человек дни рождения совпадут с шансом больше половины.',
+            body: 'Кажется, для совпадения нужны сотни людей: в году-то 365 дней. Но совпасть может любая пара, а пар гораздо больше, чем людей.\n\nКаждый из 23 образует пару с остальными 22: 23 × 22 = 506, и каждая пара посчитана дважды — значит, пар 253. Этого уже хватает, чтобы совпадение случалось чаще, чем нет. А в классе из 30 человек оно бывает примерно в семи случаях из десяти.',
+            probe: 'В классе 30 человек. Каждый образует пару с остальными 29: 29 × 30 = ?',
+            answer: '870. Каждая пара посчитана дважды, значит, пар 435 — неудивительно, что совпадение находится так часто.'
         }
     },
     en: {
@@ -840,6 +880,46 @@ window.PARADOX_PREVIEW = {
             body: 'A ship has 150 planks, and one is replaced every year. After 150 years not a single plank of the old ship is left, yet in all those years nobody would have said it had been swapped.\n\nAnd if you build a second ship from the old planks — which of the two is the real one? There is no strict answer — people have been arguing about it for two thousand years.',
             probe: 'Of the 150 planks, 120 have been replaced. How many old ones are left? 150 − 120 = ?',
             answer: '30. And if you build a second ship from the 120 planks that came off — which of the two is the real one?'
+        },
+        10: {
+            name: 'Folding Paper to the Moon',
+            era: 'Britney Gallivan, January 2002',
+            hook: 'Fold a sheet of paper in half 42 times — and the stack will reach the Moon.',
+            body: 'Every time you fold a sheet in half, the number of layers doubles: 1, 2, 4, 8… Try it — an ordinary sheet will not fold more than seven or eight times. In 2002 a schoolgirl, Britney Gallivan, folded a long strip of paper 12 times and set a record.\n\nThe catch is how fast doubling grows. A sheet is thinner than a millimetre, but after 42 folds there would be more than four trillion layers — and such a stack would reach all the way to the Moon.',
+            probe: 'Folded 3 times. How many layers? 2 × 2 × 2 = ?',
+            answer: '8. Look at the sheet in the picture: the creases divide it into exactly 8 parts.'
+        },
+        11: {
+            name: 'The Nine Times Table on Your Fingers',
+            era: 'An old way of counting on your fingers',
+            hook: 'The whole nine times table is hidden in your hands.',
+            body: 'Put your hands on the table and bend down the finger whose number you are multiplying nine by. The fingers to the left of the bent one are the tens, those to the right are the ones. For 9 × 3, bend the third finger: 2 on the left, 7 on the right — that makes 27.\n\nThe secret is that 9 × 3 is 30 minus 3. There is one ten fewer than the number you multiply by, and as many ones as that number is short of ten. The fingers show exactly that.',
+            probe: 'Bend the sixth finger and count the fingers on the left and on the right. 9 × 6 = ?',
+            answer: '54. There are 5 fingers to the left of the bent one and 4 to the right.'
+        },
+        12: {
+            name: 'How Many Walls Does a Honeycomb Have?',
+            era: 'Varro, 1st century BC; Pappus of Alexandria; Thomas Hales, 1999',
+            hook: 'One cell has 6 walls. Seven cells have far fewer than seven times six.',
+            body: 'Bees build their combs out of hexagons, and neighbouring cells share a wall. So there are fewer walls than it seems — which means less wax is needed.\n\nPeople were already asking why honeycombs are hexagonal in ancient Rome. But it was only in 1999 that the mathematician Thomas Hales proved that hexagonal cells take the least wax of all.',
+            probe: '7 cells: one in the middle and six around it. If each had its own walls, there would be 7 × 6 = ?',
+            answer: '42. But 12 walls are shared — each one serves two cells at once, so there are really 42 − 12 = 30 walls.'
+        },
+        13: {
+            name: 'The Monkey at the Typewriter',
+            era: 'Émile Borel, 1913',
+            hook: 'A monkey hitting keys at random will one day type out "Hamlet".',
+            body: 'The chance that random key presses will make a word is tiny, but it is not zero. And something whose chance is not zero is bound to happen if you keep trying forever.\n\nOnly the wait would be unimaginably long: every new letter multiplies the number of tries. The typewriter in the picture has 10 keys, and on average a three-letter word will come out on it after 10 × 10 × 10 = 1000 tries. But a single line of "Hamlet" would take longer than the Universe has existed.',
+            probe: 'A real typewriter has about 30 letters. On average a two-letter word will come out after 30 × 30 = ? tries',
+            answer: '900. And a three-letter word already takes 27,000 tries.'
+        },
+        14: {
+            name: 'The Birthday Paradox',
+            era: 'Richard von Mises, 1939',
+            hook: 'In a group of 23 people, the chance of a shared birthday is better than even.',
+            body: 'It seems you would need hundreds of people for a match — a year has 365 days, after all. But any pair can match, and there are far more pairs than people.\n\nEach of the 23 makes a pair with each of the other 22: 23 × 22 = 506, and every pair has been counted twice — so there are 253 pairs. That is already enough for a match to be more likely than not. And in a class of 30 it happens about seven times out of ten.',
+            probe: 'There are 30 children in a class. Each makes a pair with each of the other 29: 29 × 30 = ?',
+            answer: '870. Every pair was counted twice, so there are 435 pairs — no wonder a match turns up so often.'
         }
     },
     fr: {
@@ -922,6 +1002,46 @@ window.PARADOX_PREVIEW = {
             body: 'Un bateau compte 150 planches, et on en change une chaque année. Au bout de 150 ans, il ne reste plus une seule planche de l’ancien bateau — et pourtant, pendant toutes ces années, personne n’aurait dit qu’on l’avait remplacé.\n\nEt si on construit un second bateau avec les vieilles planches — lequel des deux est le vrai ? Il n’y a pas de réponse stricte — on en débat depuis deux mille ans.',
             probe: 'Sur 150 planches, 120 ont été remplacées. Combien d’anciennes reste-t-il ? 150 − 120 = ?',
             answer: '30. Et si on construit un second bateau avec les 120 planches retirées — lequel des deux est le vrai ?'
+        },
+        10: {
+            name: 'Une feuille de papier jusqu’à la Lune',
+            era: 'Britney Gallivan, janvier 2002',
+            hook: 'Plie une feuille en deux 42 fois — et la pile atteindra la Lune.',
+            body: 'Chaque fois qu’on plie une feuille en deux, le nombre de couches double : 1, 2, 4, 8… Essaie : une feuille ordinaire ne se plie pas plus de sept ou huit fois. En 2002, une lycéenne, Britney Gallivan, a plié une longue bande de papier 12 fois et a établi un record.\n\nTout le secret est dans la vitesse du doublement. Une feuille fait moins d’un millimètre d’épaisseur, mais après 42 pliages, il y aurait plus de quatre mille milliards de couches — et une telle pile irait jusqu’à la Lune.',
+            probe: 'On a plié 3 fois. Combien de couches ? 2 × 2 × 2 = ?',
+            answer: '8. Regarde la feuille sur l’image : les plis la divisent en exactement 8 parties.'
+        },
+        11: {
+            name: 'La table de 9 sur les doigts',
+            era: 'Une vieille méthode pour compter sur ses doigts',
+            hook: 'Toute la table de 9 est cachée dans tes mains.',
+            body: 'Pose tes mains sur la table et replie le doigt dont le numéro est le nombre par lequel tu multiplies neuf. Les doigts à gauche du doigt replié sont les dizaines, ceux de droite sont les unités. Pour 9 × 3, replie le troisième doigt : 2 à gauche, 7 à droite — cela fait 27.\n\nLe secret, c’est que 9 × 3, c’est 30 moins 3. Il y a une dizaine de moins que le nombre par lequel on multiplie, et autant d’unités qu’il lui manque pour arriver à dix. Les doigts montrent exactement cela.',
+            probe: 'Replie le sixième doigt et compte les doigts à gauche et à droite. 9 × 6 = ?',
+            answer: '54. Il y a 5 doigts à gauche du doigt replié et 4 à droite.'
+        },
+        12: {
+            name: 'Combien de parois dans les alvéoles ?',
+            era: 'Varron, Ier siècle av. J.-C. ; Pappus d’Alexandrie ; Thomas Hales, 1999',
+            hook: 'Une alvéole a 6 parois. Sept alvéoles en ont bien moins que sept fois six.',
+            body: 'Les abeilles construisent leurs rayons avec des hexagones, et les alvéoles voisines partagent une paroi. Il y a donc moins de parois qu’il n’y paraît — et il faut moins de cire.\n\nOn se demandait déjà dans la Rome antique pourquoi les alvéoles sont hexagonales. Mais il a fallu attendre 1999 pour que le mathématicien Thomas Hales prouve que les alvéoles hexagonales demandent le moins de cire.',
+            probe: '7 alvéoles : une au centre et six autour. Si chacune avait ses propres parois, il y en aurait 7 × 6 = ?',
+            answer: '42. Mais 12 parois sont communes — chacune sert à deux alvéoles à la fois, donc en réalité il y a 42 − 12 = 30 parois.'
+        },
+        13: {
+            name: 'Le singe à la machine à écrire',
+            era: 'Émile Borel, 1913',
+            hook: 'Un singe qui tape au hasard sur les touches finira par écrire « Hamlet ».',
+            body: 'La chance que des frappes au hasard forment un mot est minuscule, mais elle n’est pas nulle. Et ce qui a une chance non nulle finit forcément par arriver si l’on essaie indéfiniment.\n\nSeulement, l’attente serait inimaginablement longue : chaque nouvelle lettre multiplie le nombre d’essais. La machine de l’image a 10 touches, et un mot de trois lettres y sortira en moyenne au bout de 10 × 10 × 10 = 1000 essais. Mais une seule ligne d’« Hamlet » demanderait plus de temps que l’âge de l’Univers.',
+            probe: 'Une vraie machine à écrire a environ 30 lettres. Un mot de deux lettres sortira en moyenne au bout de 30 × 30 = ? essais',
+            answer: '900. Et un mot de trois lettres demande déjà 27 000 essais.'
+        },
+        14: {
+            name: 'Le paradoxe des anniversaires',
+            era: 'Richard von Mises, 1939',
+            hook: 'Dans un groupe de 23 personnes, il y a plus d’une chance sur deux que deux anniversaires coïncident.',
+            body: 'On croirait qu’il faut des centaines de personnes pour une coïncidence — une année compte bien 365 jours. Mais n’importe quelle paire peut tomber juste, et les paires sont bien plus nombreuses que les personnes.\n\nChacune des 23 personnes forme une paire avec chacune des 22 autres : 23 × 22 = 506, et chaque paire est comptée deux fois — il y a donc 253 paires. Cela suffit déjà pour qu’une coïncidence soit plus probable que le contraire. Et dans une classe de 30, cela arrive environ sept fois sur dix.',
+            probe: 'Il y a 30 élèves dans une classe. Chaque élève forme une paire avec chacun des 29 autres : 29 × 30 = ?',
+            answer: '870. Chaque paire a été comptée deux fois, il y a donc 435 paires — pas étonnant qu’une coïncidence arrive si souvent.'
         }
     },
     de: {
@@ -1004,6 +1124,46 @@ window.PARADOX_PREVIEW = {
             body: 'Ein Schiff hat 150 Planken, jedes Jahr wird eine ausgetauscht. Nach 150 Jahren ist keine einzige Planke des alten Schiffs mehr übrig — und doch hätte in all den Jahren niemand gesagt, dass es ausgetauscht wurde.\n\nUnd wenn man aus den alten Planken ein zweites Schiff baut — welches der beiden ist das echte? Eine eindeutige Antwort gibt es nicht — darüber streiten die Menschen seit zweitausend Jahren.',
             probe: 'Von 150 Planken wurden 120 ersetzt. Wie viele alte sind noch übrig? 150 − 120 = ?',
             answer: '30. Und wenn man aus den 120 ausgebauten Planken ein zweites Schiff baut — welches der beiden ist das echte?'
+        },
+        10: {
+            name: 'Ein Blatt Papier bis zum Mond',
+            era: 'Britney Gallivan, Januar 2002',
+            hook: 'Falte ein Blatt 42-mal in der Mitte — und der Stapel reicht bis zum Mond.',
+            body: 'Jedes Mal, wenn man ein Blatt in der Mitte faltet, verdoppelt sich die Zahl der Lagen: 1, 2, 4, 8 … Probier es aus: Ein normales Blatt lässt sich nicht öfter als sieben- oder achtmal falten. Die Schülerin Britney Gallivan faltete 2002 einen langen Papierstreifen 12-mal und stellte damit einen Rekord auf.\n\nDas Geheimnis liegt darin, wie schnell Verdoppeln wächst. Ein Blatt ist dünner als ein Millimeter, doch nach 42 Faltungen hätte es mehr als vier Billionen Lagen — und so ein Stapel würde bis zum Mond reichen.',
+            probe: 'Dreimal gefaltet. Wie viele Lagen? 2 × 2 × 2 = ?',
+            answer: '8. Schau dir das Blatt auf dem Bild an: Die Falzlinien teilen es in genau 8 Teile.'
+        },
+        11: {
+            name: 'Die Neunerreihe an den Fingern',
+            era: 'Eine alte Art, mit den Fingern zu rechnen',
+            hook: 'Die ganze Neunerreihe steckt in deinen Händen.',
+            body: 'Leg deine Hände auf den Tisch und knick den Finger ein, dessen Nummer die Zahl ist, mit der du neun malnimmst. Die Finger links vom eingeknickten sind die Zehner, die rechts davon die Einer. Für 9 × 3 knickst du den dritten Finger ein: links 2, rechts 7 — das ergibt 27.\n\nDas Geheimnis: 9 × 3 ist 30 minus 3. Es gibt einen Zehner weniger als die Zahl, mit der man malnimmt, und so viele Einer, wie ihr bis zehn fehlen. Genau das zeigen die Finger.',
+            probe: 'Knick den sechsten Finger ein und zähl die Finger links und rechts. 9 × 6 = ?',
+            answer: '54. Links vom eingeknickten Finger sind 5, rechts sind 4.'
+        },
+        12: {
+            name: 'Wie viele Wände haben Bienenwaben?',
+            era: 'Varro, 1. Jh. v. Chr.; Pappos von Alexandria; Thomas Hales, 1999',
+            hook: 'Eine Zelle hat 6 Wände. Sieben Zellen haben viel weniger als sieben mal sechs.',
+            body: 'Bienen bauen ihre Waben aus Sechsecken, und benachbarte Zellen teilen sich eine Wand. Deshalb gibt es weniger Wände, als man denkt — und es wird weniger Wachs gebraucht.\n\nWarum Waben sechseckig sind, fragte man schon im alten Rom. Doch erst 1999 bewies der Mathematiker Thomas Hales, dass sechseckige Zellen am wenigsten Wachs brauchen.',
+            probe: '7 Zellen: eine in der Mitte und sechs drumherum. Hätte jede ihre eigenen Wände, wären es 7 × 6 = ?',
+            answer: '42. Aber 12 Wände sind gemeinsam — jede gehört zu zwei Zellen zugleich, also gibt es in Wirklichkeit 42 − 12 = 30 Wände.'
+        },
+        13: {
+            name: 'Der Affe an der Schreibmaschine',
+            era: 'Émile Borel, 1913',
+            hook: 'Ein Affe, der wahllos auf die Tasten haut, tippt eines Tages den „Hamlet“.',
+            body: 'Die Chance, dass zufällige Tastendrücke ein Wort ergeben, ist winzig, aber nicht null. Und was eine Chance größer als null hat, passiert ganz sicher, wenn man es unendlich lange versucht.\n\nNur dauert das Warten unvorstellbar lange: Jeder neue Buchstabe vervielfacht die Zahl der Versuche. Die Schreibmaschine auf dem Bild hat 10 Tasten, und ein Wort aus drei Buchstaben kommt darauf im Durchschnitt nach 10 × 10 × 10 = 1000 Versuchen heraus. Für eine einzige Zeile aus dem „Hamlet“ aber würde nicht einmal die ganze Zeit reichen, die es das Universum schon gibt.',
+            probe: 'Eine echte Schreibmaschine hat etwa 30 Buchstaben. Ein Wort aus zwei Buchstaben kommt im Durchschnitt nach 30 × 30 = ? Versuchen',
+            answer: '900. Und ein Wort aus drei Buchstaben braucht schon 27.000 Versuche.'
+        },
+        14: {
+            name: 'Das Geburtstagsparadoxon',
+            era: 'Richard von Mises, 1939',
+            hook: 'In einer Gruppe von 23 Menschen ist ein gemeinsamer Geburtstag wahrscheinlicher als nicht.',
+            body: 'Man könnte meinen, für einen gemeinsamen Geburtstag braucht man Hunderte von Menschen — das Jahr hat ja 365 Tage. Aber jedes Paar kann übereinstimmen, und es gibt viel mehr Paare als Menschen.\n\nJeder der 23 bildet mit jedem der anderen 22 ein Paar: 23 × 22 = 506, und jedes Paar ist doppelt gezählt — also gibt es 253 Paare. Das reicht schon, damit ein gemeinsamer Geburtstag wahrscheinlicher ist als keiner. Und in einer Klasse mit 30 Kindern passiert es ungefähr in sieben von zehn Fällen.',
+            probe: 'In einer Klasse sind 30 Kinder. Jedes bildet mit jedem der anderen 29 ein Paar: 29 × 30 = ?',
+            answer: '870. Jedes Paar wurde doppelt gezählt, also gibt es 435 Paare — kein Wunder, dass sich so oft ein gemeinsamer Geburtstag findet.'
         }
     }
 };

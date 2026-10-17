@@ -1,6 +1,6 @@
 // НОВЫЕ КАРТИНКИ ПАЗЛОВ — СНАЧАЛА РЕПЕТИТОРУ.
 //
-// Зачем этот файл. Новые картинки сложения и вычитания и тексты к ним идут в игру не всем сразу:
+// Зачем этот файл. Новые картинки сложения, вычитания и умножения и тексты к ним идут в игру не всем сразу:
 // сначала их смотрит репетитор на своём аккаунте, а ученик, самостоятельный игрок и
 // гость видят прежние. Здесь стережётся ровно это — во всех местах, где картинку
 // показывают: пазл миссии, собранный пазл, плитка коллекции, карточка парадокса и
@@ -58,8 +58,8 @@ function finish() {
         else if (who === 'nobody') { Progress.switchTo('GONE1', null, { accountType: 'solo' }); Progress.logout(); }
         return { type: Progress.getAccountType(), code: Progress.getCode(), guest: Progress.isGuest() }; })()`);
 
-    // Всё, что видно на экране от картинок: клетки сложения и вычитания (0–9) меняются,
-    // клетки умножения (10 и дальше) — нет. Берутся края обоих рядов: 1★ и 5★.
+    // Всё, что видно на экране от картинок: клетки сложения, вычитания и умножения (0–14)
+    // меняются, клетки деления (15 и дальше) — нет. Берутся края каждого ряда: 1★ и 5★.
     const look = () => page.evaluate(`(() => {
         const cell = (key) => { setupPuzzleForCell(key);
             return document.getElementById('puzzleFullImg').getAttribute('href'); };
@@ -68,13 +68,15 @@ function finish() {
             return { img: document.getElementById('detailImg').getAttribute('src'),
                      name: document.getElementById('detailName').innerText }; };
         return { add1: cell('integer+:add:1'), add5: cell('integer+:add:5'),
-                 sub1: cell('integer+:sub:1'), sub5: cell('integer+:sub:5'), mul1: cell('integer+:mul:1'),
-                 tile0: tile(0, [1]), tile7: tile(7, []), tile12: tile(12, []),
-                 detail0: detail(0), detail9: detail(9), detail10: detail(10),
+                 sub1: cell('integer+:sub:1'), sub5: cell('integer+:sub:5'),
+                 mul1: cell('integer+:mul:1'), mul5: cell('integer+:mul:5'), div1: cell('integer+:div:1'),
+                 tile0: tile(0, [1]), tile7: tile(7, []), tile12: tile(12, []), tile17: tile(17, []),
+                 detail0: detail(0), detail9: detail(9), detail14: detail(14), detail15: detail(15),
                  old: PUZZLE_IMAGE_SRCS.slice(), next: Object.assign({}, PUZZLE_PREVIEW_SRCS),
                  oldName0: window.PARADOX_CONTENT.ru[0].name, oldName9: window.PARADOX_CONTENT.ru[9].name,
-                 oldName10: window.PARADOX_CONTENT.ru[10].name,
-                 newName0: window.PARADOX_PREVIEW.ru[0].name, newName9: window.PARADOX_PREVIEW.ru[9].name }; })()`);
+                 oldName14: window.PARADOX_CONTENT.ru[14].name, oldName15: window.PARADOX_CONTENT.ru[15].name,
+                 newName0: window.PARADOX_PREVIEW.ru[0].name, newName9: window.PARADOX_PREVIEW.ru[9].name,
+                 newName14: window.PARADOX_PREVIEW.ru[14].name }; })()`);
 
     // Фоновая догрузка: какие файлы она запросила бы.
     const prefetched = () => page.evaluate(`(async () => {
@@ -111,27 +113,37 @@ function finish() {
         eq(v.sub1, v.next[5], 'вычитание 1★ из списка новых');
         eq(v.sub5, v.next[9], 'вычитание 5★ из списка новых');
     });
+    await checkAsync('пазл миссии: новые картинки на умножении 1★ и 5★', async () => {
+        eq(v.mul1, 'images/IMG_2464.webp', 'умножение 1★ — лист бумаги до Луны');
+        eq(v.mul5, 'images/IMG_2468.webp', 'умножение 5★ — парадокс дней рождения');
+        eq(v.mul1, v.next[10], 'умножение 1★ из списка новых');
+        eq(v.mul5, v.next[14], 'умножение 5★ из списка новых');
+    });
     await checkAsync('клетка без новой картинки — прежняя', async () => {
-        eq(v.mul1, v.old[10], 'умножение 1★');
-        eq(v.tile12, v.old[12].replace('images/', 'images/thumbs/'), 'плитка 12');
+        eq(v.div1, v.old[15], 'деление 1★');
+        eq(v.tile17, v.old[17].replace('images/', 'images/thumbs/'), 'плитка 17');
     });
     await checkAsync('плитки коллекции — новые превью', async () => {
         eq(v.tile0, v.next[0].replace('images/', 'images/thumbs/'), 'плитка 0');
         eq(v.tile7, v.next[7].replace('images/', 'images/thumbs/'), 'плитка 7');
+        eq(v.tile12, v.next[12].replace('images/', 'images/thumbs/'), 'плитка 12');
     });
     await checkAsync('карточка парадокса — новая картинка и новый текст', async () => {
         eq(v.detail0.img, v.next[0], 'картинка карточки 0');
         eq(v.detail0.name, v.newName0, 'название карточки 0');
         eq(v.detail9.img, v.next[9], 'картинка карточки 9');
         eq(v.detail9.name, v.newName9, 'название карточки 9');
-        eq(v.detail10.img, v.old[10], 'картинка карточки 10');
-        eq(v.detail10.name, v.oldName10, 'название карточки 10');
+        eq(v.detail14.img, v.next[14], 'картинка карточки 14');
+        eq(v.detail14.name, v.newName14, 'название карточки 14');
+        eq(v.detail15.img, v.old[15], 'картинка карточки 15');
+        eq(v.detail15.name, v.oldName15, 'название карточки 15');
     });
     await checkAsync('на другом языке — новый текст на этом языке', async () => {
         const r = await page.evaluate(`(() => {
             const keep = LANG; LANG = 'en';
             const name = (i) => { showParadoxDetail(i); return document.getElementById('detailName').innerText; };
-            try { return { got: [name(0), name(9)], want: [window.PARADOX_PREVIEW.en[0].name, window.PARADOX_PREVIEW.en[9].name] }; }
+            try { return { got: [name(0), name(9), name(14)],
+                           want: [0, 9, 14].map(i => window.PARADOX_PREVIEW.en[i].name) }; }
             finally { LANG = keep; } })()`);
         eq(r.got.join(' | '), r.want.join(' | '), 'названия по-английски');
     });
@@ -142,6 +154,9 @@ function finish() {
         const s = await completed(9, 'integer+:sub:5');
         eq(s.last, v.next[9], 'запомненная картинка, вычитание');
         eq(s.queued, v.next[9], 'картинка в очереди показа, вычитание');
+        const m = await completed(14, 'integer+:mul:5');
+        eq(m.last, v.next[14], 'запомненная картинка, умножение');
+        eq(m.queued, v.next[14], 'картинка в очереди показа, умножение');
     });
     await checkAsync('фоновая догрузка берёт новые картинки вместо прежних', async () => {
         const got = await prefetched();
@@ -150,7 +165,7 @@ function finish() {
             assert(got.indexOf(v.next[k]) >= 0, `не догружается ${v.next[k]}`);
             assert(got.indexOf(v.old[k]) < 0, `догружается прежняя ${v.old[k]}`);
         });
-        assert(got.indexOf(v.old[10]) >= 0, 'не догружаются клетки без новой картинки');
+        assert(got.indexOf(v.old[15]) >= 0, 'не догружаются клетки без новой картинки');
     });
 
     // Остальные — по очереди, на том же устройстве и без перезагрузки.
@@ -165,6 +180,8 @@ function finish() {
             eq(v.add5, v.old[4], 'сложение 5★');
             eq(v.sub1, v.old[5], 'вычитание 1★');
             eq(v.sub5, v.old[9], 'вычитание 5★');
+            eq(v.mul1, v.old[10], 'умножение 1★');
+            eq(v.mul5, v.old[14], 'умножение 5★');
         });
         await checkAsync(`${kind}: плитки и карточки — прежние`, async () => {
             eq(v.tile0, v.old[0].replace('images/', 'images/thumbs/'), 'плитка 0');
@@ -173,6 +190,9 @@ function finish() {
             eq(v.detail0.name, v.oldName0, 'название карточки 0');
             eq(v.detail9.img, v.old[9], 'картинка карточки 9');
             eq(v.detail9.name, v.oldName9, 'название карточки 9');
+            eq(v.tile12, v.old[12].replace('images/', 'images/thumbs/'), 'плитка 12');
+            eq(v.detail14.img, v.old[14], 'картинка карточки 14');
+            eq(v.detail14.name, v.oldName14, 'название карточки 14');
         });
         await checkAsync(`${kind}: собранный пазл — прежняя картинка`, async () => {
             const c = await completed(0, 'integer+:add:1');
@@ -198,6 +218,7 @@ function finish() {
     await checkAsync('репетитор снова видит новые картинки', async () => {
         eq(v.add1, v.next[0], 'сложение 1★');
         eq(v.sub5, v.next[9], 'вычитание 5★');
+        eq(v.mul5, v.next[14], 'умножение 5★');
         eq(v.detail0.name, v.newName0, 'название карточки 0');
         eq(v.detail9.name, v.newName9, 'название карточки 9');
     });
