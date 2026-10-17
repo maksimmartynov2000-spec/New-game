@@ -199,6 +199,73 @@ test('у новых карточек во всех языках тот же го
     });
 });
 
+// Задача в строке «проверь» — пример той же клетки, только с историей. Берём последнее
+// равенство, где ровно один «?» и только плюсы и минусы: «5 + ? = 7», «4 + 9 + ? = 15»,
+// «34 + 55 = ?», «20 − 4 − 4 − 4 − 4 = ?». Время «5:49» и числа в словах сюда не попадают.
+const EQUATION = /(?:\d+|\?)(?:\s*[+−-]\s*(?:\d+|\?))*\s*=\s*(?:\d+|\?)/g;
+function probeEquation(probe) {
+    const all = (probe.match(EQUATION) || []).filter(s => (s.match(/\?/g) || []).length === 1);
+    return all.length ? all[all.length - 1].replace(/\s+/g, ' ').replace(/-/g, '−') : null;
+}
+// Чему равен «?» и самое большое число равенства — сумма или уменьшаемое.
+function solveEquation(equation) {
+    const [lhs, rhs] = equation.split('=').map(s => s.trim());
+    const terms = [];
+    let sign = 1;
+    lhs.split(/\s*([+−])\s*/).forEach(tok => {
+        if (tok === '+') sign = 1;
+        else if (tok === '−') sign = -1;
+        else if (tok) { terms.push({ sign, v: tok }); sign = 1; }
+    });
+    const known = terms.filter(t => t.v !== '?').reduce((s, t) => s + t.sign * Number(t.v), 0);
+    const value = rhs === '?' ? known : (Number(rhs) - known) * terms.find(t => t.v === '?').sign;
+    const numbers = terms.filter(t => t.v !== '?').map(t => Number(t.v)).concat(rhs === '?' ? [] : [Number(rhs)]);
+    return { value, biggest: Math.max(value, ...numbers) };
+}
+
+// Ответ обязан сходиться с примером на каждом языке: переводчик ошибётся в одной цифре —
+// и ребёнок, решивший верно, увидит под карточкой «другой» ответ.
+test('у новых карточек ответ сходится с примером в строке «проверь»', () => {
+    const bad = [];
+    LANGS.forEach(lang => Object.keys(PREVIEW[lang]).forEach(k => {
+        const px = PREVIEW[lang][k];
+        const equation = probeEquation(px.probe);
+        const lead = /^\s*(\d+)/.exec(px.answer);
+        if (!equation) bad.push(`[${lang}] ${k}: в строке «проверь» нет примера с «?»: ${px.probe}`);
+        else if (!lead) bad.push(`[${lang}] ${k}: ответ не начинается с числа: ${px.answer}`);
+        else if (Number(lead[1]) !== solveEquation(equation).value)
+            bad.push(`[${lang}] ${k}: ${equation} — это ${solveEquation(equation).value}, а в ответе ${lead[1]}`);
+    }));
+    assert(bad.length === 0, bad.join('; '));
+});
+
+test('у новых карточек пример одинаков во всех языках', () => {
+    Object.keys(PREVIEW.ru).forEach(k => {
+        const ruEquation = probeEquation(PREVIEW.ru[k].probe);
+        LANGS.forEach(lang => eq(probeEquation(PREVIEW[lang][k].probe), ruEquation, `[${lang}] пример новой карточки ${k}`));
+    });
+});
+
+// Задача не легче своей звезды: самое большое число равенства — не ниже главной полосы
+// этой звезды в генераторе примеров (полосы берутся прямо из js/generator.js). Две карточки
+// попались именно на этом: 91 на сложении 5★, где суммы 101–200, и 31 − 10 на вычитании 4★,
+// где 51–100. Вверх чуть-чуть можно: пять пар по 11 у Гаусса дают 55 на 3★, где до 50, —
+// а лёгкая задача на высокой звезде обесценивает звезду. Клетки 0–4 — сложение, 5–9 — вычитание.
+const ADD_BANDS = vm.runInNewContext(
+    /const ADD_BANDS = (\[[^;]*\]);/.exec(fs.readFileSync(path.join(ROOT, 'js', 'generator.js'), 'utf8'))[1]);
+test('у новых карточек сложения и вычитания задача не легче своей звезды', () => {
+    const keys = Object.keys(PREVIEW.ru).filter(k => +k < 10);
+    assert(keys.length > 0, 'новых карточек сложения и вычитания не нашлось — проверять нечего');
+    const bad = [];
+    keys.forEach(k => {
+        const level = +k % 5 + 1, [lo, hi] = ADD_BANDS[level - 1];
+        const { biggest } = solveEquation(probeEquation(PREVIEW.ru[k].probe));
+        if (biggest < lo) bad.push(`карточка ${k} (${+k < 5 ? 'сложение' : 'вычитание'} ${level}★): `
+            + `самое большое число ${biggest}, а главная полоса этой звезды в игре — ${lo}–${hi}`);
+    });
+    assert(bad.length === 0, bad.join('; '));
+});
+
 // Повтор названия виден, только когда обе карточки на виду одновременно. У репетитора
 // новая карточка заменяет прежнюю на том же месте, поэтому сверяется его коллекция
 // целиком — новые на своих местах, прежние на остальных — и на каждом языке. Так новый
