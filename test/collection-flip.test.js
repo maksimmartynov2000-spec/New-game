@@ -58,6 +58,9 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
     // Телефон: касания и мобильная разметка, как у ученика с айфоном.
     const ctx = await b.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
     const page = await ctx.newPage();
+    // Не дождались кнопки — значит, упала проверка раньше. Пять секунд, а не тридцать:
+    // иначе одна поломка тянет за собой минуты ожидания в следующих проверках.
+    page.setDefaultTimeout(5000);
     const errors = [];
     page.on('pageerror', e => errors.push(String(e && e.message || e)));
     await page.route('**/rest/v1/rpc/*', r => r.fulfill({ status: 200, contentType: 'application/json', body: '{"ok":true}' }));
@@ -255,6 +258,48 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
         await swipeTwo(320, 500, 120);
         eq((await look()).idx, 5, 'после жеста двумя пальцами');
     });
+    await checkAsync('палец ведёт по карточке, а второй лежит рядом, за её краем, — тоже не свайп', async () => {
+        // Второй палец — на поле окна слева от карточки: его касание до карточки не доходит,
+        // и видно его только в списке пальцев, когда первый отрывается.
+        await client.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: 320, y: 500, id: 1 }] });
+        await client.send('Input.dispatchTouchEvent', { type: 'touchMove',
+            touchPoints: [{ x: 320, y: 500, id: 1 }, { x: 6, y: 400, id: 2 }] });
+        for (let i = 1; i <= 8; i++) {
+            await client.send('Input.dispatchTouchEvent', { type: 'touchMove',
+                touchPoints: [{ x: 320 - 25 * i, y: 500, id: 1 }, { x: 6, y: 400, id: 2 }] });
+            await page.waitForTimeout(16);
+        }
+        // Первый палец отрывается, второй ещё лежит.
+        await client.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: 6, y: 400, id: 2 }] });
+        await page.waitForTimeout(150);
+        const mid = (await look()).idx;
+        await client.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        await page.waitForTimeout(250);
+        eq(mid, 5, 'когда отпустили первый палец');
+        eq((await look()).idx, 5, 'когда отпустили оба');
+    });
+    await checkAsync('два пальца, отпущенные разом, — не свайп, а один такой же — свайп', async () => {
+        // Отрыв двух пальцев одним событием CDP не делает: Chrome сам делит его на два.
+        // Другой браузер может прислать его и одним — здесь он смоделирован. Тот же жест
+        // одним пальцем обязан листать: иначе проверка молчала бы и при неработающей модели.
+        const fake = (fingers) => page.evaluate(`(() => {
+            const el = document.getElementById('detailBody');
+            const at = (id, x, y) => new Touch({ identifier: id, target: el, clientX: x, clientY: y });
+            const fire = (type, touches, changed) => el.dispatchEvent(new TouchEvent(type,
+                { touches, targetTouches: touches, changedTouches: changed, bubbles: true, cancelable: true }));
+            const a0 = at(1, 320, 500), a1 = at(1, 120, 505), b0 = at(2, 320, 580), b1 = at(2, 120, 585);
+            fire('touchstart', [a0], [a0]);
+            if (${fingers} === 2) fire('touchstart', [a0, b0], [b0]);
+            fire('touchmove', ${fingers} === 2 ? [a1, b1] : [a1], ${fingers} === 2 ? [a1, b1] : [a1]);
+            fire('touchend', [], ${fingers} === 2 ? [a1, b1] : [a1]);
+            return null; })()`);
+        await fake(1);
+        eq((await look()).idx, 7, 'после такого же жеста одним пальцем');
+        await click('#detailPrev');
+        eq((await look()).idx, 5, 'вернулись');
+        await fake(2);
+        eq((await look()).idx, 5, 'после двух пальцев, отпущенных разом');
+    });
 
     console.log('\nКлавиши в карточке');
     await checkAsync('→ — следующий, ← — предыдущий', async () => {
@@ -280,7 +325,10 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
     });
 
     console.log('\nНа весь экран');
-    await page.touchscreen.tap(img.x, img.y);
+    // Окно могло остаться прокрученным, если упала проверка выше: картинку ищем заново.
+    await page.evaluate(`document.getElementById('collectionModal').scrollTop = 0; null`);
+    const pic = await center('#detailImg');
+    await page.touchscreen.tap(pic.x, pic.y);
     await page.waitForTimeout(250);
     await checkAsync('нажатие на картинку по-прежнему открывает её на весь экран — со стрелками и тем же счётчиком', async () => {
         s = await look();
@@ -368,17 +416,21 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
         await page.evaluate(`closeCollectionModal(); puzzleRevealSrc = puzzleSrc(12);
             document.getElementById('puzzleCompleteArt').click(); null`);
         await page.waitForTimeout(200);
-        s = await look();
-        assert(s.viewer, 'просмотр не открылся');
-        eq(s.vidx, 12, 'пазл на весь экран');
-        eq(s.varrows.join(','), 'false,false', 'стрелки');
-        eq(s.vcount, null, 'счётчик');
-        await key('ArrowRight');
-        await swipe(320, 430, 100, 440);
-        s = await look();
-        eq(s.vidx, 12, 'пазл после → и свайпа');
-        eq(s.idx, 12, 'спрятанная карточка коллекции после → и свайпа');
-        await key('Escape');
+        try {
+            s = await look();
+            assert(s.viewer, 'просмотр не открылся');
+            eq(s.vidx, 12, 'пазл на весь экран');
+            eq(s.varrows.join(','), 'false,false', 'стрелки');
+            eq(s.vcount, null, 'счётчик');
+            await key('ArrowRight');
+            await swipe(320, 430, 100, 440);
+            s = await look();
+            eq(s.vidx, 12, 'пазл после → и свайпа');
+            eq(s.idx, 12, 'спрятанная карточка коллекции после → и свайпа');
+        } finally {
+            // Просмотр поверх всего: не закрыть его — и следующие проверки не нажмут ни одной кнопки.
+            await page.evaluate(`closePicViewer(); null`);
+        }
     });
     await checkAsync('коллекцию закрыли прямо из карточки — клавиши ничего не трогают', async () => {
         await page.evaluate(`openCollectionModal(); null`);
@@ -402,11 +454,14 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
         eq((await look()).idx, 1, 'пазл после → и свайпа');
         await page.touchscreen.tap(img.x, img.y);
         await page.waitForTimeout(250);
-        s = await look();
-        assert(s.viewer, 'просмотр не открылся');
-        eq(s.varrows.join(','), 'false,false', 'стрелки на весь экран');
-        eq(s.vcount, null, 'счётчик на весь экран');
-        await key('Escape');
+        try {
+            s = await look();
+            assert(s.viewer, 'просмотр не открылся');
+            eq(s.varrows.join(','), 'false,false', 'стрелки на весь экран');
+            eq(s.vcount, null, 'счётчик на весь экран');
+        } finally {
+            await page.evaluate(`closePicViewer(); null`);
+        }
     });
 
     console.log('\nПо-английски');

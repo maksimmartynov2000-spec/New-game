@@ -788,7 +788,7 @@
         /* Сверху — место под крестик окна: картинка теперь во всю ширину, и без отступа
            крестик ложился на её правый верхний угол. */
         /* touch-action: вверх-вниз карточку прокручивает браузер, а вбок — свайп наш.
-           Без этого телефон принимал свайп вправо за «назад» и уходил со страницы. */
+           Без этого браузер принимал свайп вправо за «назад» и уходил со страницы. */
         .collection-detail { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; padding-top: 46px;
                              position: relative; touch-action: pan-y pinch-zoom; }
         .collection-detail.show { display: flex; }
@@ -7326,18 +7326,20 @@
             [['detailPrev', -1], ['detailNext', 1], ['picViewerPrev', -1], ['picViewerNext', 1]].forEach(([id, step]) => {
                 document.getElementById(id).addEventListener('click', () => flipPuzzle(step));
             });
-            // Свайп по карточке. Здесь касания, а не указатель, как на полном экране: окно
-            // коллекции прокручивается вверх-вниз, и указатель браузер забирал бы себе на
-            // первом же сдвиге пальца. Касания приходят и во время прокрутки.
+            // Свайп по карточке — только пальцем. Здесь касания, а не указатель, как на
+            // полном экране: мышью по карточке выделяют текст, и листать это не должно, на
+            // компьютере для этого стрелки и клавиши. Вверх-вниз карточку по-прежнему
+            // прокручивает браузер (touch-action в стилях), а жест вбок — наш.
             const box = document.getElementById('collectionDetail');
             let start = null;
             box.addEventListener('touchstart', (e) => {
-                // Второй палец — это уже не свайп.
+                // Свайп — один палец. Второй, коснувшийся карточки, жест отменяет...
                 start = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
             }, { passive: true });
             box.addEventListener('touchend', (e) => {
                 const from = start, t = e.changedTouches[0];
                 start = null;
+                // ...а лежащий за её краем виден только здесь, в списке пальцев на экране.
                 if (!from || !t || e.touches.length) return;
                 const dx = t.clientX - from.x, dy = t.clientY - from.y;
                 if (isFlipSwipe(dx, dy)) flipPuzzle(dx < 0 ? 1 : -1);
