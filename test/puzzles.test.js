@@ -222,7 +222,13 @@ test('в ряду ровно пять картинок — по числу зв�
 test('картинки разложены по действиям', () => {
     const from = SCRIPT.indexOf('function renderCollectionGrid');
     const body = SCRIPT.slice(from, SCRIPT.indexOf('function buildCollectionItem', from));
-    assert(/PUZZLE_CELL_OPS\.forEach/.test(body), 'группы должны строиться по действиям');
+    // Группы строит collectionGroups: по ней же листается карточка, и порядок листания
+    // не может разойтись с сеткой.
+    const groupsFrom = SCRIPT.indexOf('function collectionGroups');
+    assert(groupsFrom > 0, 'нет collectionGroups — группы сетки строить нечем');
+    const groups = SCRIPT.slice(groupsFrom, SCRIPT.indexOf('\n        }', groupsFrom));
+    assert(/collectionGroups\(\)\.forEach/.test(body), 'сетка должна строиться по группам collectionGroups');
+    assert(/PUZZLE_CELL_OPS\.forEach/.test(groups), 'группы должны строиться по действиям');
     assert(/OP_LABELS\[group\.op\]/.test(body), 'у группы должен быть заголовок с названием действия');
 });
 
