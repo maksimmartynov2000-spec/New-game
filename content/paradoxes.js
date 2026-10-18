@@ -798,6 +798,46 @@ window.PARADOX_PREVIEW = {
             body: 'Кажется, для совпадения нужны сотни людей: в году-то 365 дней. Но совпасть может любая пара, а пар гораздо больше, чем людей.\n\nКаждый из 23 образует пару с остальными 22: 23 × 22 = 506, и каждая пара посчитана дважды — значит, пар 253. Этого уже хватает, чтобы совпадение случалось чаще, чем нет. А в классе из 30 человек оно бывает примерно в семи случаях из десяти.',
             probe: 'В классе 30 человек. Каждый образует пару с остальными 29: 29 × 30 = ?',
             answer: '870. Каждая пара посчитана дважды, значит, пар 435 — неудивительно, что совпадение находится так часто.'
+        },
+        15: {
+            name: 'Один режет, другой выбирает',
+            era: 'Конвенция ООН по морскому праву, 1982',
+            hook: 'Как поделить торт на двоих, чтобы никто не обиделся?',
+            body: 'Один режет торт, а другой первым выбирает кусок. Тот, кто режет, старается разделить ровно пополам — иначе меньший кусок достанется ему самому.\n\nТак делят не только торты. По морскому праву ООН так же делят участки на дне океана: компания, которая хочет там добывать, делит найденный участок на две равные по ценности части, а Международный орган по морскому дну выбирает одну из них себе.',
+            probe: '10 конфет на двоих по-честному: 10 ÷ 2 = ?',
+            answer: '5. На картинке так и лежит: на тарелке два ряда по пять конфет.'
+        },
+        16: {
+            name: 'Почему на ноль делить нельзя?',
+            era: 'Бхаскара II, «Биджаганита», около 1150 года',
+            hook: 'Двенадцать конфет на ноль друзей — сколько достанется каждому?',
+            body: 'Деление проверяют умножением: 15 ÷ 3 = 5, потому что 5 × 3 = 15. Попробуем 12 ÷ 0: нужно число, которое после умножения на 0 даст 12. Но любое число, умноженное на 0, даёт 0. Такого числа нет — у примера просто нет ответа.\n\nНад этим думали веками: индийский математик Бхаскара ещё в XII веке назвал такой ответ бесконечностью. А вот 0 ÷ 12 — пожалуйста: ноль конфет на двенадцать друзей, каждому по нулю.',
+            probe: '12 конфет на четверых: 12 ÷ 4 = ? Сверь умножением: ответ × 4 должен дать 12.',
+            answer: '3. 3 × 4 = 12: у каждого из четверых на тарелке по три конфеты. А пустой скамейке раздать их нельзя — там ноль друзей.'
+        },
+        17: {
+            name: 'Двенадцатый верблюд',
+            era: 'Старинная задача о наследстве',
+            hook: 'Мудрец одолжил братьям верблюда — и забрал его обратно.',
+            body: 'Отец оставил трём сыновьям 11 верблюдов: старшему половину, среднему треть, младшему двенадцатую часть. Но 11 не делится ни на 2, ни на 3, ни на 12. Мудрец добавил своего верблюда — стало 12. Старший взял 6, средний 4, младший 1: вместе 11. Мудрец сел на своего верблюда и уехал.\n\nСекрет в том, что половина, треть и двенадцатая часть вместе меньше целого: не хватает как раз одной двенадцатой. В самой известной версии этой задачи верблюдов 17, а доли — половина, треть и девятая часть.',
+            probe: 'Тот же фокус с 41 верблюдом: половина, треть и седьмая часть. Одолжи одного — сколько достанется младшему? 42 ÷ 7 = ?',
+            answer: '6. Старшему 21, среднему 14, младшему 6: вместе 41 — и одолженный верблюд снова лишний.'
+        },
+        18: {
+            name: 'Ахиллес и черепаха',
+            era: 'Зенон Элейский, около 450 года до н. э.',
+            hook: 'Самый быстрый бегун никогда не догонит черепаху. Или всё-таки догонит?',
+            body: 'Ахиллес бежит в 5 раз быстрее черепахи и даёт ей 100 метров форы. Пока он добегает до места, где была черепаха, она успевает отползти дальше. Пока он добегает до нового места — она снова чуть впереди. И так без конца: кажется, догнать нельзя.\n\nНо кусочки пути всё короче: каждый в 5 раз меньше предыдущего. Вместе они складываются не в бесконечность, а ровно в 125 метров. Там Ахиллес черепаху и догонит.',
+            probe: 'Пока Ахиллес пробегает первые 100 м, черепаха проползает в 5 раз меньше: 100 ÷ 5 = ?',
+            answer: '20 метров. Как на картинке: за Ахиллесом пять больших следов, а за черепахой — один маленький.'
+        },
+        19: {
+            name: 'Три двери',
+            era: 'Задача Стива Селвина, 1975',
+            hook: 'Три двери, за одной приз. Поменять выбор — выгоднее вдвое.',
+            body: 'Ты выбираешь одну из трёх дверей. Ведущий знает, где приз, и открывает одну из двух других — там коза. Кажется, что шансы теперь пополам.\n\nНо твоя дверь угадана лишь в одном случае из трёх, а в двух случаях из трёх приз за другими дверями — и ведущий как раз убрал из них пустую. Поэтому, если играть много раз, менять выбор выгоднее: выигрываешь вдвое чаще.',
+            probe: 'Сыграли 45 раз и ни разу не меняли дверь. Сколько примерно побед? 45 ÷ 3 = ?',
+            answer: '15. Не меняя двери, выигрываешь примерно в одной игре из трёх. А если всегда менять — около 30 побед, вдвое больше.'
         }
     },
     en: {
@@ -920,6 +960,46 @@ window.PARADOX_PREVIEW = {
             body: 'It seems you would need hundreds of people for a match — a year has 365 days, after all. But any pair can match, and there are far more pairs than people.\n\nEach of the 23 makes a pair with each of the other 22: 23 × 22 = 506, and every pair has been counted twice — so there are 253 pairs. That is already enough for a match to be more likely than not. And in a class of 30 it happens about seven times out of ten.',
             probe: 'There are 30 children in a class. Each makes a pair with each of the other 29: 29 × 30 = ?',
             answer: '870. Every pair was counted twice, so there are 435 pairs — no wonder a match turns up so often.'
+        },
+        15: {
+            name: 'I Cut, You Choose',
+            era: 'UN Convention on the Law of the Sea, 1982',
+            hook: 'How do you share a cake between two so that nobody feels cheated?',
+            body: 'One person cuts the cake, and the other picks a piece first. The one who cuts tries to make two exactly equal halves — otherwise the smaller piece is the one left for them.\n\nCakes are not the only thing shared this way. Under the UN Law of the Sea, areas of the ocean floor are divided the same way: a company that wants to mine there splits the area it has found into two parts of equal value, and the International Seabed Authority picks one of them for itself.',
+            probe: '10 sweets shared fairly between two: 10 ÷ 2 = ?',
+            answer: '5. That is just how they lie in the picture: two rows of five sweets on the plate.'
+        },
+        16: {
+            name: 'Why Can’t You Divide by Zero?',
+            era: 'Bhaskara II, "Bijaganita", around 1150',
+            hook: 'Twelve sweets for zero friends — how many does each one get?',
+            body: 'Division is checked by multiplication: 15 ÷ 3 = 5, because 5 × 3 = 15. Let’s try 12 ÷ 0: we need a number that gives 12 when multiplied by 0. But any number multiplied by 0 gives 0. There is no such number — the problem simply has no answer.\n\nPeople puzzled over this for centuries: back in the 12th century the Indian mathematician Bhaskara called such an answer infinity. But 0 ÷ 12 is fine: zero sweets for twelve friends, zero each.',
+            probe: '12 sweets for four friends: 12 ÷ 4 = ? Check with multiplication: the answer × 4 must make 12.',
+            answer: '3. 3 × 4 = 12: each of the four has three sweets on their plate. And there is no way to hand any out to the empty bench — there are zero friends there.'
+        },
+        17: {
+            name: 'The Twelfth Camel',
+            era: 'An old inheritance puzzle',
+            hook: 'A wise man lent the brothers a camel — and then took it back.',
+            body: 'A father left his three sons 11 camels: half to the eldest, a third to the middle one and a twelfth to the youngest. But 11 cannot be divided by 2, by 3 or by 12. A wise man added his own camel — that made 12. The eldest took 6, the middle one 4, the youngest 1: 11 in all. The wise man got back on his camel and rode away.\n\nThe secret is that a half, a third and a twelfth together make less than a whole: exactly one twelfth is missing. In the best-known version of this puzzle there are 17 camels, and the shares are a half, a third and a ninth.',
+            probe: 'The same trick with 41 camels: a half, a third and a seventh. Borrow one — how many does the youngest get? 42 ÷ 7 = ?',
+            answer: '6. The eldest gets 21, the middle one 14, the youngest 6: 41 in all — and the borrowed camel is left over again.'
+        },
+        18: {
+            name: 'Achilles and the Tortoise',
+            era: 'Zeno of Elea, around 450 BC',
+            hook: 'The fastest runner will never catch a tortoise. Or will he?',
+            body: 'Achilles runs 5 times faster than the tortoise and gives it a 100-metre head start. By the time he reaches the spot where the tortoise was, it has crawled a little further. By the time he reaches that new spot, it is a little ahead again. And so on forever: it seems he can never catch up.\n\nBut the stretches keep getting shorter: each one is 5 times smaller than the one before. Together they add up not to infinity but to exactly 125 metres. That is where Achilles catches the tortoise.',
+            probe: 'While Achilles runs the first 100 m, the tortoise crawls 5 times less: 100 ÷ 5 = ?',
+            answer: '20 metres. Just like in the picture: five big footprints behind Achilles, and a single small one behind the tortoise.'
+        },
+        19: {
+            name: 'Three Doors',
+            era: 'Steve Selvin’s problem, 1975',
+            hook: 'Three doors, a prize behind one. Switching your choice doubles your chances.',
+            body: 'You pick one of three doors. The host knows where the prize is and opens one of the other two — there is a goat behind it. It seems your chances are now fifty-fifty.\n\nBut your door is right in only one case out of three, and in two cases out of three the prize is behind the other doors — and the host has just removed the empty one among them. So if you play many times, switching is better: you win twice as often.',
+            probe: 'You played 45 times and never switched doors. Roughly how many wins? 45 ÷ 3 = ?',
+            answer: '15. If you never switch, you win about one game in three. If you always switch — about 30 wins, twice as many.'
         }
     },
     fr: {
@@ -1042,6 +1122,46 @@ window.PARADOX_PREVIEW = {
             body: 'On croirait qu’il faut des centaines de personnes pour une coïncidence — une année compte bien 365 jours. Mais n’importe quelle paire peut tomber juste, et les paires sont bien plus nombreuses que les personnes.\n\nChacune des 23 personnes forme une paire avec chacune des 22 autres : 23 × 22 = 506, et chaque paire est comptée deux fois — il y a donc 253 paires. Cela suffit déjà pour qu’une coïncidence soit plus probable que le contraire. Et dans une classe de 30, cela arrive environ sept fois sur dix.',
             probe: 'Il y a 30 élèves dans une classe. Chaque élève forme une paire avec chacun des 29 autres : 29 × 30 = ?',
             answer: '870. Chaque paire a été comptée deux fois, il y a donc 435 paires — pas étonnant qu’une coïncidence arrive si souvent.'
+        },
+        15: {
+            name: 'L’un coupe, l’autre choisit',
+            era: 'Convention des Nations unies sur le droit de la mer, 1982',
+            hook: 'Comment partager un gâteau à deux sans la moindre dispute ?',
+            body: 'L’un coupe le gâteau, l’autre choisit sa part en premier. Celui qui coupe essaie de faire deux moitiés exactement égales — sinon, la plus petite part lui restera.\n\nOn ne partage pas que les gâteaux de cette façon. Selon le droit de la mer de l’ONU, les zones des fonds marins se partagent de la même manière : une entreprise qui veut y exploiter des minerais divise la zone trouvée en deux parts de même valeur, et l’Autorité internationale des fonds marins en choisit une pour elle.',
+            probe: '10 bonbons partagés équitablement entre deux : 10 ÷ 2 = ?',
+            answer: '5. C’est exactement ce que montre l’image : deux rangées de cinq bonbons sur l’assiette.'
+        },
+        16: {
+            name: 'Pourquoi ne peut-on pas diviser par zéro ?',
+            era: 'Bhaskara II, « Bijaganita », vers 1150',
+            hook: 'Douze bonbons à partager entre zéro ami : combien par personne ?',
+            body: 'On vérifie une division par une multiplication : 15 ÷ 3 = 5, parce que 5 × 3 = 15. Essayons 12 ÷ 0 : il faut un nombre qui, multiplié par 0, donne 12. Mais tout nombre multiplié par 0 donne 0. Ce nombre n’existe pas — l’opération n’a tout simplement pas de réponse.\n\nOn y a réfléchi pendant des siècles : au XIIe siècle déjà, le mathématicien indien Bhaskara appelait une telle réponse l’infini. En revanche, 0 ÷ 12 ne pose aucun problème : zéro bonbon pour douze amis, zéro pour chacun.',
+            probe: '12 bonbons pour quatre amis : 12 ÷ 4 = ? Vérifie par une multiplication : la réponse × 4 doit donner 12.',
+            answer: '3. 3 × 4 = 12 : chacun des quatre a trois bonbons dans son assiette. Et au banc vide, impossible d’en distribuer : il y a zéro ami.'
+        },
+        17: {
+            name: 'Le douzième chameau',
+            era: 'Une vieille énigme d’héritage',
+            hook: 'Un sage a prêté un chameau aux frères — puis l’a repris.',
+            body: 'Un père laissa à ses trois fils 11 chameaux : la moitié à l’aîné, le tiers au cadet, le douzième au benjamin. Mais 11 ne se divise ni par 2, ni par 3, ni par 12. Un sage ajouta son propre chameau — cela fit 12. L’aîné en prit 6, le cadet 4, le benjamin 1 : 11 en tout. Le sage remonta sur son chameau et s’en alla.\n\nLe secret, c’est que la moitié, le tiers et le douzième ensemble font moins qu’un tout : il manque justement un douzième. Dans la version la plus connue de cette énigme, il y a 17 chameaux, et les parts sont la moitié, le tiers et le neuvième.',
+            probe: 'Le même tour avec 41 chameaux : la moitié, le tiers et le septième. Emprunte un chameau — combien en reçoit le benjamin ? 42 ÷ 7 = ?',
+            answer: '6. L’aîné en reçoit 21, le cadet 14, le benjamin 6 : 41 en tout — et le chameau emprunté est de nouveau en trop.'
+        },
+        18: {
+            name: 'Achille et la tortue',
+            era: 'Zénon d’Élée, vers 450 av. J.-C.',
+            hook: 'Le coureur le plus rapide ne rattrapera jamais une tortue. Ou bien si ?',
+            body: 'Achille court 5 fois plus vite que la tortue et lui laisse 100 mètres d’avance. Le temps qu’il atteigne l’endroit où était la tortue, elle s’est déjà un peu éloignée. Le temps qu’il atteigne ce nouvel endroit, elle est de nouveau un peu devant. Et ainsi de suite, sans fin : on dirait qu’il ne pourra jamais la rattraper.\n\nMais les morceaux de chemin sont de plus en plus courts : chacun est 5 fois plus petit que le précédent. Ensemble, ils ne font pas l’infini, mais exactement 125 mètres. C’est là qu’Achille rattrape la tortue.',
+            probe: 'Pendant qu’Achille court les 100 premiers mètres, la tortue avance 5 fois moins : 100 ÷ 5 = ?',
+            answer: '20 mètres. Comme sur l’image : derrière Achille, cinq grandes empreintes, et derrière la tortue, une seule petite.'
+        },
+        19: {
+            name: 'Trois portes',
+            era: 'Problème de Steve Selvin, 1975',
+            hook: 'Trois portes, un prix derrière l’une d’elles. Changer de choix rapporte deux fois plus.',
+            body: 'Tu choisis une des trois portes. Le présentateur sait où est le prix et ouvre une des deux autres — derrière, il y a une chèvre. On dirait que maintenant, c’est une chance sur deux.\n\nMais ta porte n’est la bonne que dans un cas sur trois, et dans deux cas sur trois le prix est derrière les autres portes — or le présentateur vient justement d’écarter la mauvaise parmi elles. Donc, si l’on joue de nombreuses fois, il vaut mieux changer : on gagne deux fois plus souvent.',
+            probe: 'Tu as joué 45 fois sans jamais changer de porte. Environ combien de victoires ? 45 ÷ 3 = ?',
+            answer: '15. Sans changer de porte, on gagne environ une partie sur trois. En changeant à chaque fois — environ 30 victoires, deux fois plus.'
         }
     },
     de: {
@@ -1164,6 +1284,46 @@ window.PARADOX_PREVIEW = {
             body: 'Man könnte meinen, für einen gemeinsamen Geburtstag braucht man Hunderte von Menschen — das Jahr hat ja 365 Tage. Aber jedes Paar kann übereinstimmen, und es gibt viel mehr Paare als Menschen.\n\nJeder der 23 bildet mit jedem der anderen 22 ein Paar: 23 × 22 = 506, und jedes Paar ist doppelt gezählt — also gibt es 253 Paare. Das reicht schon, damit ein gemeinsamer Geburtstag wahrscheinlicher ist als keiner. Und in einer Klasse mit 30 Kindern passiert es ungefähr in sieben von zehn Fällen.',
             probe: 'In einer Klasse sind 30 Kinder. Jedes bildet mit jedem der anderen 29 ein Paar: 29 × 30 = ?',
             answer: '870. Jedes Paar wurde doppelt gezählt, also gibt es 435 Paare — kein Wunder, dass sich so oft ein gemeinsamer Geburtstag findet.'
+        },
+        15: {
+            name: 'Ich teile, du wählst',
+            era: 'UN-Seerechtsübereinkommen, 1982',
+            hook: 'Wie teilt man einen Kuchen zu zweit, ohne dass es Streit gibt?',
+            body: 'Eine Person schneidet den Kuchen, die andere sucht sich zuerst ein Stück aus. Wer schneidet, versucht, ihn genau zu halbieren — sonst bleibt das kleinere Stück für die schneidende Person übrig.\n\nSo teilt man nicht nur Kuchen. Nach dem Seerecht der Vereinten Nationen werden Gebiete auf dem Meeresboden genauso geteilt: Ein Unternehmen, das dort Rohstoffe abbauen will, teilt das gefundene Gebiet in zwei gleich wertvolle Teile, und die Internationale Meeresbodenbehörde wählt einen davon für sich.',
+            probe: '10 Bonbons gerecht für zwei: 10 ÷ 2 = ?',
+            answer: '5. Genau so liegen sie auf dem Bild: zwei Reihen mit je fünf Bonbons auf dem Teller.'
+        },
+        16: {
+            name: 'Warum darf man nicht durch null teilen?',
+            era: 'Bhaskara II, „Bijaganita“, um 1150',
+            hook: 'Zwölf Bonbons für null Freunde — wie viele gibt es pro Kopf?',
+            body: 'Eine Division prüft man mit der Multiplikation: 15 ÷ 3 = 5, weil 5 × 3 = 15. Versuchen wir 12 ÷ 0: Wir brauchen eine Zahl, die mal 0 genommen 12 ergibt. Aber jede Zahl mal 0 ergibt 0. So eine Zahl gibt es nicht — die Aufgabe hat einfach keine Lösung.\n\nDarüber hat man jahrhundertelang nachgedacht: Schon im 12. Jahrhundert nannte der indische Mathematiker Bhaskara so ein Ergebnis unendlich. Aber 0 ÷ 12 geht: null Bonbons für zwölf Freunde, für alle null.',
+            probe: '12 Bonbons für vier Freunde: 12 ÷ 4 = ? Prüfe mit der Multiplikation: Antwort × 4 muss 12 ergeben.',
+            answer: '3. 3 × 4 = 12: Jedes der vier Kinder hat drei Bonbons auf dem Teller. Und an die leere Bank kann man keine verteilen — dort sitzen null Freunde.'
+        },
+        17: {
+            name: 'Das zwölfte Kamel',
+            era: 'Ein altes Erbschaftsrätsel',
+            hook: 'Ein weiser Mann lieh den Brüdern ein Kamel — und nahm es wieder mit.',
+            body: 'Ein Vater hinterließ seinen drei Söhnen 11 Kamele: dem Ältesten die Hälfte, dem Mittleren ein Drittel, dem Jüngsten ein Zwölftel. Aber 11 lässt sich weder durch 2 noch durch 3 noch durch 12 teilen. Ein weiser Mann stellte sein eigenes Kamel dazu — nun waren es 12. Der Älteste bekam 6, der Mittlere 4, der Jüngste 1: zusammen 11. Der Weise stieg wieder auf sein Kamel und ritt davon.\n\nDas Geheimnis: Die Hälfte, ein Drittel und ein Zwölftel ergeben zusammen weniger als das Ganze — es fehlt genau ein Zwölftel. In der bekanntesten Fassung des Rätsels sind es 17 Kamele, und die Anteile sind die Hälfte, ein Drittel und ein Neuntel.',
+            probe: 'Derselbe Trick mit 41 Kamelen: die Hälfte, ein Drittel und ein Siebtel. Leih dir eins — wie viele bekommt der Jüngste? 42 ÷ 7 = ?',
+            answer: '6. Der Älteste bekommt 21, der Mittlere 14, der Jüngste 6: zusammen 41 — und das geliehene Kamel ist wieder übrig.'
+        },
+        18: {
+            name: 'Achilles und die Schildkröte',
+            era: 'Zenon von Elea, um 450 v. Chr.',
+            hook: 'Der schnellste Läufer holt eine Schildkröte niemals ein. Oder doch?',
+            body: 'Achilles läuft 5-mal so schnell wie die Schildkröte und gibt ihr 100 Meter Vorsprung. Bis er die Stelle erreicht, an der die Schildkröte war, ist sie schon ein Stück weitergekrochen. Bis er diese neue Stelle erreicht, ist sie wieder ein bisschen voraus. Und so weiter ohne Ende: Es scheint, als könnte er sie nie einholen.\n\nAber die Wegstücke werden immer kürzer: Jedes ist 5-mal kleiner als das vorige. Zusammen ergeben sie nicht unendlich viel, sondern genau 125 Meter. Dort holt Achilles die Schildkröte ein.',
+            probe: 'Während Achilles die ersten 100 m läuft, kriecht die Schildkröte 5-mal weniger weit: 100 ÷ 5 = ?',
+            answer: '20 Meter. Wie auf dem Bild: hinter Achilles fünf große Fußspuren, hinter der Schildkröte nur eine kleine.'
+        },
+        19: {
+            name: 'Drei Türen',
+            era: 'Steve Selvins Rätsel, 1975',
+            hook: 'Drei Türen, hinter einer ein Preis. Die Wahl zu wechseln lohnt sich doppelt.',
+            body: 'Du wählst eine von drei Türen. Der Moderator weiß, wo der Preis ist, und öffnet eine der beiden anderen — dahinter steht eine Ziege. Es scheint, als stünden die Chancen jetzt fünfzig zu fünfzig.\n\nAber deine Tür ist nur in einem von drei Fällen die richtige, und in zwei von drei Fällen ist der Preis hinter den anderen Türen — und der Moderator hat von ihnen gerade die leere aussortiert. Wer also oft spielt, sollte wechseln: So gewinnt man doppelt so oft.',
+            probe: 'Du hast 45-mal gespielt und nie die Tür gewechselt. Wie viele Gewinne ungefähr? 45 ÷ 3 = ?',
+            answer: '15. Ohne Wechsel gewinnt man etwa jedes dritte Spiel. Wer immer wechselt, kommt auf etwa 30 Gewinne — doppelt so viele.'
         }
     }
 };

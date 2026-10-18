@@ -225,19 +225,21 @@ function parseSide(side) {
     });
     return terms;
 }
-// Значение цепочки и её шаги умножения: «2 × 2 × 2» — это 2 × 2, а потом 4 × 2.
+// Значение цепочки и её шаги умножения: «2 × 2 × 2» — это 2 × 2, а потом 4 × 2. Шаги деления
+// отдельно, каждый — тем фактом умножения, на котором он держится: 42 ÷ 7 = 6 — это 7 × 6.
 function evalChain(chain, unknown) {
     let acc = null;
-    const facts = [];
+    const facts = [], divs = [];
     chain.forEach(({ op, v }) => {
         const n = v === '?' ? unknown : Number(v);
         if (acc === null) acc = n;
         else if (op === '×') { facts.push([acc, n]); acc *= n; }
-        else acc /= n;
+        else { divs.push([n, acc / n]); acc /= n; }
     });
-    return { value: acc, facts };
+    return { value: acc, facts, divs };
 }
-// Чему равен «?», самое большое число равенства (сумма или уменьшаемое) и все шаги умножения.
+// Чему равен «?», самое большое число равенства (сумма или уменьшаемое), все шаги умножения
+// и все шаги деления.
 function solveEquation(equation) {
     const [lhs, rhs] = equation.split('=').map(s => s.trim());
     const terms = parseSide(lhs);
@@ -254,7 +256,8 @@ function solveEquation(equation) {
     }
     const numbers = [...equation.matchAll(/\d+/g)].map(m => Number(m[0]));
     return { value, biggest: Math.max(value, ...numbers),
-             facts: [].concat(...terms.map(t => evalChain(t.chain, value).facts)) };
+             facts: [].concat(...terms.map(t => evalChain(t.chain, value).facts)),
+             divs: [].concat(...terms.map(t => evalChain(t.chain, value).divs)) };
 }
 
 // Ответ обязан сходиться с примером на каждом языке: переводчик ошибётся в одной цифре —
@@ -315,6 +318,9 @@ function mulStep(a, b) {
     const plain = n => n >= 11 && n % 10 !== 0;                // двузначное (и больше) не круглое
     const round = n => n >= 20 && n % 10 === 0;
     if (triv(a) || triv(b)) return 0;
+    // Удвоение до пятнадцати — та же ступень, что 2 × 7 (группа twoExt), а не двузначное:
+    // без этой строки 24 ÷ 2 сошло бы за задачу пятой звезды.
+    if ((a === 2 && b >= 11 && b <= 15) || (b === 2 && a >= 11 && a <= 15)) return 1;
     if (plain(a) || plain(b)) return 5;
     if (round(a) || round(b)) return 4;
     if (a === 2 || b === 2 || a === 5 || b === 5) return 1;
@@ -335,6 +341,30 @@ test('у новых карточек умножения задача не лег
         const top = steps.reduce((m, s) => s.step > m.step ? s : m, { step: -1 });
         if (top.step < MUL_STEP[main]) bad.push(`карточка ${k} (умножение ${level}★): в «${equation}» самый трудный шаг `
             + (top.step < 0 ? 'не найден' : `${top.a} × ${top.b}`) + `, а главная группа этой звезды в игре — ${main}`);
+    });
+    assert(bad.length === 0, bad.join('; '));
+});
+
+// И для деления. Деление в игре — зеркало умножения (см. DIV_GROUPS в js/generator.js):
+// 42 ÷ 7 — тот же факт ядра 7 × 6, поэтому ступень шага деления — ступень его факта, а
+// главная группа звезды берётся из DIV_SHARES. Клетки 15–19 — деление. Деления в примере
+// нет совсем — тоже ошибка: карточка стоит на клетке деления.
+const DIV_SHARES = vm.runInNewContext('(' +
+    /const DIV_SHARES = (\{[\s\S]*?\n\});/.exec(fs.readFileSync(path.join(ROOT, 'js', 'generator.js'), 'utf8'))[1] + ')');
+test('у новых карточек деления задача не легче своей звезды', () => {
+    const keys = Object.keys(PREVIEW.ru).filter(k => +k >= 15 && +k < 20);
+    assert(keys.length > 0, 'новых карточек деления не нашлось — проверять нечего');
+    const bad = [];
+    keys.forEach(k => {
+        const level = +k % 5 + 1;
+        const main = DIV_SHARES[level].reduce((m, g) => g[1] > m[1] ? g : m)[0];
+        assert(main in MUL_STEP, `в DIV_SHARES новая группа «${main}» — допиши её ступень в MUL_STEP`);
+        const equation = probeEquation(PREVIEW.ru[k].probe);
+        const steps = solveEquation(equation).divs.map(([d, q]) => ({ d, q, step: mulStep(d, q) }));
+        const top = steps.reduce((m, s) => s.step > m.step ? s : m, { step: -1 });
+        if (top.step < MUL_STEP[main]) bad.push(`карточка ${k} (деление ${level}★): в «${equation}» `
+            + (top.step < 0 ? 'деления нет' : `самый трудный шаг ${top.d * top.q} ÷ ${top.d}`)
+            + `, а главная группа этой звезды в игре — ${main}`);
     });
     assert(bad.length === 0, bad.join('; '));
 });
@@ -386,7 +416,13 @@ test('язык, которого нет, и у репетитора откаты
     const box = loadResolver({ PARADOX_CONTENT: CONTENT, PARADOX_PREVIEW: PREVIEW },
                              { seesPuzzlePreview: () => true, LANG: 'es' });
     eq(box.R()[0].name, PREVIEW.ru[0].name, 'испанского нет — новая карточка по-русски');
-    eq(box.R()[15].name, RU[15].name, 'и прежняя — по-русски');
+    // У репетитора новые уже все двадцать клеток, поэтому прежнюю карточку делаем сами:
+    // убираем одну клетку из новых на всех языках.
+    const partial = {};
+    LANGS.forEach(lang => { partial[lang] = Object.assign({}, PREVIEW[lang]); delete partial[lang][19]; });
+    const box2 = loadResolver({ PARADOX_CONTENT: CONTENT, PARADOX_PREVIEW: partial },
+                              { seesPuzzlePreview: () => true, LANG: 'es' });
+    eq(box2.R()[19].name, RU[19].name, 'и прежняя — по-русски');
 });
 
 group('Связь с приложением');
