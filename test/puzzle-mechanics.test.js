@@ -426,6 +426,11 @@ catch (e) {
     await seed({ 'integer+:add:2': { correct: 99, wrong: 3 } }, { totals: { puzzlesCompleted: 6 } });
     await startMission('add', 2);
     await page.waitForTimeout(300);
+    // Неверный ответ выше запирает ответы на 1,4 секунды, а startGame замок не снимает: в игре
+    // его снимает resetSessionCounters по дороге к каждой миссии, а здесь миссия стартует напрямую.
+    // Когда шаги между ними проходили быстрее этих 1,4 секунды, верный ответ ниже упирался в
+    // замок, не засчитывался — и пазл не складывался. Ждём замок, как перед неверным ответом.
+    await page.waitForFunction(`!answerLocked`, null, { timeout: 5000 }).catch(() => {});
     await page.evaluate(`checkAnswer(correctAnswer, null); null`);
     await page.waitForTimeout(200);
     const shown = await page.evaluate(`(() => { gameActive = false; return showNextPuzzleReveal(); })()`);

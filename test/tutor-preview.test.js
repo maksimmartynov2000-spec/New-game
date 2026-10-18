@@ -1,6 +1,6 @@
 // НОВЫЕ КАРТИНКИ ПАЗЛОВ — СНАЧАЛА РЕПЕТИТОРУ.
 //
-// Зачем этот файл. Новые картинки сложения, вычитания и умножения и тексты к ним идут в игру не всем сразу:
+// Зачем этот файл. Новые картинки пазлов и тексты к ним идут в игру не всем сразу:
 // сначала их смотрит репетитор на своём аккаунте, а ученик, самостоятельный игрок и
 // гость видят прежние. Здесь стережётся ровно это — во всех местах, где картинку
 // показывают: пазл миссии, собранный пазл, плитка коллекции, карточка парадокса и
@@ -58,8 +58,8 @@ function finish() {
         else if (who === 'nobody') { Progress.switchTo('GONE1', null, { accountType: 'solo' }); Progress.logout(); }
         return { type: Progress.getAccountType(), code: Progress.getCode(), guest: Progress.isGuest() }; })()`);
 
-    // Всё, что видно на экране от картинок: клетки сложения, вычитания и умножения (0–14)
-    // меняются, клетки деления (15 и дальше) — нет. Берутся края каждого ряда: 1★ и 5★.
+    // Всё, что видно на экране от картинок. У репетитора новые теперь все двадцать клеток:
+    // сложение, вычитание, умножение и деление. Берутся края каждого ряда: 1★ и 5★.
     const look = () => page.evaluate(`(() => {
         const cell = (key) => { setupPuzzleForCell(key);
             return document.getElementById('puzzleFullImg').getAttribute('href'); };
@@ -69,14 +69,18 @@ function finish() {
                      name: document.getElementById('detailName').innerText }; };
         return { add1: cell('integer+:add:1'), add5: cell('integer+:add:5'),
                  sub1: cell('integer+:sub:1'), sub5: cell('integer+:sub:5'),
-                 mul1: cell('integer+:mul:1'), mul5: cell('integer+:mul:5'), div1: cell('integer+:div:1'),
+                 mul1: cell('integer+:mul:1'), mul5: cell('integer+:mul:5'),
+                 div1: cell('integer+:div:1'), div5: cell('integer+:div:5'),
                  tile0: tile(0, [1]), tile7: tile(7, []), tile12: tile(12, []), tile17: tile(17, []),
                  detail0: detail(0), detail9: detail(9), detail14: detail(14), detail15: detail(15),
+                 detail19: detail(19),
                  old: PUZZLE_IMAGE_SRCS.slice(), next: Object.assign({}, PUZZLE_PREVIEW_SRCS),
                  oldName0: window.PARADOX_CONTENT.ru[0].name, oldName9: window.PARADOX_CONTENT.ru[9].name,
                  oldName14: window.PARADOX_CONTENT.ru[14].name, oldName15: window.PARADOX_CONTENT.ru[15].name,
+                 oldName17: window.PARADOX_CONTENT.ru[17].name, oldName19: window.PARADOX_CONTENT.ru[19].name,
                  newName0: window.PARADOX_PREVIEW.ru[0].name, newName9: window.PARADOX_PREVIEW.ru[9].name,
-                 newName14: window.PARADOX_PREVIEW.ru[14].name }; })()`);
+                 newName14: window.PARADOX_PREVIEW.ru[14].name, newName15: window.PARADOX_PREVIEW.ru[15].name,
+                 newName19: window.PARADOX_PREVIEW.ru[19].name }; })()`);
 
     // Фоновая догрузка: какие файлы она запросила бы.
     const prefetched = () => page.evaluate(`(async () => {
@@ -119,14 +123,48 @@ function finish() {
         eq(v.mul1, v.next[10], 'умножение 1★ из списка новых');
         eq(v.mul5, v.next[14], 'умножение 5★ из списка новых');
     });
+    await checkAsync('пазл миссии: новые картинки на делении 1★ и 5★', async () => {
+        eq(v.div1, 'images/IMG_2469.webp', 'деление 1★ — один режет, другой выбирает');
+        eq(v.div5, 'images/IMG_2473.webp', 'деление 5★ — три двери');
+        eq(v.div1, v.next[15], 'деление 1★ из списка новых');
+        eq(v.div5, v.next[19], 'деление 5★ из списка новых');
+    });
+    // Клетки без новой картинки у репетитора не осталось. Но откат на прежнюю — часть правила:
+    // убери из списка одну картинку — и клетка обязана показать прежнюю, а не пустое место.
+    // Поэтому такую клетку делаем сами, на время проверки, — и картинку, и текст к ней.
     await checkAsync('клетка без новой картинки — прежняя', async () => {
-        eq(v.div1, v.old[15], 'деление 1★');
-        eq(v.tile17, v.old[17].replace('images/', 'images/thumbs/'), 'плитка 17');
+        await page.evaluate(`(() => {
+            window.__kept = { src: PUZZLE_PREVIEW_SRCS[17], txt: {} };
+            Object.keys(window.PARADOX_PREVIEW).forEach(l => {
+                window.__kept.txt[l] = window.PARADOX_PREVIEW[l][17]; delete window.PARADOX_PREVIEW[l][17]; });
+            delete PUZZLE_PREVIEW_SRCS[17]; })()`);
+        try {
+            const r = await page.evaluate(`(() => {
+                setupPuzzleForCell('integer+:div:3');
+                const cell = document.getElementById('puzzleFullImg').getAttribute('href');
+                const tile = buildCollectionItem(17, []).querySelector('img').getAttribute('src');
+                showParadoxDetail(17);
+                return { cell, tile, img: document.getElementById('detailImg').getAttribute('src'),
+                         name: document.getElementById('detailName').innerText }; })()`);
+            eq(r.cell, v.old[17], 'пазл миссии, деление 3★');
+            eq(r.tile, v.old[17].replace('images/', 'images/thumbs/'), 'плитка 17');
+            eq(r.img, v.old[17], 'картинка карточки 17');
+            eq(r.name, v.oldName17, 'название карточки 17');
+            const got = await prefetched();
+            assert(got.indexOf(v.old[17]) >= 0, 'клетка без новой картинки не догружается');
+            assert(got.indexOf(v.next[17]) < 0, 'догружается убранная новая картинка');
+        } finally {
+            await page.evaluate(`(() => {
+                PUZZLE_PREVIEW_SRCS[17] = window.__kept.src;
+                Object.keys(window.__kept.txt).forEach(l => { window.PARADOX_PREVIEW[l][17] = window.__kept.txt[l]; });
+                delete window.__kept; })()`);
+        }
     });
     await checkAsync('плитки коллекции — новые превью', async () => {
         eq(v.tile0, v.next[0].replace('images/', 'images/thumbs/'), 'плитка 0');
         eq(v.tile7, v.next[7].replace('images/', 'images/thumbs/'), 'плитка 7');
         eq(v.tile12, v.next[12].replace('images/', 'images/thumbs/'), 'плитка 12');
+        eq(v.tile17, v.next[17].replace('images/', 'images/thumbs/'), 'плитка 17');
     });
     await checkAsync('карточка парадокса — новая картинка и новый текст', async () => {
         eq(v.detail0.img, v.next[0], 'картинка карточки 0');
@@ -135,15 +173,17 @@ function finish() {
         eq(v.detail9.name, v.newName9, 'название карточки 9');
         eq(v.detail14.img, v.next[14], 'картинка карточки 14');
         eq(v.detail14.name, v.newName14, 'название карточки 14');
-        eq(v.detail15.img, v.old[15], 'картинка карточки 15');
-        eq(v.detail15.name, v.oldName15, 'название карточки 15');
+        eq(v.detail15.img, v.next[15], 'картинка карточки 15');
+        eq(v.detail15.name, v.newName15, 'название карточки 15');
+        eq(v.detail19.img, v.next[19], 'картинка карточки 19');
+        eq(v.detail19.name, v.newName19, 'название карточки 19');
     });
     await checkAsync('на другом языке — новый текст на этом языке', async () => {
         const r = await page.evaluate(`(() => {
             const keep = LANG; LANG = 'en';
             const name = (i) => { showParadoxDetail(i); return document.getElementById('detailName').innerText; };
-            try { return { got: [name(0), name(9), name(14)],
-                           want: [0, 9, 14].map(i => window.PARADOX_PREVIEW.en[i].name) }; }
+            try { return { got: [name(0), name(9), name(14), name(19)],
+                           want: [0, 9, 14, 19].map(i => window.PARADOX_PREVIEW.en[i].name) }; }
             finally { LANG = keep; } })()`);
         eq(r.got.join(' | '), r.want.join(' | '), 'названия по-английски');
     });
@@ -157,6 +197,9 @@ function finish() {
         const m = await completed(14, 'integer+:mul:5');
         eq(m.last, v.next[14], 'запомненная картинка, умножение');
         eq(m.queued, v.next[14], 'картинка в очереди показа, умножение');
+        const d = await completed(19, 'integer+:div:5');
+        eq(d.last, v.next[19], 'запомненная картинка, деление');
+        eq(d.queued, v.next[19], 'картинка в очереди показа, деление');
     });
     await checkAsync('фоновая догрузка берёт новые картинки вместо прежних', async () => {
         const got = await prefetched();
@@ -165,7 +208,6 @@ function finish() {
             assert(got.indexOf(v.next[k]) >= 0, `не догружается ${v.next[k]}`);
             assert(got.indexOf(v.old[k]) < 0, `догружается прежняя ${v.old[k]}`);
         });
-        assert(got.indexOf(v.old[15]) >= 0, 'не догружаются клетки без новой картинки');
     });
 
     // Остальные — по очереди, на том же устройстве и без перезагрузки.
@@ -182,6 +224,8 @@ function finish() {
             eq(v.sub5, v.old[9], 'вычитание 5★');
             eq(v.mul1, v.old[10], 'умножение 1★');
             eq(v.mul5, v.old[14], 'умножение 5★');
+            eq(v.div1, v.old[15], 'деление 1★');
+            eq(v.div5, v.old[19], 'деление 5★');
         });
         await checkAsync(`${kind}: плитки и карточки — прежние`, async () => {
             eq(v.tile0, v.old[0].replace('images/', 'images/thumbs/'), 'плитка 0');
@@ -193,6 +237,11 @@ function finish() {
             eq(v.tile12, v.old[12].replace('images/', 'images/thumbs/'), 'плитка 12');
             eq(v.detail14.img, v.old[14], 'картинка карточки 14');
             eq(v.detail14.name, v.oldName14, 'название карточки 14');
+            eq(v.tile17, v.old[17].replace('images/', 'images/thumbs/'), 'плитка 17');
+            eq(v.detail15.img, v.old[15], 'картинка карточки 15');
+            eq(v.detail15.name, v.oldName15, 'название карточки 15');
+            eq(v.detail19.img, v.old[19], 'картинка карточки 19');
+            eq(v.detail19.name, v.oldName19, 'название карточки 19');
         });
         await checkAsync(`${kind}: собранный пазл — прежняя картинка`, async () => {
             const c = await completed(0, 'integer+:add:1');
@@ -219,6 +268,7 @@ function finish() {
         eq(v.add1, v.next[0], 'сложение 1★');
         eq(v.sub5, v.next[9], 'вычитание 5★');
         eq(v.mul5, v.next[14], 'умножение 5★');
+        eq(v.div5, v.next[19], 'деление 5★');
         eq(v.detail0.name, v.newName0, 'название карточки 0');
         eq(v.detail9.name, v.newName9, 'название карточки 9');
     });
