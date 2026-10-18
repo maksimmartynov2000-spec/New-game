@@ -787,15 +787,39 @@
         /* Экран одного парадокса внутри окна коллекции */
         /* Сверху — место под крестик окна: картинка теперь во всю ширину, и без отступа
            крестик ложился на её правый верхний угол. */
-        .collection-detail { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; padding-top: 46px; }
+        /* touch-action: вверх-вниз карточку прокручивает браузер, а вбок — свайп наш.
+           Без этого телефон принимал свайп вправо за «назад» и уходил со страницы. */
+        .collection-detail { display: none; flex-direction: column; align-items: center; gap: 12px; width: 100%; padding-top: 46px;
+                             position: relative; touch-action: pan-y pinch-zoom; }
         .collection-detail.show { display: flex; }
         /* Картинка во всю ширину окна: подробные сцены и выбраны ради того, чтобы их
            рассматривать, а в 260 пикселях было видно меньше половины. Нажатие — на весь
            экран, с увеличением. */
+        .detail-pic { position: relative; width: 100%; }
         .collection-detail img {
-            width: 100%; aspect-ratio: 1 / 1; object-fit: cover; cursor: zoom-in;
+            display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; cursor: zoom-in;
             border-radius: 14px; border: 2px solid rgba(255, 215, 0, 0.35);
         }
+        /* Листать собранные пазлы: стрелки по бокам картинки и счётчик «3 из 7» сверху —
+           в карточке и на весь экран. Счётчик в карточке стоит в строке крестика окна,
+           на месте, которое и так пустует над картинкой. */
+        .pic-flip {
+            position: absolute; top: 50%; margin-top: -22px; z-index: 2; width: 44px; height: 44px; padding: 0;
+            display: flex; align-items: center; justify-content: center; border-radius: 50%;
+            background: rgba(2,3,8,0.6); border: 1px solid rgba(255,255,255,0.3); color: #fff; cursor: pointer;
+        }
+        .pic-flip[hidden] { display: none; }
+        .pic-flip.prev { left: 8px; }
+        .pic-flip.next { right: 8px; }
+        .pic-flip svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2.6;
+                        stroke-linecap: round; stroke-linejoin: round; pointer-events: none; }
+        .pic-count {
+            position: absolute; left: 50%; transform: translateX(-50%); z-index: 2; white-space: nowrap;
+            padding: 4px 12px; border-radius: 999px; font-size: 0.8rem; font-weight: bold; line-height: 1.3;
+            color: #e2e8f0; background: rgba(2,3,8,0.6); border: 1px solid rgba(255,255,255,0.18);
+            font-variant-numeric: tabular-nums; pointer-events: none;
+        }
+        .collection-detail .pic-count { top: 3px; }
         .collection-detail .puzzle-save-hint { margin-top: -6px; }
         /* Полоска рамок в карточке: все пять, с числом сборов под каждой. Взятые горят,
            текущая крупнее, будущие приглушены — что впереди, видно без слов. */
@@ -834,6 +858,9 @@
             padding: 0 16px; transition: opacity .4s ease;
         }
         .pic-viewer.zoomed .pic-viewer-hint { opacity: 0; }
+        .pic-viewer .pic-flip.prev { left: calc(10px + env(safe-area-inset-left)); }
+        .pic-viewer .pic-flip.next { right: calc(10px + env(safe-area-inset-right)); }
+        .pic-viewer .pic-count { top: calc(21px + env(safe-area-inset-top)); }
         .btn-detail-back {
             background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: white;
             padding: 11px 24px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 0.9rem;
@@ -3261,7 +3288,12 @@
                 </div>
             </div>
             <div class="collection-detail" id="collectionDetail">
-                <img id="detailImg" alt="Парадокс">
+                <div class="pic-count" id="detailCount" hidden></div>
+                <div class="detail-pic">
+                    <img id="detailImg" alt="Парадокс">
+                    <button type="button" class="pic-flip prev" id="detailPrev" aria-label="Предыдущий пазл" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></button>
+                    <button type="button" class="pic-flip next" id="detailNext" aria-label="Следующий пазл" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></button>
+                </div>
                 <div class="puzzle-save-hint">Нажми на пазл, чтобы рассмотреть его крупно</div>
                 <div class="frame-ladder" id="detailFrameLadder" aria-hidden="true"></div>
                 <div class="paradox-card">
@@ -3277,9 +3309,12 @@
     </div>
 
     <!-- Картинка на весь экран: двойное касание приближает, двумя пальцами — крупнее
-         или мельче, одним — двигать. -->
+         или мельче, одним — двигать. Открытая из коллекции листается стрелками и свайпом. -->
     <div class="pic-viewer" id="picViewer" hidden>
         <img id="picViewerImg" alt="" draggable="false">
+        <div class="pic-count" id="picViewerCount" hidden></div>
+        <button type="button" class="pic-flip prev" id="picViewerPrev" aria-label="Предыдущий пазл" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></button>
+        <button type="button" class="pic-flip next" id="picViewerNext" aria-label="Следующий пазл" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></button>
         <button type="button" class="pic-viewer-close" id="picViewerClose" aria-label="Закрыть">✕</button>
         <div class="pic-viewer-hint">Нажми дважды, чтобы приблизить</div>
     </div>
@@ -7038,8 +7073,16 @@
         const PIC_ZOOM_MAX = 4;
         const PIC_ZOOM_TAP = 2.5;
         const picView = { k: 1, tx: 0, ty: 0, base: 0, left: 0, top: 0, pointers: new Map(),
-                          pinch: null, drag: null, lastTap: null, moved: false };
+                          pinch: null, drag: null, lastTap: null, moved: false, swipe: null, flip: false };
         let detailImageSrc = null;
+
+        // Свайп, который листает пазлы: заметный и скорее вбок, чем вверх-вниз. Иначе
+        // листала бы и прокрутка длинной карточки — палец при ней всегда немного уходит
+        // в сторону.
+        const PIC_SWIPE_MIN = 50;
+        function isFlipSwipe(dx, dy) {
+            return Math.abs(dx) >= PIC_SWIPE_MIN && Math.abs(dx) > Math.abs(dy) * 1.5;
+        }
 
         function picViewerApply() {
             const img = document.getElementById('picViewerImg');
@@ -7079,15 +7122,18 @@
             img.style.left = picView.left + 'px';
             img.style.top = picView.top + 'px';
         }
-        function openPicViewer(src) {
+        // flip — картинку открыли из карточки коллекции: тогда стрелки и свайп листают
+        // соседние собранные пазлы. У только что собранного пазла листать нечего.
+        function openPicViewer(src, flip) {
             if (!src) return;
             const img = document.getElementById('picViewerImg');
             img.src = src;
-            Object.assign(picView, { k: 1, tx: 0, ty: 0, pinch: null, drag: null, lastTap: null });
+            Object.assign(picView, { k: 1, tx: 0, ty: 0, pinch: null, drag: null, lastTap: null, swipe: null, flip: !!flip });
             picView.pointers.clear();
             document.getElementById('picViewer').hidden = false;
             picViewerLayout();
             picViewerApply();
+            updatePuzzleFlip();
         }
         function closePicViewer() {
             document.getElementById('picViewer').hidden = true;
@@ -7103,14 +7149,21 @@
                          x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
             };
             box.addEventListener('pointerdown', (e) => {
-                if (e.target.id === 'picViewerClose') return;
+                // Кнопки — крестик и стрелки — нажимаются сами: захват ниже увёл бы их
+                // нажатие на окно, и кнопка бы не сработала.
+                if (e.target.closest('button')) return;
                 // Палец, ушедший за край картинки, не должен терять жест. Захват бывает
                 // недоступен (старый браузер, искусственное событие) — тогда без него.
                 try { box.setPointerCapture(e.pointerId); } catch (err) { /* без захвата */ }
                 picView.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
                 picView.moved = false;
-                if (picView.pointers.size === 2) { picView.pinch = pinchFrom(); picView.drag = null; }
-                else if (picView.pointers.size === 1) picView.drag = { x: e.clientX, y: e.clientY };
+                if (picView.pointers.size === 2) { picView.pinch = pinchFrom(); picView.drag = null; picView.swipe = null; }
+                else if (picView.pointers.size === 1) {
+                    picView.drag = { x: e.clientX, y: e.clientY };
+                    // Свайп — одним пальцем по неприближенной картинке. Приближенную тот
+                    // же жест двигает, как и раньше.
+                    picView.swipe = picView.k > 1.01 ? null : { x: e.clientX, y: e.clientY };
+                }
             });
             box.addEventListener('pointermove', (e) => {
                 if (!picView.pointers.has(e.pointerId)) return;
@@ -7144,7 +7197,14 @@
                     return;
                 }
                 picView.drag = null;
-                if (picView.moved || e.type === 'pointercancel') return;
+                const swipe = picView.swipe;
+                picView.swipe = null;
+                if (e.type === 'pointercancel') return;
+                if (swipe && picView.moved && picView.flip) {
+                    const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y;
+                    if (isFlipSwipe(dx, dy)) { flipPuzzle(dx < 0 ? 1 : -1); return; }
+                }
+                if (picView.moved) return;
                 // Двойное нажатие: приблизить в эту точку, а приближенное — вернуть целиком.
                 const now = Date.now(), last = picView.lastTap;
                 if (last && now - last.t < 350 && Math.hypot(e.clientX - last.x, e.clientY - last.y) < 40) {
@@ -7171,7 +7231,7 @@
                 picViewerClamp();
                 picViewerApply();
             });
-            document.getElementById('detailImg').addEventListener('click', () => openPicViewer(detailImageSrc));
+            document.getElementById('detailImg').addEventListener('click', () => openPicViewer(detailImageSrc, true));
             document.getElementById('puzzleCompleteArt').addEventListener('click', () => openPicViewer(puzzleRevealSrc));
         })();
 
@@ -7200,6 +7260,7 @@
         function showParadoxDetail(index) {
             const px = resolveParadoxes()[index];
             if (!px) return;
+            detailIndex = index;
             document.getElementById('detailImg').src = puzzleSrc(index);
             detailImageSrc = puzzleSrc(index);
             // Рамка картинки и полоска из всех пяти: какие уже взяты и что впереди.
@@ -7210,16 +7271,93 @@
             fillParadoxCard('detail', px);
             document.getElementById('collectionListView').style.display = 'none';
             document.getElementById('collectionDetail').classList.add('show');
+            updatePuzzleFlip();
         }
 
-        function renderCollectionGrid() {
-            const collection = collectionTimes();
-            const wrap = document.getElementById('collectionGroups');
-            wrap.innerHTML = '';
+        // ===== ЛИСТАТЬ СОБРАННЫЕ ПАЗЛЫ =====
+        //
+        // Чтобы посмотреть соседний пазл, карточку приходилось закрывать и открывать
+        // другую, а с полного экрана — ещё и выходить из просмотра. Теперь листается
+        // прямо там: стрелками по бокам картинки, свайпом, на компьютере — клавишами
+        // ← →. Счётчик «3 из 7» говорит, где ты.
+        //
+        // Листаются только собранные: закрытую картинку и в сетке не открыть, это
+        // спойлер. Порядок — как в сетке, за последней снова первая.
+        let detailIndex = null;
 
-            // Ряд — действие, столбец — звезда. Картинки, не попавшие ни в одну клетку,
-            // складываем в отдельную группу в конце: сейчас таких нет, но появятся,
-            // как только картинок станет больше двадцати.
+        function collectionFlipList() {
+            const times = collectionTimes();
+            const out = [];
+            collectionGroups().forEach(g => g.items.forEach(i => { if (times[i] > 0) out.push(i); }));
+            return out;
+        }
+        function collectionDetailShown() {
+            return document.getElementById('collectionModal').classList.contains('active')
+                && document.getElementById('collectionDetail').classList.contains('show');
+        }
+        // Стрелки и счётчик есть, когда открыт собранный пазл и собранных больше одного.
+        // На весь экран — ещё и только если туда пришли из карточки.
+        function updatePuzzleFlip() {
+            const list = collectionFlipList();
+            const at = list.indexOf(detailIndex);
+            const can = at >= 0 && list.length > 1;
+            const viewer = can && picView.flip;
+            const count = can ? tf('%1 из %2', at + 1, list.length) : '';
+            [['detailPrev', can], ['detailNext', can], ['detailCount', can],
+             ['picViewerPrev', viewer], ['picViewerNext', viewer], ['picViewerCount', viewer]]
+                .forEach(([id, on]) => { document.getElementById(id).hidden = !on; });
+            document.getElementById('detailCount').innerText = count;
+            document.getElementById('picViewerCount').innerText = count;
+        }
+        // step = 1 — следующий, −1 — предыдущий. Открытый на весь экран листается вместе
+        // с карточкой под ним: закрыл просмотр — и под ним тот же пазл.
+        function flipPuzzle(step) {
+            const list = collectionFlipList();
+            const at = list.indexOf(detailIndex);
+            if (at < 0 || list.length < 2) return false;
+            showParadoxDetail(list[(at + step + list.length) % list.length]);
+            // Новая карточка — с картинки, а не с того места текста, где читали прежнюю.
+            document.getElementById('collectionModal').scrollTop = 0;
+            if (picViewerOpen() && picView.flip) openPicViewer(detailImageSrc, true);
+            return true;
+        }
+
+        (function bindPuzzleFlip() {
+            [['detailPrev', -1], ['detailNext', 1], ['picViewerPrev', -1], ['picViewerNext', 1]].forEach(([id, step]) => {
+                document.getElementById(id).addEventListener('click', () => flipPuzzle(step));
+            });
+            // Свайп по карточке. Здесь касания, а не указатель, как на полном экране: окно
+            // коллекции прокручивается вверх-вниз, и указатель браузер забирал бы себе на
+            // первом же сдвиге пальца. Касания приходят и во время прокрутки.
+            const box = document.getElementById('collectionDetail');
+            let start = null;
+            box.addEventListener('touchstart', (e) => {
+                // Второй палец — это уже не свайп.
+                start = e.touches.length === 1 ? { x: e.touches[0].clientX, y: e.touches[0].clientY } : null;
+            }, { passive: true });
+            box.addEventListener('touchend', (e) => {
+                const from = start, t = e.changedTouches[0];
+                start = null;
+                if (!from || !t || e.touches.length) return;
+                const dx = t.clientX - from.x, dy = t.clientY - from.y;
+                if (isFlipSwipe(dx, dy)) flipPuzzle(dx < 0 ? 1 : -1);
+            }, { passive: true });
+            box.addEventListener('touchcancel', () => { start = null; }, { passive: true });
+            // Клавиши ← → — в карточке и на весь экран. С Alt, Ctrl и Cmd стрелки — это
+            // браузер («назад», «вперёд»), а в поле ввода они двигают курсор: не трогаем.
+            document.addEventListener('keydown', (e) => {
+                if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+                if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+                if (/^(INPUT|TEXTAREA|SELECT)$/.test(e.target.tagName || '')) return;
+                const here = picViewerOpen() ? picView.flip : collectionDetailShown();
+                if (here && flipPuzzle(e.key === 'ArrowRight' ? 1 : -1)) e.preventDefault();
+            });
+        })();
+
+        // Картинки коллекции по группам, как в сетке: ряд — действие, в ряду — звёзды.
+        // Картинки, не попавшие ни в одну клетку, складываем в отдельную группу в конце:
+        // сейчас таких нет, но появятся, как только картинок станет больше двадцати.
+        function collectionGroups() {
             const groups = [];
             PUZZLE_CELL_OPS.forEach(op => groups.push({ op, items: [] }));
             const extra = { op: null, items: [] };
@@ -7229,8 +7367,15 @@
                 (at >= 0 ? groups[at] : extra).items.push(i);
             }
             if (extra.items.length) groups.push(extra);
+            return groups;
+        }
 
-            groups.forEach(group => {
+        function renderCollectionGrid() {
+            const collection = collectionTimes();
+            const wrap = document.getElementById('collectionGroups');
+            wrap.innerHTML = '';
+
+            collectionGroups().forEach(group => {
                 if (!group.items.length) return;
                 const block = document.createElement('div');
                 block.className = 'collection-group';
