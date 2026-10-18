@@ -192,13 +192,15 @@ test('в крючках парадоксов нет мужского рода', 
         + '|нашёл|занял|сделал|успел|начал|добавил|представил|повторил';
     const re = new RegExp('(?<![а-яё])(?:' + VERBS + ')(?![а-яё])', 'i');
     const bad = [];
-    // И новые карточки, которые пока видит только репетитор: они тоже уйдут детям.
+    // И новые карточки, которые пока видит только репетитор: они тоже уйдут детям. Между
+    // партиями их нет — новое уже открыто всем и лежит среди основных.
     const preview = Object.values((box.window.PARADOX_PREVIEW || {}).ru || {});
-    (box.window.PARADOX_CONTENT.ru || []).concat(preview).forEach(px => {
+    const all = (box.window.PARADOX_CONTENT.ru || []).concat(preview);
+    all.forEach(px => {
         const hit = px.hook.match(re);
         if (hit) bad.push(`«${hit[0]}» в крючке «${px.name}»`);
     });
-    assert(preview.length > 0, 'новые карточки не нашлись — проверка их не видит');
+    assert(all.length > 0, 'карточки не нашлись — проверка их не видит');
     assert(bad.length === 0, bad.join('; '));
 });
 

@@ -8,6 +8,13 @@
 // без перезагрузки: репетитор, который вышел и пустил за телефон ученика, не должен
 // оставить ему свои новые картинки.
 //
+// Проверка в две части. Сначала — как есть сейчас: что видит каждый, считается по
+// самим спискам (PUZZLE_IMAGE_SRCS у всех, PUZZLE_PREVIEW_SRCS поверх — у репетитора).
+// 18 октября все двадцать новых картинок открылись всем, список новых опустел, и тогда
+// одно и то же видят все. Но правило «сначала репетитору» понадобится следующей партии,
+// поэтому потом — проба: на две клетки подкладываются пробные картинка и карточка, и
+// всё проверяется заново. Без пробы правило осталось бы непроверенным до первой поломки.
+//
 // Как запускать:  node test/tutor-preview.test.js
 
 const path = require('path');
@@ -24,11 +31,17 @@ function record(name, err) {
 async function checkAsync(name, fn) { try { await fn(); record(name, null); } catch (e) { record(name, e.message); } }
 function assert(cond, msg) { if (!cond) throw new Error(msg || 'не выполнилось'); }
 function eq(a, b, what) { assert(a === b, `${what}: ожидалось ${JSON.stringify(b)}, получено ${JSON.stringify(a)}`); }
+// Списки сверяются поштучно: при расхождении видно, на каком месте.
+function sameList(got, want, what) {
+    eq(got.length, want.length, `${what}: сколько`);
+    got.forEach((x, i) => eq(x, want[i], `${what}, место ${i}`));
+}
 function finish() {
     console.log(`\n${'─'.repeat(50)}`);
     console.log(`Всего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
     if (failed) { failures.forEach(f => console.log(`  • ${f.name}\n    ${f.message}`)); process.exit(1); }
 }
+const has = (obj, k) => Object.prototype.hasOwnProperty.call(obj, k);
 
 (async () => {
     const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--allow-file-access-from-files'] });
@@ -58,29 +71,28 @@ function finish() {
         else if (who === 'nobody') { Progress.switchTo('GONE1', null, { accountType: 'solo' }); Progress.logout(); }
         return { type: Progress.getAccountType(), code: Progress.getCode(), guest: Progress.isGuest() }; })()`);
 
-    // Всё, что видно на экране от картинок. У репетитора новые теперь все двадцать клеток:
-    // сложение, вычитание, умножение и деление. Берутся края каждого ряда: 1★ и 5★.
+    // Всё, что видно на экране от картинок, — по всем двадцати клеткам: пазл миссии,
+    // плитка коллекции и карточка (картинка и название). И сами списки, по которым
+    // считается, что должно быть видно.
     const look = () => page.evaluate(`(() => {
-        const cell = (key) => { setupPuzzleForCell(key);
-            return document.getElementById('puzzleFullImg').getAttribute('href'); };
-        const tile = (i, done) => buildCollectionItem(i, done).querySelector('img').getAttribute('src');
-        const detail = (i) => { showParadoxDetail(i);
-            return { img: document.getElementById('detailImg').getAttribute('src'),
-                     name: document.getElementById('detailName').innerText }; };
-        return { add1: cell('integer+:add:1'), add5: cell('integer+:add:5'),
-                 sub1: cell('integer+:sub:1'), sub5: cell('integer+:sub:5'),
-                 mul1: cell('integer+:mul:1'), mul5: cell('integer+:mul:5'),
-                 div1: cell('integer+:div:1'), div5: cell('integer+:div:5'),
-                 tile0: tile(0, [1]), tile7: tile(7, []), tile12: tile(12, []), tile17: tile(17, []),
-                 detail0: detail(0), detail9: detail(9), detail14: detail(14), detail15: detail(15),
-                 detail19: detail(19),
-                 old: PUZZLE_IMAGE_SRCS.slice(), next: Object.assign({}, PUZZLE_PREVIEW_SRCS),
-                 oldName0: window.PARADOX_CONTENT.ru[0].name, oldName9: window.PARADOX_CONTENT.ru[9].name,
-                 oldName14: window.PARADOX_CONTENT.ru[14].name, oldName15: window.PARADOX_CONTENT.ru[15].name,
-                 oldName17: window.PARADOX_CONTENT.ru[17].name, oldName19: window.PARADOX_CONTENT.ru[19].name,
-                 newName0: window.PARADOX_PREVIEW.ru[0].name, newName9: window.PARADOX_PREVIEW.ru[9].name,
-                 newName14: window.PARADOX_PREVIEW.ru[14].name, newName15: window.PARADOX_PREVIEW.ru[15].name,
-                 newName19: window.PARADOX_PREVIEW.ru[19].name }; })()`);
+        const ops = ['add', 'sub', 'mul', 'div'], cells = [], tiles = [], details = [];
+        for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
+            setupPuzzleForCell('integer+:' + ops[Math.floor(i / 5)] + ':' + (i % 5 + 1));
+            cells.push(document.getElementById('puzzleFullImg').getAttribute('href'));
+            tiles.push(buildCollectionItem(i, []).querySelector('img').getAttribute('src'));
+            showParadoxDetail(i);
+            details.push({ img: document.getElementById('detailImg').getAttribute('src'),
+                           name: document.getElementById('detailName').innerText });
+        }
+        const preview = window.PARADOX_PREVIEW || {};
+        return { cells, tiles, details, old: PUZZLE_IMAGE_SRCS.slice(), next: Object.assign({}, PUZZLE_PREVIEW_SRCS),
+                 oldNames: window.PARADOX_CONTENT.ru.map(p => p.name),
+                 nextNames: Object.fromEntries(Object.entries(preview.ru || {}).map(([k, p]) => [k, p.name])) }; })()`);
+
+    // Что должно быть видно: у репетитора — новое там, где оно есть, у остальных — основное.
+    const wantSrcs = (v, tutor) => v.old.map((src, i) => (tutor && has(v.next, i) ? v.next[i] : src));
+    const wantNames = (v, tutor) => v.oldNames.map((n, i) => (tutor && has(v.nextNames, i) ? v.nextNames[i] : n));
+    const thumb = (src) => src.replace('images/', 'images/thumbs/');
 
     // Фоновая догрузка: какие файлы она запросила бы.
     const prefetched = () => page.evaluate(`(async () => {
@@ -99,178 +111,94 @@ function finish() {
         const queued = pendingPuzzleReveals.length ? pendingPuzzleReveals[pendingPuzzleReveals.length - 1].src : null;
         pendingPuzzleReveals.length = 0;
         return { last: lastCompletedSrc, queued }; })()`);
+    const DONE = [[0, 'integer+:add:1'], [9, 'integer+:sub:5'], [14, 'integer+:mul:5'], [17, 'integer+:div:3'], [19, 'integer+:div:5']];
 
-    console.log('\nРепетитор видит новые картинки');
-    const who = await as('tutor');
-    await checkAsync('репетитор и правда репетитор', async () => {
-        eq(who.type, 'self', 'тип'); eq(who.guest, false, 'гость'); eq(who.code, 'TUT1', 'код');
-    });
-    let v = await look();
-    await checkAsync('пазл миссии: новые картинки на сложении 1★ и 5★', async () => {
-        eq(v.add1, 'images/IMG_2458.webp', 'сложение 1★');
-        eq(v.add1, v.next[0], 'сложение 1★ из списка новых');
-        eq(v.add5, v.next[4], 'сложение 5★');
-    });
-    await checkAsync('пазл миссии: новые картинки на вычитании 1★ и 5★', async () => {
-        eq(v.sub1, 'images/IMG_2459.webp', 'вычитание 1★ — обратный отсчёт');
-        eq(v.sub5, 'images/IMG_2463.webp', 'вычитание 5★ — корабль Тесея');
-        eq(v.sub1, v.next[5], 'вычитание 1★ из списка новых');
-        eq(v.sub5, v.next[9], 'вычитание 5★ из списка новых');
-    });
-    await checkAsync('пазл миссии: новые картинки на умножении 1★ и 5★', async () => {
-        eq(v.mul1, 'images/IMG_2464.webp', 'умножение 1★ — лист бумаги до Луны');
-        eq(v.mul5, 'images/IMG_2468.webp', 'умножение 5★ — парадокс дней рождения');
-        eq(v.mul1, v.next[10], 'умножение 1★ из списка новых');
-        eq(v.mul5, v.next[14], 'умножение 5★ из списка новых');
-    });
-    await checkAsync('пазл миссии: новые картинки на делении 1★ и 5★', async () => {
-        eq(v.div1, 'images/IMG_2469.webp', 'деление 1★ — один режет, другой выбирает');
-        eq(v.div5, 'images/IMG_2473.webp', 'деление 5★ — три двери');
-        eq(v.div1, v.next[15], 'деление 1★ из списка новых');
-        eq(v.div5, v.next[19], 'деление 5★ из списка новых');
-    });
-    // Клетки без новой картинки у репетитора не осталось. Но откат на прежнюю — часть правила:
-    // убери из списка одну картинку — и клетка обязана показать прежнюю, а не пустое место.
-    // Поэтому такую клетку делаем сами, на время проверки, — и картинку, и текст к ней.
-    await checkAsync('клетка без новой картинки — прежняя', async () => {
-        await page.evaluate(`(() => {
-            window.__kept = { src: PUZZLE_PREVIEW_SRCS[17], txt: {} };
-            Object.keys(window.PARADOX_PREVIEW).forEach(l => {
-                window.__kept.txt[l] = window.PARADOX_PREVIEW[l][17]; delete window.PARADOX_PREVIEW[l][17]; });
-            delete PUZZLE_PREVIEW_SRCS[17]; })()`);
-        try {
-            const r = await page.evaluate(`(() => {
-                setupPuzzleForCell('integer+:div:3');
-                const cell = document.getElementById('puzzleFullImg').getAttribute('href');
-                const tile = buildCollectionItem(17, []).querySelector('img').getAttribute('src');
-                showParadoxDetail(17);
-                return { cell, tile, img: document.getElementById('detailImg').getAttribute('src'),
-                         name: document.getElementById('detailName').innerText }; })()`);
-            eq(r.cell, v.old[17], 'пазл миссии, деление 3★');
-            eq(r.tile, v.old[17].replace('images/', 'images/thumbs/'), 'плитка 17');
-            eq(r.img, v.old[17], 'картинка карточки 17');
-            eq(r.name, v.oldName17, 'название карточки 17');
-            const got = await prefetched();
-            assert(got.indexOf(v.old[17]) >= 0, 'клетка без новой картинки не догружается');
-            assert(got.indexOf(v.next[17]) < 0, 'догружается убранная новая картинка');
-        } finally {
-            await page.evaluate(`(() => {
-                PUZZLE_PREVIEW_SRCS[17] = window.__kept.src;
-                Object.keys(window.__kept.txt).forEach(l => { window.PARADOX_PREVIEW[l][17] = window.__kept.txt[l]; });
-                delete window.__kept; })()`);
+    const TITLES = { tutor: 'Репетитор', linked: 'Ученик репетитора', solo: 'Самостоятельный игрок', guest: 'Гость',
+                     oldguest: 'Гость из старой версии (тип «self»)', nobody: 'До входа (после выхода)' };
+
+    // Один круг по всем, кто бывает за устройством, — на том же устройстве и без перезагрузки.
+    // Репетитор — первым и последним: вернувшись, он снова видит своё.
+    const round = async (tag) => {
+        for (const kind of ['tutor', 'linked', 'solo', 'guest', 'oldguest', 'nobody', 'tutor']) {
+            const tutor = kind === 'tutor';
+            console.log(`\n${tag}: ${TITLES[kind]}`);
+            const w = await as(kind);
+            const v = await look();
+            const want = wantSrcs(v, tutor), names = wantNames(v, tutor);
+            await checkAsync(`${tag}, ${kind}: пазл миссии — свои картинки на всех двадцати клетках`, async () => {
+                sameList(v.cells, want, 'пазл миссии');
+            });
+            await checkAsync(`${tag}, ${kind}: плитки коллекции — свои превью`, async () => {
+                sameList(v.tiles, want.map(thumb), 'плитка');
+            });
+            await checkAsync(`${tag}, ${kind}: карточки — своя картинка и свой текст`, async () => {
+                sameList(v.details.map(d => d.img), want, 'картинка карточки');
+                sameList(v.details.map(d => d.name), names, 'название карточки');
+            });
+            await checkAsync(`${tag}, ${kind}: собранный пазл показывается своей картинкой`, async () => {
+                for (const [idx, key] of DONE) {
+                    const c = await completed(idx, key);
+                    eq(c.last, want[idx], `запомненная картинка, клетка ${idx}`);
+                    eq(c.queued, want[idx], `картинка в очереди показа, клетка ${idx}`);
+                }
+            });
+            await checkAsync(`${tag}, ${kind}: фоновая догрузка — свои картинки, каждая по разу`, async () => {
+                sameList(await prefetched(), want, 'догрузка');
+            });
+            // Сам тип проверяем последним: иначе падение настройки спряталось бы за чужими.
+            await checkAsync(`${tag}, ${kind}: и правда ${tutor ? 'репетитор' : 'не репетитор'}`, async () => {
+                if (tutor) { eq(w.type, 'self', 'тип'); eq(w.guest, false, 'гость'); eq(w.code, 'TUT1', 'код'); }
+                else assert(w.type !== 'self' || w.guest || !w.code, JSON.stringify(w));
+            });
         }
-    });
-    await checkAsync('плитки коллекции — новые превью', async () => {
-        eq(v.tile0, v.next[0].replace('images/', 'images/thumbs/'), 'плитка 0');
-        eq(v.tile7, v.next[7].replace('images/', 'images/thumbs/'), 'плитка 7');
-        eq(v.tile12, v.next[12].replace('images/', 'images/thumbs/'), 'плитка 12');
-        eq(v.tile17, v.next[17].replace('images/', 'images/thumbs/'), 'плитка 17');
-    });
-    await checkAsync('карточка парадокса — новая картинка и новый текст', async () => {
-        eq(v.detail0.img, v.next[0], 'картинка карточки 0');
-        eq(v.detail0.name, v.newName0, 'название карточки 0');
-        eq(v.detail9.img, v.next[9], 'картинка карточки 9');
-        eq(v.detail9.name, v.newName9, 'название карточки 9');
-        eq(v.detail14.img, v.next[14], 'картинка карточки 14');
-        eq(v.detail14.name, v.newName14, 'название карточки 14');
-        eq(v.detail15.img, v.next[15], 'картинка карточки 15');
-        eq(v.detail15.name, v.newName15, 'название карточки 15');
-        eq(v.detail19.img, v.next[19], 'картинка карточки 19');
-        eq(v.detail19.name, v.newName19, 'название карточки 19');
-    });
-    await checkAsync('на другом языке — новый текст на этом языке', async () => {
-        const r = await page.evaluate(`(() => {
-            const keep = LANG; LANG = 'en';
-            const name = (i) => { showParadoxDetail(i); return document.getElementById('detailName').innerText; };
-            try { return { got: [name(0), name(9), name(14), name(19)],
-                           want: [0, 9, 14, 19].map(i => window.PARADOX_PREVIEW.en[i].name) }; }
-            finally { LANG = keep; } })()`);
-        eq(r.got.join(' | '), r.want.join(' | '), 'названия по-английски');
-    });
-    await checkAsync('собранный пазл показывается новой картинкой', async () => {
-        const c = await completed(0, 'integer+:add:1');
-        eq(c.last, v.next[0], 'запомненная картинка, сложение');
-        eq(c.queued, v.next[0], 'картинка в очереди показа, сложение');
-        const s = await completed(9, 'integer+:sub:5');
-        eq(s.last, v.next[9], 'запомненная картинка, вычитание');
-        eq(s.queued, v.next[9], 'картинка в очереди показа, вычитание');
-        const m = await completed(14, 'integer+:mul:5');
-        eq(m.last, v.next[14], 'запомненная картинка, умножение');
-        eq(m.queued, v.next[14], 'картинка в очереди показа, умножение');
-        const d = await completed(19, 'integer+:div:5');
-        eq(d.last, v.next[19], 'запомненная картинка, деление');
-        eq(d.queued, v.next[19], 'картинка в очереди показа, деление');
-    });
-    await checkAsync('фоновая догрузка берёт новые картинки вместо прежних', async () => {
-        const got = await prefetched();
-        eq(got.length, v.old.length, 'сколько файлов');
-        Object.keys(v.next).forEach(k => {
-            assert(got.indexOf(v.next[k]) >= 0, `не догружается ${v.next[k]}`);
-            assert(got.indexOf(v.old[k]) < 0, `догружается прежняя ${v.old[k]}`);
-        });
-    });
+    };
 
-    // Остальные — по очереди, на том же устройстве и без перезагрузки.
-    for (const kind of ['linked', 'solo', 'guest', 'oldguest', 'nobody']) {
-        const title = { linked: 'Ученик репетитора', solo: 'Самостоятельный игрок', guest: 'Гость',
-                        oldguest: 'Гость из старой версии (тип «self»)', nobody: 'До входа (после выхода)' }[kind];
-        console.log(`\n${title} видит прежние картинки`);
-        const w = await as(kind);
-        v = await look();
-        await checkAsync(`${kind}: пазл миссии — прежние картинки`, async () => {
-            eq(v.add1, v.old[0], 'сложение 1★');
-            eq(v.add5, v.old[4], 'сложение 5★');
-            eq(v.sub1, v.old[5], 'вычитание 1★');
-            eq(v.sub5, v.old[9], 'вычитание 5★');
-            eq(v.mul1, v.old[10], 'умножение 1★');
-            eq(v.mul5, v.old[14], 'умножение 5★');
-            eq(v.div1, v.old[15], 'деление 1★');
-            eq(v.div5, v.old[19], 'деление 5★');
+    await round('Как сейчас');
+
+    // Проба правила на следующую партию: на клетки 2 и 17 кладутся пробные новые картинка и
+    // карточка на всех языках. Картинки — настоящие файлы из папки (прежние картинки этих
+    // клеток), названия — заметные «Проба …». Что лежало в списках раньше, возвращается.
+    const DEMO = { 2: 'images/IMG_2429.webp', 17: 'images/IMG_2445.webp' };
+    await page.evaluate(`(() => {
+        const demo = ${JSON.stringify(DEMO)}, has = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+        window.__kept = { src: {}, txt: {} };
+        Object.keys(demo).forEach(k => {
+            window.__kept.src[k] = has(PUZZLE_PREVIEW_SRCS, k) ? [PUZZLE_PREVIEW_SRCS[k]] : null;
+            PUZZLE_PREVIEW_SRCS[k] = demo[k];
+            Object.keys(window.PARADOX_CONTENT).forEach(l => {
+                const box = window.PARADOX_PREVIEW[l] = window.PARADOX_PREVIEW[l] || {};
+                (window.__kept.txt[l] = window.__kept.txt[l] || {})[k] = has(box, k) ? [box[k]] : null;
+                box[k] = Object.assign({}, window.PARADOX_CONTENT[l][k], { name: 'Проба ' + l + ' ' + k });
+            });
+        }); })()`);
+    try {
+        await round('Проба');
+        await as('tutor');
+        await checkAsync('Проба: на другом языке репетитор видит новую карточку на этом языке', async () => {
+            const r = await page.evaluate(`(() => {
+                const keep = LANG; LANG = 'en';
+                const name = (i) => { showParadoxDetail(i); return document.getElementById('detailName').innerText; };
+                try { return [name(2), name(17), name(5)]; } finally { LANG = keep; } })()`);
+            eq(r[0], 'Проба en 2', 'клетка 2');
+            eq(r[1], 'Проба en 17', 'клетка 17');
+            eq(r[2], (await page.evaluate(`window.PARADOX_CONTENT.en[5].name`)), 'клетка 5 — основная');
         });
-        await checkAsync(`${kind}: плитки и карточки — прежние`, async () => {
-            eq(v.tile0, v.old[0].replace('images/', 'images/thumbs/'), 'плитка 0');
-            eq(v.tile7, v.old[7].replace('images/', 'images/thumbs/'), 'плитка 7');
-            eq(v.detail0.img, v.old[0], 'картинка карточки 0');
-            eq(v.detail0.name, v.oldName0, 'название карточки 0');
-            eq(v.detail9.img, v.old[9], 'картинка карточки 9');
-            eq(v.detail9.name, v.oldName9, 'название карточки 9');
-            eq(v.tile12, v.old[12].replace('images/', 'images/thumbs/'), 'плитка 12');
-            eq(v.detail14.img, v.old[14], 'картинка карточки 14');
-            eq(v.detail14.name, v.oldName14, 'название карточки 14');
-            eq(v.tile17, v.old[17].replace('images/', 'images/thumbs/'), 'плитка 17');
-            eq(v.detail15.img, v.old[15], 'картинка карточки 15');
-            eq(v.detail15.name, v.oldName15, 'название карточки 15');
-            eq(v.detail19.img, v.old[19], 'картинка карточки 19');
-            eq(v.detail19.name, v.oldName19, 'название карточки 19');
-        });
-        await checkAsync(`${kind}: собранный пазл — прежняя картинка`, async () => {
-            const c = await completed(0, 'integer+:add:1');
-            eq(c.last, v.old[0], 'запомненная картинка, сложение');
-            eq(c.queued, v.old[0], 'картинка в очереди показа, сложение');
-            const s = await completed(9, 'integer+:sub:5');
-            eq(s.last, v.old[9], 'запомненная картинка, вычитание');
-            eq(s.queued, v.old[9], 'картинка в очереди показа, вычитание');
-        });
-        await checkAsync(`${kind}: фоновая догрузка — только прежние`, async () => {
-            const got = await prefetched();
-            eq(got.join(','), v.old.join(','), 'список догрузки');
-        });
-        // Сам тип проверяем последним: иначе падение настройки спряталось бы за чужими.
-        await checkAsync(`${kind}: это и правда не репетитор`, async () => {
-            assert(w.type !== 'self' || w.guest || !w.code, JSON.stringify(w));
-        });
+    } finally {
+        await page.evaluate(`(() => {
+            const k = window.__kept;
+            Object.keys(k.src).forEach(i => { if (k.src[i]) PUZZLE_PREVIEW_SRCS[i] = k.src[i][0]; else delete PUZZLE_PREVIEW_SRCS[i]; });
+            Object.keys(k.txt).forEach(l => Object.keys(k.txt[l]).forEach(i => {
+                if (k.txt[l][i]) window.PARADOX_PREVIEW[l][i] = k.txt[l][i][0]; else delete window.PARADOX_PREVIEW[l][i]; }));
+            delete window.__kept; })()`);
     }
 
-    console.log('\nОбратно к репетитору');
+    console.log('\nПроба убрана');
     await as('tutor');
-    v = await look();
-    await checkAsync('репетитор снова видит новые картинки', async () => {
-        eq(v.add1, v.next[0], 'сложение 1★');
-        eq(v.sub5, v.next[9], 'вычитание 5★');
-        eq(v.mul5, v.next[14], 'умножение 5★');
-        eq(v.div5, v.next[19], 'деление 5★');
-        eq(v.detail0.name, v.newName0, 'название карточки 0');
-        eq(v.detail9.name, v.newName9, 'название карточки 9');
+    await checkAsync('после пробы репетитор снова видит то, что в списках', async () => {
+        const v = await look();
+        sameList(v.cells, wantSrcs(v, true), 'пазл миссии');
+        sameList(v.details.map(d => d.name), wantNames(v, true), 'название карточки');
+        assert(v.details.every(d => d.name.indexOf('Проба') !== 0), 'пробная карточка осталась');
     });
 
     await checkAsync('страница без ошибок', async () => {
