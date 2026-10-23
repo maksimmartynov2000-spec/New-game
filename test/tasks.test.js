@@ -876,12 +876,15 @@ test('рубеж не двигается, пока его делают', () => {
     const w = load({ open });
     const seen = [];
     for (const n of [0, 5, 20, 60]) {
-        const s = [{ off: 9, key: 'integer+:add:2', c: 5, w: 0 }, { off: 8, key: 'integer+:add:2', c: 5, w: 0 },
-                   { off: 2, key: 'integer+:add:3', c: 40, w: 0 }];
+        // Два дня занятий в месяце до сегодняшнего — день звезды.
+        const s = [{ off: 9, key: 'integer+:add:2', c: 5, w: 0 }, { off: 2, key: 'integer+:add:3', c: 40, w: 0 }];
         if (n) s.push({ off: 0, key: 'integer+:add:3', c: n, w: 0 });
         const unlocks = medals({ 'integer+:add:1': GOLD, 'integer+:add:2': GOLD });
         if (n >= 60) Object.assign(unlocks, medals({ 'integer+:add:3': GOLD }, TODAY));
-        const t = w.dailyTasks(student(s, unlocks), TODAY, 'ЯР7')[0];
+        const st = student(s, unlocks);
+        assert(w.isStarDay(st.daily, TODAY), 'проверка рассчитана на день звезды');
+        const t = w.dailyTasks(st, TODAY, 'ЯР7')[0];
+        assert(t.star && t.cell === 'integer+:add:3', `главное не рубеж: ${t.text} [${t.cell}]`);
         seen.push(`${t.id} :: ${t.text}`);
     }
     eq(seen.filter(x => x !== seen[0]).join(' / '), '', `рубеж сдвинулся за день, был ${seen[0]}`);
