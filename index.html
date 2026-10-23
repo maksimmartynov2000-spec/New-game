@@ -1677,8 +1677,6 @@
             display: block; height: 100%; border-radius: 2px;
             background: var(--cyan); transition: width 0.3s ease;
         }
-        /* Точность до десяти ответов не считается вовсе — показывать долю нечестно. */
-        .task-meter.unknown span { background: rgba(255,255,255,0.16); }
         .task-row.done .task-meter span { background: #22c55e; }
 
         /* Три роли — три разных дела: вести вперёд, чинить просевшее, звать в новое.
@@ -8718,8 +8716,11 @@
             else document.getElementById('statsClassSection').style.display = 'none';
             // Задания считаются на СЕГОДНЯ и на текущую неделю, а не за выбранный период:
             // это то, что ученику предстоит, а не то, что он сделал в июле.
+            // Домашку ученика репетитор здесь не видит — она лежит у ученика, — и задания
+            // для него считаются без её доли.
             const tasksRes = renderTasks('statsTasksList', st, today,
-                                         foreignState ? (st.playerCode || '') : Progress.getCode(), false);
+                                         foreignState ? (st.playerCode || '') : Progress.getCode(), false,
+                                         foreignState ? [] : undefined);
             document.getElementById('statsTasksSection').style.display = tasksRes.shown ? '' : 'none';
 
             renderExamLog(foreignState ? (st.playerCode || '') : null);
@@ -9602,7 +9603,6 @@
         // утром. Выдалось на день — таким и осталось.
         const DAILY_TASK_COUNT = 3;
         const TASK_CELL_WINDOW = 14;   // из каких клеток берём задания: где занимался недавно
-        const TASK_MIN_SAMPLE = 10;    // меньше этого о точности за день говорить нельзя
 
         function taskSeed(str) {
             let h = 2166136261;
@@ -9690,11 +9690,6 @@
                 // от следующей ошибки.
                 return { have: agg.run, need: task.need, done: agg.best >= task.need };
             }
-            if (task.kind === 'accuracy') {
-                const pct = attempts > 0 ? Math.round(agg.correct / attempts * 100) : 0;
-                return { have: attempts >= TASK_MIN_SAMPLE ? pct : null, need: task.need,
-                         done: attempts >= TASK_MIN_SAMPLE && pct >= task.need };
-            }
             return { have: 0, need: task.need, done: false };
         }
 
@@ -9720,6 +9715,39 @@
         // («реши», «подтяни») и безличные обороты («новое место», «пора вернуться»).
         // Их род не выдаёт вовсе, и переводить их проще.
         function taskText(task) {
+            // Домашка говорит о себе сама: ученик видит, что это дневная доля заданного
+            // репетитором, и сколько от неё останется после сегодняшнего.
+            if (task.hw) {
+                return task.closes
+                    ? tf('Реши верно %1 — и домашка сделана', task.need)
+                    : tf('Реши верно %1 — по домашке останется %2', task.need, task.left - task.need);
+            }
+            // При совсем низкой точности — просто примеры. Раньше текст начинался с «Тут
+            // пока много ошибок» — упрёк в тот самый момент, когда ребёнку тяжелее всего,
+            // да и обещание не сходилось: решить дюжину не значит стать точнее. Говорим
+            // о деле, а не об оценке.
+            if (task.practice) return tf('Здесь нужна практика — реши %1', task.need);
+            if (task.review) return tf('Давно не было — повтори %1', task.need);
+            // Рубеж: чего не хватает до следующей звезды. Саму звезду обещать нельзя —
+            // ворота держит ещё и точность, — поэтому про верные сказано «хватит», а не
+            // «откроется».
+            if (task.star) {
+                // «Новое место» — оборот из нашей головы: у ученика места нет, у него есть
+                // темы, и слово «тема» он видит тут же, в подписи под строкой.
+                if (task.fresh) return tf('Новая тема — реши %1', task.need);
+                if (task.kind === 'clean') {
+                    return tf('Для %1★ нужна точность %2%, сейчас %3% — реши %4 подряд без ошибки',
+                              task.star, task.goal, task.acc, task.need);
+                }
+                return task.closes
+                    ? tf('Реши верно %1 — и верных для %2★ хватит', task.need, task.star)
+                    : tf('Реши верно %1 — до %2★ останется %3', task.need, task.star, task.gap - task.need);
+            }
+            // «Просела» — правда: сюда попадает только тема, где золото по точности уже
+            // было (см. roleRepair). Число — то же, что на экране достижений.
+            if (task.dropped !== undefined) {
+                return tf('Точность здесь просела до %1% — реши %2 подряд без ошибки', task.dropped, task.need);
+            }
             if (task.role === 'advance' && task.tier) {
                 // Два разных случая, и путать их нельзя. Задание либо закрывает медаль
                 // целиком — тогда так и говорим, — либо только приближает к ней, и тогда
@@ -9734,25 +9762,6 @@
                     : tf('Реши верно %1 — до медали %2 останется %3',
                          task.need, medal(task.tier), task.gap - task.need);
             }
-            // Роль «подтянуть» при совсем низкой точности даёт просто примеры. Раньше
-            // текст начинался с «Тут пока много ошибок» — упрёк в тот самый момент, когда
-            // ребёнку тяжелее всего, да и обещание не сходилось: решить дюжину не значит
-            // стать точнее. Говорим о деле, а не об оценке.
-            if (task.role === 'fix' && task.kind === 'count')
-                                          return tf('Здесь нужна практика — реши %1', task.need);
-            // «Новое место» — оборот из нашей головы: у ученика места нет, у него есть
-            // темы, и слово «тема» он видит тут же, в подписи под строкой.
-            if (task.role === 'explore')  return task.fresh
-                ? tf('Новая тема — реши %1', task.need)
-                : tf('Вернись к этой теме — реши %1', task.need);
-            // Дальше — по виду задания, без оглядки на роль. Раньше те же два текста были
-            // расписаны дважды: один раз для роли «подтянуть», другой на общий случай,
-            // который не выдавала ни одна роль. Две мёртвые строки, которые никто не
-            // проверял, и перевод на три языка к ним.
-            if (task.kind === 'accuracy') return tf('Подтяни точность до %1%', task.need);
-            // «Набело» и «без единой ошибки» — одно и то же, сказанное дважды, причём
-            // «набело» ребёнок может и не знать: слово из мира черновиков.
-            if (task.kind === 'clean')    return tf('Реши %1 подряд без ошибки', task.need);
             if (task.kind === 'count')    return tf('Реши %1 примеров', task.need);
             // Задание на верные ответы без медали бывает теперь только недельным:
             // дневную добивку на верные убрали — она повторяла дневную цель.
@@ -9770,21 +9779,38 @@
         }
 
         // --- Кого куда вести ---------------------------------------------------------
-        // Задания — единственное место, которое САМО решает, чем ученику заняться.
-        // Поэтому подбор устроен не как «возьми клетку, где он чаще сидел», а как три
-        // роли, каждая со своим вопросом:
+        // Задания — единственное место, которое САМО решает, чем ученику заняться, и решать
+        // они должны так, как решил бы репетитор: по карте звёзд, а не по тому, где ученик
+        // бывал.
         //
-        //   ПРОДВИНУТЬСЯ — где он ближе всего к следующей ступени. Это лестница самого
-        //                  приложения, и вести по ней — самое честное «в нужную сторону».
-        //   ПОДТЯНУТЬ    — где точность просела сильнее всего. Тут задание чинит дыру.
-        //   ПОПРОБОВАТЬ  — открытая клетка, где он давно (или ни разу) не был. Иначе он
-        //                  закапывается в одном действии и не видит остального.
+        // Раньше ролей было три — «продвинуться», «подтянуть», «попробовать», — и все три
+        // смотрели на историю. Снимок Максима от 23 октября показал, куда это ведёт. У
+        // ученика открыты умножение 3★, сложение 4★ и вычитание 4★, а задания звали добрать
+        // алмаз за количество в умножении 2★, где ворота давно взяты, «подтянуть точность до
+        // 90%» там, где экран достижений показывал 95%, и вернуться в сложение 1★, где уже
+        // алмаз. Ни одно не вело туда, куда ему пора.
         //
-        // Роли всегда три, но каждая умеет ВЫРОДИТЬСЯ, когда данных мало: на пустом
-        // аккаунте вести некуда, а с одной клеткой нечего сравнивать. Вырождение — не
-        // запасной случай, а обычная работа: у нового ученика так будет неделю.
+        // Теперь порядок такой (заданий по-прежнему до трёх):
+        //   1. ДОМАШКА — дневная доля того, что задал репетитор: его слово главнее нашего.
+        //   2. ГЛАВНОЕ, через день занятий: то к следующей звезде, то к ближайшей медали.
+        //   3. Дальше, пока не наберётся три: подтянуть (точность упала ниже золота), другое
+        //      действие (его следующая звезда), медаль рядом, повторение давно не тронутого,
+        //      и только потом общие.
+        //
+        // Всё считается НА НАЧАЛО ДНЯ: журнал — по вчерашний день, медали и ворота — с датой
+        // получения раньше сегодняшней. Задание не меняется под руками у того, кто его
+        // выполняет, даже если сегодня он взял ворота и открыл новую звезду.
         const TASK_MIN_CELL = 8;      // меньше ответов в клетке — судить о ней рано
-        const TASK_STALE_DAYS = 5;    // столько не заходил в клетку — считаем забытой
+        const TASK_MAIN_NEED = 20;    // главное задание: столько за день, а не всю сотню разом
+        const TASK_SIDE_NEED = 10;    // остальные: другое действие, повторение
+        const TASK_CLEAN_RUN = 10;    // «подряд без ошибки»: серия, которую реально собрать за миссию
+        // «Медаль рядом» — когда до неё не больше стольких верных: меньше одной миссии.
+        const TASK_MEDAL_NEAR = 15;
+        // Повторение — тема с золотом, где ученик не был столько дней и дольше. Неделя-другая
+        // без темы — обычный ход занятий, а не забывание; три недели — уже повод вернуться.
+        const TASK_REVIEW_DAYS = 21;
+        // Домашка без срока делится по столько верных в день — как главное задание.
+        const TASK_HOMEWORK_DAY = TASK_MAIN_NEED;
 
         // Все клетки, куда ученику вообще можно пойти: открытые и не старше пятой звезды.
         function openCells() {
@@ -9860,7 +9886,134 @@
             return Math.max(0, all - correctInPeriod(daily, cellKey, fromKey, toKey));
         }
 
-        // Роль «продвинуться»: где ученик ДАЛЬШЕ ВСЕГО прошёл к своей следующей медали.
+        // Медаль, взятая ДО сегодняшнего дня. Даты у ступеней хранятся (см. Progress.unlock),
+        // '?' — дата неизвестна: ступень из старого формата, то есть заведомо давняя. Ступени
+        // смотрим от нужной и выше: выше взятая значит, что взята и эта.
+        function earnedBefore(unlocks, key, ladder, tier, todayKey) {
+            for (let i = tier; i <= 5; i++) {
+                const d = (unlocks || {})[`${key}:${ladder}${i}`];
+                if (d && (d === '?' || d < todayKey)) return true;
+            }
+            return false;
+        }
+        // Ворота звезды — золото по точности и по количеству (см. levelGatePassed), но на
+        // начало дня: взятые сегодня задание дня не двигают.
+        function gateBefore(unlocks, key, todayKey) {
+            return earnedBefore(unlocks, key, 'a', LEVEL_GATE_TIER, todayKey)
+                && earnedBefore(unlocks, key, 'c', LEVEL_GATE_TIER, todayKey);
+        }
+
+        // Журнал без сегодняшнего дня: по нему точность считается на начало дня.
+        function dailyBefore(daily, todayKey) {
+            const out = {};
+            Object.keys(daily || {}).forEach(k => { if (k < todayKey) out[k] = daily[k]; });
+            return out;
+        }
+        // Точность так, как её показывает экран достижений, — по последней сотне ответов (см.
+        // topicMetrics), только на начало дня. Раньше задание мерило своим окном — две недели —
+        // и спорило с экраном: «подтяни до 90%» при 95% на соседней вкладке. Меньше
+        // MAP_PCT_MIN ответов — доля не точность, а случайность (то же правило, что у карты).
+        function accuracyBefore(past, cell) {
+            const win = recentTopicWindow(past, cell, LADDER_WINDOW);
+            return win.attempts >= MAP_PCT_MIN ? Math.round(win.c / win.attempts * 100) : null;
+        }
+        // Сколько ответов было в клетке до сегодняшнего дня — верных и нет.
+        function attemptsBefore(st, daily, cell, todayKey) {
+            const all = (((st || {}).byTopic) || {})[cell] || {};
+            const today = ((((daily || {})[todayKey] || {}).t) || {})[cell] || [];
+            return Math.max(0, (all.correct || 0) + (all.wrong || 0) - (today[0] || 0) - (today[1] || 0));
+        }
+
+        // Рубеж действия — где открывается следующая звезда: открытая звезда без ворот, за
+        // которой следующая откроется золотом — доступ к ней есть, нет только самого золота.
+        // Если следующую открыли в обход ворот (назвал репетитор, задана домашка), рубеж выше:
+        // золото здесь ничего не откроет.
+        //
+        // Открыта ли следующая СЕЙЧАС, нарочно не спрашиваем: взял ворота сегодня — она
+        // открылась, и рубеж уехал бы наверх посреди дня вместе с заданием.
+        function starFrontier(secKey, op, unlocks, todayKey) {
+            for (let lvl = 1; lvl <= 4; lvl++) {
+                if (!isLevelOpen(secKey, op, lvl) || gateBefore(unlocks, `${secKey}:${op}:${lvl}`, todayKey)) continue;
+                if (!starOpensByGold(secKey, op, lvl + 1)) continue;
+                return `${secKey}:${op}:${lvl}`;
+            }
+            return null;
+        }
+        function starOpensByGold(secKey, op, level) {
+            return levelAllowedByAccess(secKey, op, level)
+                && !levelNamedByGrant(secKey, op, level) && !homeworkOpensCell(secKey, op, level);
+        }
+        // Отстающее действие — где взято меньше всего ворот; среди равных — по порядку карты.
+        // Сначала в разделе, где ученик сейчас, в другой — только когда в своём рубежей не
+        // осталось. skipOp — своё действие: «другое действие» должно быть другим.
+        function laggingFrontier(homeSec, skipOp, unlocks, todayKey, taken) {
+            const secs = MAP_SECTIONS.map(s => `${s.cat}${s.sign}`);
+            const order = homeSec ? [homeSec].concat(secs.filter(s => s !== homeSec)) : secs;
+            for (let i = 0; i < order.length; i++) {
+                const secKey = order[i];
+                const sec = MAP_SECTIONS[secs.indexOf(secKey)];
+                if (!sec) continue;
+                let best = null;
+                sec.ops.forEach(op => {
+                    if (secKey === homeSec && op === skipOp) return;
+                    const cell = starFrontier(secKey, op, unlocks, todayKey);
+                    if (!cell || taken.indexOf(cell) >= 0) return;
+                    let gates = 0;
+                    for (let lvl = 1; lvl <= 5; lvl++) if (gateBefore(unlocks, `${secKey}:${op}:${lvl}`, todayKey)) gates++;
+                    if (!best || gates < best.gates) best = { cell, gates };
+                });
+                if (best) return best.cell;
+            }
+            return null;
+        }
+
+        // Задание на рубеже: чего не хватает до следующей звезды. Ворота — золото и по
+        // количеству (сотня верных), и по точности (90% по последней сотне). Пока не хватает
+        // верных — считаем их; хватает — значит, звезду держит точность, и задание про неё.
+        function starTask(st, daily, past, todayKey, cell, need, role) {
+            const next = parseTopicKey(cell).level + 1;
+            const gateCount = COUNT_TIERS[LEVEL_GATE_TIER - 1];
+            const have = correctBefore(st, daily, cell, todayKey, todayKey);
+            if (have < gateCount) {
+                // Ни одного ответа до сегодняшнего дня — тема новая, говорить о сотне рано.
+                if (!attemptsBefore(st, daily, cell, todayKey)) return { kind: 'count', cell, need, role, star: next, fresh: true };
+                const gap = gateCount - have;
+                // За день — кусок, а не вся сотня. Хвост меньше куска — берём кусок целиком:
+                // задание на три ответа не стоит строки.
+                const n = Math.max(TASK_SIDE_NEED, Math.min(need, gap));
+                return { kind: 'correct', cell, need: n, role, star: next, gap, closes: n >= gap };
+            }
+            const acc = accuracyBefore(past, cell);
+            // Сотня верных есть, а в журнале темы нет: пройдена так давно, что журнал её уже
+            // не помнит. Сейчас нужна не планка, а возвращение.
+            if (acc === null) return { kind: 'count', cell, need: TASK_SIDE_NEED, role, review: true };
+            const goal = ACCURACY_TIERS[LEVEL_GATE_TIER - 1];
+            // Обе половины ворот уже есть, а золото не записано: запишется с первым же ответом
+            // (так бывает со старыми данными). Просить точность, которая уже есть, нельзя.
+            if (acc >= goal) return { kind: 'correct', cell, need: TASK_SIDE_NEED, role, star: next, gap: 0, closes: true };
+            // Совсем низкая точность — это не небрежность, а незнание. Серия без ошибки тут
+            // недостижима сегодня ни при каком старании; нужны примеры, а не планка.
+            if (acc < TASK_ACCURACY_FLOOR) return { kind: 'count', cell, need: 12, role, practice: true };
+            return { kind: 'clean', cell, need: TASK_CLEAN_RUN, role, star: next, acc, goal };
+        }
+
+        // Где искать медаль: в темах, где ученик был за последние две недели. Раньше роль
+        // брала любую открытую тему, и у того, кто давно прошёл сложение и теперь в умножении,
+        // медаль находилась в сложении 1★, куда он месяц не заходил.
+        //
+        // И не там, где следующую звезду держит точность: верные там уже ничего не откроют,
+        // а алмаз за количество отвлёк бы от того, что действительно нужно, — от точности.
+        function medalCells(st, daily, seen, unlocks, fromKey, toKey) {
+            const gateCount = COUNT_TIERS[LEVEL_GATE_TIER - 1];
+            return seen.filter(key => {
+                const p = parseTopicKey(key);
+                return !(starFrontier(`${p.category}${p.sign || ''}`, p.op, unlocks, fromKey) === key
+                         && correctBefore(st, daily, key, fromKey, toKey) >= gateCount);
+            });
+        }
+
+        // Роль «к медали» (была «продвинуться»): где ученик ДАЛЬШЕ ВСЕГО прошёл к своей
+        // следующей медали за количество. Темы ей подаёт medalCells — только те, где он был.
         //
         // Раньше здесь искалась клетка, где осталось меньше всего примеров, — и это
         // уводило с работы. У ученика со сложением 2★ (218 верных, до серебра 32) и
@@ -9899,7 +10052,119 @@
                      tier: best.tier, gap: best.gap, closes: need >= best.gap };
         }
 
-        // Роль «подтянуть»: клетка с самой просевшей точностью среди тех, где он бывал.
+        // Медаль рядом: до неё меньше одной миссии. Из таких — та, что ближе всех.
+        function roleMedalNear(st, daily, cells, todayKey) {
+            let best = null;
+            cells.forEach(key => {
+                const have = correctBefore(st, daily, key, todayKey, todayKey);
+                let target = null, tier = 0;
+                COUNT_TIERS.forEach((v, i) => { if (target === null && have < v) { target = v; tier = i + 1; } });
+                if (have <= 0 || target === null || target - have > TASK_MEDAL_NEAR) return;
+                if (!best || target - have < best.gap) best = { key, tier, gap: target - have };
+            });
+            if (!best) return null;
+            const need = Math.max(TASK_SIDE_NEED, best.gap);
+            return { kind: 'correct', cell: best.key, need, role: 'advance', tier: best.tier, gap: best.gap, closes: true };
+        }
+
+        // Роль «подтянуть»: тема, где золото по точности уже было, а по последней сотне его
+        // больше нет. Меряется ровно как на экране достижений (см. accuracyBefore) и только
+        // ниже золота: выше — подтягивать нечего, и задание спорило бы с экраном.
+        //
+        // Тема без золота сюда не идёт: «просела» про неё было бы неправдой, а её точность и
+        // так на виду — до золота там следующая звезда, и это задание на рубеже.
+        function roleRepair(past, cells, unlocks, todayKey, taken) {
+            const goal = ACCURACY_TIERS[LEVEL_GATE_TIER - 1];
+            let worst = null;
+            cells.forEach(key => {
+                if (taken.indexOf(key) >= 0 || !earnedBefore(unlocks, key, 'a', LEVEL_GATE_TIER, todayKey)) return;
+                const acc = accuracyBefore(past, key);
+                if (acc === null || acc >= goal) return;
+                if (!worst || acc < worst.acc) worst = { key, acc };
+            });
+            if (!worst) return null;
+            if (worst.acc < TASK_ACCURACY_FLOOR) return { kind: 'count', cell: worst.key, need: 12, role: 'fix', practice: true };
+            return { kind: 'clean', cell: worst.key, need: TASK_CLEAN_RUN, role: 'fix', dropped: worst.acc };
+        }
+
+        // Повторение: тема с золотом, где ученик не был TASK_REVIEW_DAYS дней и дольше. Из
+        // одинаково давних — самая высокая звезда: в ней есть и всё, что ниже.
+        //
+        // Раньше роль «попробовать» через пять дней звала в другое действие с первой звезды —
+        // и ученика с алмазом в сложении 1★ звала «вернуться» туда, где делать ему нечего.
+        function roleReview(daily, open, unlocks, todayKey, taken) {
+            let best = null;
+            open.forEach(key => {
+                if (taken.indexOf(key) >= 0 || !gateBefore(unlocks, key, todayKey)) return;
+                const last = lastPracticeDay(daily, key, todayKey);
+                // Журнал помнит не всё время: золото есть, а в журнале темы нет — значит, давно.
+                const age = last === null ? Infinity : daysBetweenKeys(last, todayKey);
+                if (age < TASK_REVIEW_DAYS) return;
+                const level = parseTopicKey(key).level;
+                if (!best || age > best.age || (age === best.age && level > best.level)) best = { key, age, level };
+            });
+            return best ? { kind: 'count', cell: best.key, need: TASK_SIDE_NEED, role: 'fix', review: true } : null;
+        }
+        // Последний день до сегодняшнего, когда в клетке были ответы.
+        function lastPracticeDay(daily, cell, todayKey) {
+            let last = null;
+            Object.keys(daily || {}).forEach(k => {
+                if (k >= todayKey) return;
+                const v = ((daily[k] || {}).t || {})[cell];
+                if (v && (v[0] || 0) + (v[1] || 0) > 0 && (last === null || k > last)) last = k;
+            });
+            return last;
+        }
+
+        // Домашка — дневная доля: что осталось НА НАЧАЛО ДНЯ, поделённое на дни до срока.
+        // От остатка на начало дня, а не от текущего: иначе цель таяла бы с каждым ответом,
+        // как когда-то у медалей. Срок прошёл — всё сразу; срока нет — по TASK_HOMEWORK_DAY.
+        //
+        // Из нескольких — самая срочная, в том же порядке, что и в карточке домашки:
+        // просроченные, потом по сроку, без срока — в конце.
+        //
+        // Счёт тот же, что у самой домашки: верные в клетке. Ответы с подсказкой не идут
+        // ни туда, ни сюда — режим обучения не пишет ни клетку, ни журнал по клеткам.
+        function roleHomework(st, daily, todayKey, homework) {
+            const byTopic = (st && st.byTopic) || {};
+            const due = (h) => (typeof h.dueOn === 'string' && h.dueOn) ? h.dueOn : '9999-12-31';
+            const list = (homework || []).map(h => {
+                const today = ((((daily || {})[todayKey] || {}).t || {})[h.topic] || [])[0] || 0;
+                const done = Math.max(0, ((byTopic[h.topic] || {}).correct || 0) - today - h.base);
+                return { h, left: h.need - done };
+            }).filter(x => x.left > 0)
+              .sort((a, b) => (due(a.h) < due(b.h) ? -1 : due(a.h) > due(b.h) ? 1 : 0) || (a.h.id - b.h.id));
+            if (!list.length) return null;
+            const { h, left } = list[0];
+            const days = due(h) === '9999-12-31' ? null : Math.max(1, daysBetweenKeys(todayKey, h.dueOn) + 1);
+            const share = days === null ? TASK_HOMEWORK_DAY : Math.ceil(left / days);
+            const need = Math.min(left, Math.max(TASK_SIDE_NEED, share));
+            return { kind: 'correct', cell: h.topic, need, role: 'advance', hw: h.id, left, closes: need >= left };
+        }
+        // Домашка есть только у ученика репетитора (см. myHomework). Где её нет вовсе —
+        // в проверках, в чужой статистике у репетитора, — задания считаются без неё.
+        function taskHomework() {
+            return typeof myHomework === 'function' ? myHomework() : [];
+        }
+
+        // Главное задание чередуется: день звезды, день медали. Через день ЗАНЯТИЙ, а не
+        // календаря: у того, кто занимается через день, календарный чёт-нечет выдавал бы
+        // всегда одно и то же. Дни занятий считаем с начала месяца и до вчерашнего: глубже
+        // журнал подчищается, и счёт с начала времён мог бы сдвинуться посреди дня. На стыке
+        // месяцев бывает два одинаковых дня подряд — раз в месяц, и это вся плата.
+        function isStarDay(daily, todayKey) {
+            const monthStart = todayKey.slice(0, 8) + '01';
+            let n = 0;
+            Object.keys(daily || {}).forEach(k => {
+                if (k >= monthStart && k < todayKey && isActiveDay(daily[k])) n++;
+            });
+            return n % 2 === 0;
+        }
+
+        // Худшая точность за две недели среди тем, где ученик бывал. Это бывшая роль
+        // «подтянуть»; задания ученика её больше не берут — они меряют точность по последней
+        // сотне, как экран достижений (см. roleRepair). Осталась карточке к уроку: репетитору
+        // «за две недели» как раз и нужно, и там так и подписано.
         function roleFix(daily, todayKey, cells, taken) {
             let worst = null;
             cells.forEach(key => {
@@ -9918,72 +10183,6 @@
             return { kind: 'accuracy', cell: worst.key, need: reachableAccuracy(worst.accuracy), role: 'fix' };
         }
 
-        // Роль «попробовать»: открытая клетка, куда он давно не заходил или не заходил
-        // вовсе. Именно она вытаскивает того, кто месяц решает одно сложение на 1★.
-        //
-        // Зовём в БЛИЖАЙШУЮ, а не в первую попавшуюся. Раньше роль просто брала клетку
-        // с самым большим простоем — и у того, кто недавно прошёлся по всем положительным,
-        // укатывалась в следующий раздел по списку: со сложения положительных на 4★
-        // приглашение уводило в отрицательное умножение. Это не шаг в сторону, а прыжок
-        // через полкурса.
-        //
-        // Порядок близости:
-        //   1. то же действие, соседняя звезда — самый естественный следующий шаг;
-        //   2. другое действие того же раздела — и начинать там с НИЗКОЙ звезды: сила
-        //      в сложении ничего не говорит о делении;
-        //   3. другой раздел — только когда в своём уже везде побывал.
-        // Сравнение по порядку важности: первое несовпавшее число и решает.
-        function rankLess(a, b) {
-            for (let i = 0; i < a.length; i++) {
-                if (a[i] !== b[i]) return a[i] < b[i];
-            }
-            return false;
-        }
-
-        function roleExplore(st, daily, todayKey, cells, homeKey, fromKey, toKey, taken) {
-            const home = homeKey ? parseTopicKey(homeKey) : null;
-            const homeSec = home ? `${home.category}${home.sign || ''}` : null;
-            let best = null;
-            cells.forEach(key => {
-                if (taken && taken.indexOf(key) >= 0) return;
-                const f = cellForm(daily, todayKey, key, TASK_CELL_WINDOW);
-                const age = f.lastDay === null ? 999 : f.lastDay;
-                if (age < TASK_STALE_DAYS) return;
-                const p = parseTopicKey(key);
-                if (!p.hasLevel) return;
-                const sec = `${p.category}${p.sign || ''}`;
-                let distance, near;
-                if (home && sec === homeSec && p.op === home.op) {
-                    // Назад в СВОЁМ действии не зовём. Ученику, который каждый день решает
-                    // сложение 2★, приглашение «загляни в сложение 1★, давно не был»
-                    // читается как «вернись назад»: он это перерос. В чужом действии
-                    // начинать снизу правильно — сила в сложении ничего не говорит о
-                    // делении, — но в своём звать вниз незачем.
-                    if (p.level < (home.level || 1)) return;
-                    distance = 1; near = Math.abs(p.level - (home.level || 1));
-                } else if (home && sec === homeSec) {
-                    distance = 2; near = p.level;
-                } else {
-                    distance = 3; near = p.level;
-                }
-                // При равной близости выбираем звезду ПОНИЖЕ. Наверх толкает роль
-                // «продвинуться»; эта — про пропущенное, а пропущенное почти всегда
-                // осталось внизу (например, после экзамена, который открыл звёзды сразу).
-                // Простой — последний по важности: он решает, куда идти среди одинаково
-                // близких, а не вместо близости.
-                const rank = [distance, near, p.level, -age];
-                if (!best || rankLess(rank, best.rank)) best = { key, rank };
-            });
-            if (!best) return null;
-            // «Ещё не был» и «давно не был» — разные вещи, и говорить о них надо разное.
-            // Окно cellForm короткое (две недели), поэтому смотрим на итоги за всё время.
-            // «Ещё не был» — тоже про состояние ДО периода. Иначе первый же верный
-            // ответ в этой клетке переписывал «Новое место» на «Пора сюда вернуться»
-            // прямо посреди её выполнения.
-            const everTried = correctBefore(st, daily, best.key, fromKey, toKey) > 0;
-            return { kind: 'count', cell: best.key, need: 10, role: 'explore', fresh: !everTried };
-        }
-
         // Детерминированный выбор: одна и та же дата и логин дают один и тот же набор.
         //
         // Задания про КОНКРЕТНУЮ клетку берутся первыми, общие только добивают остаток.
@@ -9991,8 +10190,8 @@
         // «Играть» — и задание перестаёт быть тем, ради чего затевалось: указанием,
         // куда идти, в один тап.
         function pickTasks(primary, filler, seed, count) {
-            // Главные задания идут КАК ЕСТЬ, в своём порядке: он несёт смысл (продвинуться
-            // важнее, чем попробовать новое), и перемешивать его нельзя. Жребий работает
+            // Главные задания идут КАК ЕСТЬ, в своём порядке: он несёт смысл (домашка важнее
+            // главного, главное — всего остального), и перемешивать его нельзя. Жребий работает
             // только на добивке — там порядок ничего не значит, а разнообразие полезно.
             const out = primary.slice(0, count);
             let s = seed;
@@ -10004,8 +10203,9 @@
             return out;
         }
 
-        function dailyTasks(st, todayKey, code) {
+        function dailyTasks(st, todayKey, code, homework) {
             const daily = (st && st.daily) || {};
+            const unlocks = (st && st.unlocks) || {};
             const open = openCells();
             // Всю историю, по которой ВЫБИРАЕТСЯ задание, смотрим по вчерашний день
             // включительно. Сегодняшние ответы на выбор влиять не должны — иначе
@@ -10013,26 +10213,40 @@
             // после первого же ответа переставало быть новым местом, роль выбирала
             // другую клетку, и счёт начинался заново с нуля. Выполнить такое нельзя.
             const asOf = shiftDayKey(todayKey, -1);
-            const seen = recentCells(daily, asOf, TASK_CELL_WINDOW);
-            // Роли берём по порядку важности и НЕ перемешиваем: продвинуться важнее, чем
-            // подтянуть, а подтянуть важнее, чем попробовать новое. Жребий здесь только
-            // добивает остаток — иначе он мог бы вытеснить главное задание дня.
-            // Откуда мерить близость: клетка, где ученик занимается больше всего.
-            // Нет истории — меряем от самого начала карты, туда же и позовём.
-            const home = seen[0] || null;
+            const past = dailyBefore(daily, todayKey);
+            // Где ученик был за две недели — только открытые, по убыванию ответов. Первая —
+            // его «дом»: действие, которым он сейчас занят. Нет истории — дома нет, и рубеж
+            // ищется с самого начала карты.
+            const seen = recentCells(daily, asOf, TASK_CELL_WINDOW).filter(k => open.indexOf(k) >= 0);
+            const home = seen.length ? parseTopicKey(seen[0]) : null;
+            const homeSec = home ? `${home.category}${home.sign || ''}` : null;
             // Роли идут по очереди и каждая знает, что уже занято. Раньше они выбирали
             // независимо, а совпавшую клетку у второй просто отбрасывали — и роль
-            // молча пропадала целиком, хотя ей было куда пойти. У нового ученика так и
-            // выходило: «продвинуться» и «попробовать» обе указывали на первую клетку
-            // карты, и заданий оставалось два вместо трёх.
+            // молча пропадала целиком, хотя ей было куда пойти.
             const chosen = [];
-            const takeRole = (task) => {
-                if (task && !chosen.some(x => x.cell === task.cell)) chosen.push(task);
-                return chosen.map(x => x.cell);
+            const taken = () => chosen.map(x => x.cell);
+            const take = (task) => { if (task && taken().indexOf(task.cell) < 0) chosen.push(task); };
+
+            take(roleHomework(st, daily, todayKey, homework === undefined ? taskHomework() : homework));
+
+            // Рубеж своего действия; нет его (действие пройдено, рубеж занят домашкой) —
+            // рубеж отстающего.
+            const star = () => {
+                let cell = home ? starFrontier(homeSec, home.op, unlocks, todayKey) : null;
+                if (!cell || taken().indexOf(cell) >= 0) cell = laggingFrontier(homeSec, null, unlocks, todayKey, taken());
+                return cell ? starTask(st, daily, past, todayKey, cell, TASK_MAIN_NEED, 'advance') : null;
             };
-            let taken = takeRole(roleAdvance(st, open, daily, todayKey, todayKey));
-            taken = takeRole(roleFix(daily, asOf, seen, taken));
-            takeRole(roleExplore(st, daily, asOf, open, home, todayKey, todayKey, taken));
+            const medals = () => medalCells(st, daily, seen, unlocks, todayKey, todayKey).filter(k => taken().indexOf(k) < 0);
+            const medal = () => roleAdvance(st, medals(), daily, todayKey, todayKey);
+            // Нет своего на сегодня — берём другое главное, лишь бы главное было.
+            if (isStarDay(daily, todayKey)) take(star() || medal());
+            else take(medal() || star());
+
+            take(roleRepair(past, seen, unlocks, todayKey, taken()));
+            const other = laggingFrontier(homeSec, home ? home.op : null, unlocks, todayKey, taken());
+            if (other) take(starTask(st, daily, past, todayKey, other, TASK_SIDE_NEED, 'explore'));
+            take(roleMedalNear(st, daily, medals(), todayKey));
+            take(roleReview(daily, open, unlocks, todayKey, taken()));
 
             // Не набралось трёх — добираем общими. У пустого аккаунта вести некуда, и
             // это нормальная его неделя, а не сбой: как появится история, задания
@@ -10060,9 +10274,13 @@
         function weeklyTask(st, todayKey, code) {
             const daily = (st && st.daily) || {};
             const from = weekStartKey(todayKey);
-            // Ту же клетку, что и роль «продвинуться»: неделя — это про дойти до ступени,
-            // а не про «где он чаще сидел».
-            const advance = roleAdvance(st, openCells(), daily, from, todayKey);
+            // Медаль недели — по тем же правилам, что и дневная: в темах, где ученик был за
+            // две недели до понедельника, и не там, где звезду держит точность. Всё на начало
+            // недели — иначе задание сменилось бы посреди неё.
+            const open = openCells();
+            const seen = recentCells(daily, shiftDayKey(from, -1), TASK_CELL_WINDOW).filter(k => open.indexOf(k) >= 0);
+            const advance = roleAdvance(st, medalCells(st, daily, seen, (st && st.unlocks) || {}, from, todayKey),
+                                        daily, from, todayKey);
             // Жребий ВСЕГДА из трёх. Раньше первый вариант добавлялся, только если роль
             // «продвинуться» нашлась, — и длина списка менялась с двух на три, а вместе
             // с ней и остаток от деления. У сорока кодов из шестидесяти недельное
@@ -10117,17 +10335,20 @@
                 // Кнопка «Играть» есть только у заданий про конкретную клетку — остальные
                 // не знают, куда вести, и кнопка была бы обманом.
                 go: parsed ? { op: parsed.op, level: parsed.level,
-                               secKey: `${parsed.category}${parsed.sign || ''}` } : null
+                               secKey: `${parsed.category}${parsed.sign || ''}`,
+                               // Из задания про домашку миссия идёт так же, как из карточки
+                               // домашки, — без подсказок: иначе ответы не шли бы в счёт.
+                               homeworkId: task.hw || null } : null
             });
         }
 
         // Отрисовка заданий. Живёт на экране выбора миссии — там, где ученик решает,
         // чем заняться, а не в статистике, куда он заходит редко.
-        function renderTasks(containerId, st, todayKey, code, withButtons) {
+        function renderTasks(containerId, st, todayKey, code, withButtons, homework) {
             const wrap = document.getElementById(containerId);
             if (!wrap) return { shown: false, total: 0, done: 0 };
             wrap.innerHTML = '';
-            const list = dailyTasks(st, todayKey, code);
+            const list = dailyTasks(st, todayKey, code, homework);
             const week = weeklyTask(st, todayKey, code);
             if (!list.length && !week) return { shown: false, total: 0, done: 0 };
 
@@ -10155,9 +10376,6 @@
                 text.innerText = task.text;
                 body.appendChild(text);
 
-                // Числом показываем ровно то, что проверяется: иначе «почти получилось»
-                // читается как «получилось».
-                const unit = task.kind === 'accuracy' ? '%' : '';
                 // Перевыполненное показываем ровно как цель: «13 из 10» формально верно,
                 // но читается как сбой счётчика.
                 const shown = task.done ? task.need : task.have;
@@ -10171,11 +10389,11 @@
                 const where = document.createElement('span');
                 where.className = 'task-where';
                 where.innerText = task.where || '';
+                // Числом показываем ровно то, что проверяется: иначе «почти получилось»
+                // читается как «получилось».
                 const count = document.createElement('span');
                 count.className = 'task-count';
-                count.innerText = task.have === null
-                    ? tf('нужно %1 ответов', TASK_MIN_SAMPLE)
-                    : `${shown}${unit} / ${task.need}${unit}`;
+                count.innerText = `${shown} / ${task.need}`;
                 sub.appendChild(where);
                 sub.appendChild(count);
                 body.appendChild(sub);
@@ -10183,10 +10401,9 @@
                 // Полоска. «7 из 12» словами приходится читать, а долю видно сразу —
                 // и именно доля отвечает на вопрос «мне ещё долго?».
                 const meter = document.createElement('div');
-                meter.className = 'task-meter' + (task.have === null ? ' unknown' : '');
+                meter.className = 'task-meter';
                 const fill = document.createElement('span');
-                const part = (task.need > 0 && task.have !== null)
-                    ? Math.max(0, Math.min(1, task.have / task.need)) : 0;
+                const part = task.need > 0 ? Math.max(0, Math.min(1, task.have / task.need)) : 0;
                 fill.style.width = `${Math.round(part * 100)}%`;
                 meter.appendChild(fill);
                 body.appendChild(meter);
@@ -10200,7 +10417,7 @@
                     btn.innerText = t('Играть');
                     btn.setAttribute('aria-label', `${t('Играть')}: ${task.text}`);
                     btn.addEventListener('click', () =>
-                        startMissionAt(task.go.op, task.go.level, task.go.secKey, task.id));
+                        startMissionAt(task.go.op, task.go.level, task.go.secKey, task.id, task.go.homeworkId));
                     el.appendChild(btn);
                 }
                 return el;
@@ -13502,11 +13719,8 @@
             row.style.display = '';
             row.className = 'mission-task' + (task.done ? ' done' : '');
             document.getElementById('missionTaskText').innerText = task.text;
-            const unit = task.kind === 'accuracy' ? '%' : '';
             document.getElementById('missionTaskCount').innerText = task.done
-                ? t('готово ✅')
-                : (task.have === null ? tf('нужно %1', task.need + unit)
-                                      : tf('%1 из %2', task.have + unit, task.need + unit));
+                ? t('готово ✅') : tf('%1 из %2', task.have, task.need);
         }
 
         // ===================== ПОВТОРИ ОШИБКИ =====================
@@ -13763,7 +13977,10 @@
                 if (error || !data || !data.ok || !Array.isArray(data.homework)) return;
                 saveMyHomework(data.homework);
                 noteHomeworkDone(null, false);
-                renderHomeworkCard();
+                // Вместе с карточкой — и задания дня: доля домашки идёт в них первой, и
+                // список, собранный до ответа сервера, звал бы в домашку, которой уже нет.
+                // Заодно они видят и свежий доступ: его приносят прямо перед домашкой.
+                renderConfigTasks();
                 refreshSectionLocks();
             } catch (e) { /* сети нет — остаётся прошлый слепок */ }
         }
