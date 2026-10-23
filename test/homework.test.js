@@ -253,6 +253,35 @@ const dayOf = (offset) => {
                     () => assert(done && done.готово && !done.кнопка && done.срок === 'сделано', JSON.stringify(done)));
     }
 
+    console.log('\nЗадание дня про домашку — дневная доля, и миссия из него тоже без подсказок');
+    {
+        // 30 верных до послезавтра, при выдаче было 10, сейчас 12: осталось 28 на три дня.
+        // Ученик свой: у KID сегодня уже есть ответы в этой клетке из сценария выше, а итоги
+        // здесь задаются без них — доля посчиталась бы от несходящихся чисел.
+        server.homework = [HW(31, 'integer+:mul:3', 30, 10, dayOf(2))];
+        await asStudent({ 'integer+:mul:3': { correct: 12, wrong: 1 } }, { code: 'TASKKID' });
+        const first = await page.evaluate(`(() => { const r = document.querySelector('#tasksList .task-row');
+            return r ? { текст: r.querySelector('.task-text').innerText, где: r.querySelector('.task-where').innerText,
+                         кнопка: !!r.querySelector('.task-go') } : null; })()`);
+        await check('первое задание дня — доля домашки до срока', () => {
+            assert(first, 'заданий нет');
+            eq(first.текст, 'Реши верно 10 — по домашке останется 18', 'текст');
+            assert(/Умножение/.test(first.где) && first.кнопка, JSON.stringify(first));
+        });
+        await page.evaluate(`trainWanted = true;
+            document.querySelector('#tasksList .task-row .task-go').click(); null`);
+        await page.waitForTimeout(200);
+        const r = await page.evaluate(`({ идёт: gameActive, подсказки: trainActive, задание: missionHomeworkId,
+                                          строка: document.getElementById('missionTask').innerText.replace(/\\s+/g, ' ') })`);
+        await check('миссия из задания дня про домашку — как из карточки: без подсказок и со строкой домашки', () => {
+            assert(r.идёт && r.подсказки === false && r.задание === 31, JSON.stringify(r));
+            eq(r.строка, '📚 Домашнее задание 2 из 30', 'строка');
+        });
+        await page.evaluate(`if (gameActive) finishChallenge(); document.getElementById('winScreen').classList.remove('active');
+                             document.querySelectorAll('#puzzleReveal, #challengeReveal, #starUnlock').forEach(e => e.hidden = true);
+                             winLeaveToConfig(); trainWanted = false; null`);
+    }
+
     console.log('\nЧто засчитывается');
     {
         server.homework = [HW(21, 'integer+:add:2', 3, 0, null)];
