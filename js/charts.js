@@ -301,7 +301,8 @@ function mapCellView(attempts, correct, minAttempts) {
 
 // byTopic — { 'integer+:add:1': {correct, wrong} }. Рисуем только те разделы,
 // где ученик реально что-то решал: пустая сетка из двадцати прочерков не
-// информация, а шум.
+// информация, а шум. Исключение — opts.showSections: эти разделы рисуются и
+// пустыми, но свёрнутыми, одной строкой заголовка.
 //
 // Вид у ребёнка и у репетитора один и тот же. Раньше ребёнку показывали только
 // количество, и экран противоречил сам себе: сверху карточка «Точность 91%»,
@@ -311,21 +312,32 @@ function renderMasteryMap(byTopic, unlocks, containerId, opts) {
     if (!wrap) return 0;
     wrap.innerHTML = '';
     const compact = !!(opts && opts.compact);
+    // Сворачиваемые разделы — на экране статистики. Отчёт для родителей их не
+    // сворачивает: его отправляют скриншотом, и свёрнутое там просто пропало бы.
+    // Где хранилища сворачивания нет, карта рисуется как раньше, развёрнутой.
+    const foldable = !!(opts && opts.foldable) && typeof loadFolds === 'function';
+    // Разделы, которые показываем и без ответов за период (свёрнутыми): ученик
+    // видит все свои разделы, а не только те, где решал на этой неделе.
+    const always = (opts && opts.showSections) || [];
+    const folds = foldable ? loadFolds() : {};
     let drawn = 0;
 
     MAP_SECTIONS.forEach(sec => {
         const cells = [];
-        let anyData = false;
+        let anyData = false, secAttempts = 0, secCorrect = 0;
         sec.ops.forEach(op => {
             for (let lv = 1; lv <= 5; lv++) {
                 const key = `${sec.cat}${sec.sign}:${op}:${lv}`;
                 const t = byTopic[key] || {};
                 const attempts = (t.correct || 0) + (t.wrong || 0);
                 if (attempts > 0) anyData = true;
+                secAttempts += attempts;
+                secCorrect += t.correct || 0;
                 cells.push({ key, op, lv, attempts, correct: t.correct || 0 });
             }
         });
-        if (!anyData) return;
+        const secKey = sec.cat + sec.sign;
+        if (!anyData && always.indexOf(secKey) < 0) return;
         drawn++;
 
         const block = document.createElement('div');
@@ -334,6 +346,37 @@ function renderMasteryMap(byTopic, unlocks, containerId, opts) {
         title.className = 'map-title';
         title.innerText = sec.label;
         block.appendChild(title);
+        if (foldable) {
+            const foldKey = 'stats:map:' + secKey;
+            block.classList.add('map-fold');
+            const chevron = document.createElement('span');
+            chevron.className = 'fold-chevron';
+            chevron.innerText = '▾';
+            title.insertBefore(chevron, title.firstChild);
+            // Сводка в заголовке — чтобы свёрнутый раздел не молчал. Процент — по
+            // тому же правилу, что в клетке: пока ответов меньше MAP_PCT_MIN, только
+            // их число, иначе «50%» по двум ответам выносит приговор.
+            const sum = document.createElement('span');
+            sum.className = 'map-fold-sum';
+            sum.innerText = !anyData ? t('нет ответов за период')
+                : secAttempts < MAP_PCT_MIN
+                    ? tf(plural(secAttempts, '%1 ответ', '%1 ответа', '%1 ответов'), secAttempts)
+                    : tf(plural(secAttempts, '%1% · %2 ответ', '%1% · %2 ответа', '%1% · %2 ответов'),
+                        Math.round(secCorrect / secAttempts * 100), secAttempts);
+            title.appendChild(sum);
+            // Пустой — всегда свёрнут: внутри только прочерки. Остальные — как
+            // оставил ученик, а по умолчанию открыты.
+            const open = anyData && (Object.prototype.hasOwnProperty.call(folds, foldKey) ? !!folds[foldKey] : true);
+            block.classList.toggle('folded', !open);
+            if (!anyData) block.classList.add('empty');
+            title.addEventListener('click', () => {
+                if (!anyData) return;
+                const nowFolded = block.classList.toggle('folded');
+                const st = loadFolds();
+                st[foldKey] = !nowFolded;
+                saveFolds(st);
+            });
+        }
 
         const grid = document.createElement('div');
         grid.className = 'map-grid' + (compact ? ' compact' : '');
