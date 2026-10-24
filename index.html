@@ -1167,6 +1167,61 @@
             color: #94a3b8; font-family: inherit; font-size: 0.88rem; cursor: pointer;
         }
         .btn-logout:active { color: #e2e8f0; background: rgba(255,255,255,0.05); }
+        /* Профиль — от верха: по центру визитка висела посреди экрана с пустотой сверху. */
+        #profileScreen { justify-content: flex-start; }
+        #profileScreen #syncBadgeProfile { margin-top: 12px; }
+        .btn-logout.quiet {
+            width: auto; min-height: 44px; margin: 14px auto 4px; border: none;
+            font-size: 0.8rem; color: #64748b; text-decoration: underline;
+        }
+        /* --- Визитка в профиле --- */
+        .profile-card { display: flex; align-items: center; gap: 14px; padding: 6px 2px 4px; }
+        .profile-avatar {
+            width: 60px; height: 60px; border-radius: 50%; flex: 0 0 auto;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.6rem; font-weight: bold; color: #0b1220;
+            background: linear-gradient(135deg, #fde68a, #f59e0b);
+            box-shadow: 0 0 0 3px rgba(251,191,36,0.25);
+        }
+        .profile-who { min-width: 0; flex: 1 1 auto; }
+        .profile-name-row { display: flex; align-items: center; gap: 6px; }
+        .profile-name { font-size: 1.15rem; font-weight: bold; color: #f8fafc; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .profile-name.empty { color: #64748b; font-weight: normal; font-style: italic; }
+        /* Карандаш и кнопки у логина — маленькие значки, но цель под палец 44×44. */
+        .profile-edit {
+            background: none; border: none; font-size: 1rem; cursor: pointer; opacity: 0.8;
+            min-width: 44px; min-height: 44px; padding: 0; flex: 0 0 auto;
+        }
+        .profile-role { font-size: 0.8rem; color: #94a3b8; margin-top: 3px; }
+        .profile-stats {
+            display: flex; justify-content: space-around; gap: 8px; margin: 12px 0 4px;
+            padding: 10px 6px; border-radius: 12px; background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.07);
+        }
+        .profile-stat { text-align: center; }
+        .profile-stat b { display: block; font-size: 1.1rem; color: #f8fafc; }
+        .profile-stat span { font-size: 0.68rem; color: #94a3b8; }
+        .profile-name-edit { display: flex; gap: 8px; margin-top: 10px; }
+        .profile-name-edit[hidden] { display: none; }
+        .profile-name-edit input {
+            flex: 1 1 auto; min-width: 0; padding: 11px 12px; border-radius: 10px;
+            border: 1px solid rgba(6,182,212,0.5); background: rgba(255,255,255,0.06);
+            color: white; font: inherit; font-size: 0.95rem;
+        }
+        .profile-name-save {
+            flex: 0 0 auto; padding: 0 14px; border-radius: 10px; border: 1px solid rgba(16,185,129,0.5);
+            background: rgba(16,185,129,0.15); color: #6ee7b7; font: inherit; font-weight: bold; cursor: pointer;
+        }
+        .profile-name-save[hidden] { display: none; }
+        .profile-login-row {
+            display: flex; align-items: center; gap: 8px; margin-top: 12px; flex-wrap: wrap;
+        }
+        .profile-login-row .login-toggle { margin-top: 0; min-width: 44px; min-height: 44px; }
+        .profile-login-label { font-size: 0.78rem; color: #94a3b8; }
+        .profile-login-row .menu-code-line { font-size: 0.95rem; letter-spacing: 1px; margin-right: auto; }
+        .profile-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 0.74rem; color: #94a3b8; align-items: center; }
+        .profile-chips:empty { display: none; }
+        .profile-chip { padding: 4px 9px; border-radius: 999px; background: rgba(239,68,68,0.10); border: 1px solid rgba(239,68,68,0.30); color: #fecaca; }
 
         /* Ровно та же беда, что описана у .modal-screen выше, и тот же лечащий приём.
            Пока на экране итогов были три строки, центрирование без "safe" ничего не
@@ -2881,13 +2936,34 @@
         <div class="config-container">
             <div class="config-section" data-fold="profile:account" id="accountSection">
                 <div class="config-section-title">Текущий аккаунт</div>
-                <div class="menu-stat-card" style="text-align:center;">
-                    <!-- Логин — точками, пока не попросили показать (см. shownLogin). -->
-                    <div class="menu-code-line" id="profileCodeVal">—</div>
-                    <button class="login-toggle" id="profileLoginToggle" type="button" onclick="toggleLoginsShown()" hidden></button>
-                    <div class="menu-stat-label" style="margin-top:6px;" id="profileTypeVal">Личный аккаунт</div>
-                    <div class="sync-badge" id="syncBadgeProfile" hidden></div>
+                <!-- Визитка: кто это, одним взглядом. Буква имени вместо аватара — пока
+                     аватаров нет; за задания их можно будет открывать (см. бонусы). -->
+                <div class="profile-card">
+                    <div class="profile-avatar" id="profileAvatar">?</div>
+                    <div class="profile-who">
+                        <div class="profile-name-row">
+                            <span class="profile-name" id="profileNameVal">—</span>
+                            <button class="profile-edit" id="profileEditBtn" type="button" onclick="startNameEdit()" aria-label="Изменить имя">✏️</button>
+                        </div>
+                        <div class="profile-role" id="profileTypeVal">Личный аккаунт</div>
+                    </div>
                 </div>
+                <div class="profile-stats" id="profileStats"></div>
+                <!-- Имя меняется по карандашу; «Сохранить» видна, только когда есть что сохранять. -->
+                <div class="profile-name-edit" id="profileNameEdit" hidden>
+                    <input id="profileLabelInput" type="text" placeholder="Имя (необязательно)" maxlength="40"
+                           oninput="onNameInput()" onkeydown="if (event.key === 'Enter') saveProfileLabel()">
+                    <button class="profile-name-save" id="profileNameSave" type="button" onclick="saveProfileLabel()" hidden>Сохранить</button>
+                </div>
+                <!-- Логин — точками, пока не попросили показать (см. shownLogin). -->
+                <div class="profile-login-row" id="profileLoginRow">
+                    <span class="profile-login-label">Мой логин</span>
+                    <span class="menu-code-line" id="profileCodeVal">—</span>
+                    <button class="login-toggle" id="profileLoginToggle" type="button" onclick="toggleLoginsShown()" hidden></button>
+                    <button class="login-toggle" id="profileCopyBtn" type="button" onclick="copyOwnCode()" aria-label="Скопировать логин">📋</button>
+                </div>
+                <div class="sync-badge" id="syncBadgeProfile" hidden></div>
+                <div id="accessSummary" class="profile-chips"></div>
                 <!-- Виден только гостю: единственное, что ему здесь по-настоящему нужно. -->
                 <div id="guestUpgradeRow" style="display:none; margin-top:10px;">
                     <button class="btn-auth-second" onclick="openRegisterScreen()">Сохранить прогресс</button>
@@ -2899,8 +2975,7 @@
                      рядом не «показать пароль», а «сменить»: прочитать старый нельзя, а
                      поставить новый, зная старый, можно. -->
                 <div id="ownAccountRow" style="display:none; margin-top:10px;">
-                    <button class="menu-btn" onclick="copyOwnCode()">📋 <span>Скопировать логин</span></button>
-                    <button class="menu-btn" style="margin-top:8px;" onclick="changeOwnPassword()">🔑 <span>Сменить пароль</span></button>
+                    <button class="menu-btn" onclick="changeOwnPassword()">🔑 <span>Сменить пароль</span></button>
                     <div class="config-hint" style="margin-top:8px;">Пароль посмотреть нельзя — только задать новый.</div>
                 </div>
                 <!-- Только самостоятельному: код от репетитора делает его учеником со всем
@@ -2908,16 +2983,6 @@
                 <div id="linkTutorRow" style="display:none; margin-top:8px;">
                     <button class="menu-btn" onclick="linkToTutor()">🔗 <span>У меня есть код репетитора</span></button>
                 </div>
-                <input id="profileLabelInput" type="text" placeholder="Имя (необязательно)"
-                       style="width:100%; margin-top:10px; padding:12px; border-radius:10px; border:1px solid rgba(255,255,255,0.18);
-                              background:rgba(255,255,255,0.06); color:white; box-sizing:border-box; text-align:center; font-size:0.95rem;">
-                <button class="menu-btn" style="margin-top:8px;" onclick="saveProfileLabel()">💾 <span>Сохранить имя</span></button>
-                <div id="accessSummary" class="config-hint" style="margin-top:8px;"></div>
-
-                <!-- Выход стоит последним и нарочно тихий: ученику он нужен редко, а
-                     нажать случайно легко. Отдельного раздела не заводим — это действие
-                     про текущий аккаунт и живёт там же, где всё остальное про него. -->
-                <button class="btn-logout" id="btnLogout" onclick="logoutHere()">Выйти из профиля</button>
             </div>
 
             <!-- Друзья — только у учеников: самостоятельных и учеников репетитора.
@@ -2964,6 +3029,9 @@
                 <button class="menu-btn danger" style="margin-top:8px;" onclick="confirmDeleteOwnAccount()">⚠️ <span>Удалить профиль полностью</span></button>
             </div>
         </div>
+        <!-- Выход — в самом низу экрана и тихий: нужен редко, а нажать случайно легко.
+             Подтверждение спрашивает logoutHere. -->
+        <button class="btn-logout quiet" id="btnLogout" onclick="logoutHere()">Выйти из профиля</button>
     </div>
 
     <!-- Вводный экзамен. Свой экран, а не режим внутри игры: здесь не вызывается ни одна
@@ -12138,6 +12206,78 @@
                 : (type !== 'linked' ? ACCOUNT_TYPE_LABELS.self
                     : (tutor ? tf('📚 Ученик · репетитор %1', tutor) : ACCOUNT_TYPE_LABELS.linked));
             paintLoginToggle(document.getElementById('profileLoginToggle'), !guest && !!code);
+            document.getElementById('profileLoginRow').style.display = guest ? 'none' : '';
+            renderProfileCard();
+        }
+
+        // Визитка: буква имени, имя, три числа. Цвет кружка — от логина, чтобы у
+        // разных профилей на одном устройстве он был разным, но всегда тем же.
+        // Буква — пока нет аватаров; когда появятся, кружок займут они.
+        const AVATAR_COLORS = [['#fde68a', '#f59e0b'], ['#a5f3fc', '#06b6d4'], ['#fecaca', '#ef4444'],
+                               ['#bbf7d0', '#10b981'], ['#ddd6fe', '#8b5cf6'], ['#fbcfe8', '#ec4899']];
+        function avatarColorsFor(code) {
+            let h = 0;
+            for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) >>> 0;
+            return AVATAR_COLORS[h % AVATAR_COLORS.length];
+        }
+        // Первая буква или цифра имени; в имени их нет (только эмодзи) — улыбка.
+        function avatarLetter(label) {
+            return ((label || '').match(/[A-Za-zÀ-ÿĀ-žЀ-џ0-9]/) || [''])[0].toUpperCase() || '🙂';
+        }
+        // Звёзды — той же функцией, что сводка на экране достижений: два разных числа
+        // «звёзд» на двух экранах ученик заметит раньше нас.
+        function profileStarCount(unlocks) {
+            return MAP_SECTIONS.reduce((n, sec) =>
+                n + sectionSummary(`${sec.cat}${sec.sign}`, sec.ops, unlocks || {}).opened, 0);
+        }
+        function renderProfileCard() {
+            const label = Progress.getProfileLabel();
+            const nameEl = document.getElementById('profileNameVal');
+            nameEl.innerText = label || t('Без имени');
+            nameEl.classList.toggle('empty', !label);
+            const av = document.getElementById('profileAvatar');
+            av.innerText = avatarLetter(label);
+            const [c1, c2] = avatarColorsFor(Progress.getCode() || '');
+            av.style.background = `linear-gradient(135deg, ${c1}, ${c2})`;
+
+            // Серия — живая, как на стартовом экране и в статистике у ученика: под
+            // словами «дней подряд» везде одно и то же число.
+            const st = Progress.get();
+            const streak = currentStreak(st.daily || {}, Progress.dayKey());
+            const stars = profileStarCount(st.unlocks);
+            const solved = (st.totals && st.totals.correct) || 0;
+            const wrap = document.getElementById('profileStats');
+            wrap.innerHTML = '';
+            [['🔥 ' + streak, plural(streak, 'день подряд', 'дня подряд', 'дней подряд')],
+             ['⭐ ' + stars, plural(stars, 'звезда', 'звезды', 'звёзд')],
+             ['✅ ' + solved, t('решено верно')]].forEach(([val, label]) => {
+                const cell = document.createElement('div');
+                cell.className = 'profile-stat';
+                const b = document.createElement('b');
+                b.innerText = val;
+                const span = document.createElement('span');
+                span.innerText = label;
+                cell.appendChild(b);
+                cell.appendChild(span);
+                wrap.appendChild(cell);
+            });
+        }
+
+        // Имя меняется по карандашу. Раньше поле ввода и «Сохранить имя» стояли на
+        // экране всегда, и кнопка сохраняла то, что и так сохранено. Теперь поле
+        // открывается по карандашу, а «Сохранить» видна, только когда есть что сохранять.
+        function startNameEdit() {
+            const box = document.getElementById('profileNameEdit');
+            const input = document.getElementById('profileLabelInput');
+            box.hidden = false;
+            input.value = Progress.getProfileLabel();
+            onNameInput();
+            input.focus();
+        }
+        function onNameInput() {
+            const input = document.getElementById('profileLabelInput');
+            document.getElementById('profileNameSave').hidden =
+                input.value.trim() === Progress.getProfileLabel();
         }
 
         // Имя репетитора для карточки ученика. Спрашиваем при каждом открытии
@@ -12596,9 +12736,9 @@
             const type = Progress.getAccountType();
             const guest = Progress.isGuest();
             renderAccountCard();
+            // Имя теперь в визитке — подзаголовок его не повторяет.
             document.getElementById('profileSubtitle').innerText = guest
-                ? t('Игра без аккаунта')
-                : (Progress.getProfileLabel() || t('Управление аккаунтом'));
+                ? t('Игра без аккаунта') : t('Управление аккаунтом');
             // Гостю здесь главное — не настройки, а выход из гостевого положения.
             document.getElementById('guestUpgradeRow').style.display = guest ? '' : 'none';
             // Логин и смена пароля — только тому, кто сам себе хозяин. У ученика пароль
@@ -12608,6 +12748,7 @@
             document.getElementById('linkTutorRow').style.display =
                 (!guest && type === 'solo') ? '' : 'none';
             document.getElementById('profileLabelInput').value = Progress.getProfileLabel();
+            document.getElementById('profileNameEdit').hidden = true;
             renderProfileList();
             // Друзья — только ученикам. Раздел появляется сразу, содержимое догружается.
             if (friendsAvailable()) refreshFriends(); else renderFriends();
@@ -12622,7 +12763,18 @@
             const opened = (type !== 'linked') ? [] : ['integer-', 'decimal+', 'fraction+']
                 .filter(k => isSectionOpen(k))
                 .map(k => tf('%1%2', SECTION_TITLES[k], grantSummary(k) && grantSummary(k) !== t('открыт полностью') ? ' (' + grantSummary(k) + ')' : ''));
-            sum.innerText = opened.length ? t('Открыто кодами: ') + opened.join(', ') + '.' : '';
+            sum.innerHTML = '';
+            if (opened.length) {
+                const cap = document.createElement('span');
+                cap.innerText = t('Открыто репетитором:');
+                sum.appendChild(cap);
+                opened.forEach(name => {
+                    const chip = document.createElement('span');
+                    chip.className = 'profile-chip';
+                    chip.innerText = name;
+                    sum.appendChild(chip);
+                });
+            }
 
             // Заводить учеников может только сам репетитор (self) — сервер тоже это
             // проверяет (см. миграцию), но прятать кнопку у ученика правильнее, чем
