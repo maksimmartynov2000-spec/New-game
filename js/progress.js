@@ -89,6 +89,12 @@ const Progress = (() => {
             // с остальными: это подмножество, а не четвёртый класс.
             byClass: {},
 
+            // Таблица умножения по каждому примеру, без звёзд: 7 × 8 это 7 × 8, на
+            // какой бы звезде он ни попался. Ключ — меньший множитель первым:
+            //   { '7×8': [верно, ошибок] }
+            // Считаем с того дня, как поле появилось: прошлых ответов по примерам нет.
+            byFact: {},
+
             // Журнал по дням — единственное место, где вообще есть измерение времени.
             // Без него нельзя ответить ни на один вопрос вида "а что изменилось за месяц":
             // totals/byTopic выше пожизненные и только растут, из них динамику не достать.
@@ -656,6 +662,13 @@ const Progress = (() => {
             out.byClass[t] = merged;
         });
 
+        // По примерам таблицы — тоже «только вверх».
+        out.byFact = {};
+        new Set([...Object.keys(a.byFact || {}), ...Object.keys(b.byFact || {})]).forEach(k => {
+            const p = (a.byFact || {})[k] || [], q = (b.byFact || {})[k] || [];
+            out.byFact[k] = [Math.max(p[0] || 0, q[0] || 0), Math.max(p[1] || 0, q[1] || 0)];
+        });
+
         const topics = new Set([...Object.keys(a.byTopic || {}), ...Object.keys(b.byTopic || {})]);
         out.byTopic = {};
         topics.forEach(t => {
@@ -824,6 +837,12 @@ const Progress = (() => {
                 if (!Array.isArray(slot)) { delete t[cls]; return; }
                 t[cls] = [num(slot[0]), num(slot[1]), num(slot[2]), num(slot[3])];
             });
+        });
+        if (!s.byFact || typeof s.byFact !== 'object' || Array.isArray(s.byFact)) s.byFact = {};
+        Object.keys(s.byFact).forEach(k => {
+            const slot = s.byFact[k];
+            if (!/^\d+×\d+$/.test(k) || !Array.isArray(slot)) { delete s.byFact[k]; return; }
+            s.byFact[k] = [num(slot[0]), num(slot[1])];
         });
         if (!s.byTopic || typeof s.byTopic !== 'object') s.byTopic = {};
         Object.keys(s.byTopic).forEach(k => {
@@ -1434,6 +1453,18 @@ const Progress = (() => {
             persistLocal();
         },
         getByClass() { return state.byClass || {}; },
+
+        // Пример таблицы умножения: верно или нет. Только 1…10 × 1…10.
+        recordFact(a, b, isRight) {
+            a = Math.abs(a); b = Math.abs(b);
+            if (!(a >= 1 && a <= 10 && b >= 1 && b <= 10)) return;
+            if (!state.byFact || typeof state.byFact !== 'object') state.byFact = {};
+            const key = `${Math.min(a, b)}×${Math.max(a, b)}`;
+            const slot = state.byFact[key] || (state.byFact[key] = [0, 0]);
+            if (isRight) slot[0]++; else slot[1]++;
+            persistLocal();
+        },
+        getByFact() { return state.byFact || {}; },
 
         // Скорость считается как «всё потраченное время, делённое на число верных
         // ответов». Раньше время ошибок не учитывалось вовсе: можно было думать над

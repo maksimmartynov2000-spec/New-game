@@ -1945,6 +1945,38 @@
            мельче остальных: место нужнее таблице. */
         #timesScreen .start-title { font-size: clamp(0.95rem, 4.4vw, 1.4rem); }
         #timesScreen .start-subtitle { margin-bottom: 12px; }
+        /* От верха, как выбор миссии: по центру таблица висела с пустотой сверху и
+           прыгала вверх, когда под ней раскрывалась карточка приёма. */
+        #timesScreen { justify-content: flex-start; }
+        #timesScreen .start-title { margin-top: 8px; }
+        .times-cell { position: relative; }
+        /* Пример лежит в копилке ошибок — красная точка в углу клетки. */
+        .times-cell.times-bank::after {
+            content: ''; position: absolute; top: 2px; right: 2px; width: 6px; height: 6px;
+            border-radius: 50%; background: #f87171; box-shadow: 0 0 0 1.5px #0b1220;
+        }
+        /* Своих ответов на пример ещё мало — цвет пока от группы, бледнее. */
+        .times-cell.times-fallback { opacity: 0.5; }
+        .times-summary {
+            display: flex; flex-wrap: wrap; justify-content: center; gap: 4px 14px;
+            font-size: 0.74rem; color: #cbd5e1; margin-bottom: 10px;
+        }
+        .times-summary:empty { display: none; }
+        .times-summary span { display: flex; align-items: center; gap: 5px; }
+        .times-summary b { color: #fff; }
+        .times-summary i { width: 11px; height: 11px; border-radius: 3px; display: block; }
+        .times-train {
+            width: 100%; margin: 2px 0 10px; padding: 11px 12px; border-radius: 12px;
+            border: 1px solid rgba(248,113,113,0.45); background: rgba(248,113,113,0.10);
+            color: #fecaca; font: inherit; font-weight: bold; font-size: 0.86rem; cursor: pointer;
+        }
+        .times-train[hidden] { display: none; }
+        .times-train small { display: block; font-weight: normal; color: #fca5a5; font-size: 0.72rem; margin-top: 3px; }
+        .times-legend i.times-bank-dot, .times-summary i.times-bank-dot {
+            width: 8px; height: 8px; border-radius: 50%; background: #f87171;
+        }
+        .times-pick-hint.times-pick-bank { color: #fca5a5; }
+        .times-legend i.times-fallback-sw { opacity: 0.5; }
         .times-wrap { width: 100%; max-width: 520px; }
 
         /* Переключатель видов — не две кнопки действия, а положение тумблера,
@@ -2866,9 +2898,11 @@
                 <button class="times-tab selected" data-view="groups">Приёмы</button>
                 <button class="times-tab" data-view="mine">Как у меня</button>
             </div>
+            <div class="times-summary" id="timesSummary"></div>
             <div class="times-grid" id="timesGrid"></div>
-            <div class="times-pick-line" id="timesPickLine"></div>
             <div class="times-legend" id="timesLegend"></div>
+            <button class="times-train" id="timesTrain" type="button" onclick="startTimesTraining()" hidden></button>
+            <div class="times-pick-line" id="timesPickLine"></div>
             <div class="times-foot" id="timesFoot"></div>
         </div>
     </div>
@@ -8003,25 +8037,133 @@
             return 'low';
         }
 
+        // Свой цвет у примера — с пяти ответов на него. Меньше — красим по группе,
+        // но бледнее: это ещё не про сам пример.
+        const TIMES_FACT_MIN = 5;
+        const timesFactKey = (a, b) => `${Math.min(a, b)}×${Math.max(a, b)}`;
+
+        // Примеры таблицы, которые сейчас лежат в копилке ошибок (любая звезда
+        // положительного умножения).
+        function timesBankFacts() {
+            const out = new Set();
+            const items = (Progress.getBank && Progress.getBank().items) || {};
+            Object.keys(items).forEach(sig => {
+                const it = items[sig], p = parseTopicKey(it.k);
+                if (p.category !== 'integer' || p.sign !== '+' || p.op !== 'mul') return;
+                const a = it.p && it.p.a, b = it.p && it.p.b;
+                if (a >= 1 && a <= 10 && b >= 1 && b <= 10) out.add(timesFactKey(a, b));
+            });
+            return out;
+        }
+
+        // Уровень клетки в виде «Как у меня»: по самому примеру, если ответов хватает,
+        // иначе по группе. { level: 'high' | 'mid' | 'low' | 'none', own: true/false }
+        function timesCellLevel(a, b, acc, facts) {
+            const f = facts[timesFactKey(a, b)];
+            if (f && f[0] + f[1] >= TIMES_FACT_MIN) {
+                const pct = f[0] / (f[0] + f[1]) * 100;
+                return { level: pct >= 93 ? 'high' : pct >= 80 ? 'mid' : 'low', own: true };
+            }
+            return { level: timesAccuracyClass(acc[mulClassOf(a, b)]), own: false };
+        }
+
         function renderTimesTable() {
             const grid = document.getElementById('timesGrid');
             const acc = timesAccuracy();
+            const facts = (Progress.getByFact && Progress.getByFact()) || {};
+            const bank = timesBankFacts();
             let html = '<div class="times-cell times-head times-corner">×</div>';
             for (let b = 1; b <= 10; b++) html += `<div class="times-cell times-head">${b}</div>`;
             for (let a = 1; a <= 10; a++) {
                 html += `<div class="times-cell times-head">${a}</div>`;
                 for (let b = 1; b <= 10; b++) {
                     const cls = mulClassOf(a, b);
-                    const tint = timesView === 'mine'
-                        ? 'times-a-' + timesAccuracyClass(acc[cls])
-                        : 'times-g-' + cls;
+                    let tint;
+                    if (timesView === 'mine') {
+                        const lv = timesCellLevel(a, b, acc, facts);
+                        tint = 'times-a-' + lv.level + (!lv.own && lv.level !== 'none' ? ' times-fallback' : '');
+                        if (bank.has(timesFactKey(a, b))) tint += ' times-bank';
+                    } else {
+                        tint = 'times-g-' + cls;
+                    }
                     const picked = timesPicked === `${a}×${b}` ? ' times-pick' : '';
                     html += `<div class="times-cell ${tint}${picked}" data-a="${a}" data-b="${b}">${a * b}</div>`;
                 }
             }
             grid.innerHTML = html;
+            renderTimesSummary(acc, facts, bank);
             renderTimesFoot(acc);
-            renderTimesPick(acc);
+            renderTimesTrain(acc, facts, bank);
+            renderTimesPick(acc, facts, bank);
+        }
+
+        // Сводка над таблицей — по 55 разным примерам (7 × 8 и 8 × 7 — один).
+        function renderTimesSummary(acc, facts, bank) {
+            const el = document.getElementById('timesSummary');
+            if (timesView !== 'mine') { el.innerHTML = ''; return; }
+            const n = { high: 0, mid: 0, low: 0 };
+            for (let a = 1; a <= 10; a++) for (let b = a; b <= 10; b++) {
+                const lv = timesCellLevel(a, b, acc, facts).level;
+                if (n[lv] !== undefined) n[lv]++;
+            }
+            const item = (cls, label, v) => `<span><i class="${cls}"></i>${label} <b>${v}</b></span>`;
+            el.innerHTML = item('times-a-high', t('знаю'), n.high) + item('times-a-mid', t('почти'), n.mid)
+                + item('times-a-low', t('сбиваюсь'), n.low)
+                + (bank.size ? item('times-bank-dot', t('в копилке'), bank.size) : '');
+        }
+
+        // Трудные: «сбиваюсь», потом «почти», потом примеры из копилки. Без «без счёта».
+        function timesWeakFacts(acc, facts, bank) {
+            const rank = { low: 0, mid: 1 };
+            const out = [];
+            for (let a = 2; a <= 9; a++) for (let b = a; b <= 9; b++) {
+                const lv = timesCellLevel(a, b, acc, facts).level;
+                const inBank = bank.has(timesFactKey(a, b));
+                if (rank[lv] === undefined && !inBank) continue;
+                out.push({ a, b, r: inBank ? -1 : rank[lv] });
+            }
+            return out.sort((x, y) => (x.r - y.r) || (y.a * y.b - x.a * x.b));
+        }
+
+        function renderTimesTrain(acc, facts, bank) {
+            const btn = document.getElementById('timesTrain');
+            const weak = timesView === 'mine' ? timesWeakFacts(acc, facts, bank) : [];
+            btn.hidden = !weak.length;
+            if (!weak.length) return;
+            const shown = weak.slice(0, 3).map(f => `${f.a} × ${f.b}`).join(', ');
+            const more = weak.length > 3 ? t(' и другие') : '';
+            const len = tf(plural(REPEAT_LEN, '%1 пример', '%1 примера', '%1 примеров'), REPEAT_LEN);
+            btn.innerHTML = `💪 ${t('Потренировать трудные')}<small>${shown}${more} — ${len}</small>`;
+        }
+
+        // Звезда, где группа впервые встречается в игре: туда и пишутся ответы.
+        const TIMES_GROUP_LEVEL = { triv: 1, two: 1, five: 1, small: 2, nine: 2, core: 3 };
+        function startTimesTraining() {
+            const acc = timesAccuracy();
+            const facts = (Progress.getByFact && Progress.getByFact()) || {};
+            const bank = timesBankFacts();
+            const weak = timesWeakFacts(acc, facts, bank).slice(0, 6);
+            if (!weak.length) return;
+            const queue = [];
+            for (let i = 0; queue.length < REPEAT_LEN; i++) {
+                const f = weak[i % weak.length];
+                const swap = Math.random() < 0.5;
+                const x = swap ? f.b : f.a, y = swap ? f.a : f.b;
+                let lvl = TIMES_GROUP_LEVEL[mulClassOf(f.a, f.b)] || 1;
+                while (lvl > 1 && !isLevelOpen('integer+', 'mul', lvl)) lvl--;
+                const meta = { category: 'integer', isNegative: false, opKey: 'mul', level: lvl };
+                const p = { text: `${x} × ${y}`, answer: x * y, a: x, b: y };
+                const sig = problemSig(meta, p);
+                const inBank = (Progress.getBank().items || {})[sig];
+                queue.push({ k: buildTopicKey(meta), p, sig, t: 0, ok: inBank ? inBank.ok.slice() : [] });
+            }
+            document.getElementById('timesScreen').style.display = 'none';
+            sessionMistakes = [];
+            resetSessionCounters();
+            Progress.flush();
+            pendingRepeatRun = { queue, pos: -1, current: null, focus: true,
+                savedConfig: JSON.parse(JSON.stringify(exampleConfig)) };
+            startGame();
         }
 
         // Легенда и сноска — только у вида «как у меня»: там цвет это шкала, и без
@@ -8040,17 +8182,19 @@
                 swatch('times-a-high', t('знаю')),
                 swatch('times-a-mid', t('почти')),
                 swatch('times-a-low', t('сбиваюсь')),
-                swatch('times-a-none', t('ещё не считали'))
+                swatch('times-a-none', t('ещё не считали')),
+                swatch('times-a-high times-fallback-sw', t('бледная — пока по группе')),
+                swatch('times-bank-dot', t('ошибка ждёт повтора'))
             ].join('');
             // Ни одного ответа по умножению — таблица серая целиком, и молчащий
             // экран читается как поломка. Говорим прямо, отчего он серый.
             const solved = Object.keys(acc).some(k => acc[k].right + acc[k].wrong > 0);
             foot.innerText = solved
-                ? tf('Цвет — про группу целиком, а не про одну клетку. Серое — решено меньше %1 раз.', TIMES_MIN_SAMPLE)
+                ? tf('Яркая клетка — твои ответы именно на этот пример (от %1 раз). Бледная — ответов на него ещё мало, и цвет пока взят от всей группы.', TIMES_FACT_MIN)
                 : t('Умножение ещё не решалось — клетки покрасятся, когда порешаешь.');
         }
 
-        function renderTimesPick(acc) {
+        function renderTimesPick(acc, facts, bank) {
             const line = document.getElementById('timesPickLine');
             if (!timesPicked) {
                 line.classList.remove('filled');
@@ -8065,10 +8209,17 @@
             if (TIMES_TRICKS[cls]) {
                 html += `<div class="times-pick-trick">${TIMES_TRICKS[cls]}</div>`;
             }
+            const f = facts && facts[timesFactKey(a, b)];
+            if (f && f[0] + f[1] > 0) {
+                html += `<div class="times-pick-hint">${tf('этот пример: верно %1 из %2', f[0], f[0] + f[1])}</div>`;
+            }
             const stat = acc && acc[cls];
             if (stat && stat.right + stat.wrong >= TIMES_MIN_SAMPLE) {
                 const total = stat.right + stat.wrong;
-                html += `<div class="times-pick-hint">${tf('эта группа: %1% верных из %2', Math.round(stat.right / total * 100), total)}</div>`;
+                html += `<div class="times-pick-hint">${tf('вся группа: %1% верных из %2', Math.round(stat.right / total * 100), total)}</div>`;
+            }
+            if (bank && bank.has(timesFactKey(a, b))) {
+                html += `<div class="times-pick-hint times-pick-bank">${t('● этот пример ждёт в копилке ошибок')}</div>`;
             }
             line.innerHTML = html;
         }
@@ -13964,9 +14115,11 @@
             // В повторе цель — пройти очередь, а не ступень одной клетки.
             if (repeatRun) {
                 const total = repeatRun.queue.length;
+                const at = Math.min(Math.max(repeatRun.pos + 1, 1), total);
                 wrap.style.display = '';
-                document.getElementById('live-goal').innerText =
-                    tf('🔁 %1 из %2', Math.min(Math.max(repeatRun.pos + 1, 1), total), total);
+                // 💪 — тренировка трудных с экрана таблицы, 🔁 — повтор ошибок из копилки.
+                document.getElementById('live-goal').innerText = repeatRun.focus
+                    ? tf('💪 %1 из %2', at, total) : tf('🔁 %1 из %2', at, total);
                 renderMissionTask();
                 renderRepeatNow();
                 return;
@@ -14502,6 +14655,8 @@
             if (!el) return;
             const run = repeatRun;
             if (!run || !run.current) { el.style.display = 'none'; return; }
+            // Тренировка трудных: подпись нужна, только если пример лежит в копилке.
+            if (run.focus && !(Progress.getBank().items || {})[run.current.sig]) { el.style.display = 'none'; return; }
             const it = (Progress.getBank().items || {})[run.current.sig] || run.current;
             const st = repeatStateOf(it, Progress.dayKey());
             let text = st === 'ready' ? t('Реши верно — и ошибка уйдёт из копилки')
@@ -15422,6 +15577,12 @@
             if (topicKey && struct && !trainActive) {
                 Progress.recordClass(topicKey, struct, isCorrect, elapsedMs);
             }
+            // И сам пример таблицы — для вида «Как у меня» на экране таблицы.
+            if (!trainActive && currentProblemMeta && currentProblemMeta.category === 'integer'
+                && !currentProblemMeta.isNegative && currentProblemMeta.opKey === 'mul'
+                && currentProblem && !currentProblem.triple) {
+                Progress.recordFact(currentProblem.a, currentProblem.b, isCorrect);
+            }
 
             // Тот же потолок, что и в хранилище: отложенный телефон не должен
             // записываться как «думал пять минут».
@@ -15832,7 +15993,15 @@
             const again = document.getElementById('btnWinAgain');
             if (again) again.style.display = '';
 
-            if (repeatRun) {
+            if (repeatRun && repeatRun.focus) {
+                card.querySelectorAll('.win-kicker, .win-big, .win-sub')
+                    .forEach(x => { x.style.display = ''; });
+                kicker.innerText = t('Тренировка трудных');
+                big.innerText = tf('%1 из %2', correctCount, correctCount + wrongCount);
+                sub.innerText = t('верно');
+                gate.innerText = t('Клетки таблицы перекрашиваются по твоим ответам: открой таблицу и посмотри, что изменилось.');
+                gate.style.display = '';
+            } else if (repeatRun) {
                 // Повтор ошибок: главное число — сколько ошибок ещё ждёт. Картинки нет:
                 // примеры шли из разных клеток. Выученное и «повтори завтра» считаем по
                 // самой копилке, а не по ходу миссии: так экран не разойдётся с ней,
@@ -15938,6 +16107,7 @@
         // пройти два экрана значит отнять у числа весь смысл.
         function winPlayAgain() {
             // После повтора «Ещё раз» — снова повтор, из того, что в копилке осталось.
+            if (repeatRun && repeatRun.focus) { document.getElementById('winScreen').classList.remove('active'); startTimesTraining(); return; }
             if (repeatRun) { startRepeatMission(); return; }
             // «Ещё раз» после домашнего — снова домашнее: и без подсказок, и со строкой.
             const homeworkId = missionHomeworkId;
