@@ -289,6 +289,26 @@
         }
         .ladder-league { margin-top: 7px; font-size: 0.72rem; color: #64748b; }
         .ladder-league.in { color: #fbbf24; font-weight: bold; }
+        /* Что нужно для следующей звезды: две строки с полосками. */
+        .ladder-league.next-star {
+            margin-top: 10px; padding: 10px 12px; border-radius: 10px;
+            background: rgba(6,182,212,0.07); border: 1px solid rgba(6,182,212,0.25);
+            color: #cbd5e1; display: flex; flex-direction: column; gap: 7px;
+        }
+        .next-star-head { font-size: 0.8rem; font-weight: bold; color: var(--cyan); }
+        .next-star-row {
+            display: grid; grid-template-columns: 1.3em auto 1fr; align-items: center;
+            column-gap: 6px; row-gap: 3px; font-size: 0.74rem;
+        }
+        .next-star-row .ns-name { color: #94a3b8; }
+        .next-star-row .ns-text { text-align: right; color: #e2e8f0; }
+        .next-star-row .ns-bar {
+            grid-column: 2 / 4; height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden;
+        }
+        .next-star-row .ns-bar i { display: block; height: 100%; background: var(--cyan); border-radius: 3px; }
+        .next-star-row.done .ns-text { color: #6ee7b7; }
+        .next-star-row.done .ns-bar i { background: #10b981; }
+        .next-star-note { font-size: 0.68rem; color: #64748b; }
 
 
         /* Карточка прошедшей эпохи */
@@ -12014,10 +12034,63 @@
                     : tf('%1★ откроет репетитор', lvl + 1);
                 foot.classList.add('in');
             } else {
-                const need = [];
-                if (accTier < LEVEL_GATE_TIER) need.push(tf('точность %1%', ACCURACY_TIERS[LEVEL_GATE_TIER - 1]));
-                if (cntTier < LEVEL_GATE_TIER) need.push(tf('%1 верных', COUNT_TIERS[LEVEL_GATE_TIER - 1]));
-                foot.innerText = tf('До %1★: %2', lvl + 1, need.join(t(' и ')));
+                // Что нужно для следующей звезды — двумя полосками: сколько есть и
+                // сколько надо. Условия те же, что у ворот (levelGatePassed): золото
+                // по точности и золото по количеству. Точность меряется по последней
+                // сотне ответов, но засчитывается, только когда верных за всё время
+                // наберётся LADDER_MIN_SAMPLE, — об этом отдельная строка, иначе
+                // «95% — хватает», а звезды нет, и непонятно почему.
+                // Скорость в воротах не участвует, и это сказано прямо: раньше её
+                // строка стояла рядом и читалась как ещё одно условие.
+                const accNeed = ACCURACY_TIERS[LEVEL_GATE_TIER - 1];
+                const cntNeed = COUNT_TIERS[LEVEL_GATE_TIER - 1];
+                const sampleNeed = LADDER_MIN_SAMPLE[LEVEL_GATE_TIER - 1];
+                foot.className = 'ladder-league next-star';
+                foot.innerHTML = '';
+                const head = document.createElement('div');
+                head.className = 'next-star-head';
+                head.innerText = tf('Чтобы открыть %1★', lvl + 1);
+                foot.appendChild(head);
+                const addRow = (icon, name, text, fill, done) => {
+                    const row = document.createElement('div');
+                    row.className = 'next-star-row' + (done ? ' done' : '');
+                    row.innerHTML = `<span class="ns-icon"></span><span class="ns-name"></span>
+                        <span class="ns-text"></span><span class="ns-bar"><i></i></span>`;
+                    row.querySelector('.ns-icon').innerText = icon;
+                    row.querySelector('.ns-name').innerText = name;
+                    row.querySelector('.ns-text').innerText = text;
+                    row.querySelector('.ns-bar i').style.width = Math.round(Math.max(0, Math.min(1, fill)) * 100) + '%';
+                    foot.appendChild(row);
+                };
+                // Точность
+                if (accTier >= LEVEL_GATE_TIER) {
+                    addRow('🎯', t('Точность'), tf('%1% — есть ✓', accNeed), 1, true);
+                } else if (m.accuracy === null) {
+                    addRow('🎯', t('Точность'), tf('нужно %1%', accNeed), 0, false);
+                } else if (m.accuracy >= accNeed) {
+                    // Хватает, но ступень ещё не записана: либо мало верных (тогда
+                    // говорим, сколько надо), либо она запишется со следующим ответом.
+                    addRow('🎯', t('Точность'), tf('%1% — хватает ✓', m.accuracy), 1, false);
+                    if (m.count < sampleNeed) {
+                        const wait = document.createElement('div');
+                        wait.className = 'next-star-note';
+                        wait.innerText = tf('Точность засчитается, когда верных станет %1.', sampleNeed);
+                        foot.appendChild(wait);
+                    }
+                } else {
+                    addRow('🎯', t('Точность'), tf('сейчас %1%, нужно %2%', m.accuracy, accNeed), m.accuracy / accNeed, false);
+                }
+                // Количество
+                if (cntTier >= LEVEL_GATE_TIER) {
+                    addRow('🔢', t('Верных'), tf('%1 — есть ✓', cntNeed), 1, true);
+                } else {
+                    const left = Math.max(0, cntNeed - m.count);
+                    addRow('🔢', t('Верных'), tf('%1 из %2 — ещё %3', m.count, cntNeed, left), m.count / cntNeed, false);
+                }
+                const note = document.createElement('div');
+                note.className = 'next-star-note';
+                note.innerText = t('⚡ Скорость на звезду не влияет — она для медалей и мастерства.');
+                foot.appendChild(note);
             }
 
             // Задачи за мастерство — здесь же, под лесенками: ученик видит свой алмаз
