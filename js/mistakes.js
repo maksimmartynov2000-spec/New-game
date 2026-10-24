@@ -40,6 +40,9 @@ const MISTAKE_LABELS = {
     'сократил не до конца':        t('Сокращено не до конца'),
     'ошибся в сокращении':         t('Ошибка в сокращении'),
     'ошибся в знаке':              t('Ошибка в знаке'),
+    'спутал модули':               t('Модули сложены, а надо вычесть — или наоборот'),
+    'двойной минус':               t('Двойной минус не замечен'),
+    'минус в скобках':             t('Минус в скобках не замечен'),
     'знак и число мимо':           t('Мимо и знаком, и числом'),
     'ошибся на единицу':           t('Мимо на единицу'),
     'таблица умножения':           t('Ошибка в таблице умножения'),
@@ -82,6 +85,9 @@ const MISTAKE_SHORT = {
     'сократил не до конца':        t('не до конца'),
     'ошибся в сокращении':         t('сокращение'),
     'ошибся в знаке':              t('знак'),
+    'спутал модули':               t('модули'),
+    'двойной минус':               t('двойной минус'),
+    'минус в скобках':             t('минус в скобках'),
     'знак и число мимо':           t('знак и число'),
     'ошибся на единицу':           t('мимо на 1'),
     'таблица умножения':           t('таблица'),
@@ -216,6 +222,23 @@ function classifyIntegerLike(problem, correct, chosen, opKey, isNegative) {
         || Math.sign(chosen) === Math.sign(correct);
 
     if (chosen === -correct && correct !== 0) return 'ошибся в знаке';
+
+    // Отрицательные сложение и вычитание: типичная ошибка темы — та же модель,
+    // по которой строится вторая пара вариантов (см. negTypicalMag). Знак у
+    // такого ответа любой: ошибка в модуле, а знак — отдельное дело.
+    //  - без скобок: модули сложены, а надо вычесть, или наоборот («−8 + 3 = −11»);
+    //  - со скобками в вычитании: не замечен двойной минус («5 − (−3)» как 5 − 3);
+    //  - со скобками в сложении: не замечен минус в скобке («5 + (−3)» как 5 + 3).
+    // Скобки в записи бывают только у второго числа и только при его минусе,
+    // поэтому действие тут совпадает с тем, что видно на экране.
+    if (isNegative && (opKey === 'add' || opKey === 'sub') && haveOperands
+        && typeof negTypicalMag === 'function') {
+        const typ = negTypicalMag(opKey, a, b, correct, problem);
+        if (typ && Math.abs(chosen) === typ) {
+            if ((problem.text || '').indexOf('(') < 0) return 'спутал модули';
+            return opKey === 'sub' ? 'двойной минус' : 'минус в скобках';
+        }
+    }
 
     // Единицы посчитаны верно, десятки — нет: 17 + 18 = 35, а названо 45 или 25.
     // Проверяем раньше остальных разрядных моделей, потому что это самая частая
@@ -529,6 +552,16 @@ function hintVariant(kind, meta, problem, correct) {
         return null;
     }
 
+    // «Спутал модули»: правило одно, а слова — по делу (знаки одинаковые или
+    // разные) и по записи. Если между числами на экране минус («3 − 8», «−7 − 3»),
+    // первым шагом вычитание переписывают в сумму: «3 − 8 — это 3 + (−8)».
+    if (kind === 'спутал модули' && (op === 'add' || op === 'sub')) {
+        if (typeof correct !== 'number') return null;
+        const x = a, y = correct - a;
+        if (x === 0 || y === 0) return null;
+        return (Math.sign(x) === Math.sign(y) ? 'same' : 'diff') + (negShownMinus(op, b) ? 'Minus' : 'Plus');
+    }
+
     // Десятки на отрицательном сложении. Столбик тут идёт не по записи, а по
     // тому, что делают с числами на деле: при одинаковых знаках их складывают,
     // при разных — из дальнего вычитают ближнее. «−17 − 18» — это сложение
@@ -545,7 +578,20 @@ function hintVariant(kind, meta, problem, correct) {
 // Отрицательное число после знака действия пишется в скобках: «4 × (−5)».
 // Так оно выглядит в самом примере, и подсказка не должна писать иначе.
 function hintParen(n) {
-    return (typeof n === 'number' && n < 0) ? '(' + n + ')' : String(n);
+    return (typeof n === 'number' && n < 0) ? '(' + showMinus(n) + ')' : String(n);
+}
+
+// Отрицательные сложение и вычитание без скобок: какой знак стоит между числами
+// на экране. Запись строит formatAddSubText: минус второго числа переворачивает
+// знак действия («5 + (−3)» показывается как «5 − 3»), поэтому минус на экране —
+// это вычитание положительного или сложение отрицательного.
+function negShownMinus(op, b) {
+    return (op === 'sub') === (b >= 0);
+}
+// Сама запись — ровно та, что была на экране, с настоящим минусом.
+function negAddSubShown(op, a, b, withParen) {
+    if (typeof formatAddSubText !== 'function') return '';
+    return showMinus(formatAddSubText(a, op === 'sub' ? '-' : '+', b, !!withParen));
 }
 
 // Какую клетку таблицы ученик посчитал на самом деле. Вид ошибки ставится
@@ -584,6 +630,37 @@ function hintArgs(kind, meta, problem, correct, chosen) {
             return { game: [ref], review: [ref, first, second] };
         }
         return { game: [], review: [] };
+    }
+
+    // Модули: для diff — больший и меньший, для same — первый и второй, как их и
+    // считают. Дальше запись примера и она же суммой: «3 − 8» и «3 + (−8)».
+    if (kind === 'спутал модули') {
+        if ((op !== 'add' && op !== 'sub') || typeof correct !== 'number') return null;
+        const x = a, y = correct - a;
+        if (x === 0 || y === 0) return null;
+        const shown = negAddSubShown(op, a, b, false);
+        if (!shown) return null;
+        const asSum = `${showMinus(a)} + ${hintParen(y)}`;
+        if (Math.sign(x) === Math.sign(y)) {
+            const args = [Math.abs(x), Math.abs(y), shown, asSum];
+            return { game: args, review: args };
+        }
+        // Ответ ноль — знака у него нет, и «знак — как у числа с бо́льшим модулем»
+        // было бы неправдой. Молчим.
+        if (Math.abs(x) === Math.abs(y)) return null;
+        const args = [Math.max(Math.abs(x), Math.abs(y)), Math.min(Math.abs(x), Math.abs(y)), shown, asSum];
+        return { game: args, review: args };
+    }
+
+    // Скобки бывают только у отрицательного второго числа; «двойной минус» —
+    // у вычитания, «минус в скобках» — у сложения. Запись со скобками и она же
+    // без них: «5 − (−3)» — «5 + 3», «5 + (−3)» — «5 − 3». Дальше считает ученик.
+    if (kind === 'двойной минус' || kind === 'минус в скобках') {
+        if (b >= 0 || op !== (kind === 'двойной минус' ? 'sub' : 'add')) return null;
+        const shown = negAddSubShown(op, a, b, true);
+        if (!shown) return null;
+        const open = showMinus(`${a} ${op === 'sub' ? '+' : '-'} ${Math.abs(b)}`);
+        return { game: [shown, open], review: [shown, open] };
     }
 
     if (kind === 'ошибка в десятках') {
@@ -642,7 +719,7 @@ function hintArgs(kind, meta, problem, correct, chosen) {
             if (problem.triple) {
                 const f = problem.factors;
                 if (!Array.isArray(f) || f.length !== 3) return null;
-                const head = f[0] + ' × ' + hintParen(f[1]), tail = hintParen(f[2]);
+                const head = showMinus(f[0]) + ' × ' + hintParen(f[1]), tail = hintParen(f[2]);
                 return { game: [Math.abs(chosen - correct), head, tail],
                          review: [head, tail, correct, chosen] };
             }
@@ -739,13 +816,20 @@ function hintText(form, kind, meta, problem, correct, chosen) {
         const args = hintArgs(kind, meta, problem, correct, chosen);
         if (!args || !args[form]) return '';
         let out = entry[form];
-        args[form].forEach((v, i) => { out = out.split('%' + (i + 1)).join(String(v)); });
+        // Числа — с настоящим минусом, как в самом примере. Строки уже собраны
+        // с ним (hintParen, записи примеров) — и в них бывают дефисы-слова вроде
+        // немецкого «21-mal», которые трогать нельзя.
+        args[form].forEach((v, i) => { out = out.split('%' + (i + 1)).join(hintValue(v)); });
         // Осталась неподставленная %N — значит шаблон и аргументы разъехались.
         // Показывать такое ученику нельзя, лучше промолчать.
         return /%\d/.test(out) ? '' : out;
     } catch (e) {
         return '';
     }
+}
+
+function hintValue(v) {
+    return typeof v === 'number' ? showMinus(v) : String(v);
 }
 
 const HINT_OP_SIGNS = { add: '+', sub: '−', mul: '×', div: '÷' };
@@ -784,20 +868,20 @@ function hintCountPhrase(what, n) {
 function hintProblemLine(meta, problem, correct) {
     const sign = HINT_OP_SIGNS[meta && meta.opKey];
     if (!sign || !problem || typeof problem.a !== 'number' || typeof problem.b !== 'number') return '';
-    const right = (typeof correct === 'number') ? String(correct) : t('Нет решения');
+    const right = (typeof correct === 'number') ? showMinus(correct) : t('Нет решения');
     // На отрицательных строку собирать из a и b нельзя: три множителя хранятся
     // как два числа («−24 × −8» вместо «−8 × 3 × (−8)»), а сложение записано
     // на экране по-своему («−5 − 3», а не «−5 + −3»). Берём запись ровно такой,
     // какой её видел ребёнок. У положительных всё как прежде — там запись и
     // сборка из a и b совпадают, и типографский минус остаётся.
     if (problem.text && (problem.triple || hintNegArith(problem, correct))) {
-        return `${problem.text} = ${right}`;
+        return `${showMinus(problem.text)} = ${right}`;
     }
     return `${problem.a} ${sign} ${problem.b} = ${right}`;
 }
 
 function hintChosenLine(chosen) {
-    const what = (typeof chosen === 'number') ? String(chosen)
+    const what = (typeof chosen === 'number') ? showMinus(chosen)
         : (chosen === 'NO_SOLUTION' ? t('Нет решения') : '');
     return what ? tf('выбрано: %1', what) : '';
 }
@@ -1113,7 +1197,7 @@ function trickHint(meta, problem) {
         const tpl = table && table[pick.key];
         if (!tpl) return '';
         let out = tpl;
-        pick.args.forEach((v, i) => { out = out.split('%' + (i + 1)).join(String(v)); });
+        pick.args.forEach((v, i) => { out = out.split('%' + (i + 1)).join(hintValue(v)); });
         // Осталась неподставленная %N — шаблон и аргументы разъехались. Показывать
         // такое ученику нельзя, как и в подсказках по ошибкам.
         return /%\d/.test(out) ? '' : out;

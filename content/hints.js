@@ -54,6 +54,14 @@
 //                           review то же число, его величина, величина второго
 //   ошибся в знаке:mul*     game —            review —
 //   знак и число мимо:*     то же, что у «ошибся в знаке» с тем же вариантом
+//   спутал модули:*         game и review одинаково: модули — для diff больший и
+//                           меньший, для same первый и второй; запись примера, как
+//                           на экране; она же суммой («3 − 8» → «3 + (−8)»).
+//                           Варианты: same/diff — знаки одинаковые или разные,
+//                           Plus/Minus — на экране между числами плюс или минус.
+//                           У Minus первым шагом вычитание переписывают в сумму.
+//   двойной минус           game и review: запись со скобками, она же без скобок
+//   минус в скобках           («5 − (−3)» → «5 + 3», «5 + (−3)» → «5 − 3»)
 //
 //   ошибка в десятках на отрицательном сложении и вычитании берёт текст не по
 //   записи, а по делу: при одинаковых знаках — текст :add, при разных — :sub,
@@ -192,6 +200,30 @@ window.HINT_CONTENT = {
         'знак и число мимо:mulTriple': {
             game: 'Мимо и знаком, и числом. Считай минусы: два — плюс, один или три — минус.',
             review: 'Мимо и знаком, и числом. Считай минусы: два — плюс, один или три — минус. А само число пересчитай так, будто минусов нет.'
+        },
+        'спутал модули:diffPlus': {
+            game: 'Знаки разные: из %1 вычти %2, а знак — как у числа с бо́льшим модулем.',
+            review: 'Посмотри на знаки. Одинаковые — модули складываем, разные — из большего вычитаем меньший. В %3 знаки разные: из %1 вычитаем %2, а знак — как у числа с бо́льшим модулем.'
+        },
+        'спутал модули:diffMinus': {
+            game: '%3 — это %4: из %1 вычти %2, знак — как у числа с бо́льшим модулем.',
+            review: '%3 — это %4. Посмотри на знаки. Одинаковые — модули складываем, разные — из большего вычитаем меньший. В %4 знаки разные: из %1 вычитаем %2, а знак — как у числа с бо́льшим модулем.'
+        },
+        'спутал модули:samePlus': {
+            game: 'Знаки одинаковые: %1 и %2 сложи, знак останется тот же.',
+            review: 'Посмотри на знаки. Одинаковые — модули складываем, разные — из большего вычитаем меньший. В %3 знаки одинаковые: %1 и %2 складываем, а знак остаётся тот же.'
+        },
+        'спутал модули:sameMinus': {
+            game: '%3 — это %4: знаки одинаковые, %1 и %2 сложи.',
+            review: '%3 — это %4. Посмотри на знаки. Одинаковые — модули складываем, разные — из большего вычитаем меньший. В %4 знаки одинаковые: %1 и %2 складываем, а знак остаётся тот же.'
+        },
+        'двойной минус': {
+            game: 'Минус перед скобкой и минус в скобке вместе дают плюс: %1 — это %2.',
+            review: 'Минус перед скобкой и минус в скобке вместе дают плюс: %1 — это %2. Вычесть отрицательное число — то же, что прибавить его модуль.'
+        },
+        'минус в скобках': {
+            game: 'Плюс перед скобкой и минус в скобке вместе дают минус: %1 — это %2.',
+            review: 'Плюс перед скобкой и минус в скобке вместе дают минус: %1 — это %2. Прибавить отрицательное число — то же, что вычесть его модуль.'
         }
     },
 
@@ -327,6 +359,30 @@ window.HINT_CONTENT = {
         'знак и число мимо:mulTriple': {
             game: 'Wrong sign and number. Count minuses: two is plus, one or three is minus.',
             review: 'Wrong sign and wrong number. Count the minuses: two give a plus, one or three give a minus. And recount the number itself as if there were no minuses.'
+        },
+        'спутал модули:diffPlus': {
+            game: 'Signs differ: take %2 from %1; the sign is that of the one further from zero.',
+            review: 'Look at the signs. Same signs: add the absolute values; different signs: take the smaller from the larger. In %3 the signs differ: take %2 from %1, and the sign is that of the number further from zero.'
+        },
+        'спутал модули:diffMinus': {
+            game: '%3 is %4: take %2 from %1, sign of the number further from zero.',
+            review: '%3 is %4. Look at the signs. Same signs: add the absolute values; different signs: take the smaller from the larger. In %4 the signs differ: take %2 from %1, and the sign is that of the number further from zero.'
+        },
+        'спутал модули:samePlus': {
+            game: 'Same signs: add %1 and %2, and the sign stays the same.',
+            review: 'Look at the signs. Same signs: add the absolute values; different signs: take the smaller from the larger. In %3 the signs are the same: add %1 and %2, and the sign stays the same.'
+        },
+        'спутал модули:sameMinus': {
+            game: '%3 is %4: same signs, so add %1 and %2.',
+            review: '%3 is %4. Look at the signs. Same signs: add the absolute values; different signs: take the smaller from the larger. In %4 the signs are the same: add %1 and %2, and the sign stays the same.'
+        },
+        'двойной минус': {
+            game: 'A minus before the bracket and a minus inside make a plus: %1 is %2.',
+            review: 'A minus before the bracket and a minus inside it together make a plus: %1 is %2. Taking away a negative number is the same as adding its absolute value.'
+        },
+        'минус в скобках': {
+            game: 'A plus before the bracket and a minus inside make a minus: %1 is %2.',
+            review: 'A plus before the bracket and a minus inside it together make a minus: %1 is %2. Adding a negative number is the same as taking away its absolute value.'
         }
     },
 
@@ -462,6 +518,30 @@ window.HINT_CONTENT = {
         'знак и число мимо:mulTriple': {
             game: 'Ni le signe ni le nombre. Compte les moins : deux, plus ; un ou trois, moins.',
             review: 'Ni le signe ni le nombre. Compte les moins : deux donnent un plus, un ou trois donnent un moins. Et recompte le nombre comme s’il n’y avait pas de moins.'
+        },
+        'спутал модули:diffPlus': {
+            game: 'Signes différents : ôte %2 de %1 ; signe du nombre le plus loin de zéro.',
+            review: 'Regarde les signes. Mêmes signes : on additionne les valeurs absolues ; signes différents : on ôte la plus petite de la plus grande. Dans %3, les signes diffèrent : ôte %2 de %1, et le signe est celui du nombre le plus loin de zéro.'
+        },
+        'спутал модули:diffMinus': {
+            game: '%3, c’est %4 : ôte %2 de %1 ; signe du nombre le plus loin de zéro.',
+            review: '%3, c’est %4. Regarde les signes. Mêmes signes : on additionne les valeurs absolues ; signes différents : on ôte la plus petite de la plus grande. Dans %4, les signes diffèrent : ôte %2 de %1, et le signe est celui du nombre le plus loin de zéro.'
+        },
+        'спутал модули:samePlus': {
+            game: 'Mêmes signes : additionne %1 et %2, le signe reste le même.',
+            review: 'Regarde les signes. Mêmes signes : on additionne les valeurs absolues ; signes différents : on ôte la plus petite de la plus grande. Dans %3, les signes sont les mêmes : additionne %1 et %2, et le signe reste le même.'
+        },
+        'спутал модули:sameMinus': {
+            game: '%3, c’est %4 : mêmes signes, additionne %1 et %2.',
+            review: '%3, c’est %4. Regarde les signes. Mêmes signes : on additionne les valeurs absolues ; signes différents : on ôte la plus petite de la plus grande. Dans %4, les signes sont les mêmes : additionne %1 et %2, et le signe reste le même.'
+        },
+        'двойной минус': {
+            game: 'Un moins devant la parenthèse et un moins dedans font un plus : %1 = %2.',
+            review: 'Un moins devant la parenthèse et un moins dedans font ensemble un plus : %1, c’est %2. Soustraire un nombre négatif, c’est ajouter sa valeur absolue.'
+        },
+        'минус в скобках': {
+            game: 'Un plus devant la parenthèse et un moins dedans font un moins : %1 = %2.',
+            review: 'Un plus devant la parenthèse et un moins dedans font ensemble un moins : %1, c’est %2. Ajouter un nombre négatif, c’est soustraire sa valeur absolue.'
         }
     },
 
@@ -597,6 +677,30 @@ window.HINT_CONTENT = {
         'знак и число мимо:mulTriple': {
             game: 'Vorzeichen und Zahl falsch. Zähl die Minus: zwei — Plus, eins oder drei — Minus.',
             review: 'Vorzeichen und Zahl falsch. Zähl die Minus: zwei geben ein Plus, eins oder drei ein Minus. Und rechne die Zahl neu, als gäbe es keine Minus.'
+        },
+        'спутал модули:diffPlus': {
+            game: 'Verschiedene Vorzeichen: %1 minus %2, Vorzeichen der Zahl weiter von null.',
+            review: 'Schau auf die Vorzeichen. Gleiche Vorzeichen: Beträge addieren; verschiedene: den kleineren vom größeren abziehen. In %3 sind sie verschieden: von %1 zieh %2 ab, und das Vorzeichen ist das der Zahl, die weiter von der Null weg liegt.'
+        },
+        'спутал модули:diffMinus': {
+            game: '%3 ist %4: %1 minus %2, Vorzeichen der Zahl weiter von null.',
+            review: '%3 ist %4. Schau auf die Vorzeichen. Gleiche Vorzeichen: Beträge addieren; verschiedene: den kleineren vom größeren abziehen. In %4 sind sie verschieden: von %1 zieh %2 ab, und das Vorzeichen ist das der Zahl, die weiter von der Null weg liegt.'
+        },
+        'спутал модули:samePlus': {
+            game: 'Gleiche Vorzeichen: addiere %1 und %2, das Vorzeichen bleibt.',
+            review: 'Schau auf die Vorzeichen. Gleiche Vorzeichen: Beträge addieren; verschiedene: den kleineren vom größeren abziehen. In %3 sind sie gleich: addiere %1 und %2, und das Vorzeichen bleibt dasselbe.'
+        },
+        'спутал модули:sameMinus': {
+            game: '%3 ist %4: gleiche Vorzeichen, addiere %1 und %2.',
+            review: '%3 ist %4. Schau auf die Vorzeichen. Gleiche Vorzeichen: Beträge addieren; verschiedene: den kleineren vom größeren abziehen. In %4 sind sie gleich: addiere %1 und %2, und das Vorzeichen bleibt dasselbe.'
+        },
+        'двойной минус': {
+            game: 'Minus vor der Klammer und Minus darin ergeben Plus: %1 ist %2.',
+            review: 'Minus vor der Klammer und Minus in der Klammer ergeben zusammen Plus: %1 ist %2. Eine negative Zahl abziehen heißt, ihren Betrag addieren.'
+        },
+        'минус в скобках': {
+            game: 'Plus vor der Klammer und Minus darin ergeben Minus: %1 ist %2.',
+            review: 'Plus vor der Klammer und Minus in der Klammer ergeben zusammen Minus: %1 ist %2. Eine negative Zahl addieren heißt, ihren Betrag abziehen.'
         }
     }
 };

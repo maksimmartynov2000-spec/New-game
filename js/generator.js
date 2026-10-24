@@ -272,7 +272,10 @@ const NEG_ADD_MIN = { 1: 3, 2: 4, 3: 6, 4: 8, 5: 12 };
 // включались обрывом: ровно 0% на четырёх звёздах и 79,9% на пятой, потому что
 // до пятой звезды генератор сам переворачивал знак и показывал «7 + 3». То есть
 // запись, ради которой раздел существует, не встречалась четыре звезды подряд.
-const NEG_PAREN_SHARE = { 1: 0, 2: 0, 3: 0, 4: 0.15, 5: 0.55 };
+//
+// Потом стало 0 / 0 / 0 / 15 / 55% — обрыв сдвинулся на четвёртую звезду. Теперь
+// скобки входят постепенно, с второй звезды: 10, 25, 40 и 55% (решение репетитора).
+const NEG_PAREN_SHARE = { 1: 0, 2: 0.10, 3: 0.25, 4: 0.40, 5: 0.55 };
 
 // Пример без единого отрицательного числа («7 + 3») — редкость, как и «оба
 // плюса» в умножении. Замер модели показал, что без этого ограничения четверть
@@ -297,8 +300,35 @@ const NEG_SUM_PAIRS = (() => {
     return out;
 })();
 
-function pickNegAddClass(level) {
-    const sh = NEG_ADD_CLASS_SHARES[level] || NEG_ADD_CLASS_SHARES[5];
+// Клетка «Вычитание» на 1–3★ без скобок повторяла «Сложение»: «−8 + 3» и «−7 − 3»
+// там и там — замер давал совпадение примеров 94 / 92 / 90%. Настоящее вычитание
+// без скобок — это «3 − 8»: из меньшего вычесть большее, ответ уходит за ноль.
+// Этой записью показываем половину примеров с переходом через ноль. С 4★
+// вычитание и так держат скобки.
+const NEG_SUB_CROSS_FORM = { 1: 0.5, 2: 0.5, 3: 0.5, 4: 0, 5: 0 };
+// Доли классов у «Вычитания» — свои на 1–3★ (null — те же, что у «Сложения»).
+//
+// Запись «3 − 8» всегда даёт отрицательный ответ. Поставить её буквально в
+// половину переходов через ноль значило поднять долю ответов с минусом на 1★ до
+// 89%: ученик, который всегда выбирает минус и просто считает число, набирал бы
+// почти золото по точности. Поэтому переходов через ноль здесь больше — на 1★
+// 40% вместо 20%, — и минус в ответе остаётся на прежних 80%.
+//
+// Заодно падает неверное правило «знак ответа — как у первого числа»: оно верно
+// ровно в примерах без перехода через ноль, какой бы ни была запись, и на 1★
+// давало 80% — точность выше золота без понимания знака. Теперь 60%, ниже
+// бронзы. «Сложение» не трогаем. Замер — по 60 000 примеров на клетку.
+const NEG_SUB_CLASS_SHARES = {
+    1: [0.35, 0.25, 0.40],
+    2: [0.30, 0.25, 0.45],
+    3: [0.25, 0.25, 0.50],
+    4: null,
+    5: null
+};
+
+function pickNegAddClass(level, isSub) {
+    const own = isSub && NEG_SUB_CLASS_SHARES[level];
+    const sh = own || NEG_ADD_CLASS_SHARES[level] || NEG_ADD_CLASS_SHARES[5];
     let r = Math.random();
     for (let i = 0; i < sh.length; i++) { r -= sh[i]; if (r < 0) return i; }
     return sh.length - 1;
@@ -329,7 +359,7 @@ function negAddMagnitudes(level, cls) {
 // Когда скобок нет, минус обязан быть виден иначе — поэтому отрицательным
 // делается первое число. Исключение — те самые 5% простых примеров.
 function genAddSubNegative(level, isSub) {
-    const cls = pickNegAddClass(level);
+    const cls = pickNegAddClass(level, isSub);
     const mags = negAddMagnitudes(level, cls);
     const wantParen = Math.random() < (NEG_PAREN_SHARE[level] || 0);
     const plain = !wantParen && Math.random() < NEG_ADD_PLAIN_SHARE;
@@ -338,6 +368,9 @@ function genAddSubNegative(level, isSub) {
     let ys;
     if (wantParen) ys = isSub ? 1 : -1;        // скобки требуют отрицательного n2
     else if (plain) ys = isSub ? -1 : 1;       // ни одного минуса в записи
+    else if (isSub && cls === 2 && Math.random() < (NEG_SUB_CROSS_FORM[level] || 0)) {
+        ys = -1;                               // «3 − 8»: первое положительное, вычитаем большее
+    }
     else ys = (cls === 0) ? -1 : 1;            // минус уводим в первое число
 
     // Знак первого определяется классом: у «сложения модулей» он совпадает со
@@ -971,7 +1004,36 @@ function shuffleArray(arr) {
     return copy;
 }
 
-function buildDistractors(opKey, a, b, correctAnswer, isNegative, count, level) {
+// Типичная ошибка темы как модуль второй пары. Сложение и вычитание:
+//  — запись со скобками: двойной знак не замечен («5 − (−3)» посчитано как 5 − 3);
+//  — без скобок: перепутано, складывать модули или вычитать («−8 + 3 = −11»,
+//    «−7 − 3 = −4»).
+// Три множителя: перемножены только два. Пара множителей и деление — нет: там
+// ошибка либо в знаке (её ловит близнец), либо в таблице.
+// Возвращает модуль или 0, если типичной ошибки у примера нет.
+function negTypicalMag(opKey, a, b, correctAnswer, problem) {
+    const mag = Math.abs(correctAnswer);
+    let typ = 0;
+    if (opKey === 'add' || opKey === 'sub') {
+        const text = problem && typeof problem.text === 'string' ? problem.text : '';
+        const x = a, y = opKey === 'add' ? b : -b;
+        if (text.indexOf('(') >= 0) {
+            typ = Math.abs(opKey === 'sub' ? a - Math.abs(b) : a + Math.abs(b));
+        } else if (Math.sign(x) === Math.sign(y)) {
+            typ = Math.abs(Math.abs(x) - Math.abs(y));
+        } else {
+            typ = Math.abs(x) + Math.abs(y);
+        }
+    } else if (opKey === 'mul' && problem && problem.triple) {
+        typ = Math.abs(a);
+    }
+    return (typ > 0 && typ !== mag) ? typ : 0;
+}
+// В скольких примерах из тех, где типичная ошибка есть, она стоит второй парой.
+// Остальные — близкие числа: те проверяют счёт, эта — правило.
+const NEG_TYPICAL_SHARE = 0.5;
+
+function buildDistractors(opKey, a, b, correctAnswer, isNegative, count, level, problem) {
     // ===== ПРИОРИТЕТ 1: самые частые реальные ошибки =====
     let priority = [];
 
@@ -1123,6 +1185,10 @@ function buildDistractors(opKey, a, b, correctAnswer, isNegative, count, level) 
         if (near.length > 0 && Math.random() < NEAR_PAIR_SHARE) pool = near;
         else if (near.length === 0 && Math.random() < NEAR_PAIR_SHARE) pool = [];
         let second = pool.length > 0 ? pool[randInt(0, pool.length - 1)] : 0;
+        // Типичная ошибка темы — в половине примеров, где она есть. Ставится после
+        // всех правил ниже, чтобы «та же последняя цифра» её не вытесняла.
+        const typical = negTypicalMag(opKey, a, b, correctAnswer, problem);
+        const useTypical = typical > 0 && Math.random() < NEG_TYPICAL_SHARE;
 
         // Две пары закрывают подсказку ПО ЗНАКУ, но не по последней цифре.
         // Модули ±m дают цифры d и 10−d, поэтому верную последнюю цифру имел
@@ -1133,16 +1199,19 @@ function buildDistractors(opKey, a, b, correctAnswer, isNegative, count, level) 
         // тогда все четыре варианта дают цифры d, 10−d, d, 10−d, и одной
         // единицы мало. Смещение кратно десяти — это та же ошибка «не учёл
         // десяток», что и в положительных.
+        // Шаг «±10 × меньшее число» отсюда убран: он придуман для двузначного на
+        // однозначное (7 × 13 против 7 × 3), которого в отрицательных нет, и давал
+        // нелепые пары — «−15 − 15» с вариантом 180. Остались ±10 и ±20.
         if (mag >= 20) {
             const tens = [];
-            [10, 20, 10 * Math.min(Math.abs(a), Math.abs(b) || 10)].forEach(st => {
-                if (!st || st % 10 !== 0) return;
+            [10, 20].forEach(st => {
                 [mag + st, mag - st].forEach(v => {
                     if (v > 0 && v !== mag && tens.indexOf(v) < 0) tens.push(v);
                 });
             });
             if (tens.length) second = tens[randInt(0, tens.length - 1)];
         }
+        if (useTypical) second = typical;
 
         if (!second) {
             const spread = Math.max(2, Math.round(mag * 0.2));
