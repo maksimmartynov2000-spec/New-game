@@ -691,6 +691,66 @@ test('битый разбор по типам не ломает чтение', (
     eq(n.byClass['integer+:sub:2'], undefined, 'тема не объектом выброшена');
 });
 
+group('Таблица умножения по примерам');
+
+test('пример таблицы считается один: 7 × 8 и 8 × 7 — это «7×8»', () => {
+    const { Progress } = fresh();
+    Progress.recordFact(7, 8, true);
+    Progress.recordFact(8, 7, false);
+    Progress.recordFact(8, 7, true);
+    eq(JSON.stringify(Progress.getByFact()), JSON.stringify({ '7×8': [2, 1] }), 'счёт примера');
+});
+
+test('вне таблицы 1…10 ничего не пишется', () => {
+    const { Progress } = fresh();
+    Progress.recordFact(0, 7, true);
+    Progress.recordFact(11, 3, true);
+    Progress.recordFact(7, 13, false);
+    eq(JSON.stringify(Progress.getByFact()), '{}', 'лишние примеры');
+    Progress.recordFact(10, 10, true);
+    Progress.recordFact(1, 1, false);
+    eq(Object.keys(Progress.getByFact()).sort().join(','), '10×10,1×1', 'края таблицы входят');
+});
+
+test('слияние по примерам — только вверх, и пример одной стороны не теряется', () => {
+    const { Progress } = fresh();
+    const m = Progress._merge(
+        { schema: 2, playerCode: 'X', updatedAt: 100, byFact: { '7×8': [5, 2], '6×7': [1, 0] } },
+        { schema: 2, playerCode: 'X', updatedAt: 200, byFact: { '7×8': [3, 4], '3×4': [2, 1] } });
+    eq(JSON.stringify(m.byFact['7×8']), '[5,4]', 'максимум с каждой стороны');
+    eq(JSON.stringify(m.byFact['6×7']), '[1,0]', 'пример только первой стороны');
+    eq(JSON.stringify(m.byFact['3×4']), '[2,1]', 'пример только второй стороны');
+});
+
+test('запись без поля (старое приложение, сервер) не стирает счёт по примерам', () => {
+    // Устройство со старой версией синхронизируется и пишет состояние без поля.
+    // Слияние со свежей копией обязано сохранить то, что уже насчитано.
+    const { Progress } = fresh();
+    const m = Progress._merge(
+        { schema: 2, playerCode: 'X', updatedAt: 300 },
+        { schema: 2, playerCode: 'X', updatedAt: 100, byFact: { '7×8': [5, 2] } });
+    eq(JSON.stringify(m.byFact), JSON.stringify({ '7×8': [5, 2] }), 'счёт пережил слияние');
+});
+
+test('битый счёт по примерам не ломает чтение', () => {
+    const { Progress } = fresh();
+    const n = Progress._normalize({ schema: 2, playerCode: 'X', updatedAt: 1,
+        byFact: { '7×8': [3, 'x'], '7x8': [1, 1], 'мусор': [1, 1], '6×7': 'строка' } });
+    eq(JSON.stringify(n.byFact), JSON.stringify({ '7×8': [3, 0] }), 'чистый счёт');
+    eq(JSON.stringify(Progress._normalize({ schema: 2, playerCode: 'X', byFact: [1, 2] }).byFact), '{}', 'массив вместо объекта');
+    eq(JSON.stringify(Progress._normalize({ schema: 2, playerCode: 'X' }).byFact), '{}', 'поля не было вовсе');
+});
+
+test('счёт по примерам не утекает между профилями', () => {
+    const { Progress } = fresh();
+    Progress.switchTo('AAA', 'pw');
+    Progress.recordFact(7, 8, true);
+    Progress.switchTo('BBB', 'pw');
+    eq(JSON.stringify(Progress.getByFact()), '{}', 'у второго профиля чисто');
+    Progress.switchTo('AAA', 'pw');
+    eq(JSON.stringify(Progress.getByFact()), JSON.stringify({ '7×8': [1, 0] }), 'у первого своё');
+});
+
 test('разбор по типам не утекает между профилями', () => {
     const { Progress } = fresh();
     Progress.switchTo('AAA', 'pw');
