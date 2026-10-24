@@ -38,15 +38,39 @@ function line(mark) {
 // --- Подставной DOM: ровно те операции, которыми пользуется карта ---
 function makeDoc() {
     const byId = {};
-    const el = (tag) => ({
-        tag, className: '', title: '', style: {}, children: [], html: '',
-        _text: '',
-        get innerText() { return this._text; },
-        set innerText(v) { this._text = String(v); },
-        set innerHTML(v) { this.html = v; this.children.length = 0; },
-        get innerHTML() { return this.html; },
-        appendChild(ch) { this.children.push(ch); return ch; }
-    });
+    const el = (tag) => {
+        const node = {
+            tag, className: '', title: '', style: {}, children: [], html: '', handlers: {},
+            _text: '',
+            get innerText() { return this._text; },
+            set innerText(v) { this._text = String(v); },
+            set innerHTML(v) { this.html = v; this.children.length = 0; },
+            get innerHTML() { return this.html; },
+            get firstChild() { return this.children[0] || null; },
+            appendChild(ch) { this.children.push(ch); return ch; },
+            // Как в браузере: без опорного узла — в конец.
+            insertBefore(ch, ref) {
+                const i = ref ? this.children.indexOf(ref) : -1;
+                if (i < 0) this.children.push(ch); else this.children.splice(i, 0, ch);
+                return ch;
+            },
+            addEventListener(name, fn) { this.handlers[name] = fn; },
+            click() { if (this.handlers.click) this.handlers.click(); },
+            // Сворачивание раздела карты ставит классы через classList.
+            classList: {
+                has: (c) => node.className.split(' ').includes(c),
+                contains(c) { return this.has(c); },
+                add(c) { if (!this.has(c)) node.className = (node.className + ' ' + c).trim(); },
+                remove(c) { node.className = node.className.split(' ').filter(x => x && x !== c).join(' '); },
+                toggle(c, force) {
+                    const want = force === undefined ? !this.has(c) : !!force;
+                    if (want) this.add(c); else this.remove(c);
+                    return want;
+                }
+            }
+        };
+        return node;
+    };
     return {
         doc: { getElementById: (id) => byId[id] || null, createElement: el },
         add: (id) => (byId[id] = el('div')),
@@ -54,9 +78,19 @@ function makeDoc() {
     };
 }
 
+// Хранилище сворачивания — настоящее, из index.html, поверх подставного localStorage:
+// проверяем, что карта пишет и читает тот же ключ, что разделы экрана.
+function makeStore() {
+    const m = new Map();
+    return { getItem: (k) => (m.has(k) ? m.get(k) : null),
+             setItem: (k, v) => m.set(k, String(v)),
+             removeItem: (k) => m.delete(k), _map: m };
+}
+
 function loadMap() {
     const sandbox = {
         console, Math, Number, Object, Array, String, JSON, Date,
+        LANG: 'ru', localStorage: makeStore(),
         t: (x) => x, tf: function (x) {
             let out = x;
             for (let i = 1; i < arguments.length; i++) out = out.split('%' + i).join(String(arguments[i]));
@@ -65,6 +99,8 @@ function loadMap() {
         topicLabelWithLevel: (key) => key
     };
     const src = [
+        slice('function plural(n, one, few, many) {', '\n}\n', 'plural') + '\n}',
+        slice("const FOLD_KEY = 'mathCitadelFolds_v1';", 'function foldVisible(sec)', 'хранилище сворачивания'),
         line('const OP_ORDER = '),
         slice('const LADDERS = [', '];', 'лесенки') + '];',
         line('const TIER_ICONS = '),
@@ -282,6 +318,139 @@ test('подсказка нерешённой клетки не обещает �
 test('подсказка неполной клетки называет порог', () => {
     const c = render(THIN, {})[0];
     assert(c.title.indexOf(String(R.MAP_PCT_MIN)) >= 0, `в подсказке нет порога: ${c.title}`);
+});
+
+// ===================== Сворачивание на экране статистики =====================
+group('Разделы карты сворачиваются по одному');
+
+// Разделы карты — блоки верхнего уровня; у каждого заголовок, а в заголовке на
+// экране статистики стрелка и сводка.
+function renderBlocks(byTopic, opts) {
+    render(byTopic, {}, opts);
+    return lastWrap.children;
+}
+const titleOf = (block) => block.children.filter(ch => ch.className === 'map-title')[0];
+const sumOf = (block) => {
+    const hit = titleOf(block).children.filter(ch => ch.className === 'map-fold-sum')[0];
+    return hit ? hit.innerText : null;
+};
+const has = (node, cls) => node.className.split(' ').includes(cls);
+const FOLD_KEY = 'mathCitadelFolds_v1';
+const savedFolds = () => JSON.parse(box.localStorage.getItem(FOLD_KEY) || '{}');
+function resetFolds() { box.localStorage._map.clear(); }
+
+const NEG_FULL = { 'integer-:sub:2': { correct: 18, wrong: 12 } };   // 30 попыток, 60%
+
+test('раздел с ответами по умолчанию открыт, в заголовке — процент и число ответов', () => {
+    resetFolds();
+    const [b] = renderBlocks(FULL, { foldable: true });
+    assert(has(b, 'map-fold'), `раздел не помечен сворачиваемым: ${b.className}`);
+    assert(!has(b, 'folded'), 'раздел с ответами свёрнут без спроса');
+    eq(sumOf(b), '90% · 30 ответов', 'сводка');
+});
+
+test('пока ответов меньше порога, в сводке только их число — как в клетке', () => {
+    // «80%» по пяти ответам — тот самый приговор, от которого карту уже лечили.
+    resetFolds();
+    const [b] = renderBlocks(THIN, { foldable: true });
+    eq(sumOf(b), '5 ответов', 'сводка ниже порога');
+});
+
+test('сводка ровно на пороге уже с процентом', () => {
+    resetFolds();
+    const [b] = renderBlocks({ 'integer+:mul:3': { correct: R.MAP_PCT_MIN, wrong: 0 } }, { foldable: true });
+    eq(sumOf(b), `100% · ${R.MAP_PCT_MIN} ответов`, 'сводка на пороге');
+});
+
+test('процент сводки — по всему разделу, а не по одной клетке', () => {
+    resetFolds();
+    const [b] = renderBlocks({ 'integer+:add:1': { correct: 27, wrong: 3 },
+                               'integer+:div:5': { correct: 3, wrong: 7 } }, { foldable: true });
+    eq(sumOf(b), '75% · 40 ответов', 'сводка двух клеток');
+});
+
+test('процент сводки округляется, а не обрезается', () => {
+    resetFolds();
+    const [b] = renderBlocks({ 'integer+:add:2': { correct: 20, wrong: 10 } }, { foldable: true });
+    eq(sumOf(b), '67% · 30 ответов', 'две трети — это 67%, а не 66%');
+});
+
+test('нажатие сворачивает раздел и запоминает это', () => {
+    resetFolds();
+    const [b] = renderBlocks(FULL, { foldable: true });
+    titleOf(b).click();
+    assert(has(b, 'folded'), 'по нажатию раздел не свернулся');
+    eq(savedFolds()['stats:map:integer+'], false, 'выбор не сохранён');
+    titleOf(b).click();
+    assert(!has(b, 'folded'), 'по второму нажатию раздел не открылся');
+    eq(savedFolds()['stats:map:integer+'], true, 'второй выбор не сохранён');
+});
+
+test('сохранённый выбор побеждает умолчание при следующей отрисовке', () => {
+    resetFolds();
+    titleOf(renderBlocks(FULL, { foldable: true })[0]).click();
+    const [again] = renderBlocks(FULL, { foldable: true });
+    assert(has(again, 'folded'), 'закрытый учеником раздел снова открылся сам');
+});
+
+test('разделы сворачиваются независимо друг от друга', () => {
+    resetFolds();
+    const both = Object.assign({}, FULL, NEG_FULL);
+    const [pos, neg] = renderBlocks(both, { foldable: true });
+    titleOf(neg).click();
+    const [pos2, neg2] = renderBlocks(both, { foldable: true });
+    assert(has(neg2, 'folded'), 'отрицательные не остались свёрнутыми');
+    assert(!has(pos2, 'folded'), 'вместе с отрицательными свернулись и положительные');
+    eq(sumOf(neg2), '60% · 30 ответов', 'сводка отрицательных');
+    assert(pos && neg, 'должно быть два раздела');
+});
+
+test('пустой раздел из списка показан свёрнутым и не открывается', () => {
+    resetFolds();
+    const blocks = renderBlocks(FULL, { foldable: true, showSections: ['integer+', 'integer-'] });
+    eq(blocks.length, 2, 'пустой раздел из списка должен быть нарисован');
+    const empty = blocks[1];
+    assert(has(empty, 'folded') && has(empty, 'empty'), `пустой раздел: ${empty.className}`);
+    eq(sumOf(empty), 'нет ответов за период', 'сводка пустого');
+    titleOf(empty).click();
+    assert(has(empty, 'folded'), 'пустой раздел открылся — внутри только прочерки');
+    eq(JSON.stringify(savedFolds()), '{}', 'нажатие на пустой раздел ничего не должно записывать');
+});
+
+test('пустой раздел свёрнут, даже если раньше его открывали', () => {
+    // На прошлой неделе раздел был с ответами и открыт, на этой — пуст.
+    resetFolds();
+    box.localStorage.setItem(FOLD_KEY, JSON.stringify({ 'stats:map:integer-': true }));
+    const [, neg] = renderBlocks(FULL, { foldable: true, showSections: ['integer-'] });
+    assert(has(neg, 'folded'), 'пустой раздел развернулся по старому выбору');
+});
+
+test('пустой раздел не из списка не рисуется', () => {
+    resetFolds();
+    const blocks = renderBlocks(FULL, { foldable: true, showSections: [] });
+    eq(blocks.length, 1, 'нарисован раздел, где ответов нет и который не просили');
+});
+
+test('отчёт на листе не сворачивается: без стрелки, без сводки, ничего не спрятано', () => {
+    // Отчёт уходит родителям скриншотом — свёрнутое там просто пропало бы.
+    resetFolds();
+    box.localStorage.setItem(FOLD_KEY, JSON.stringify({ 'stats:map:integer+': false }));
+    const [b] = renderBlocks(FULL, { compact: true });
+    assert(!has(b, 'map-fold') && !has(b, 'folded'), `раздел отчёта: ${b.className}`);
+    eq(titleOf(b).children.length, 0, 'в заголовке отчёта лишнее');
+});
+
+test('экран статистики просит сворачивание и даёт ученику все его разделы', () => {
+    const at = SCRIPT.indexOf("renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap'");
+    assert(at >= 0, 'вызов карты на экране статистики не найден');
+    const call = SCRIPT.slice(at, SCRIPT.indexOf(';', at));
+    assert(/foldable:\s*true/.test(call), `карта статистики без сворачивания: ${call}`);
+    assert(/showSections:\s*ownSections/.test(call), `карта статистики без списка разделов: ${call}`);
+    const from = SCRIPT.indexOf('const ownSections = ');
+    const own = SCRIPT.slice(from, SCRIPT.indexOf(';', from));
+    // Репетитору доступ ученика не под рукой: пустые разделы ему не показываем.
+    assert(/foreignState \? \[\]/.test(own), `репетитору пустые разделы не нужны: ${own}`);
+    assert(/isSectionOpen/.test(own), `ученику — только открытые ему разделы: ${own}`);
 });
 
 // ===================== Образец =====================

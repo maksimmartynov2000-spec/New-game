@@ -129,6 +129,10 @@
             border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px;
             padding: 18px; max-height: 72vh; overflow-y: auto;
         }
+        /* Статистика листается вся, без второй прокрутки в рамке: разделов в ней
+           до десяти, и в рамке высотой 72% экрана карта уезжала под собственную
+           полосу прокрутки — листать приходилось и рамку, и страницу. */
+        #statsScreen .config-container { max-height: none; overflow: visible; }
         .config-section { margin-bottom: 18px; }
         .config-section:last-child { margin-bottom: 0; }
         .config-section-title {
@@ -1432,6 +1436,18 @@
         .map-block:last-child { margin-bottom: 0; }
         .map-title { font-size: 0.8rem; color: #e2e8f0; font-weight: bold; margin-bottom: 7px; }
         .map-grid { display: grid; gap: 4px; }
+        /* Раздел карты сворачивается сам по себе: «Положительные» отдельно от
+           «Отрицательных». Справа в заголовке — сводка, чтобы свёрнутый не молчал. */
+        .map-fold .map-title {
+            display: flex; align-items: center; gap: 6px; cursor: pointer;
+            padding: 8px 0; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.07);
+        }
+        .map-fold .map-title .fold-chevron { color: #64748b; }
+        .map-fold.folded .map-title .fold-chevron { transform: rotate(-90deg); }
+        .map-fold-sum { margin-left: auto; font-weight: normal; font-size: 0.72rem; color: #94a3b8; }
+        .map-fold.folded .map-grid { display: none; }
+        .map-fold.empty .map-title { cursor: default; color: #64748b; }
+        .map-fold.empty .fold-chevron { visibility: hidden; }
         .map-head, .map-row-label {
             font-size: 0.66rem; color: #64748b; display: flex;
             align-items: center; justify-content: center; min-height: 18px;
@@ -8485,7 +8501,8 @@
             'statsTopicSection',         // проценты по каждой теме
             'statsMistakesSection',      // виды ошибок за период
             'statsCellMistakesSection',  // ошибки по клеткам
-            'statsClassSection'          // разбор по типам примеров
+            'statsClassSection',         // разбор по типам примеров
+            'statsTasksSection'          // задания: у ученика они на экране выбора миссии
         ];
         function statsSectionAllowed(id, forTutor) {
             return forTutor || STATS_TUTOR_ONLY.indexOf(id) < 0;
@@ -8682,7 +8699,12 @@
 
             // --- Карта разделов: где силён, где остановился ---
             document.getElementById('statsMapTitle').innerText = t('Карта разделов ') + periodLabel;
-            const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap');
+            // Свои разделы ученик видит все — пустые свёрнутыми. Репетитору — только
+            // те, где ученик решал: доступ ученика здесь не под рукой, а пустые ему ни к чему.
+            const ownSections = foreignState ? []
+                : MAP_SECTIONS.map(s => s.cat + s.sign).filter(k => isSectionOpen(k));
+            const mapDrawn = renderMasteryMap(topicSource, st.unlocks || {}, 'statsMap',
+                { foldable: true, showSections: ownSections });
             // Образец — обоим: это не детская подсказка, а расшифровка обозначений.
             renderMapLegend('statsMapLegend');
             // А разбор порогов — только репетитору: у ребёнка этот абзац занимал пять
@@ -8718,9 +8740,11 @@
             // это то, что ученику предстоит, а не то, что он сделал в июле.
             // Домашку ученика репетитор здесь не видит — она лежит у ученика, — и задания
             // для него считаются без её доли.
-            const tasksRes = renderTasks('statsTasksList', st, today,
-                                         foreignState ? (st.playerCode || '') : Progress.getCode(), false,
-                                         foreignState ? [] : undefined);
+            const tasksRes = statsSectionAllowed('statsTasksSection', forTutor)
+                ? renderTasks('statsTasksList', st, today,
+                              foreignState ? (st.playerCode || '') : Progress.getCode(), false,
+                              foreignState ? [] : undefined)
+                : { shown: false };
             document.getElementById('statsTasksSection').style.display = tasksRes.shown ? '' : 'none';
 
             renderExamLog(foreignState ? (st.playerCode || '') : null);
