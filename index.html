@@ -1820,15 +1820,52 @@
            примеры, а не про клетку. Ширина — от .config-container, как у карточек ниже;
            рамка своя, а не вложенная: рамка в рамке читалась как два разных блока.
            hidden должен побеждать display:flex. */
+        /* Список ошибок раскрывается целиком: у общей рамки экранов своя высота и
+           прокрутка, и в ней хвост списка прятался под второй полосой прокрутки. */
         .repeat-wrap {
-            margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
-            padding: 12px 14px;
+            margin-bottom: 16px; display: flex; flex-direction: column; gap: 10px;
+            padding: 12px 14px; max-height: none; overflow: visible;
             background: rgba(251, 191, 36, 0.06); border-color: rgba(251, 191, 36, 0.30);
         }
         .repeat-wrap[hidden] { display: none !important; }
+        .repeat-head { display: flex; align-items: center; gap: 10px; }
         .repeat-title { font-size: 0.85rem; font-weight: bold; color: #fde68a; }
         .repeat-wrap .task-go {
             color: #fbbf24; background: rgba(251, 191, 36, 0.10); border-color: rgba(251, 191, 36, 0.35);
+        }
+        .repeat-rule { font-size: 0.78rem; color: #cbd5e1; line-height: 1.35; }
+        .repeat-rule b { color: #fde68a; }
+        /* Три кучки: уйдут сегодня, начать, засчитаны сегодня. Точки — те же, что в
+           списке: заполненная — день, когда пример решён верно. */
+        .repeat-groups { display: flex; flex-direction: column; gap: 4px; }
+        .repeat-group { display: flex; align-items: center; gap: 8px; font-size: 0.78rem; color: #e2e8f0; }
+        .repeat-group b { color: #fde68a; min-width: 1.4em; text-align: right; }
+        .repeat-group .muted { color: #94a3b8; }
+        .rdots { display: inline-flex; gap: 3px; flex: 0 0 auto; }
+        .rdots i { width: 9px; height: 9px; border-radius: 50%; border: 1.5px solid #fbbf24; display: inline-block; }
+        .rdots i.on { background: #fbbf24; }
+        .repeat-more {
+            align-self: flex-start; background: none; border: none; padding: 2px 0;
+            color: #fbbf24; font: inherit; font-size: 0.78rem; cursor: pointer; text-decoration: underline;
+        }
+        .repeat-list { display: flex; flex-direction: column; border-top: 1px solid rgba(251, 191, 36, 0.20); }
+        .repeat-list[hidden] { display: none; }
+        .repeat-item {
+            display: flex; align-items: center; gap: 10px; padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
+        .repeat-item:last-child { border-bottom: none; }
+        .repeat-item-ex { font-weight: bold; color: #f8fafc; font-size: 0.95rem; white-space: nowrap; }
+        .repeat-item-ex .frac-row, .repeat-item-ex .compound-question { font-size: 0.8rem; }
+        .repeat-item-topic { font-size: 0.66rem; color: #94a3b8; margin-top: 2px; }
+        .repeat-item-body { flex: 1 1 auto; min-width: 0; }
+        .repeat-item-state { flex: 0 0 auto; text-align: right; font-size: 0.68rem; color: #cbd5e1; }
+        .repeat-item-state .rdots { margin-bottom: 3px; }
+        .repeat-item.ready .repeat-item-state { color: #6ee7b7; }
+        /* Подпись под строкой миссии: что даст верный ответ на ЭТОТ пример. */
+        .repeat-now {
+            background: rgba(251, 191, 36, 0.08); border-color: rgba(251, 191, 36, 0.30);
+            color: #fde68a; gap: 8px;
         }
         .task-week-cap {
             margin-top: 10px; padding-top: 8px; font-size: 0.66rem; color: #64748b;
@@ -3109,11 +3146,19 @@
         <!-- Повтор ошибок из копилки. Видна, только когда есть что повторять;
              заполняет renderRepeatCard(). -->
         <div class="config-container repeat-wrap" id="repeatWrap" hidden>
-            <div class="task-body">
-                <div class="repeat-title">🔁 Повтори ошибки</div>
-                <div class="task-sub" id="repeatSub"></div>
+            <div class="repeat-head">
+                <div class="task-body">
+                    <div class="repeat-title">🔁 Повтори ошибки</div>
+                    <div class="task-sub" id="repeatSub"></div>
+                </div>
+                <button class="task-go" id="repeatGo" type="button" onclick="startRepeatMission()">Играть</button>
             </div>
-            <button class="task-go" id="repeatGo" type="button" onclick="startRepeatMission()">Играть</button>
+            <!-- Правило одной строкой и две точки на ошибку: точка — день, когда пример
+                 решён верно. Две точки — пример уходит из копилки. -->
+            <div class="repeat-rule">Реши каждую ошибку верно в <b>2 разных дня</b> — и она уйдёт из копилки.</div>
+            <div class="repeat-groups" id="repeatGroups"></div>
+            <button class="repeat-more" id="repeatMore" type="button" onclick="toggleRepeatList()">Показать ошибки ▾</button>
+            <div class="repeat-list" id="repeatList" hidden></div>
         </div>
 
         <!-- Задания дня и недели. Раздел сворачивается общим механизмом: кому они не
@@ -3248,6 +3293,8 @@
                 <span class="mission-task-text" id="missionTaskText"></span>
                 <span class="mission-task-count" id="missionTaskCount"></span>
             </div>
+            <!-- Повтор ошибок: что даст верный ответ на этот пример. -->
+            <div class="mission-task repeat-now" id="repeatNow" style="display:none;"></div>
             <div class="badge-container">
                 <!-- Раньше здесь стояли «Серия x1.4» и «Молния +43%». Оба числа выглядели
                      как механика и обещали награду, которой не существовало: ни очков, ни
@@ -13921,8 +13968,10 @@
                 document.getElementById('live-goal').innerText =
                     tf('🔁 %1 из %2', Math.min(Math.max(repeatRun.pos + 1, 1), total), total);
                 renderMissionTask();
+                renderRepeatNow();
                 return;
             }
+            renderRepeatNow();
             const key = currentProblemMeta ? buildTopicKey(currentProblemMeta) : null;
             if (!key) { wrap.style.display = 'none'; return; }
             // Ближайшая невзятая ступень количества — она же цель миссии. Показываем
@@ -14020,10 +14069,9 @@
         // иначе при полной копилке до старых не доходила бы очередь. Засчитанные
         // сегодня — в конце: сегодня они ничего уже не дадут.
         function repeatQueue(items) {
-            const today = Progress.dayKey();
-            const rank = (it) => (it.ok.indexOf(today) >= 0) ? 2 : (it.ok.length ? 0 : 1);
-            const order = items.slice().sort((x, y) =>
-                (rank(x) - rank(y)) || (x.t - y.t) || (x.sig < y.sig ? -1 : 1));
+            // Порядок — общий с карточкой на экране выбора (repeatQueueOrder): список
+            // там обещает, что примеры придут именно так.
+            const order = repeatQueueOrder(items);
             const queue = [];
             for (let pass = 0; pass < REPEAT_PASSES; pass++) {
                 order.forEach(it => {
@@ -14091,12 +14139,19 @@
         // числа, и не из тех, что только что были на экране. Не нашёлся за разумное
         // число попыток — тот же самый: лучше повторить пример, чем показать не тот тип.
         // Остальное — всегда тот же самый (почему — см. repeatsBySimilar).
+        //
+        // Попыток 400, а не 80. Замер по 40 000 примеров на клетку: самый редкий класс
+        // в отрицательных 4★ — одинаковые знаки со скобками, 4% примеров, и за 80
+        // попыток похожий не находился в 4% повторов; за 400 — практически никогда.
+        // Стоит это доли миллисекунды. Есть класс и ещё реже — 0,05% в положительных
+        // 4★; там и 400 не спасают, и это честный случай «тот же самый».
+        const REPEAT_SIMILAR_TRIES = 400;
         function repeatProblemFor(item, meta) {
             const exact = JSON.parse(JSON.stringify(item.p));
             if (!repeatsBySimilar(meta)) return exact;
             const want = structuralClassOf(meta, item.p);
             if (!want) return exact;
-            for (let i = 0; i < 80; i++) {
+            for (let i = 0; i < REPEAT_SIMILAR_TRIES; i++) {
                 const p = generateProblem(meta.opKey, meta.level, meta.isNegative);
                 if (problemSig(meta, p) === item.sig) continue;
                 if (recentSignatures.indexOf(`int|${meta.opKey}|${p.text}`) >= 0) continue;
@@ -14123,6 +14178,7 @@
             if (run && run.current) {
                 const item = run.current;
                 if (outcome === 'correct') { Progress.bankRight(item.sig); return; }
+                (run.missed || (run.missed = {}))[item.sig] = true;
                 // Ответ ученика и вид ошибки храним только к своему примеру: к похожему
                 // они не относятся, и запись читалась бы как ошибка, которой не было.
                 // Прежние — из самой копилки, а не из очереди: очередь собрана в начале
@@ -14322,11 +14378,146 @@
         function renderRepeatCard() {
             const wrap = document.getElementById('repeatWrap');
             if (!wrap) return;
-            const n = (typeof Progress !== 'undefined' && Progress.getBank) ? repeatItems().length : 0;
+            const items = (typeof Progress !== 'undefined' && Progress.getBank) ? repeatItems() : [];
+            const n = items.length;
             wrap.hidden = n === 0;
             if (!n) return;
+            const today = Progress.dayKey();
             document.getElementById('repeatSub').innerText =
-                tf(plural(n, '%1 пример ждёт', '%1 примера ждут', '%1 примеров ждут'), n);
+                tf(plural(n, 'В копилке %1 ошибка', 'В копилке %1 ошибки', 'В копилке %1 ошибок'), n);
+
+            // Три кучки — в том же порядке, в каком их отдаёт миссия (см. repeatQueue).
+            const count = { ready: 0, fresh: 0, today: 0 };
+            items.forEach(it => { count[repeatStateOf(it, today)]++; });
+            const groups = document.getElementById('repeatGroups');
+            groups.innerHTML = '';
+            [['ready', 1, t('уйдут сегодня, если решить верно'), ''],
+             ['fresh', 0, t('новые — нужно 2 дня'), ''],
+             ['today', 1, t('сегодня уже засчитаны — повтори завтра'), 'muted']].forEach(([st, dots, text, cls]) => {
+                if (!count[st]) return;
+                const row = document.createElement('div');
+                row.className = 'repeat-group';
+                row.innerHTML = repeatDotsHtml(dots);
+                const b = document.createElement('b');
+                b.innerText = String(count[st]);
+                const s = document.createElement('span');
+                if (cls) s.className = cls;
+                s.innerText = text;
+                row.appendChild(b);
+                row.appendChild(s);
+                groups.appendChild(row);
+            });
+
+            const list = document.getElementById('repeatList');
+            list.innerHTML = '';
+            repeatQueueOrder(items).forEach(it => {
+                const st = repeatStateOf(it, today);
+                const row = document.createElement('div');
+                row.className = 'repeat-item' + (st === 'ready' ? ' ready' : '');
+                const body = document.createElement('div');
+                body.className = 'repeat-item-body';
+                const ex = document.createElement('div');
+                ex.className = 'repeat-item-ex';
+                fillRepeatExample(ex, it);
+                const topic = document.createElement('div');
+                topic.className = 'repeat-item-topic';
+                topic.innerText = topicLabelWithLevel(it.k);
+                body.appendChild(ex);
+                body.appendChild(topic);
+                const state = document.createElement('div');
+                state.className = 'repeat-item-state';
+                state.innerHTML = repeatDotsHtml(st === 'fresh' ? 0 : 1) + '<br>';
+                const label = document.createElement('span');
+                label.innerText = st === 'ready' ? t('сегодня уйдёт')
+                    : st === 'fresh' ? t('нужно 2 дня') : t('повтори завтра');
+                state.appendChild(label);
+                row.appendChild(body);
+                row.appendChild(state);
+                list.appendChild(row);
+            });
+            const more = document.getElementById('repeatMore');
+            more.innerText = list.hidden ? t('Показать ошибки ▾') : t('Скрыть ▴');
+        }
+
+        function toggleRepeatList() {
+            const list = document.getElementById('repeatList');
+            list.hidden = !list.hidden;
+            document.getElementById('repeatMore').innerText =
+                list.hidden ? t('Показать ошибки ▾') : t('Скрыть ▴');
+        }
+
+        // Где пример на пути из копилки:
+        //  'ready' — один день уже засчитан, и не сегодня: верный ответ сегодня его уберёт;
+        //  'fresh' — дней ещё нет: нужно два;
+        //  'today' — сегодня уже засчитан: второй день будет завтра или позже.
+        function repeatStateOf(item, today) {
+            const ok = (item && item.ok) || [];
+            if (ok.indexOf(today) >= 0) return 'today';
+            return ok.length ? 'ready' : 'fresh';
+        }
+
+        // Порядок копилки: сначала те, что уйдут сегодня, потом новые, давние ошибки
+        // раньше свежих, засчитанные сегодня — в конце. По нему идёт и очередь миссии
+        // (repeatQueue), и список в карточке — каждая ошибка по одному разу.
+        function repeatQueueOrder(items) {
+            const today = Progress.dayKey();
+            const rank = (it) => ({ ready: 0, fresh: 1, today: 2 })[repeatStateOf(it, today)];
+            return items.slice().sort((x, y) =>
+                (rank(x) - rank(y)) || (x.t - y.t) || (x.sig < y.sig ? -1 : 1));
+        }
+
+        // Две точки — два дня. Заполненная — день, когда пример решён верно.
+        function repeatDotsHtml(filled) {
+            return '<span class="rdots">' + [0, 1].map(i =>
+                `<i class="${i < filled ? 'on' : ''}"></i>`).join('') + '</span>';
+        }
+
+        // Пример из копилки — так, как ученик видел его в игре.
+        function fillRepeatExample(el, item) {
+            const meta = repeatMetaOf(item.k), p = item.p || {};
+            try {
+                if (meta.category === 'fraction') {
+                    if (meta.opKey === 'fracOfNumber') {
+                        el.innerHTML = tf('%1 от %2', renderFracValue({ num: p.fracNum, den: p.fracDen }, false), Number(p.N));
+                    } else if (meta.opKey === 'simplify' || meta.opKey === 'toMixed' || meta.opKey === 'toImproper') {
+                        el.innerHTML = renderFracValue(p.given, meta.opKey === 'toImproper');
+                    } else {
+                        el.innerHTML = buildFractionQuestionHtml(p.f1, p.f2, meta.opKey, meta.level);
+                    }
+                    return;
+                }
+                if (meta.category === 'decimal') {
+                    el.innerText = buildDecimalQuestionText(p.d1, p.d2, meta.opKey);
+                    return;
+                }
+                el.innerText = String(p.text || '');
+            } catch (e) {
+                el.innerText = '';
+            }
+        }
+
+        // Подпись во время миссии повтора: что даст верный ответ на этот пример.
+        function renderRepeatNow() {
+            const el = document.getElementById('repeatNow');
+            if (!el) return;
+            const run = repeatRun;
+            if (!run || !run.current) { el.style.display = 'none'; return; }
+            const it = (Progress.getBank().items || {})[run.current.sig] || run.current;
+            const st = repeatStateOf(it, Progress.dayKey());
+            let text = st === 'ready' ? t('Реши верно — и ошибка уйдёт из копилки')
+                : st === 'fresh' ? t('Первый день: реши верно сегодня, второй — завтра')
+                : t('Сегодня эта ошибка уже засчитана — завтра ещё раз');
+            // Сложение и вычитание целых повторяются похожим примером — скажем, на какой.
+            const same = currentProblemMeta && currentProblem
+                && problemSig(currentProblemMeta, currentProblem) === run.current.sig;
+            if (!same && run.current.p && run.current.p.text) {
+                text = tf('Похож на твою ошибку %1. ', run.current.p.text) + text;
+            }
+            el.innerHTML = repeatDotsHtml(st === 'fresh' ? 0 : 1);
+            const s = document.createElement('span');
+            s.innerText = text;
+            el.appendChild(s);
+            el.style.display = '';
         }
 
         // Серия — честный счётчик верных ответов подряд. Множителя у неё нет: он ни на
@@ -14917,6 +15108,8 @@
             // Здесь же и подсказка режима обучения: и пример, и его клетка к этому
             // моменту известны, а воронка одна на все виды примеров.
             renderTrainHint();
+            // И подпись повтора: она сравнивает показанный пример с ошибкой из копилки.
+            renderRepeatNow();
             return problem;
         }
 
@@ -15661,9 +15854,13 @@
                 const sigs = [...new Set(repeatRun.queue.slice(0, repeatRun.pos + 1).map(it => it.sig))];
                 const learned = sigs.filter(s => !bank.items[s] && bank.done[s]).length;
                 const tomorrow = sigs.filter(s => bank.items[s] && bank.items[s].ok.indexOf(today) >= 0).length;
-                if (learned) rows.appendChild(winRow(t('🎓 Выучено'), String(learned), true));
-                if (tomorrow) rows.appendChild(winRow(t('📅 Повтори завтра'), String(tomorrow), false));
-                gate.innerText = t('Пример уходит из копилки, когда решишь его верно в два разных дня.');
+                // Ошибка в повторе обнуляет счёт дней — такие стоят без единой точки.
+                const missed = repeatRun.missed || {};
+                const reset = sigs.filter(s => missed[s] && bank.items[s] && !bank.items[s].ok.length).length;
+                if (learned) rows.appendChild(winRow(t('✅ Ушли из копилки'), String(learned), true));
+                if (tomorrow) rows.appendChild(winRow(t('●○ Первый день есть — повтори завтра'), String(tomorrow), false));
+                if (reset) rows.appendChild(winRow(t('○○ Снова ошибка — дни считаются заново'), String(reset), false));
+                gate.innerText = t('Каждую ошибку реши верно в 2 разных дня — и она уйдёт из копилки.');
                 gate.style.display = '';
                 // Повторять больше нечего — и кнопке «Ещё раз» здесь не место.
                 if (!left && again) again.style.display = 'none';
