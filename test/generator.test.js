@@ -82,6 +82,9 @@ function loadGenerators() {
                          + '\n;globalThis.NEG_DIV_SHARES = NEG_DIV_SHARES;'
                          + '\n;globalThis.NEG_ADD_CLASS_SHARES = NEG_ADD_CLASS_SHARES;'
                          + '\n;globalThis.NEG_PAREN_SHARE = NEG_PAREN_SHARE;'
+                         + '\n;globalThis.NEG_SUB_CLASS_SHARES = NEG_SUB_CLASS_SHARES;'
+                         + '\n;globalThis.NEG_SUB_CROSS_FORM = NEG_SUB_CROSS_FORM;'
+                         + '\n;globalThis.NEG_TYPICAL_SHARE = NEG_TYPICAL_SHARE;'
                          + '\n;globalThis.NEG_ADD_RANGE = NEG_ADD_RANGE;'
                          + '\n;globalThis.NEG_ADD_MIN = NEG_ADD_MIN;'
                          + '\n;globalThis.ADD_SUB_RANGE = ADD_SUB_RANGE;'
@@ -1685,38 +1688,119 @@ function negParts(e) {
     return { x, y, cls };
 }
 
-test('классы идут ровно по заданным долям', () => {
-    const N = 120000;
-    for (let lvl = 1; lvl <= 5; lvl++) {
-        const c = [0, 0, 0];
-        for (let i = 0; i < N; i++) {
-            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
-            c[negParts(e).cls]++;
+// У «Вычитания» на 1–3★ доли свои (NEG_SUB_CLASS_SHARES), поэтому клетки
+// сверяются каждая со своей таблицей, а не смесью.
+const negSharesFor = (isSub, lvl) => (isSub && G.NEG_SUB_CLASS_SHARES[lvl]) || G.NEG_ADD_CLASS_SHARES[lvl];
+test('классы идут ровно по заданным долям — в каждой клетке по своей таблице', () => {
+    const N = 80000;
+    [false, true].forEach(isSub => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            const c = [0, 0, 0];
+            for (let i = 0; i < N; i++) {
+                const e = isSub ? G.genSubNegative(lvl) : G.genAddNegative(lvl);
+                c[negParts(e).cls]++;
+            }
+            negSharesFor(isSub, lvl).forEach((want, i) => {
+                const got = c[i] / N;
+                assert(Math.abs(got - want) < 0.02,
+                    `${isSub ? 'вычитание' : 'сложение'} ${lvl}★, класс ${i}: ${(got * 100).toFixed(1)}% вместо ${(want * 100)}%`);
+            });
         }
-        G.NEG_ADD_CLASS_SHARES[lvl].forEach((want, i) => {
-            const got = c[i] / N;
-            assert(Math.abs(got - want) < 0.02,
-                `${lvl}★, класс ${i}: ${(got * 100).toFixed(1)}% вместо ${(want * 100)}%`);
+    });
+});
+
+test('доли классов в каждой таблице складываются в единицу', () => {
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        [G.NEG_ADD_CLASS_SHARES[lvl], G.NEG_SUB_CLASS_SHARES[lvl]].forEach((sh, k) => {
+            if (!sh) return;
+            const sum = sh.reduce((a, b) => a + b, 0);
+            assert(Math.abs(sum - 1) < 1e-9, `${k ? 'вычитание' : 'сложение'} ${lvl}★: сумма долей ${sum}`);
         });
     }
 });
 
 // Переход через ноль — главная ошибка темы: считают 8 − 3 = 5 и оставляют знак
 // первого числа. До правки доля таких примеров была делом случая.
-test('переход через ноль растёт со звездой и на пятой больше половины', () => {
+test('переход через ноль в «Сложении» растёт со звездой и на пятой больше половины', () => {
     const N = 80000;
     const cross = (lvl) => {
         let c = 0;
-        for (let i = 0; i < N; i++) {
-            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
-            if (negParts(e).cls === 2) c++;
-        }
+        for (let i = 0; i < N; i++) if (negParts(G.genAddNegative(lvl)).cls === 2) c++;
         return c / N;
     };
     const v = [1, 2, 3, 4, 5].map(cross);
     for (let i = 1; i < 5; i++) assert(v[i] > v[i - 1] - 0.005, `доля упала со звездой: ${v[i - 1]} -> ${v[i]}`);
     assert(v[4] > 0.5, `на 5★ переход через ноль ${(v[4] * 100).toFixed(1)}%`);
     assert(v[0] < 0.25, `на 1★ переход через ноль ${(v[0] * 100).toFixed(1)}%`);
+});
+
+// «Вычитание» на 1–3★ — вариант 2 (решение репетитора). Переходов через ноль здесь
+// больше, чем в «Сложении»: половина из них записана как «3 − 8», и без этой
+// добавки минус в ответе стал бы почти правилом.
+test('в «Вычитании» на 1–3★ переход через ноль чаще, чем в «Сложении», а на 5★ — больше половины', () => {
+    const N = 60000;
+    const cross = (gen, lvl) => {
+        let c = 0;
+        for (let i = 0; i < N; i++) if (negParts(gen(lvl)).cls === 2) c++;
+        return c / N;
+    };
+    [1, 2, 3].forEach(lvl => {
+        const sub = cross(G.genSubNegative, lvl), add = cross(G.genAddNegative, lvl);
+        // Задумано на 20 / 15 / 10 пунктов больше; разброс при такой выборке —
+        // десятые доли пункта, так что пять пунктов отделяют замысел от его отсутствия.
+        assert(sub > add + 0.05, `${lvl}★: вычитание ${(sub * 100).toFixed(1)}%, сложение ${(add * 100).toFixed(1)}%`);
+    });
+    const five = cross(G.genSubNegative, 5);
+    assert(five > 0.5, `вычитание 5★: переход через ноль ${(five * 100).toFixed(1)}%`);
+});
+
+// «3 − 8»: первое число положительное, вычитаем большее. Раньше в «Вычитании» такой
+// записи почти не было (1–2%), и клетка повторяла «Сложение» на 90–94%.
+const isSmallMinusBig = (text) => {
+    const m = /^(\d+) - (\d+)$/.exec(text);
+    return !!m && +m[1] < +m[2];
+};
+test('«3 − 8» в «Вычитании»: около пятой части примеров на 1–3★, на 4–5★ его держат скобки', () => {
+    const N = 60000;
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        let c = 0;
+        for (let i = 0; i < N; i++) if (isSmallMinusBig(G.genSubNegative(lvl).text)) c++;
+        const got = c / N;
+        if (lvl <= 3) assert(got > 0.15 && got < 0.26, `${lvl}★: «3 − 8» ${(got * 100).toFixed(1)}%`);
+        else assert(got < 0.03, `${lvl}★: «3 − 8» ${(got * 100).toFixed(1)}% — на этих звёздах его не задумано`);
+    }
+});
+
+test('«Вычитание» больше не повторяет «Сложение»: совпадение примеров на 1–3★ упало', () => {
+    // Было 94 / 92 / 90%. Меряем так же: общая доля одинаковых записей.
+    const N = 40000;
+    [1, 2, 3].forEach(lvl => {
+        const A = new Map(), S = new Map();
+        for (let i = 0; i < N; i++) {
+            const a = G.genAddNegative(lvl).text, s = G.genSubNegative(lvl).text;
+            A.set(a, (A.get(a) || 0) + 1);
+            S.set(s, (S.get(s) || 0) + 1);
+        }
+        let common = 0;
+        A.forEach((c, k) => { common += Math.min(c, S.get(k) || 0); });
+        const got = common / N;
+        assert(got < 0.82, `${lvl}★: «Вычитание» совпадает со «Сложением» на ${(got * 100).toFixed(1)}%`);
+    });
+});
+
+// Неверное правило «знак ответа — как у первого числа» верно ровно в примерах без
+// перехода через ноль. На 1★ «Вычитания» оно давало 80% — выше золота по точности
+// без понимания знака. Минус в ответе при этом не должен стать правилом сам.
+test('«знак как у первого числа» в «Вычитании» 1★ — не выше 65%, а ответов с минусом — не больше 85%', () => {
+    const N = 60000;
+    let first = 0, neg = 0;
+    for (let i = 0; i < N; i++) {
+        const e = G.genSubNegative(1);
+        if (Math.sign(e.answer) === Math.sign(e.a)) first++;
+        if (e.answer < 0) neg++;
+    }
+    assert(first / N < 0.65, `правило первого числа даёт ${(100 * first / N).toFixed(1)}%`);
+    assert(neg / N < 0.85, `ответов с минусом ${(100 * neg / N).toFixed(1)}%`);
 });
 
 // Раньше скобки включались обрывом: ровно 0% на четырёх звёздах и 79,9% на пятой,
@@ -1755,6 +1839,26 @@ test('форма: скобки появляются до пятой звезды
     assert(v[3] < v[4] - 0.1, `4★ и 5★ по скобкам почти совпали: ${v[3]} и ${v[4]}`);
     assert(v[4] > 0.35 && v[4] < 0.65,
         `на 5★ скобок ${(v[4] * 100).toFixed(1)}% — либо мало, либо звезда перестаёт быть про счёт`);
+});
+
+// Решение репетитора: скобки входят постепенно — с второй звезды, ступенями. Проверка
+// выше сверяет генератор с его же таблицей и правку самой таблицы не заметит.
+test('форма: на 1★ скобок нет, со 2★ они есть и растут ступенями', () => {
+    const N = 40000;
+    const share = (lvl) => {
+        let par = 0;
+        for (let i = 0; i < N; i++) {
+            const e = Math.random() < 0.5 ? G.genAddNegative(lvl) : G.genSubNegative(lvl);
+            if (e.text.indexOf('(') >= 0) par++;
+        }
+        return par / N;
+    };
+    const v = [1, 2, 3, 4, 5].map(share);
+    assert(v[0] === 0, `на 1★ скобок ${(v[0] * 100).toFixed(1)}%`);
+    assert(v[1] > 0.05, `на 2★ скобок ${(v[1] * 100).toFixed(1)}% — запись снова приходит обрывом`);
+    for (let i = 2; i < 5; i++) {
+        assert(v[i] > v[i - 1] + 0.08, `${i + 1}★ не выше ${i}★ по скобкам: ${v[i - 1]} -> ${v[i]}`);
+    }
 });
 
 test('форма: мелких операндов нет нигде, а минимум растёт со звездой', () => {
@@ -2090,8 +2194,18 @@ test('верную последнюю цифру имеет не только о
                 // это и есть посчитать пример: десяток берётся тем же действием.
                 // Поэтому граница по двум значащим разрядам, а не по одному.
                 if (e.noSolution || Math.abs(e.answer) < 20) continue;
-                const opts = [e.answer, ...G.buildDistractors(op, e.a, e.b, e.answer, neg, 3, lvl)];
+                const opts = [e.answer, ...G.buildDistractors(op, e.a, e.b, e.answer, neg, 3, lvl, e)];
                 if (opts.some(v => typeof v !== 'number')) continue;
+                // Исключение — отрицательные сложение и вычитание, где второй парой
+                // стоит типичная ошибка темы: «−17 − 8 = −25» при вариантах ±25 и ±9.
+                // По последней цифре такой пример не угадать: 5 у ответа и 9 у ошибки
+                // получаются РАЗНЫМ действием — сложением модулей и вычитанием. Чтобы
+                // выбрать по цифре, надо уже знать правило, ради которого пример и дан.
+                // Остальные примеры проверка держит, как держала.
+                if (neg && (op === 'add' || op === 'sub')) {
+                    const typ = G.negTypicalMag(op, e.a, e.b, e.answer, e);
+                    if (typ && opts.some(v => Math.abs(v) === typ)) continue;
+                }
                 seen++;
                 if (opts.filter(v => v % 10 === e.answer % 10).length === 1) alone++;
             }
@@ -2099,6 +2213,87 @@ test('верную последнюю цифру имеет не только о
             const share = alone / seen;
             assert(share < 0.15,
                 `${neg ? 'отр. ' : ''}${op} ${lvl}★: ответ единственный со своей последней цифрой в ${(100 * share).toFixed(1)}% примеров`);
+        }
+    });
+});
+
+group('Отрицательные сложение и вычитание: типичная ошибка среди вариантов');
+
+test('модель типичной ошибки: модули перепутаны, двойной минус, минус в скобках', () => {
+    const M = (op, a, b, answer, text) => G.negTypicalMag(op, a, b, answer, { text });
+    eq(M('sub', 3, 8, -5, '3 - 8'), 11, '3 − 8: модули сложены вместо вычитания');
+    eq(M('add', -8, 3, -5, '-8 + 3'), 11, '−8 + 3: модули сложены');
+    eq(M('sub', -7, 3, -10, '-7 - 3'), 4, '−7 − 3: модули вычтены вместо сложения');
+    eq(M('add', -7, -3, -10, '-7 - 3'), 4, 'та же запись из «Сложения»');
+    eq(M('sub', 5, -3, 8, '5 - (-3)'), 2, '5 − (−3): двойной минус не замечен');
+    eq(M('add', 5, -3, 2, '5 + (-3)'), 8, '5 + (−3): минус в скобке не замечен');
+    eq(M('sub', -5, -3, -2, '-5 - (-3)'), 8, '−5 − (−3)');
+    eq(M('add', -6, 6, 0, '-6 + 6'), 12, 'ответ ноль — ошибка всё равно есть');
+});
+
+test('типичная ошибка, совпавшая с ответом, ошибкой не считается', () => {
+    // 5 − (−0)... такого нет; а вот «−4 + 8 = 4» и модель |−4| + 8 = 12 — разные.
+    // Совпасть она может только у примера, где одно из чисел ноль.
+    eq(G.negTypicalMag('add', 0, 7, 7, { text: '0 + 7' }), 0, 'ноль в примере');
+});
+
+test('типичная ошибка стоит второй парой примерно в половине примеров, где она есть', () => {
+    const N = 20000;
+    ['add', 'sub'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            let has = 0, shown = 0;
+            for (let i = 0; i < N; i++) {
+                const e = G.generateProblem(op, lvl, true);
+                const typ = G.negTypicalMag(op, e.a, e.b, e.answer, e);
+                if (!typ) continue;
+                has++;
+                const opts = G.buildDistractors(op, e.a, e.b, e.answer, true, 3, lvl, e);
+                if (opts.some(v => Math.abs(v) === typ)) shown++;
+            }
+            const share = shown / has;
+            // NEG_TYPICAL_SHARE = 0,5 плюс случаи, когда близкое число само совпало с ошибкой.
+            assert(share > 0.45 && share < 0.8,
+                `${op} ${lvl}★: типичная ошибка среди вариантов в ${(100 * share).toFixed(1)}% примеров`);
+        }
+    });
+});
+
+test('варианты по-прежнему две пары: ±ответ и ±второе число, без повторов', () => {
+    const N = 6000;
+    ['add', 'sub'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < N; i++) {
+                const e = G.generateProblem(op, lvl, true);
+                if (e.answer === 0) continue;
+                const opts = G.buildDistractors(op, e.a, e.b, e.answer, true, 3, lvl, e);
+                const all = [e.answer, ...opts];
+                assert(new Set(all).size === 4, `${e.text}: повтор среди вариантов ${all.join(', ')}`);
+                assert(opts.indexOf(e.answer) < 0, `${e.text}: ответ среди неверных`);
+                assert(opts.indexOf(-e.answer) >= 0, `${e.text}: нет близнеца по знаку`);
+                const mags = [...new Set(opts.map(Math.abs))].filter(m => m !== Math.abs(e.answer));
+                assert(mags.length === 1, `${e.text}: вторая «пара» не пара — ${opts.join(', ')}`);
+            }
+        }
+    });
+});
+
+// Шаг «±10 × меньшее число» придуман для двузначного на однозначное, которого в
+// отрицательных нет, и давал нелепые пары: «−15 − 15» с вариантом 180. Убран.
+test('нелепой второй пары почти нет: не дальше суммы модулей + 10 — в 95% примеров', () => {
+    const N = 20000;
+    ['add', 'sub'].forEach(op => {
+        for (let lvl = 3; lvl <= 5; lvl++) {
+            let absurd = 0, total = 0;
+            for (let i = 0; i < N; i++) {
+                const e = G.generateProblem(op, lvl, true);
+                const opts = G.buildDistractors(op, e.a, e.b, e.answer, true, 3, lvl, e);
+                const mags = [...new Set(opts.map(Math.abs))].filter(m => m !== Math.abs(e.answer));
+                if (mags.length !== 1) continue;
+                total++;
+                if (mags[0] > Math.abs(e.a) + Math.abs(e.b) + 10) absurd++;
+            }
+            assert(absurd / total < 0.05,
+                `${op} ${lvl}★: нелепая пара в ${(100 * absurd / total).toFixed(1)}% примеров`);
         }
     });
 });

@@ -30,6 +30,14 @@ function slice(startMark, endMark, what) {
     if (from < 0 || to < 0) throw new Error(`не найдены границы среза: ${what}`);
     return SCRIPT.slice(from, to);
 }
+// Минус на экране — настоящий (showMinus живёт в js/i18n.js): берём ту же функцию.
+const SHOW_MINUS_SRC = (() => {
+    const src = fs.readFileSync(path.join(ROOT, 'js', 'i18n.js'), 'utf8');
+    const from = src.indexOf('function showMinus(v)');
+    const to = src.indexOf('\n}\n', from);
+    if (from < 0 || to < 0) throw new Error('не найдена showMinus в js/i18n.js');
+    return src.slice(from, to) + '\n}\n';
+})();
 const EXAM_SRC = slice('// ===================== ВВОДНЫЙ ЭКЗАМЕН', '        // ===================== ТЕХНИЧЕСКИЕ РАБОТЫ', 'экзамен');
 
 // Подставной мир: генератор выдаёт предсказуемые примеры, сервер соглашается.
@@ -115,7 +123,7 @@ function load(opts) {
     };
     box.globalThis = box;
     vm.createContext(box);
-    vm.runInContext(EXAM_SRC
+    vm.runInContext(SHOW_MINUS_SRC + '\n' + EXAM_SRC
         + '\n;globalThis.E = { examOpen, examClose, examAnswer, examFinish, examPracticeLevel,'
         + ' EXAM_QUESTIONS, EXAM_PASS, EXAM_SECONDS, EXAM_FEEDBACK_MS,'
         + ' EXAM_MAX_GRANT, EXAM_SECTIONS, examOptions,'

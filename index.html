@@ -9318,7 +9318,7 @@
             document.getElementById('examStep').innerText =
                 (exam.trial ? t('Пробный · ') : '')
                 + tf('%1★ · пример %2 из %3', exam.level, exam.asked, EXAM_QUESTIONS);
-            document.getElementById('examQuestion').innerText = problem.text + ' = ?';
+            document.getElementById('examQuestion').innerText = showMinus(problem.text) + ' = ?';
             const feedback = document.getElementById('examFeedback');
             feedback.className = 'exam-feedback';
             feedback.innerText = '';
@@ -9371,7 +9371,7 @@
             const correct = problem.noSolution ? 'NO_SOLUTION' : problem.answer;
             const wrong = problem.noSolution
                 ? buildNoSolutionOptions(problem.a, neg)
-                : buildDistractors(op, problem.a, problem.b, problem.answer, neg, 3, level);
+                : buildDistractors(op, problem.a, problem.b, problem.answer, neg, 3, level, problem);
             const values = wrong.concat([correct]);
             // Перемешиваем, иначе верный ответ всегда стоял бы последним.
             for (let i = values.length - 1; i > 0; i--) {
@@ -9380,7 +9380,7 @@
             }
             return {
                 correct,
-                options: values.map(v => ({ value: v, label: v === 'NO_SOLUTION' ? t('Нет решения') : String(v) }))
+                options: values.map(v => ({ value: v, label: v === 'NO_SOLUTION' ? t('Нет решения') : showMinus(v) }))
             };
         }
 
@@ -9470,8 +9470,8 @@
                 const row = document.createElement('div');
                 row.className = 'exam-mistake-row';
                 row.innerText = x.given === null
-                    ? tf('%1 · верно: %2 · время вышло', x.text, x.answer)
-                    : tf('%1 · верно: %2 · твой ответ: %3', x.text, x.answer, x.given);
+                    ? tf('%1 · верно: %2 · время вышло', showMinus(x.text), showMinus(x.answer))
+                    : tf('%1 · верно: %2 · твой ответ: %3', showMinus(x.text), showMinus(x.answer), showMinus(x.given));
                 wrap.appendChild(row);
             });
         }
@@ -14490,7 +14490,7 @@
                     el.innerText = buildDecimalQuestionText(p.d1, p.d2, meta.opKey);
                     return;
                 }
-                el.innerText = String(p.text || '');
+                el.innerText = showMinus(p.text || '');
             } catch (e) {
                 el.innerText = '';
             }
@@ -14511,7 +14511,7 @@
             const same = currentProblemMeta && currentProblem
                 && problemSig(currentProblemMeta, currentProblem) === run.current.sig;
             if (!same && run.current.p && run.current.p.text) {
-                text = tf('Похож на твою ошибку %1. ', run.current.p.text) + text;
+                text = tf('Похож на твою ошибку %1. ', showMinus(run.current.p.text)) + text;
             }
             el.innerHTML = repeatDotsHtml(st === 'fresh' ? 0 : 1);
             const s = document.createElement('span');
@@ -15280,7 +15280,8 @@
                 (p) => `int|${opKey}|${p.text}`
             );
 
-            questionEl.innerText = problem.text;
+            // Минус — настоящий (showMinus): только вид, ключи ответов те же.
+            questionEl.innerText = showMinus(problem.text);
 
             if (problem.noSolution) {
                 correctAnswer = 'NO_SOLUTION';
@@ -15290,19 +15291,19 @@
                 opts.forEach(optText => {
                     const b = document.createElement('button');
                     b.className = 'btn-answer';
-                    b.innerText = optText;
+                    b.innerText = optText === t('Нет решения') ? optText : showMinus(optText);
                     b.dataset.key = answerKey(optText === t('Нет решения') ? 'NO_SOLUTION' : Number(optText));
                     b.onclick = (e) => checkAnswer(optText === t('Нет решения') ? 'NO_SOLUTION' : Number(optText), e);
                     grid.appendChild(b);
                 });
             } else {
                 correctAnswer = problem.answer;
-                const fakeNums = buildDistractors(opKey, problem.a, problem.b, correctAnswer, isNegative, 3, level);
+                const fakeNums = buildDistractors(opKey, problem.a, problem.b, correctAnswer, isNegative, 3, level, problem);
                 let arr = shuffleArray([correctAnswer, ...fakeNums]);
                 arr.forEach(ans => {
                     const b = document.createElement('button');
                     b.className = 'btn-answer';
-                    b.innerText = ans === 'NO_SOLUTION' ? t('Нет решения') : ans;
+                    b.innerText = ans === 'NO_SOLUTION' ? t('Нет решения') : showMinus(ans);
                     b.dataset.key = answerKey(ans);
                     b.onclick = (e) => checkAnswer(ans, e);
                     grid.appendChild(b);

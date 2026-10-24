@@ -49,6 +49,9 @@ function loadPicker() {
         // впустую — на пустой строке любое утверждение о подстановках верно.
         + slice('function unitsClass', 'function pickByShare', 'unitsClass')
         + 'const LANG = "ru";'
+        // Числа в приёме печатаются с настоящим минусом — те же функции, что в приложении.
+        + slice('function showMinus(v)', '\n}\n', 'showMinus') + '\n}\n'
+        + slice('function hintValue(v)', '\n}\n', 'hintValue') + '\n}\n'
         + slice('function resolveTricks', '\n// Готовая строка для экрана', 'выбор приёма')
         + slice('function trickHint', '\n// ===', 'сборка строки')
         + ';globalThis.R = { trickPick, trickHint, mulClassOf };', box);
@@ -495,7 +498,7 @@ test('приём отрицательных выбирается по прави
     });
     // Знак берётся у большего по модулю — и печатается СО ЗНАКОМ.
     eq(R.trickHint(negMeta('add', 3), pair(-14, 13, -1)),
-       'Знаки разные: из 14 вычти 13, а знак возьми у -14');
+       'Знаки разные: из 14 вычти 13, а знак возьми у −14');
     eq(R.trickHint(negMeta('add', 3), pair(-8, -6, -14)),
        'Знаки одинаковые: сложи 8 и 6, знак оставь тот же');
     // Умножение: правило знаков плюс счёт модулей.
