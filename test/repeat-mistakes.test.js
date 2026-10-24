@@ -189,23 +189,23 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
         });
         await положить(много[0]);
         c = await карточка();
-        record('одна ошибка — «1 пример ждёт»', !c.скрыта && c.текст === '1 пример ждёт' ? null : JSON.stringify(c));
+        record('одна ошибка — «В копилке 1 ошибка»', !c.скрыта && c.текст === 'В копилке 1 ошибка' ? null : JSON.stringify(c));
         await положить(Object.assign({}, много[1], много[2]));
         c = await карточка();
-        record('три — «3 примера ждут»', c.текст === '3 примера ждут' ? null : c.текст);
+        record('три — «В копилке 3 ошибки»', c.текст === 'В копилке 3 ошибки' ? null : c.текст);
         await положить(Object.assign({}, много[3], много[4]));
         c = await карточка();
-        record('пять — «5 примеров ждут»', c.текст === '5 примеров ждут' ? null : c.текст);
+        record('пять — «В копилке 5 ошибок»', c.текст === 'В копилке 5 ошибок' ? null : c.текст);
         // Пятая звезда у гостя закрыта воротами: золото на 4★ не взято (см. «сначала»).
         await положить({ 'integer+:mul:5|3 × 37': запись('integer+:mul:5', { text: '3 × 37', answer: 111, a: 3, b: 37 }) });
         c = await карточка();
-        record('пример с закрытой звезды не считается', c.текст === '5 примеров ждут' ? null : c.текст);
+        record('пример с закрытой звезды не считается', c.текст === 'В копилке 5 ошибок' ? null : c.текст);
         // Испорченная по дороге запись: пример не сходится с подписью или его нет вовсе.
         await положить({ 'integer+:add:3|11 + 9': запись('integer+:add:3', сложение(12, 9)),
                          'fraction+:add:2|1_2|1_3': запись('fraction+:add:2', { isFraction: true }) });
         c = await карточка();
         record('испорченная запись не считается и в миссию не попадёт',
-               c.текст === '5 примеров ждут' ? null : c.текст);
+               c.текст === 'В копилке 5 ошибок' ? null : c.текст);
     }
 
     console.log('\nОчередь миссии');
@@ -237,6 +237,127 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
             return { n: q.length, разных: new Set(q.map(it => it.sig)).size }; })()`);
         record('в миссии не больше десяти примеров', r.n === 10 ? null : `примеров ${r.n}`);
         record('и каждый — своя ошибка, а не повтор одной', r.разных === 10 ? null : `разных ${r.разных}`);
+    }
+
+    console.log('\nКарточка: правило, три кучки и список');
+    {
+        // Те же четыре записи, что в очереди выше: B уйдёт сегодня (верно вчера),
+        // D и A новые, C сегодня уже засчитана.
+        await сначала();
+        const t0 = Date.now() - 5 * 86400000;
+        await положить({
+            'integer+:add:3|38 + 7': запись('integer+:add:3', сложение(38, 7), [], { t: t0 + 2000 }),
+            'integer+:add:3|27 + 8': запись('integer+:add:3', сложение(27, 8), [вчера], { t: t0 + 3000 }),
+            'integer+:add:3|29 + 6': запись('integer+:add:3', сложение(29, 6), [сегодня], { t: t0 }),
+            'integer+:add:3|46 + 5': запись('integer+:add:3', сложение(46, 5), [], { t: t0 + 1000 })
+        });
+        const карточка = () => page.evaluate(`(() => { renderConfigTasks();
+            const $ = (id) => document.getElementById(id);
+            const dots = (el) => [...el.querySelectorAll('.rdots i')].map(i => i.classList.contains('on') ? '●' : '○').join('');
+            return {
+                правило: document.querySelector('#repeatWrap .repeat-rule').innerText,
+                кучки: [...$('repeatGroups').children].map(g => dots(g) + ' ' + g.querySelector('b').innerText + ' ' + g.querySelector('span:not(.rdots)').innerText),
+                списокСкрыт: $('repeatList').hidden,
+                кнопка: $('repeatMore').innerText,
+                список: [...$('repeatList').children].map(r => ({
+                    пример: r.querySelector('.repeat-item-ex').innerText,
+                    тема: r.querySelector('.repeat-item-topic').innerText,
+                    точки: dots(r.querySelector('.repeat-item-state')),
+                    состояние: r.querySelector('.repeat-item-state > span:not(.rdots)').innerText,
+                    готов: r.classList.contains('ready')
+                })),
+                очередь: repeatQueue(repeatItems()).map(it => it.p.text)
+            };
+        })()`);
+        let c = await карточка();
+        record('правило одной строкой: 2 разных дня — и ошибка уходит',
+               /2 разных дня/.test(c.правило) && /уйдёт из копилки/.test(c.правило) ? null : c.правило);
+        record('три кучки с точками: уйдут сегодня, новые, засчитаны сегодня',
+               same(c.кучки, ['●○ 1 уйдут сегодня, если решить верно', '○○ 2 новые — нужно 2 дня',
+                              '●○ 1 сегодня уже засчитаны — повтори завтра']) ? null : JSON.stringify(c.кучки));
+        record('список ошибок спрятан, пока не попросили', c.списокСкрыт && /Показать ошибки/.test(c.кнопка)
+               ? null : JSON.stringify({ скрыт: c.списокСкрыт, кнопка: c.кнопка }));
+        // Экран выбора в этой проверке не на виду — нажимаем так же, как палец: click().
+        await page.evaluate(`document.getElementById('repeatMore').click(); null`);
+        const открыт = await page.evaluate(`({ скрыт: document.getElementById('repeatList').hidden,
+                                               кнопка: document.getElementById('repeatMore').innerText })`);
+        record('по кнопке список открывается, кнопка зовётся «Скрыть»',
+               !открыт.скрыт && /Скрыть/.test(открыт.кнопка) ? null : JSON.stringify(открыт));
+        const уникальные = [...new Set(c.очередь)];
+        record('список идёт в том же порядке, что придут примеры миссии',
+               same(c.список.map(r => r.пример), уникальные) ? null
+               : `список ${c.список.map(r => r.пример).join(', ')} / очередь ${уникальные.join(', ')}`);
+        const B = c.список.find(r => r.пример === '27 + 8'), A = c.список.find(r => r.пример === '38 + 7'),
+              C = c.список.find(r => r.пример === '29 + 6');
+        record('у каждой строки точки и что будет: ●○ «сегодня уйдёт», ○○ «нужно 2 дня», ●○ «повтори завтра»',
+               B && B.точки === '●○' && B.состояние === 'сегодня уйдёт' && B.готов
+               && A && A.точки === '○○' && A.состояние === 'нужно 2 дня' && !A.готов
+               && C && C.точки === '●○' && C.состояние === 'повтори завтра' && !C.готов
+               ? null : JSON.stringify(c.список));
+        record('у строки названа клетка ошибки', B && /3/.test(B.тема) && B.тема.length > 3 ? null : JSON.stringify(B));
+        // Без одной из кучек — её строки просто нет.
+        await сначала();
+        await положить({ 'integer+:add:3|38 + 7': запись('integer+:add:3', сложение(38, 7)) });
+        c = await карточка();
+        record('пустые кучки не показываются', same(c.кучки, ['○○ 1 новые — нужно 2 дня']) ? null : JSON.stringify(c.кучки));
+    }
+
+    console.log('\nПодпись под строкой миссии');
+    {
+        const подпись = () => page.evaluate(`(() => { const el = document.getElementById('repeatNow');
+            return { видна: getComputedStyle(el).display !== 'none', текст: el.innerText.replace(/\s+/g, ' ').trim(),
+                     точки: [...el.querySelectorAll('.rdots i')].map(i => i.classList.contains('on') ? '●' : '○').join(''),
+                     вопрос: document.getElementById('mathQuestion').innerText }; })()`);
+        // Умножение повторяется тем же примером — подпись без «похож на».
+        await сначала();
+        await положить({ [SIG_MUL]: запись('integer+:mul:3', ПРИМЕР_УМНОЖЕНИЯ, [вчера]) });
+        await page.evaluate(`startRepeatMission(); null`);
+        await page.waitForTimeout(150);
+        let п = await подпись();
+        record('верно вчера — «Реши верно — и ошибка уйдёт из копилки», ●○',
+               п.видна && п.текст === 'Реши верно — и ошибка уйдёт из копилки' && п.точки === '●○' ? null : JSON.stringify(п));
+        await page.evaluate(`finishChallenge(); null`);
+
+        await сначала();
+        await положить({ [SIG_MUL]: запись('integer+:mul:3', ПРИМЕР_УМНОЖЕНИЯ, []) });
+        await page.evaluate(`startRepeatMission(); null`);
+        await page.waitForTimeout(150);
+        п = await подпись();
+        record('новая ошибка — «Первый день: реши верно сегодня, второй — завтра», ○○',
+               п.текст === 'Первый день: реши верно сегодня, второй — завтра' && п.точки === '○○' ? null : JSON.stringify(п));
+        await page.evaluate(`finishChallenge(); null`);
+
+        await сначала();
+        await положить({ [SIG_MUL]: запись('integer+:mul:3', ПРИМЕР_УМНОЖЕНИЯ, [сегодня]) });
+        await page.evaluate(`startRepeatMission(); null`);
+        await page.waitForTimeout(150);
+        п = await подпись();
+        record('сегодня уже засчитана — «…завтра ещё раз», ●○',
+               п.текст === 'Сегодня эта ошибка уже засчитана — завтра ещё раз' && п.точки === '●○' ? null : JSON.stringify(п));
+        await page.evaluate(`finishChallenge(); null`);
+
+        // Сложение — похожим примером: подпись говорит, на какую ошибку он похож.
+        await сначала();
+        await положить({ [SIG_ADD]: запись('integer+:add:3', ПРИМЕР_СЛОЖЕНИЯ, []) });
+        await page.evaluate(`startRepeatMission(); null`);
+        await page.waitForTimeout(150);
+        п = await подпись();
+        record('похожий пример — «Похож на твою ошибку 38 + 7.»',
+               п.вопрос !== '38 + 7' && п.текст.indexOf('Похож на твою ошибку 38 + 7.') === 0 ? null : JSON.stringify(п));
+        // Ответил — подпись идёт за следующим примером, а не стоит от прошлого.
+        await ответить(true);
+        await page.waitForTimeout(100);
+        п = await подпись();
+        record('после верного ответа подпись уже про следующий пример — запись засчитана сегодня',
+               !п.видна || /завтра ещё раз/.test(п.текст) ? null : JSON.stringify(п));
+        await page.evaluate(`if (gameActive) finishChallenge(); null`);
+
+        await сначала();
+        await миссия('mul', 3);
+        await page.waitForTimeout(150);
+        п = await подпись();
+        record('в обычной миссии подписи нет', !п.видна ? null : JSON.stringify(п));
+        await page.evaluate(`finishChallenge(); null`);
     }
 
     console.log('\nМиссия повтора');
@@ -288,9 +409,10 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
         record('ответы повтора идут в статистику, как в любой миссии', итог.верных === 3 ? null : `верных ${итог.верных}`);
         record('итог называет, сколько ошибок ждёт',
                /копилке/i.test(итог.надпись) && итог.число === '2' ? null : `${итог.надпись} ${итог.число}`);
-        record('обе ошибки решены сегодня впервые — «повтори завтра: 2»',
-               /Повтори завтра\s*2/.test(итог.строки) && !/Выучено/.test(итог.строки) ? null : итог.строки);
-        record('правило двух дней названо на экране', /два\s+разных\s+дня/.test(итог.ворота) ? null : итог.ворота);
+        record('обе ошибки решены сегодня впервые — «первый день есть — повтори завтра: 2»',
+               /Первый день есть — повтори завтра\s*2/.test(итог.строки) && !/Ушли из копилки/.test(итог.строки)
+               ? null : итог.строки);
+        record('правило двух дней названо на экране', /2\s+разных\s+дня/.test(итог.ворота) ? null : итог.ворота);
         record('выбор миссии вернулся каким был',
                итог.выбор === JSON.stringify({ category: 'integer', numberType: 'positive', operations: { sub: 2 } })
                ? null : итог.выбор);
@@ -326,6 +448,32 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
         record('сама ошибка похожим не считается', r.сама === '27 + 8' ? null : r.сама);
         record('нужного типа нет — показывается тот же самый пример', r.нет === '38 + 7' ? null : r.нет);
         record('только что бывший на экране пример пропускается', r.недавний === '27 + 8' ? null : r.недавний);
+
+        // Редкий тип — на настоящем генераторе. Одинаковые знаки со скобками в
+        // отрицательных 4★ — около 4% примеров: за 80 попыток похожий не находился в
+        // каждом двадцать пятом повторе, и миссия показывала ту же ошибку. За 400 —
+        // практически никогда. 200 повторов: при прежних 80 попытках сдались бы
+        // в среднем восемь раз.
+        const редкий = await page.evaluate(`(() => {
+            const meta = { category: 'integer', opKey: 'sub', level: 4, isNegative: true };
+            let p = null;
+            for (let i = 0; i < 20000 && !p; i++) {
+                const q = generateProblem('sub', 4, true);
+                const c = structuralClassOf(meta, q);
+                if (c && c.cls === 'same' && c.extra === 'par') p = q;
+            }
+            if (!p) return { нашёлся: false };
+            const item = { sig: problemSig(meta, p), k: 'integer-:sub:4', p };
+            recentSignatures.length = 0;
+            let сдался = 0;
+            for (let i = 0; i < 200; i++) {
+                const got = repeatProblemFor(item, meta);
+                if (problemSig(meta, got) === item.sig) сдался++;
+            }
+            return { нашёлся: true, сдался, пример: p.text };
+        })()`);
+        record('редкий тип (знаки одинаковые, скобки, 4★) — похожий находится всегда',
+               редкий.нашёлся && редкий.сдался === 0 ? null : JSON.stringify(редкий));
     }
 
     console.log('\nКаждый вид примера показывается снова');
@@ -395,7 +543,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
             ещё: getComputedStyle(document.getElementById('btnWinAgain')).display })`);
         record('вчера и сегодня — пример выучен и ушёл из копилки',
                !bank.items[SIG_MUL] && bank.done[SIG_MUL] ? null : JSON.stringify(bank));
-        record('экран итогов говорит «Выучено: 1»', /Выучено\s*1/.test(итог.строки) ? null : итог.строки);
+        record('экран итогов говорит «Ушли из копилки: 1»', /Ушли из копилки\s*1/.test(итог.строки) ? null : итог.строки);
         record('копилка пуста — так и сказано', /пуста/i.test(итог.надпись) ? null : итог.надпись);
         record('повторять нечего — кнопки «Ещё раз» нет', итог.ещё === 'none' ? null : итог.ещё);
     }
@@ -426,6 +574,13 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
                mul && кУмн && String(mul.w) === кУмн.ответ ? null : `${mul && mul.w} / ${кУмн && кУмн.ответ}`);
         record('похожий пример (сложение) — ответ к записи не приклеен',
                add && add.w === 35 && add.e === 'как было' ? null : JSON.stringify(add));
+        // Итог называет такие ошибки отдельно: точек у них снова нет.
+        await page.evaluate(`finishChallenge(); null`);
+        await page.waitForTimeout(150);
+        const строки = await page.evaluate(`document.getElementById('winRows').innerText`);
+        record('итог: «○○ Снова ошибка — дни считаются заново: 2»',
+               /Снова ошибка — дни считаются заново\s*2/.test(строки) && !/Первый день есть/.test(строки)
+               ? null : строки);
     }
 
     console.log('\nДве ошибки в одной записи за миссию');
@@ -461,7 +616,7 @@ const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
         await page.evaluate(`startRepeatMission(); finishChallenge(); null`);
         await page.waitForTimeout(200);
         const строки = await page.evaluate(`document.getElementById('winRows').innerText`);
-        record('непоказанный пример в итог не попал', !/Повтори завтра/.test(строки) ? null : строки);
+        record('непоказанный пример в итог не попал', !/повтори завтра/i.test(строки) ? null : строки);
     }
 
     console.log('\nВыучил и тут же ошибся — пример возвращается');
