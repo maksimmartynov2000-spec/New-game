@@ -92,6 +92,9 @@ test('картинки догружаются в фоне, но только к�
                               HTML.indexOf("function preloadPuzzleImages") + 900);
     assert(/saveData/.test(body), 'режим экономии трафика не уважается');
     assert(/PUZZLE_IMAGE_SRCS/.test(body), 'догружаются не картинки пазла');
+    // Картинки закрытого раздела ученик не увидит — и качать их незачем. Иначе каждый
+    // новый раздел с картинками утяжелял бы догрузку у всех, кому он ещё не открыт.
+    assert(/puzzleVisible\(i\)/.test(body), 'догружаются и картинки закрытых разделов');
     // Запускается ТОЛЬКО после успешной регистрации: без service worker кеша нет,
     // и запросы сожгли бы трафик впустую. Так и было в первой версии.
     const reg = HTML.slice(HTML.indexOf("register('sw.js')"),
@@ -109,6 +112,11 @@ test('картинки перестали весить как фотоальбо
     // preloadPuzzleImages. Вся папка — мерка неверная: в ней лежат и прежние картинки, и
     // новые, а ни один аккаунт не качает и те, и другие. Ученик берёт картинки из
     // PUZZLE_IMAGE_SRCS, репетитор — новые там, где они есть (см. PUZZLE_PREVIEW_SRCS).
+    //
+    // Меряется по разделам, по двадцать картинок: догружаются картинки только открытых
+    // разделов (проверка выше), и ученик с одними положительными качает ровно их. Предел
+    // на раздел, а не на всё сразу: иначе каждый новый раздел с картинками упирался бы в
+    // него, хотя большинство учеников его ещё не видит.
     //
     // Предел — 3,5 МБ. Было 3, но двадцать новых картинок весят 3,22 МБ: их нарочно рисуют
     // подробными по всему квадрату, потому что режут на 100 кусочков, и каждая выходит
@@ -131,10 +139,14 @@ test('картинки перестали весить как фотоальбо
     for (const m of block('const PUZZLE_PREVIEW_SRCS = {', '};').matchAll(/(\d+):\s*'(images\/[^']+)'/g)) next[+m[1]] = m[2];
     assert(old.length > 0, 'список PUZZLE_IMAGE_SRCS пуст — мерить нечего');
     const weigh = (list) => list.reduce((sum, rel) => sum + fs.statSync(path.join(ROOT, rel)).size, 0);
+    const SECTION = 20;
     [['ученик', old], ['репетитор', old.map((rel, i) => next[i] || rel)]].forEach(([who, list]) => {
-        const bytes = weigh(list);
-        assert(bytes < LIMIT_MB * 1024 * 1024,
-            `${who} скачивает картинки на ${(bytes / 1048576).toFixed(2)} МБ — больше ${String(LIMIT_MB).replace('.', ',')}`);
+        for (let from = 0; from < list.length; from += SECTION) {
+            const bytes = weigh(list.slice(from, from + SECTION));
+            assert(bytes < LIMIT_MB * 1024 * 1024,
+                `${who} скачивает картинки раздела ${from}–${Math.min(from + SECTION, list.length) - 1} на `
+                + `${(bytes / 1048576).toFixed(2)} МБ — больше ${String(LIMIT_MB).replace('.', ',')}`);
+        }
     });
 });
 

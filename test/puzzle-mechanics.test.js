@@ -168,7 +168,7 @@ console.log('\nРамка пазла за повторные сборы');
 const F = (() => {
     const box = { Math, Array, String, Number, t: (x) => x };
     vm.createContext(box);
-    vm.runInContext(slice('// ===== РАМКА ПАЗЛА — ЗА ПОВТОРНЫЕ СБОРЫ =====', '// У каждой из двадцати клеток положительных чисел', 'рамки')
+    vm.runInContext(slice('// ===== РАМКА ПАЗЛА — ЗА ПОВТОРНЫЕ СБОРЫ =====', '// У каждой клетки своя закреплённая картинка', 'рамки')
         + ';globalThis.R = { PUZZLE_FRAMES, puzzleFrameFor, nextPuzzleFrame };', box, { filename: 'index.html<рамки>' });
     return box.R;
 })();

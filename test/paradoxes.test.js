@@ -55,19 +55,25 @@ const FIELDS = ['name', 'era', 'hook', 'body', 'probe', 'answer'];
 
 // Задача в строке «проверь» — пример той же клетки, только с историей. Берём последнее
 // равенство, где ровно один «?» и только знаки действий: «5 + ? = 7», «34 + 55 = ?»,
-// «20 − 4 − 4 − 4 − 4 = ?», «2 × 2 × 2 = ?», «24 ÷ 2 + 24 ÷ 3 = ?». Время «5:49» и числа
-// в словах сюда не попадают.
-const EQUATION = /(?:\d+|\?)(?:\s*[+−×÷-]\s*(?:\d+|\?))*\s*=\s*(?:\d+|\?)/g;
+// «20 − 4 − 4 − 4 − 4 = ?», «2 × 2 × 2 = ?», «24 ÷ 2 + 24 ÷ 3 = ?». Отрицательное число
+// записано, как в игре: в скобках или первым — «5 + (−8) = ?», «−25 + 18 = ?». Время
+// «5:49» и числа в словах сюда не попадают.
+const TERM = String.raw`(?:\(\s*[−-]\s*\d+\s*\)|\d+|\?)`;
+const EQUATION = new RegExp(String.raw`(?:[−-]\s*)?${TERM}(?:\s*[+−×÷-]\s*${TERM})*\s*=\s*(?:[−-]?\d+|\?)`, 'g');
 function probeEquation(probe) {
     const all = (probe.match(EQUATION) || []).filter(s => (s.match(/\?/g) || []).length === 1);
     return all.length ? all[all.length - 1].replace(/\s+/g, ' ').replace(/-/g, '−') : null;
 }
+// Число из примера. Отрицательное — в скобках или первым — это одно число, а не
+// вычитание, поэтому parseSide сразу пишет его минус в само число: «~8» — это −8.
+const num = (v) => (String(v)[0] === '~' ? -Number(String(v).slice(1)) : Number(v));
 // Сторона равенства — слагаемые со знаком, каждое слагаемое — цепочка «× и ÷»: так и
 // порядок действий школьный, умножение и деление раньше сложения и вычитания.
 function parseSide(side) {
     const terms = [];
     let sign = 1;
-    side.split(/\s*([+−])\s*/).forEach(tok => {
+    side.replace(/\(\s*−\s*(\d+)\s*\)/g, '~$1').replace(/^\s*−\s*(?=\d)/, '~')
+        .split(/\s*([+−])\s*/).forEach(tok => {
         if (tok === '+') sign = 1;
         else if (tok === '−') sign = -1;
         else if (tok) {
@@ -85,7 +91,7 @@ function evalChain(chain, unknown) {
     let acc = null;
     const facts = [], divs = [];
     chain.forEach(({ op, v }) => {
-        const n = v === '?' ? unknown : Number(v);
+        const n = v === '?' ? unknown : num(v);
         if (acc === null) acc = n;
         else if (op === '×') { facts.push([acc, n]); acc *= n; }
         else { divs.push([n, acc / n]); acc /= n; }
@@ -104,7 +110,7 @@ function solveEquation(equation) {
         // как множитель или делимое — прямо, как делитель — обратно.
         const tq = terms.find(t => t.chain.some(c => c.v === '?'));
         const rest = terms.filter(t => t !== tq).reduce((s, t) => s + t.sign * evalChain(t.chain).value, 0);
-        const need = (Number(rhs) - rest) * tq.sign, atOne = evalChain(tq.chain, 1).value;
+        const need = (num(rhs.replace(/^−\s*/, '~')) - rest) * tq.sign, atOne = evalChain(tq.chain, 1).value;
         const q = tq.chain.find(c => c.v === '?');
         value = q.op === '÷' && tq.chain.indexOf(q) > 0 ? atOne / need : need / atOne;
     }
@@ -272,10 +278,10 @@ test('ответ сходится с примером в строке «пров
     const bad = [];
     LANGS.forEach(lang => everyCard(lang).forEach(({ where, px }) => {
         const equation = probeEquation(px.probe);
-        const lead = /^\s*(\d+)/.exec(px.answer);
+        const lead = /^\s*([−-]?\d+)/.exec(px.answer);
         if (!equation) bad.push(`[${lang}] ${where}: в строке «проверь» нет примера с «?»: ${px.probe}`);
         else if (!lead) bad.push(`[${lang}] ${where}: ответ не начинается с числа: ${px.answer}`);
-        else if (Number(lead[1]) !== solveEquation(equation).value)
+        else if (Number(lead[1].replace('−', '-')) !== solveEquation(equation).value)
             bad.push(`[${lang}] ${where}: ${equation} — это ${solveEquation(equation).value}, а в ответе ${lead[1]}`);
     }));
     assert(bad.length === 0, bad.join('; '));
@@ -370,6 +376,33 @@ test('у карточек деления задача не легче своей
         if (top.step < MUL_STEP[main]) bad.push(`${where} (деление ${level}★): в «${equation}» `
             + (top.step < 0 ? 'деления нет' : `самый трудный шаг ${top.d * top.q} ÷ ${top.d}`)
             + `, а главная группа этой звезды в игре — ${main}`);
+    });
+    assert(bad.length === 0, bad.join('; '));
+});
+
+// И для сложения отрицательных. Мерка здесь не размер чисел — полосы у отрицательных нарочно
+// ниже (NEG_ADD_RANGE в js/generator.js): упор на знак, а не на разряды. Мерка — нижняя граница
+// модуля NEG_ADD_MIN: чисел меньше неё на этой звезде в игре нет вовсе, «−10 + 1» генератор
+// не даёт. Задача на карточке не легче: каждое число в ней по модулю не меньше этой границы,
+// хотя бы одно отрицательное, и сам пример — сложение. Клетки 20–24 — сложение отрицательных.
+const NEG_ADD_MIN = vm.runInNewContext('(' +
+    /const NEG_ADD_MIN = (\{[^}]*\});/.exec(fs.readFileSync(path.join(ROOT, 'js', 'generator.js'), 'utf8'))[1] + ')');
+test('у карточек сложения отрицательных задача не легче своей звезды', () => {
+    const cards = everyCard('ru').filter(c => c.idx >= 20 && c.idx < 25);
+    assert(cards.length > 0, 'карточек сложения отрицательных не нашлось — проверять нечего');
+    const bad = [];
+    cards.forEach(({ where, idx, px }) => {
+        const level = idx % 5 + 1, min = NEG_ADD_MIN[level];
+        const equation = probeEquation(px.probe);
+        const value = solveEquation(equation).value;
+        // Слагаемые примера: только «+» между ними и ни одного «×» или «÷» внутри.
+        const nums = parseSide(equation.split('=')[0]).map(t => (t.sign === 1 && t.chain.length === 1)
+            ? (t.chain[0].v === '?' ? value : num(t.chain[0].v)) : null);
+        const at = `${where} (сложение ${level}★): «${equation}»`;
+        if (nums.length < 2 || nums.indexOf(null) >= 0) bad.push(`${at} — не сложение`);
+        else if (!nums.some(n => n < 0)) bad.push(`${at} — ни одного отрицательного числа`);
+        else nums.filter(n => Math.abs(n) < min).forEach(n => bad.push(
+            `${at} — число ${n}, а меньше ${min} по модулю на этой звезде в игре чисел не бывает`));
     });
     assert(bad.length === 0, bad.join('; '));
 });

@@ -71,13 +71,13 @@ const has = (obj, k) => Object.prototype.hasOwnProperty.call(obj, k);
         else if (who === 'nobody') { Progress.switchTo('GONE1', null, { accountType: 'solo' }); Progress.logout(); }
         return { type: Progress.getAccountType(), code: Progress.getCode(), guest: Progress.isGuest() }; })()`);
 
-    // Всё, что видно на экране от картинок, — по всем двадцати клеткам: пазл миссии,
+    // Всё, что видно на экране от картинок, — по всем клеткам с картинкой: пазл миссии,
     // плитка коллекции и карточка (картинка и название). И сами списки, по которым
-    // считается, что должно быть видно.
+    // считается, что должно быть видно, и какие разделы открыты.
     const look = () => page.evaluate(`(() => {
-        const ops = ['add', 'sub', 'mul', 'div'], cells = [], tiles = [], details = [];
+        const cells = [], tiles = [], details = [];
         for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
-            setupPuzzleForCell('integer+:' + ops[Math.floor(i / 5)] + ':' + (i % 5 + 1));
+            setupPuzzleForCell(puzzleTopicForIndex(i));
             cells.push(document.getElementById('puzzleFullImg').getAttribute('href'));
             tiles.push(buildCollectionItem(i, []).querySelector('img').getAttribute('src'));
             showParadoxDetail(i);
@@ -86,6 +86,7 @@ const has = (obj, k) => Object.prototype.hasOwnProperty.call(obj, k);
         }
         const preview = window.PARADOX_PREVIEW || {};
         return { cells, tiles, details, old: PUZZLE_IMAGE_SRCS.slice(), next: Object.assign({}, PUZZLE_PREVIEW_SRCS),
+                 visible: PUZZLE_IMAGE_SRCS.map((x, i) => puzzleVisible(i)),
                  oldNames: window.PARADOX_CONTENT.ru.map(p => p.name),
                  nextNames: Object.fromEntries(Object.entries(preview.ru || {}).map(([k, p]) => [k, p.name])) }; })()`);
 
@@ -111,7 +112,8 @@ const has = (obj, k) => Object.prototype.hasOwnProperty.call(obj, k);
         const queued = pendingPuzzleReveals.length ? pendingPuzzleReveals[pendingPuzzleReveals.length - 1].src : null;
         pendingPuzzleReveals.length = 0;
         return { last: lastCompletedSrc, queued }; })()`);
-    const DONE = [[0, 'integer+:add:1'], [9, 'integer+:sub:5'], [14, 'integer+:mul:5'], [17, 'integer+:div:3'], [19, 'integer+:div:5']];
+    const DONE = [[0, 'integer+:add:1'], [9, 'integer+:sub:5'], [14, 'integer+:mul:5'], [17, 'integer+:div:3'], [19, 'integer+:div:5'],
+                  [22, 'integer-:add:3']];
 
     const TITLES = { tutor: 'Репетитор', linked: 'Ученик репетитора', solo: 'Самостоятельный игрок', guest: 'Гость',
                      oldguest: 'Гость из старой версии (тип «self»)', nobody: 'До входа (после выхода)' };
@@ -125,7 +127,7 @@ const has = (obj, k) => Object.prototype.hasOwnProperty.call(obj, k);
             const w = await as(kind);
             const v = await look();
             const want = wantSrcs(v, tutor), names = wantNames(v, tutor);
-            await checkAsync(`${tag}, ${kind}: пазл миссии — свои картинки на всех двадцати клетках`, async () => {
+            await checkAsync(`${tag}, ${kind}: пазл миссии — свои картинки на всех клетках с картинкой`, async () => {
                 sameList(v.cells, want, 'пазл миссии');
             });
             await checkAsync(`${tag}, ${kind}: плитки коллекции — свои превью`, async () => {
@@ -142,8 +144,12 @@ const has = (obj, k) => Object.prototype.hasOwnProperty.call(obj, k);
                     eq(c.queued, want[idx], `картинка в очереди показа, клетка ${idx}`);
                 }
             });
-            await checkAsync(`${tag}, ${kind}: фоновая догрузка — свои картинки, каждая по разу`, async () => {
-                sameList(await prefetched(), want, 'догрузка');
+            // Догружаются картинки только открытых разделов: у ученика, которому открыты одни
+            // положительные, — двадцать, у репетитора — все.
+            await checkAsync(`${tag}, ${kind}: фоновая догрузка — свои картинки открытых разделов, каждая по разу`, async () => {
+                sameList(await prefetched(), want.filter((x, i) => v.visible[i]), 'догрузка');
+                if (kind === 'tutor') eq(v.visible.filter(Boolean).length, v.old.length, 'репетитору видно картинок');
+                if (kind === 'linked') eq(v.visible.filter(Boolean).length, 20, 'ученику с одними положительными видно картинок');
             });
             // Сам тип проверяем последним: иначе падение настройки спряталось бы за чужими.
             await checkAsync(`${tag}, ${kind}: и правда ${tutor ? 'репетитор' : 'не репетитор'}`, async () => {

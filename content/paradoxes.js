@@ -10,7 +10,9 @@
 //
 // Порядок ЗНАЧИМ: индекс парадокса совпадает с индексом картинки пазла в
 // PUZZLE_IMAGE_SRCS. Менять местами нельзя — у собравших коллекцию разъедется
-// соответствие картинки и текста.
+// соответствие картинки и текста. Номера идут по клеткам: 0–19 — положительные
+// (сложение, вычитание, умножение, деление, в каждом по пять звёзд), с 20 —
+// отрицательные в том же порядке; пока у них есть только сложение, 20–24.
 //
 // Поля:
 //   name   — название
@@ -181,6 +183,46 @@ window.PARADOX_CONTENT = {
             body: 'Ты выбираешь одну из трёх дверей. Ведущий знает, где приз, и открывает одну из двух других — там коза. Кажется, что шансы теперь пополам.\n\nНо твоя дверь угадана лишь в одном случае из трёх, а в двух случаях из трёх приз за другими дверями — и ведущий как раз убрал из них пустую. Поэтому, если играть много раз, менять выбор выгоднее: выигрываешь вдвое чаще.',
             probe: 'Сыграли 45 раз и ни разу не меняли дверь. Сколько примерно побед? 45 ÷ 3 = ?',
             answer: '15. Не меняя двери, выигрываешь примерно в одной игре из трёх. А если всегда менять — около 30 побед, вдвое больше.'
+        },
+        {
+            name: 'Красные и чёрные палочки',
+            era: 'Лю Хуэй, комментарий к «Девяти главам», 263',
+            hook: 'В древнем Китае у числа был цвет: красная палочка — «есть», чёрная — «должен».',
+            body: 'Две тысячи лет назад китайские математики считали палочками на расчерченной доске. Красная палочка означала то, что есть, а чёрная — то, что должен. Красная и чёрная гасили друг друга: положишь их рядом — и обе можно убрать.\n\nТак в Китае считали с отрицательными числами больше чем за тысячу лет до Европы. Правила записаны в книге «Девять глав о математическом искусстве», а математик Лю Хуэй в 263 году объяснил, зачем палочки двух цветов: чтобы не путать «есть» и «должен».',
+            probe: 'На доске 5 красных и 8 чёрных палочек: 5 + (−8) = ?',
+            answer: '−3. Пять красных гасят пять чёрных, и на доске остаются три чёрные — долг три.'
+        },
+        {
+            name: 'Пляж ниже моря',
+            era: 'Мёртвое море, наши дни',
+            hook: 'Есть берег, где стоишь на 430 метров ниже уровня моря.',
+            body: 'Мёртвое море — самое низкое место на суше. Его берег лежит примерно на 430 метров ниже уровня океана и каждый год опускается ещё примерно на метр: воду реки Иордан, которая наполняет море, разбирают на поля и города.\n\nВода в нём почти в десять раз солонее океанской, поэтому на ней можно лежать, как на матрасе. А на берегу видны ступени: каждая — бывший берег, от которого вода уже ушла.',
+            probe: 'Берег на −430 м, а за 15 лет он опустится ещё на 15 м: −430 + (−15) = ?',
+            answer: '−445. На картинке берег спускается к воде ровно 15 ступенями — по одной на каждый год.'
+        },
+        {
+            name: 'Долги Брахмагупты',
+            era: 'Брахмагупта, «Брахма-спхута-сиддханта», 628',
+            hook: '1400 лет назад правила минуса записали как правила долгов.',
+            body: 'Индийский математик Брахмагупта назвал положительные числа «имуществом», а отрицательные — «долгом» и записал правила: долг плюс долг — долг, а имущество плюс долг — их разность, и остаётся то, чего было больше.\n\nПочти всё верно. Почти: он решил, что ноль, делённый на ноль, тоже ноль. Сегодня мы знаем, что у такого деления ответа нет.',
+            probe: 'Купец был должен 25 монет и получил 18: −25 + 18 = ?',
+            answer: '−7. Долга больше, чем денег: даже отдав все 18 монет, купец останется должен 7.'
+        },
+        {
+            name: 'Лифт без нулевого этажа',
+            era: 'Нумерация этажей в Китае и в Европе',
+            hook: 'Между этажами −1 и 1 бывает всего один пролёт лестницы.',
+            body: 'В Китае первый этаж — тот, что на земле, а под ним сразу минус первый: нулевого этажа нет. В Великобритании и Германии на земле этаж 0, а первый — уже над ним.\n\nПоэтому спуститься с 1-го на −1 в Пекине — один пролёт, а в Лондоне — два. Прежде чем считать этажи с минусом, проверь, есть ли в доме ноль: от этого зависит ответ.',
+            probe: 'Лифт поднялся с −8 этажа на 30 этажей вверх: −8 + 30 = ?',
+            answer: '22 — если в доме есть нулевой этаж. А если нуля нет, как в Пекине, лифт приедет на 23-й: одного этажа на пути просто не существует.'
+        },
+        {
+            name: 'Года, которого не было',
+            era: 'Дионисий Малый, 525; Жак Кассини, 1740',
+            hook: 'Сразу после 1 года до нашей эры идёт 1 год нашей эры.',
+            body: 'Нулевого года в календаре нет: когда в VI веке придумали наш счёт лет, ноля в Европе ещё не знали. Поэтому от 1 марта 1 года до н. э. до 1 марта 1 года н. э. прошёл один год, а не два.\n\nАстрономам это неудобно, и у них нулевой год есть: 1 год до н. э. у них — 0, 2 год до н. э. — −1, а 50 год до н. э. — −49.',
+            probe: '50 год до н. э. у астрономов — это −49. Прибавь 99 лет: −49 + 99 = ?',
+            answer: '50. Значит, от 50 года до н. э. до 50 года н. э. прошло 99 лет, а не 100 — как на дорожке на картинке: за последним тёмным камнем сразу идёт первый светлый.'
         }
     ],
     en: [
@@ -343,6 +385,46 @@ window.PARADOX_CONTENT = {
             body: 'You pick one of three doors. The host knows where the prize is and opens one of the other two — there is a goat behind it. It seems your chances are now fifty-fifty.\n\nBut your door is right in only one case out of three, and in two cases out of three the prize is behind the other doors — and the host has just removed the empty one among them. So if you play many times, switching is better: you win twice as often.',
             probe: 'You played 45 times and never switched doors. Roughly how many wins? 45 ÷ 3 = ?',
             answer: '15. If you never switch, you win about one game in three. If you always switch — about 30 wins, twice as many.'
+        },
+        {
+            name: 'Red and Black Rods',
+            era: 'Liu Hui, commentary on the "Nine Chapters", 263',
+            hook: 'In ancient China numbers had colours: a red rod meant "have", a black one meant "owe".',
+            body: 'Two thousand years ago, Chinese mathematicians calculated with rods on a board ruled into squares. A red rod stood for what you have, and a black rod for what you owe. A red rod and a black rod cancelled each other out: put them side by side, and you can take both away.\n\nSo in China people calculated with negative numbers more than a thousand years before Europe. The rules are written down in the book "The Nine Chapters on the Mathematical Art", and in 263 the mathematician Liu Hui explained why the rods came in two colours: so as not to mix up "have" and "owe".',
+            probe: 'There are 5 red rods and 8 black rods on the board: 5 + (−8) = ?',
+            answer: '−3. Five red rods cancel five black ones, and three black rods are left on the board — a debt of three.'
+        },
+        {
+            name: 'A Beach Below Sea Level',
+            era: 'The Dead Sea, today',
+            hook: 'There is a shore where you stand 430 metres below sea level.',
+            body: 'The Dead Sea is the lowest place on land. Its shore lies about 430 metres below the level of the ocean and sinks by about another metre every year: the water of the River Jordan, which fills the sea, is taken for fields and cities.\n\nIts water is almost ten times saltier than the ocean, so you can lie on it as if on a mattress. And on the shore you can see steps: each one is an old shoreline that the water has already left.',
+            probe: 'The shore is at −430 m, and in 15 years it will sink another 15 m: −430 + (−15) = ?',
+            answer: '−445. In the picture the shore goes down to the water in exactly 15 steps — one for each year.'
+        },
+        {
+            name: 'Brahmagupta’s Debts',
+            era: 'Brahmagupta, "Brahmasphutasiddhanta", 628',
+            hook: '1400 years ago, the rules of minus were written down as rules about debts.',
+            body: 'The Indian mathematician Brahmagupta called positive numbers "fortunes" and negative numbers "debts", and wrote down the rules: a debt plus a debt is a debt, and a fortune plus a debt is their difference — what is left is whichever there was more of.\n\nAlmost everything is right. Almost: he decided that zero divided by zero is also zero. Today we know that such a division has no answer.',
+            probe: 'A merchant owed 25 coins and received 18: −25 + 18 = ?',
+            answer: '−7. There is more debt than money: even after paying back all 18 coins, the merchant will still owe 7.'
+        },
+        {
+            name: 'The Lift with No Floor Zero',
+            era: 'Floor numbering in China and in Europe',
+            hook: 'Between floors −1 and 1 there can be just one flight of stairs.',
+            body: 'In China the first floor is the one at ground level, and right below it is minus one: there is no floor zero. In Britain and Germany the floor at ground level is 0, and the first floor is the one above it.\n\nSo going down from 1 to −1 takes one flight of stairs in Beijing, but two in London. Before you count floors with a minus, check whether the building has a zero: the answer depends on it.',
+            probe: 'A lift went up 30 floors from floor −8: −8 + 30 = ?',
+            answer: '22 — if the building has a floor zero. If there is no zero, as in Beijing, the lift will arrive at floor 23: one floor on the way simply does not exist.'
+        },
+        {
+            name: 'The Year That Never Was',
+            era: 'Dionysius Exiguus, 525; Jacques Cassini, 1740',
+            hook: 'Right after the year 1 BC comes the year AD 1.',
+            body: 'There is no year zero in the calendar: when our way of counting years was invented in the 6th century, Europe did not yet know zero. So from 1 March 1 BC to 1 March AD 1, one year passed, not two.\n\nThis is awkward for astronomers, so they do have a year zero: for them 1 BC is 0, 2 BC is −1, and 50 BC is −49.',
+            probe: 'For astronomers, 50 BC is −49. Add 99 years: −49 + 99 = ?',
+            answer: '50. So from 50 BC to AD 50, 99 years passed, not 100 — just like the path in the picture: right after the last dark stone comes the first light one.'
         }
     ],
     fr: [
@@ -505,6 +587,46 @@ window.PARADOX_CONTENT = {
             body: 'Tu choisis une des trois portes. Le présentateur sait où est le prix et ouvre une des deux autres — derrière, il y a une chèvre. On dirait que maintenant, c’est une chance sur deux.\n\nMais ta porte n’est la bonne que dans un cas sur trois, et dans deux cas sur trois le prix est derrière les autres portes — or le présentateur vient justement d’écarter la mauvaise parmi elles. Donc, si l’on joue de nombreuses fois, il vaut mieux changer : on gagne deux fois plus souvent.',
             probe: 'Tu as joué 45 fois sans jamais changer de porte. Environ combien de victoires ? 45 ÷ 3 = ?',
             answer: '15. Sans changer de porte, on gagne environ une partie sur trois. En changeant à chaque fois — environ 30 victoires, deux fois plus.'
+        },
+        {
+            name: 'Baguettes rouges et noires',
+            era: 'Liu Hui, commentaire des « Neuf Chapitres », 263',
+            hook: 'Dans la Chine ancienne, les nombres avaient une couleur : baguette rouge pour « avoir », noire pour « devoir ».',
+            body: 'Il y a deux mille ans, les mathématiciens chinois calculaient avec des baguettes sur une planche quadrillée. Une baguette rouge représentait ce que l’on a, une noire ce que l’on doit. Une rouge et une noire s’annulaient : si on les posait côte à côte, on pouvait retirer les deux.\n\nAinsi, en Chine, on calculait avec des nombres négatifs plus de mille ans avant l’Europe. Les règles figurent dans le livre « Les Neuf Chapitres sur l’art mathématique », et en 263 le mathématicien Liu Hui expliqua pourquoi les baguettes avaient deux couleurs : pour ne pas confondre « avoir » et « devoir ».',
+            probe: 'Sur la planche, 5 baguettes rouges et 8 noires : 5 + (−8) = ?',
+            answer: '−3. Cinq rouges annulent cinq noires, et il reste trois noires sur la planche : une dette de trois.'
+        },
+        {
+            name: 'Une plage sous le niveau de la mer',
+            era: 'La mer Morte, de nos jours',
+            hook: 'Il existe un rivage où l’on se tient à 430 mètres sous le niveau de la mer.',
+            body: 'La mer Morte est l’endroit le plus bas des terres émergées. Son rivage se trouve à environ 430 mètres sous le niveau de l’océan et descend encore d’environ un mètre chaque année : l’eau du Jourdain, qui remplit la mer, est prélevée pour les champs et les villes.\n\nSon eau est presque dix fois plus salée que celle de l’océan, si bien qu’on peut s’allonger dessus comme sur un matelas. Et sur le rivage, on voit des marches : chacune est un ancien rivage que l’eau a déjà quitté.',
+            probe: 'Le rivage est à −430 m, et en 15 ans il descendra encore de 15 m : −430 + (−15) = ?',
+            answer: '−445. Sur l’image, le rivage descend vers l’eau en exactement 15 marches — une pour chaque année.'
+        },
+        {
+            name: 'Les dettes de Brahmagupta',
+            era: 'Brahmagupta, « Brahmasphutasiddhanta », 628',
+            hook: 'Il y a 1400 ans, les règles du moins ont été écrites comme des règles de dettes.',
+            body: 'Le mathématicien indien Brahmagupta appela les nombres positifs des « biens » et les négatifs des « dettes », et écrivit les règles : une dette plus une dette, c’est une dette ; un bien plus une dette, c’est leur différence, et il reste ce qu’il y avait en plus grande quantité.\n\nPresque tout est juste. Presque : il décida que zéro divisé par zéro faisait aussi zéro. Aujourd’hui, on sait qu’une telle division n’a pas de réponse.',
+            probe: 'Un marchand devait 25 pièces et en a reçu 18 : −25 + 18 = ?',
+            answer: '−7. Il y a plus de dette que d’argent : même en rendant les 18 pièces, le marchand devra encore 7.'
+        },
+        {
+            name: 'L’ascenseur sans étage zéro',
+            era: 'La numérotation des étages en Chine et en Europe',
+            hook: 'Entre les étages −1 et 1, il peut n’y avoir qu’une seule volée de marches.',
+            body: 'En Chine, le premier étage est celui qui est au niveau du sol, et juste en dessous vient le moins un : il n’y a pas d’étage zéro. Au Royaume-Uni et en Allemagne, l’étage au niveau du sol porte le numéro 0, et le premier est au-dessus.\n\nAinsi, descendre du 1 au −1 prend une volée de marches à Pékin, mais deux à Londres. Avant de compter des étages avec un moins, vérifie s’il y a un zéro dans l’immeuble : la réponse en dépend.',
+            probe: 'L’ascenseur est monté de 30 étages depuis l’étage −8 : −8 + 30 = ?',
+            answer: '22 — s’il y a un étage zéro dans l’immeuble. S’il n’y a pas de zéro, comme à Pékin, l’ascenseur arrivera au 23e : un étage sur le trajet n’existe tout simplement pas.'
+        },
+        {
+            name: 'L’année qui n’a pas existé',
+            era: 'Denys le Petit, 525 ; Jacques Cassini, 1740',
+            hook: 'Juste après l’an 1 av. J.-C. vient l’an 1 apr. J.-C.',
+            body: 'Il n’y a pas d’année zéro dans le calendrier : quand notre façon de compter les années a été inventée au VIe siècle, l’Europe ne connaissait pas encore le zéro. Ainsi, du 1er mars de l’an 1 av. J.-C. au 1er mars de l’an 1 apr. J.-C., il s’est écoulé un an, et non deux.\n\nC’est gênant pour les astronomes, alors chez eux l’année zéro existe : pour eux, l’an 1 av. J.-C. est 0, l’an 2 av. J.-C. est −1, et l’an 50 av. J.-C. est −49.',
+            probe: 'Pour les astronomes, l’an 50 av. J.-C. est −49. Ajoute 99 ans : −49 + 99 = ?',
+            answer: '50. Donc, de l’an 50 av. J.-C. à l’an 50 apr. J.-C., il s’est écoulé 99 ans, et non 100 — comme sur le chemin de l’image : juste après la dernière pierre sombre vient la première claire.'
         }
     ],
     de: [
@@ -667,6 +789,46 @@ window.PARADOX_CONTENT = {
             body: 'Du wählst eine von drei Türen. Der Moderator weiß, wo der Preis ist, und öffnet eine der beiden anderen — dahinter steht eine Ziege. Es scheint, als stünden die Chancen jetzt fünfzig zu fünfzig.\n\nAber deine Tür ist nur in einem von drei Fällen die richtige, und in zwei von drei Fällen ist der Preis hinter den anderen Türen — und der Moderator hat von ihnen gerade die leere aussortiert. Wer also oft spielt, sollte wechseln: So gewinnt man doppelt so oft.',
             probe: 'Du hast 45-mal gespielt und nie die Tür gewechselt. Wie viele Gewinne ungefähr? 45 ÷ 3 = ?',
             answer: '15. Ohne Wechsel gewinnt man etwa jedes dritte Spiel. Wer immer wechselt, kommt auf etwa 30 Gewinne — doppelt so viele.'
+        },
+        {
+            name: 'Rote und schwarze Stäbchen',
+            era: 'Liu Hui, Kommentar zu den „Neun Kapiteln“, 263',
+            hook: 'Im alten China hatten Zahlen eine Farbe: ein rotes Stäbchen hieß „haben“, ein schwarzes „schulden“.',
+            body: 'Vor zweitausend Jahren rechneten chinesische Mathematiker mit Stäbchen auf einem karierten Brett. Ein rotes Stäbchen stand für das, was man hat, ein schwarzes für das, was man schuldet. Ein rotes und ein schwarzes hoben sich auf: Legt man sie nebeneinander, kann man beide wegnehmen.\n\nSo rechnete man in China mit negativen Zahlen über tausend Jahre früher als in Europa. Die Regeln stehen im Buch „Neun Kapitel der Rechenkunst“, und der Mathematiker Liu Hui erklärte im Jahr 263, wozu es Stäbchen in zwei Farben gab: damit man „haben“ und „schulden“ nicht verwechselt.',
+            probe: 'Auf dem Brett liegen 5 rote und 8 schwarze Stäbchen: 5 + (−8) = ?',
+            answer: '−3. Fünf rote heben fünf schwarze auf, und auf dem Brett bleiben drei schwarze übrig — eine Schuld von drei.'
+        },
+        {
+            name: 'Ein Strand unter dem Meeresspiegel',
+            era: 'Das Tote Meer, heute',
+            hook: 'Es gibt ein Ufer, an dem man 430 Meter unter dem Meeresspiegel steht.',
+            body: 'Das Tote Meer ist der tiefste Ort an Land. Sein Ufer liegt etwa 430 Meter unter dem Meeresspiegel und sinkt jedes Jahr um etwa einen weiteren Meter: Das Wasser des Jordans, der das Meer füllt, wird für Felder und Städte abgeleitet.\n\nSein Wasser ist fast zehnmal salziger als das des Ozeans, deshalb kann man darauf liegen wie auf einer Matratze. Und am Ufer sieht man Stufen: Jede ist ein früheres Ufer, von dem sich das Wasser schon zurückgezogen hat.',
+            probe: 'Das Ufer liegt bei −430 m und sinkt in 15 Jahren um weitere 15 m: −430 + (−15) = ?',
+            answer: '−445. Auf dem Bild führt das Ufer in genau 15 Stufen zum Wasser hinab — eine für jedes Jahr.'
+        },
+        {
+            name: 'Brahmaguptas Schulden',
+            era: 'Brahmagupta, „Brahmasphutasiddhanta“, 628',
+            hook: 'Vor 1400 Jahren wurden die Regeln für das Minus als Regeln über Schulden aufgeschrieben.',
+            body: 'Der indische Mathematiker Brahmagupta nannte positive Zahlen „Vermögen“ und negative „Schulden“ und schrieb die Regeln auf: Schulden plus Schulden sind Schulden, und Vermögen plus Schulden ist ihr Unterschied — übrig bleibt das, wovon mehr da war.\n\nFast alles stimmt. Fast: Er meinte, null geteilt durch null sei auch null. Heute wissen wir, dass eine solche Division kein Ergebnis hat.',
+            probe: 'Ein Kaufmann schuldete 25 Münzen und bekam 18: −25 + 18 = ?',
+            answer: '−7. Die Schulden sind größer als das Geld: Selbst wenn er alle 18 Münzen zurückzahlt, schuldet der Kaufmann noch 7.'
+        },
+        {
+            name: 'Der Aufzug ohne Stockwerk null',
+            era: 'Stockwerkszählung in China und in Europa',
+            hook: 'Zwischen den Stockwerken −1 und 1 liegt manchmal nur eine einzige Treppe.',
+            body: 'In China ist das erste Stockwerk das ebenerdige, und direkt darunter kommt minus eins: Ein Stockwerk null gibt es nicht. In Großbritannien und Deutschland trägt das ebenerdige Stockwerk die 0, und das erste liegt darüber.\n\nDeshalb geht man in Peking von 1 nach −1 nur eine Treppe hinunter, in London aber zwei. Bevor du Stockwerke mit Minus zählst, prüfe, ob es im Haus eine Null gibt: Davon hängt die Antwort ab.',
+            probe: 'Der Aufzug fuhr vom Stockwerk −8 um 30 Stockwerke nach oben: −8 + 30 = ?',
+            answer: '22 — wenn es im Haus ein Stockwerk null gibt. Gibt es keine Null, wie in Peking, kommt der Aufzug im 23. an: Ein Stockwerk auf dem Weg gibt es einfach nicht.'
+        },
+        {
+            name: 'Das Jahr, das es nie gab',
+            era: 'Dionysius Exiguus, 525; Jacques Cassini, 1740',
+            hook: 'Direkt nach dem Jahr 1 v. Chr. kommt das Jahr 1 n. Chr.',
+            body: 'Ein Jahr null gibt es im Kalender nicht: Als im 6. Jahrhundert unsere Jahreszählung erfunden wurde, kannte man in Europa die Null noch nicht. Deshalb verging vom 1. März 1 v. Chr. bis zum 1. März 1 n. Chr. ein Jahr, nicht zwei.\n\nFür Astronomen ist das unpraktisch, deshalb gibt es bei ihnen ein Jahr null: 1 v. Chr. ist bei ihnen 0, 2 v. Chr. ist −1, und 50 v. Chr. ist −49.',
+            probe: 'Bei Astronomen ist 50 v. Chr. das Jahr −49. Zähle 99 Jahre dazu: −49 + 99 = ?',
+            answer: '50. Von 50 v. Chr. bis 50 n. Chr. vergingen also 99 Jahre, nicht 100 — wie auf dem Weg im Bild: Direkt nach dem letzten dunklen Stein kommt der erste helle.'
         }
     ]
 };
