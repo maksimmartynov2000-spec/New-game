@@ -97,7 +97,7 @@ catch (e) {
             activeTab: [...document.querySelectorAll('.collection-tab.active')].map(x => x.id),
             selected: [...document.querySelectorAll('.collection-tab')].filter(x => x.getAttribute('aria-selected') === 'true').map(x => x.id),
             count: $('collectionTasksCount').innerText,
-            sections: [...document.querySelectorAll('#collectionTasks .collection-tasks-section')].map(x => x.innerText),
+            sections: [...document.querySelectorAll('#collectionTasks .collection-tasks-section .collection-fold-label')].map(x => x.innerText),
             groups: [...document.querySelectorAll('#collectionTasks .collection-group-title')].map(x => x.innerText),
             caps: [...document.querySelectorAll('#collectionTasks .ladder-challenge-cap')].map(x => x.innerText),
             tasks: [...document.querySelectorAll('#collectionTasks .ladder-challenge-task')].map(x => x.innerText),
@@ -235,6 +235,10 @@ catch (e) {
     });
     server.access = {};
     await as('KT4', 'self');
+    // Длинный список — оба раздела раскрыты. По умолчанию раскрыт только первый, поэтому
+    // раскрываем второй заранее, через сохранённый выбор, а не нажатием: нажатие закрепляет
+    // верх окна, и проверка ниже перестала бы проверять сами автоотступы.
+    await page.evaluate(`(() => { const f = loadFolds(); f['collection:tasks:integer-'] = true; saveFolds(f); return null; })()`);
     await open();
     await tab('collectionTabTasks');
     v = await view();

@@ -678,6 +678,27 @@
         .collection-group-title {
             font-size: 0.72rem; color: #94a3b8; margin: 0 0 6px 2px; letter-spacing: 0.02em;
         }
+        /* Раздел и ряд сворачиваются нажатием на заголовок. Треугольник — тот же, что у
+           разделов статистики, и рисуется стилем, а не буквой в тексте: подпись ряда
+           остаётся той же, что была. Заголовок теперь кнопка, и высота у него, как у
+           любой кнопки, — под палец, 44 точки. */
+        .collection-section { width: 100%; }
+        .collection-fold-toggle {
+            display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;
+            min-height: 44px; margin-bottom: 2px; -webkit-tap-highlight-color: transparent;
+        }
+        .collection-fold-toggle::before {
+            content: '▾'; color: var(--cyan); font-size: 0.95rem; width: 16px; flex: 0 0 16px;
+            text-align: center; line-height: 1; transition: transform 0.15s ease;
+        }
+        .collection-section.folded > .collection-fold-toggle::before,
+        .collection-group.folded > .collection-fold-toggle::before { transform: rotate(-90deg); }
+        /* Прячем всё, что идёт после заголовка: блок сам не знает, из чего состоит. */
+        .collection-section.folded > .collection-fold-toggle ~ *,
+        .collection-group.folded > .collection-fold-toggle ~ * { display: none !important; }
+        .collection-group.folded { margin-bottom: 4px; }
+        .collection-section.folded { margin-bottom: 6px; }
+        .collection-fold-sum { margin-left: auto; font-weight: normal; font-size: 0.72rem; color: #94a3b8; }
         .collection-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 100%; }
         .collection-item { aspect-ratio: 1 / 1; border-radius: 12px; overflow: hidden; position: relative; border: 2px solid rgba(255,255,255,0.12); background: #0b0e18; }
         .collection-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -772,7 +793,7 @@
         #collectionTasks .ladder-challenge { background: #11101e; }
         /* Раздел над действиями — и у задач, и у картинок — только когда разделов больше
            одного: иначе он повторяет то, что и так понятно. */
-        .collection-tasks-section, .collection-pics-section { width: 100%; color: #cbd5e1; font-size: 0.82rem; font-weight: 700; margin: 2px 0 8px 2px; }
+        .collection-tasks-section, .collection-pics-section { width: 100%; color: #cbd5e1; font-size: 0.82rem; font-weight: 700; margin: 2px 0 0 2px; }
         /* Задача, которой ещё нет: только звезда и ступень, без условия. Условие
            заранее — это подсказка к задаче, до которой ещё не доросли. */
         .collection-task-locks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -7606,39 +7627,109 @@
             return groups;
         }
 
+        // ===== СВОРАЧИВАНИЕ В КОЛЛЕКЦИИ =====
+        // Коллекция выросла: пазлы и задачи двух разделов, в каждом по четыре действия, и
+        // до нужного ряда приходилось листать. Теперь раздел и ряд действия сворачиваются
+        // нажатием на заголовок — как разделы карты в статистике и тем же хранилищем
+        // (loadFolds), поэтому выбор переживает закрытие окна. Пока выбора нет, раскрыт
+        // только первый раздел, а ряды в нём раскрыты. Свёрнутый раздел не молчит:
+        // справа в заголовке счёт.
+        function foldCollectionBlock(block, head, key, openByDefault) {
+            const folds = loadFolds();
+            const open = Object.prototype.hasOwnProperty.call(folds, key) ? !!folds[key] : openByDefault;
+            block.classList.toggle('folded', !open);
+            head.classList.add('collection-fold-toggle');
+            head.setAttribute('role', 'button');
+            head.tabIndex = 0;
+            head.setAttribute('aria-expanded', String(open));
+            const toggle = () => {
+                pinCollectionTop();
+                const nowOpen = !block.classList.toggle('folded');
+                head.setAttribute('aria-expanded', String(nowOpen));
+                const st = loadFolds();
+                st[key] = nowOpen;
+                saveFolds(st);
+            };
+            head.addEventListener('click', toggle);
+            head.addEventListener('keydown', (e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return;
+                e.preventDefault();
+                toggle();
+            });
+        }
+
+        // Короткое окно коллекции стоит посередине: его центрируют автоотступы. Свернул
+        // раздел — окно стало бы короче и съехало вниз, а заголовок ушёл бы из-под пальца.
+        // Поэтому с первого нажатия верх окна остаётся там, где был, а освободившееся
+        // место уходит вниз. Снимается при новом открытии окна и при смене вкладки.
+        function pinCollectionTop() {
+            const modal = document.getElementById('collectionModal');
+            const inner = modal && modal.querySelector('.puzzle-modal-inner');
+            if (!inner || inner.style.marginTop) return;
+            const pad = parseFloat(getComputedStyle(modal).paddingTop) || 0;
+            inner.style.marginTop = Math.max(0, inner.offsetTop - pad) + 'px';
+            inner.style.marginBottom = 'auto';
+        }
+        function unpinCollectionTop() {
+            const inner = document.querySelector('#collectionModal .puzzle-modal-inner');
+            if (inner) { inner.style.marginTop = ''; inner.style.marginBottom = ''; }
+        }
+
+        // Раздел коллекции: название, счёт справа и его ряды. Название — только когда
+        // видно больше одного раздела: у кого одни положительные, тем оно ничего не скажет,
+        // и сворачиваются тогда только ряды. kind — 'pics' или 'tasks': выбор в двух
+        // вкладках свой.
+        function collectionSectionBox(kind, secKey, label, sum, first, headed) {
+            const box = document.createElement('div');
+            box.className = 'collection-section';
+            if (!headed) return box;
+            const head = document.createElement('div');
+            head.className = kind === 'tasks' ? 'collection-tasks-section' : 'collection-pics-section';
+            const name = document.createElement('span');
+            name.className = 'collection-fold-label';
+            name.innerText = label;
+            const count = document.createElement('span');
+            count.className = 'collection-fold-sum';
+            count.innerText = sum;
+            head.appendChild(name);
+            head.appendChild(count);
+            box.appendChild(head);
+            foldCollectionBlock(box, head, `collection:${kind}:${secKey}`, first);
+            return box;
+        }
+
         function renderCollectionGrid() {
             const collection = collectionTimes();
             const wrap = document.getElementById('collectionGroups');
             wrap.innerHTML = '';
 
-            // Название раздела над его рядами — как во вкладке задач, и так же только когда
-            // видно больше одного раздела: у кого одни положительные, тем оно ничего не скажет.
             const groups = collectionGroups().filter(g => g.items.length);
-            const secs = groups.map(g => g.sec).filter((s, k, all) => s && all.indexOf(s) === k);
-            let headed = null;
-            groups.forEach(group => {
-                if (secs.length > 1 && group.sec && group.sec !== headed) {
-                    const sec = MAP_SECTIONS.filter(s => `${s.cat}${s.sign}` === group.sec)[0];
-                    const head = document.createElement('div');
-                    head.className = 'collection-pics-section';
-                    head.innerText = sec ? sec.label : group.sec;
-                    wrap.appendChild(head);
-                    headed = group.sec;
-                }
-                const block = document.createElement('div');
-                block.className = 'collection-group';
-                const title = document.createElement('div');
-                title.className = 'collection-group-title';
-                const done = group.items.filter(i => collection[i] > 0).length;
-                title.innerText = group.op
-                    ? `${OP_LABELS[group.op] || group.op} — ${done}/${group.items.length}`
-                    : tf('Остальные — %1/%2', done, group.items.length);
-                block.appendChild(title);
-                const grid = document.createElement('div');
-                grid.className = 'collection-grid';
-                group.items.forEach(i => grid.appendChild(buildCollectionItem(i, collection)));
-                block.appendChild(grid);
-                wrap.appendChild(block);
+            const secs = groups.map(g => g.sec).filter((s, k, all) => all.indexOf(s) === k);
+            const headed = secs.filter(Boolean).length > 1;
+            secs.forEach((secKey, k) => {
+                const own = groups.filter(g => g.sec === secKey);
+                const items = [].concat(...own.map(g => g.items));
+                const sec = MAP_SECTIONS.filter(s => `${s.cat}${s.sign}` === secKey)[0];
+                const box = collectionSectionBox('pics', secKey, sec ? sec.label : secKey,
+                    `${items.filter(i => collection[i] > 0).length}/${items.length}`, k === 0, headed && !!secKey);
+                own.forEach(group => {
+                    const block = document.createElement('div');
+                    block.className = 'collection-group';
+                    const title = document.createElement('div');
+                    title.className = 'collection-group-title';
+                    const done = group.items.filter(i => collection[i] > 0).length;
+                    title.innerText = group.op
+                        ? `${OP_LABELS[group.op] || group.op} — ${done}/${group.items.length}`
+                        : tf('Остальные — %1/%2', done, group.items.length);
+                    block.appendChild(title);
+                    const grid = document.createElement('div');
+                    grid.className = 'collection-grid';
+                    group.items.forEach(i => grid.appendChild(buildCollectionItem(i, collection)));
+                    block.appendChild(grid);
+                    if (group.op) foldCollectionBlock(block, title, `collection:pics:${secKey}:${group.op}`, true);
+                    box.appendChild(block);
+                });
+                wrap.appendChild(box);
             });
 
             document.getElementById('collectionCountLabel').innerText =
@@ -7768,7 +7859,7 @@
                     }
                     if (items.length) ops.push({ op, items });
                 });
-                if (ops.length) out.push({ label: sec.label, ops });
+                if (ops.length) out.push({ key: secKey, label: sec.label, ops });
             });
             return out;
         }
@@ -7790,13 +7881,11 @@
                 wrap.appendChild(empty);
                 return;
             }
-            groups.forEach(g => {
-                if (groups.length > 1) {
-                    const head = document.createElement('div');
-                    head.className = 'collection-tasks-section';
-                    head.innerText = g.label;
-                    wrap.appendChild(head);
-                }
+            groups.forEach((g, k) => {
+                const all = [].concat(...g.ops.map(o => o.items));
+                const box = collectionSectionBox('tasks', g.key, g.label,
+                    `${all.filter(x => x.earned).length}/${all.length}`, k === 0, groups.length > 1);
+                wrap.appendChild(box);
                 g.ops.forEach(o => {
                     const block = document.createElement('div');
                     block.className = 'collection-group';
@@ -7805,6 +7894,7 @@
                     const done = o.items.filter(x => x.earned);
                     title.innerText = `${OP_LABELS[o.op] || o.op} — ${done.length}/${o.items.length}`;
                     block.appendChild(title);
+                    foldCollectionBlock(block, title, `collection:tasks:${g.key}:${o.op}`, true);
                     done.forEach(x => block.appendChild(
                         buildChallengeBox(x.item, `${challengeCap(x.tier)} · ${x.level}★`)));
                     const locked = o.items.filter(x => !x.earned);
@@ -7820,7 +7910,7 @@
                         });
                         block.appendChild(row);
                     }
-                    wrap.appendChild(block);
+                    box.appendChild(block);
                 });
             });
         }
@@ -7829,6 +7919,8 @@
         // собранного пазла, и меню. Задачи — по нажатию на вкладку.
         function showCollectionTab(tab) {
             const tasks = tab === 'tasks';
+            // Новая вкладка — новое окно: короткое снова встаёт посередине.
+            unpinCollectionTop();
             if (tasks) renderCollectionTasks();
             document.getElementById('collectionPicsTitle').hidden = tasks;
             document.getElementById('collectionPicsView').hidden = tasks;
