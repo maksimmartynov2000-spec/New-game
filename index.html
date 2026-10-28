@@ -770,9 +770,9 @@
            полупрозрачный, и сквозь прозрачную карточку под условием читался экран,
            с которого пришли: «Выбор миссии», «Сегодня 0/20». */
         #collectionTasks .ladder-challenge { background: #11101e; }
-        /* Раздел над действиями — только когда разделов с задачами больше одного:
-           иначе он повторяет то, что и так понятно. */
-        .collection-tasks-section { width: 100%; color: #cbd5e1; font-size: 0.82rem; font-weight: 700; margin: 2px 0 8px 2px; }
+        /* Раздел над действиями — и у задач, и у картинок — только когда разделов больше
+           одного: иначе он повторяет то, что и так понятно. */
+        .collection-tasks-section, .collection-pics-section { width: 100%; color: #cbd5e1; font-size: 0.82rem; font-weight: 700; margin: 2px 0 8px 2px; }
         /* Задача, которой ещё нет: только звезда и ступень, без условия. Условие
            заранее — это подсказка к задаче, до которой ещё не доросли. */
         .collection-task-locks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
@@ -4287,7 +4287,12 @@
             'images/IMG_2470.webp',  // Деление 2★ — почему на ноль делить нельзя
             'images/IMG_2471.webp',  // Деление 3★ — двенадцатый верблюд
             'images/IMG_2472.webp',  // Деление 4★ — Ахиллес и черепаха
-            'images/IMG_2473.webp'   // Деление 5★ — три двери
+            'images/IMG_2473.webp',  // Деление 5★ — три двери
+            'images/IMG_2474.webp',  // Отрицательные, сложение 1★ — красные и чёрные палочки
+            'images/IMG_2475.webp',  // Отрицательные, сложение 2★ — пляж ниже моря
+            'images/IMG_2476.webp',  // Отрицательные, сложение 3★ — долги Брахмагупты
+            'images/IMG_2477.webp',  // Отрицательные, сложение 4★ — лифт без нулевого этажа
+            'images/IMG_2478.webp'   // Отрицательные, сложение 5★ — года, которого не было
         ];
 
         // Новые картинки, которые пока проверяет только репетитор. Ключ — индекс из
@@ -5029,6 +5034,8 @@
                 const secKey = sectionKeyOf(btn.getAttribute('data-value'), btn.getAttribute('data-sign'));
                 btn.style.display = isSectionOpen(secKey) ? '' : 'none';
             });
+            // От открытых разделов зависит и счёт коллекции: «из 20» или «из 25».
+            updateCollectionBadge();
         }
 
         // Кнопки разделов, которые ученик сейчас видит.
@@ -6718,12 +6725,14 @@
             }
             return out;
         }
+        // Собранные считаются среди видимых: картинка закрытого раздела не показывается
+        // и в счёт не идёт (см. puzzleVisible).
         function collectionCollectedCount(times) {
-            return times.reduce((n, v) => n + (v ? 1 : 0), 0);
+            return times.reduce((n, v, i) => n + (v && puzzleVisible(i) ? 1 : 0), 0);
         }
         function updateCollectionBadge() {
             document.getElementById('puzzleCollectionBadge').innerText =
-                `🏆 ${collectionCollectedCount(collectionTimes())}/${PUZZLE_IMAGE_SRCS.length}`;
+                `🏆 ${collectionCollectedCount(collectionTimes())}/${visiblePuzzleCount()}`;
         }
 
         // ===== РАМКА ПАЗЛА — ЗА ПОВТОРНЫЕ СБОРЫ =====
@@ -6768,9 +6777,15 @@
             if (frame) el.classList.add('pz-frame-' + frame.id);
         }
 
-        // У каждой из двадцати клеток положительных чисел своя закреплённая картинка:
-        // четыре действия по пять звёзд, ровно двадцать пазлов. Коллекция перестаёт
-        // быть набором трофеев и становится картой пройденного — видно, откуда что.
+        // У каждой клетки своя закреплённая картинка: четыре действия по пять звёзд,
+        // двадцать пазлов на раздел. Коллекция перестаёт быть набором трофеев и
+        // становится картой пройденного — видно, откуда что.
+        //
+        // Номера идут по разделам: положительные — 0–19, за ними отрицательные — 20–39.
+        // Так же их считает сервер для страницы друга (fr_collected_times в
+        // supabase/friends.sql), и номер картинки там и здесь один и тот же.
+        // Картинок у раздела может быть меньше двадцати: у отрицательных пока есть
+        // только сложение, номера 20–24, и клетки без картинки прячут мини-пазл.
         //
         // Счёт тоже ПОКЛЕТОЧНЫЙ: картинка сложения на 3★ собирается за сто верных
         // ответов именно в сложении на 3★, то есть ровно вместе с золотом по
@@ -6783,28 +6798,60 @@
         // один. Когда у каждой клетки свой счёт, бросать нечего: ушёл в другую клетку,
         // её картинка копится, первая ждёт на месте.
         //
-        // Цена названа честно: у отрицательных, дробей и десятичных картинок нет, и
-        // ответы там больше не собирают ничего. Мини-пазл в таких клетках прячется —
-        // показывать картинку, к которой примеры не имеют отношения, было бы враньём.
+        // Цена названа честно: где картинки нет — у дробей, десятичных и пока у
+        // отрицательных, кроме сложения, — ответы не собирают ничего. Мини-пазл в таких
+        // клетках прячется — показывать картинку, к которой примеры не имеют отношения,
+        // было бы враньём.
         const PUZZLE_CELL_OPS = ['add', 'sub', 'mul', 'div'];
         const PUZZLE_CELL_LEVELS = 5;
+        const PUZZLE_CELL_SECTIONS = ['integer+', 'integer-'];
+        const PUZZLE_SECTION_CELLS = PUZZLE_CELL_OPS.length * PUZZLE_CELL_LEVELS;
 
         function puzzleIndexForTopic(topicKey) {
             const p = parseTopicKey(topicKey);
-            if (!p || p.category !== 'integer' || p.sign !== '+') return null;
+            if (!p || !p.sign) return null;
+            const secAt = PUZZLE_CELL_SECTIONS.indexOf(p.category + p.sign);
             const opAt = PUZZLE_CELL_OPS.indexOf(p.op);
             const lvl = Number(p.level) || 0;
-            if (opAt < 0 || lvl < 1 || lvl > PUZZLE_CELL_LEVELS) return null;
-            const idx = opAt * PUZZLE_CELL_LEVELS + (lvl - 1);
+            if (secAt < 0 || opAt < 0 || lvl < 1 || lvl > PUZZLE_CELL_LEVELS) return null;
+            const idx = secAt * PUZZLE_SECTION_CELLS + opAt * PUZZLE_CELL_LEVELS + (lvl - 1);
             return idx < PUZZLE_IMAGE_SRCS.length ? idx : null;
         }
 
         // Обратное соответствие — для подписи в коллекции.
         function puzzleTopicForIndex(idx) {
             if (!Number.isInteger(idx) || idx < 0
-                || idx >= PUZZLE_CELL_OPS.length * PUZZLE_CELL_LEVELS) return null;
-            return `integer+:${PUZZLE_CELL_OPS[Math.floor(idx / PUZZLE_CELL_LEVELS)]}`
-                 + `:${(idx % PUZZLE_CELL_LEVELS) + 1}`;
+                || idx >= PUZZLE_CELL_SECTIONS.length * PUZZLE_SECTION_CELLS) return null;
+            const cell = idx % PUZZLE_SECTION_CELLS;
+            return `${PUZZLE_CELL_SECTIONS[Math.floor(idx / PUZZLE_SECTION_CELLS)]}`
+                 + `:${PUZZLE_CELL_OPS[Math.floor(cell / PUZZLE_CELL_LEVELS)]}`
+                 + `:${(cell % PUZZLE_CELL_LEVELS) + 1}`;
+        }
+
+        // Раздел картинки — 'integer+' или 'integer-'; null, если картинка ни за какой
+        // клеткой не закреплена.
+        function puzzleSectionOf(idx) {
+            const key = puzzleTopicForIndex(idx);
+            if (!key) return null;
+            const p = parseTopicKey(key);
+            return p.category + p.sign;
+        }
+
+        // Картинки раздела видит тот, кому открыт сам раздел, — как везде: в выборе
+        // миссии, на карте, в достижениях и задачах закрытых разделов нет. Ученик, которому
+        // отрицательные ещё не открыли, не видит их картинок ни плитками, ни в счёте:
+        // коллекция у него по-прежнему «из 20». Откроют раздел — появятся и ряд картинок,
+        // и новый счёт. Собранное при этом не пропадает: отметки и ответы, из которых
+        // считаются сборы, лежат где лежали, прячется только показ.
+        function puzzleVisible(idx) {
+            const sec = puzzleSectionOf(idx);
+            return sec === null || isSectionOpen(sec);
+        }
+        // Сколько картинок в коллекции у того, кто сейчас играет, — вторая половина «3/20».
+        function visiblePuzzleCount() {
+            let n = 0;
+            for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) if (puzzleVisible(i)) n++;
+            return n;
         }
 
         // Клетка текущей миссии. Пока пример не сгенерирован, берём её из выбора на
@@ -7158,7 +7205,7 @@
             const newFrame = item.times > 1 ? PUZZLE_FRAMES.filter(f => f.from === item.times)[0] : null;
             document.getElementById('collectionAddedLine').innerText = ((item.times > 1)
                 ? tf('🏆 Собрана снова: всего %1', item.times)
-                : tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, PUZZLE_IMAGE_SRCS.length))
+                : tf('🏆 Добавлено в коллекцию! (%1/%2)', item.collectedCount, visiblePuzzleCount()))
                 + (newFrame ? '\n' + t('✨ Новая рамка!') : '');
             setPuzzleFrame(document.getElementById('puzzleCompleteArt'), item.times);
 
@@ -7539,17 +7586,21 @@
             });
         })();
 
-        // Картинки коллекции по группам, как в сетке: ряд — действие, в ряду — звёзды.
-        // Картинки, не попавшие ни в одну клетку, складываем в отдельную группу в конце:
-        // сейчас таких нет, но появятся, как только картинок станет больше двадцати.
+        // Картинки коллекции по группам, как в сетке: сначала раздел, в нём ряд — действие,
+        // в ряду — звёзды. Картинок закрытого раздела в группах нет вовсе: ни в сетке, ни
+        // при листании их не видно (см. puzzleVisible). Картинки, не попавшие ни в одну
+        // клетку, складываем в отдельную группу в конце: сейчас таких нет, но появятся,
+        // если картинок станет больше, чем клеток.
         function collectionGroups() {
             const groups = [];
-            PUZZLE_CELL_OPS.forEach(op => groups.push({ op, items: [] }));
-            const extra = { op: null, items: [] };
+            PUZZLE_CELL_SECTIONS.forEach(sec => PUZZLE_CELL_OPS.forEach(op => groups.push({ sec, op, items: [] })));
+            const extra = { sec: null, op: null, items: [] };
             for (let i = 0; i < PUZZLE_IMAGE_SRCS.length; i++) {
+                if (!puzzleVisible(i)) continue;
                 const cellKey = puzzleTopicForIndex(i);
-                const at = cellKey ? PUZZLE_CELL_OPS.indexOf(parseTopicKey(cellKey).op) : -1;
-                (at >= 0 ? groups[at] : extra).items.push(i);
+                const p = cellKey ? parseTopicKey(cellKey) : null;
+                const own = p ? groups.filter(g => g.sec === p.category + p.sign && g.op === p.op)[0] : null;
+                (own || extra).items.push(i);
             }
             if (extra.items.length) groups.push(extra);
             return groups;
@@ -7560,8 +7611,20 @@
             const wrap = document.getElementById('collectionGroups');
             wrap.innerHTML = '';
 
-            collectionGroups().forEach(group => {
-                if (!group.items.length) return;
+            // Название раздела над его рядами — как во вкладке задач, и так же только когда
+            // видно больше одного раздела: у кого одни положительные, тем оно ничего не скажет.
+            const groups = collectionGroups().filter(g => g.items.length);
+            const secs = groups.map(g => g.sec).filter((s, k, all) => s && all.indexOf(s) === k);
+            let headed = null;
+            groups.forEach(group => {
+                if (secs.length > 1 && group.sec && group.sec !== headed) {
+                    const sec = MAP_SECTIONS.filter(s => `${s.cat}${s.sign}` === group.sec)[0];
+                    const head = document.createElement('div');
+                    head.className = 'collection-pics-section';
+                    head.innerText = sec ? sec.label : group.sec;
+                    wrap.appendChild(head);
+                    headed = group.sec;
+                }
                 const block = document.createElement('div');
                 block.className = 'collection-group';
                 const title = document.createElement('div');
@@ -7579,7 +7642,7 @@
             });
 
             document.getElementById('collectionCountLabel').innerText =
-                `${collectionCollectedCount(collection)}/${PUZZLE_IMAGE_SRCS.length}`;
+                `${collectionCollectedCount(collection)}/${visiblePuzzleCount()}`;
         }
 
         // Собранные кусочки начатого пазла — на холсте поверх тёмной плитки. Все
@@ -7835,7 +7898,7 @@
             document.getElementById('menuPuzzleVal').innerText = `${puzzleFilled}/${PUZZLE_TOTAL}`;
             const col = collectionTimes();
             document.getElementById('menuCollectionVal').innerText =
-                `${collectionCollectedCount(col)}/${PUZZLE_IMAGE_SRCS.length}`;
+                `${collectionCollectedCount(col)}/${visiblePuzzleCount()}`;
 
             // Показываем накопительную статистику за всё время, а не только за эту сессию —
             // именно она интересна и ученику, и репетитору.
@@ -12590,8 +12653,10 @@
                 });
                 if (any) out.sections.push({ label: sec.label, rows });
             });
+            // Картинки — по тому же правилу, что медали: закрытый у смотрящего раздел не
+            // показывается и здесь, и в счёт не идёт (см. puzzleVisible).
             out.pics = (Array.isArray(f.pics) ? f.pics : [])
-                .filter(i => Number.isInteger(i) && i >= 0 && i < PUZZLE_IMAGE_SRCS.length);
+                .filter(i => Number.isInteger(i) && i >= 0 && i < PUZZLE_IMAGE_SRCS.length && puzzleVisible(i));
             // Сколько раз друг собрал каждую картинку — для рамки. Сервер без этого поля
             // (SQL ещё не обновлён) — рамка у всех собранных золотая, как первый сбор.
             const times = (f.pic_times && typeof f.pic_times === 'object') ? f.pic_times : {};
@@ -12886,7 +12951,7 @@
                     });
                 });
 
-                friendsLine(card, 'lesson-head', tf('🏆 Коллекция: %1 из %2', s.pics.length, PUZZLE_IMAGE_SRCS.length));
+                friendsLine(card, 'lesson-head', tf('🏆 Коллекция: %1 из %2', s.pics.length, visiblePuzzleCount()));
                 if (!s.pics.length) line(t('Пазлов пока нет.'), 'muted');
                 else {
                     const grid = document.createElement('div');
@@ -16098,7 +16163,7 @@
             const собранных = collectionCollectedCount(collectionTimes());
             if (собранных > 0) {
                 rows.appendChild(winRow(t('🏆 Коллекция'),
-                    tf('%1 из %2', собранных, PUZZLE_IMAGE_SRCS.length), false));
+                    tf('%1 из %2', собранных, visiblePuzzleCount()), false));
             }
         }
 
@@ -16284,7 +16349,10 @@
         // пазл работает без сети целиком. Запрос идёт через service worker, который
         // сам кладёт ответ в кеш; отдельной логики хранения тут нет.
         //
-        // Режим экономии трафика уважаем: там ученик сам попросил не тратить.
+        // Режим экономии трафика уважаем: там ученик сам попросил не тратить. По той же
+        // причине картинки закрытого раздела не качаем: ученик их не увидит. Откроют
+        // раздел — его картинки догрузятся при следующем запуске, а до того возьмутся из
+        // сети, когда понадобятся.
         function preloadPuzzleImages() {
             const conn = navigator.connection || {};
             if (conn.saveData) return;
@@ -16292,6 +16360,7 @@
             later(() => {
                 let i = 0;
                 const next = () => {
+                    while (i < PUZZLE_IMAGE_SRCS.length && !puzzleVisible(i)) i++;
                     if (i >= PUZZLE_IMAGE_SRCS.length) return;
                     // Своя картинка клетки: репетитор догружает новые, ученик — прежние.
                     const src = puzzleSrc(i++);

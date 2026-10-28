@@ -68,11 +68,14 @@ checkNow('картинки: сотня ответов и порядок клет
     assert(body.indexOf(`* ${levels} +`) >= 0 && body.indexOf(`generate_series(1, ${levels})`) >= 0,
         `звёзд в клетке не ${levels}`);
     // Отрицательные идут сразу за положительными: номер сдвинут на число клеток
-    // одного раздела. Когда у отрицательных появятся картинки, приложение возьмёт
-    // те же номера — сервер трогать не придётся.
+    // одного раздела. Так и в приложении — с тех пор, как у отрицательных появились
+    // картинки (сложение, номера 20–24), номер картинки у друга и у себя один и тот же.
     const cells = ops.split(',').length * levels;
     assert(body.indexOf(`s.k * ${cells} +`) >= 0, `отрицательные не сдвинуты на ${cells}`);
     assert(/\(values \(0, '\+'\), \(1, '-'\)\)/.test(body), 'разделы не «+», затем «−»');
+    const secs = (HTML.match(/const PUZZLE_CELL_SECTIONS = \[([^\]]*)\];/) || [])[1];
+    assert(secs, 'не найдены разделы пазла в index.html');
+    eq(secs.replace(/\s+/g, ''), "'integer+','integer-'", 'разделы пазла в приложении: сначала «+», затем «−», как на сервере');
     // Сколько раз — частное от деления на сотню, как puzzleTimesFor.
     assert(body.indexOf(`/ ${grid * grid}`) >= 0, `сборы считаются не по ${grid * grid} ответов`);
 });
@@ -106,9 +109,10 @@ const day = (c) => ({ c, w: 1, a: 0, s: 300, p: 0, ms: 0, mc: 0, tr: 0, t: {}, e
 // Петя: золото на сложении 1★, мастерство на 2★ (алмаз по всем трём — задача
 // за мастерство), бронза и серебро на вычитании, плюс медали в отрицательных —
 // а они у того, кто смотрит, закрыты.
-const PETYA = { id: 11, name: 'Петя', streak: 12, week: 140, pics: [0, 1, 5, 99, -1, 2.5],
+// Картинка 20 — сложение отрицательных: у того, кто смотрит, раздел закрыт.
+const PETYA = { id: 11, name: 'Петя', streak: 12, week: 140, pics: [0, 1, 5, 20, 99, -1, 2.5],
     // Рамки: 0 — собрана трижды (легенда), 1 — без числа (золото), 5 — десять раз (радуга).
-    pic_times: { '0': 3, '5': 10, '99': 50 },
+    pic_times: { '0': 3, '5': 10, '20': 2, '99': 50 },
     ladders: ['integer+:add:1:a3', 'integer+:add:1:c3', 'integer+:add:1:s2',
               'integer+:add:2:a4', 'integer+:add:2:c4', 'integer+:add:2:s4',
               'integer+:sub:1:a1', 'integer+:sub:1:c2', 'integer+:sub:1:c1',
@@ -327,6 +331,11 @@ const OLYA = { id: 13, name: 'Оля', streak: 3, ladders: [], pics: [] };   // 
         assert(pics.every(p => /images\/thumbs\//.test(p.src)), JSON.stringify(pics));
         assert(/Коллекция: 3 из 20/i.test(card), card);
     });
+    // Как и медали: закрытый у того, кто смотрит, раздел не показывается и в счёт не идёт.
+    // Ни «из 25», ни плитки с картинкой отрицательных у Пети.
+    await check('картинка закрытого раздела у друга не видна и не считается', () => {
+        assert(pics.every(p => p.src.indexOf('IMG_2474') < 0), JSON.stringify(pics));
+    });
     await check('у картинок друга — рамки по числу сборов', async () => {
         const frames = await page.evaluate(`[...document.querySelectorAll('#appDialogCard .friend-pics img')]
             .map(i => [...i.classList].filter(c => c.indexOf('pz-frame-') === 0).join(' '))`);
@@ -345,6 +354,20 @@ const OLYA = { id: 13, name: 'Оля', streak: 3, ladders: [], pics: [] };   // 
         eq(await page.evaluate(`document.querySelectorAll('#appDialogCard .ach-star').length`), 20, 'звёзд');
         eq(await page.evaluate(`document.querySelectorAll('#appDialogCard button.ach-star').length`), 0, 'кнопок');
     });
+    // Тот же Петя у того, кому отрицательные открыли: его картинка отрицательных видна,
+    // и счёт — из всех картинок. Потом доступ прежний, и страница Пети снова открыта.
+    const reopenPetya = (access) => page.evaluate(`Progress.setAccess(${JSON.stringify(access)}); closeAppDialog(null);
+        [...document.querySelectorAll('#friendsBody .friend-row')].find(r => /Петя/.test(r.innerText)).click(); null`);
+    await reopenPetya({ 'integer-': 'all' });
+    await settle();
+    await check('открыли отрицательные — у друга видна и его картинка отрицательных', async () => {
+        const srcs = await page.evaluate(`[...document.querySelectorAll('#appDialogCard .friend-pics img')].map(i => i.getAttribute('src'))`);
+        eq(srcs.length, 4, 'картинок');
+        assert(srcs.some(s => s.indexOf('thumbs/IMG_2474') >= 0), JSON.stringify(srcs));
+        assert(/Коллекция: 4 из 25/i.test(await dialog()), await dialog());
+    });
+    await reopenPetya({});
+    await settle();
     await page.evaluate(`[...document.querySelectorAll('#appDialogCard button')].find(x => /Удалить из друзей/.test(x.innerText)).click(); null`);
     await settle();
     await check('удалить друга — только после отдельного «да»', async () => {

@@ -26,13 +26,18 @@ function slice(startMark, endMark, what) {
     return SCRIPT.slice(from, to);
 }
 
+// Сколько картинок в игре — прямо из списка в index.html.
+const IMAGES = (slice('const PUZZLE_IMAGE_SRCS = [', '];', 'список картинок').match(/'images\//g) || []).length;
+
 // byTopic — то, из чего теперь выводится всё про пазл. collection — старые отметки.
-function load(byTopic, collection) {
-    const state = { collection: (collection || new Array(20).fill(false)).slice(), saves: 0 };
+// open — какие разделы открыты тому, кто играет; не задан — все, как у репетитора.
+function load(byTopic, collection, open) {
+    const state = { collection: (collection || new Array(IMAGES).fill(false)).slice(), saves: 0 };
     const box = {
         console, Math, Number, Object, Array, String,
         PUZZLE_TOTAL: 100,
-        PUZZLE_IMAGE_SRCS: new Array(20).fill('x.jpg'),
+        PUZZLE_IMAGE_SRCS: new Array(IMAGES).fill('x.jpg'),
+        isSectionOpen: (sec) => !open || open.indexOf(sec) >= 0,
         Progress: { get: () => ({ byTopic: byTopic || {} }) },
         loadCollectionArray: () => state.collection.slice(),
         saveCollectionArray: (arr) => { state.saves++; state.collection = arr.slice(); },
@@ -44,7 +49,7 @@ function load(byTopic, collection) {
         slice('const PUZZLE_CELL_OPS', 'function setupPuzzleForCell', 'клетки и картинки'),
         ';globalThis.R = { puzzleIndexForTopic, puzzleTopicForIndex, currentMissionTopicKey,'
             + ' topicCorrect, puzzleFilledFor, puzzleTimesFor, collectionTimes,'
-            + ' collectionCollectedCount, PUZZLE_CELL_OPS };'
+            + ' collectionCollectedCount, PUZZLE_CELL_OPS, puzzleVisible, visiblePuzzleCount };'
     ].join('\n');
     vm.createContext(box);
     vm.runInContext(src, box, { filename: 'index.html<пазлы>' });
@@ -62,7 +67,7 @@ function assert(cond, msg) { if (!cond) throw new Error(msg || 'не выпол�
 function eq(a, b, msg) { if (a !== b) throw new Error(`${msg || 'не совпало'}: получили ${JSON.stringify(a)}, ждали ${JSON.stringify(b)}`); }
 function group(name) { console.log(`\n${name}`); }
 
-const NONE = new Array(20).fill(false);
+const NONE = new Array(IMAGES).fill(false);
 
 group('Кусочки считаются, а не хранятся');
 
@@ -100,9 +105,9 @@ test('ответы соседней клетки в эту не капают', (
     eq(box.R.puzzleFilledFor('integer+:add:1'), 99, 'сложение 1★');
 });
 
-test('ответы вне положительных чисел не собирают ничего', () => {
+test('ответы в клетках без картинки не собирают ничего', () => {
     const box = load({ 'integer-:mul:3': { correct: 500 }, 'fraction+:add:2': { correct: 300 } });
-    eq(box.R.puzzleIndexForTopic('integer-:mul:3'), null, 'отрицательные');
+    eq(box.R.puzzleIndexForTopic('integer-:mul:3'), null, 'умножение отрицательных');
     eq(box.R.puzzleIndexForTopic('fraction+:add:2'), null, 'дроби');
 });
 
@@ -161,19 +166,70 @@ test('двадцать клеток положительных чисел лож
     eq(Object.keys(seen).length, 20, 'должны быть заняты все двадцать');
 });
 
+// Номера — по разделам: положительные 0–19, за ними отрицательные с 20, в том же порядке
+// действий и звёзд. Так же считает сервер для страницы друга (supabase/friends.sql), и
+// номер картинки там и здесь один и тот же.
+test('отрицательные идут сразу за положительными, в том же порядке', () => {
+    const box = load({});
+    for (let lvl = 1; lvl <= 5; lvl++) {
+        eq(box.R.puzzleIndexForTopic(`integer-:add:${lvl}`), 19 + lvl, `сложение отрицательных ${lvl}★`);
+    }
+    eq(box.R.puzzleTopicForIndex(22), 'integer-:add:3', 'картинка 22');
+});
+
 test('обратное соответствие сходится', () => {
     const box = load({});
-    for (let i = 0; i < 20; i++) {
+    for (let i = 0; i < IMAGES; i++) {
         eq(box.R.puzzleIndexForTopic(box.R.puzzleTopicForIndex(i)), i, `картинка ${i}`);
     }
 });
 
-test('у чужих разделов картинки не закреплены', () => {
+test('у клеток, до которых картинки не дошли, их нет', () => {
     const box = load({});
-    eq(box.R.puzzleIndexForTopic('integer-:add:1'), null, 'отрицательные');
+    // Первая клетка за последней картинкой: у отрицательных пока есть только сложение.
+    const next = box.R.puzzleTopicForIndex(IMAGES);
+    assert(next, `за картинкой ${IMAGES - 1} нет клетки`);
+    eq(box.R.puzzleIndexForTopic(next), null, next);
     eq(box.R.puzzleIndexForTopic('decimal+:mul:2'), null, 'десятичные');
     eq(box.R.puzzleIndexForTopic('fraction+:simplify:1'), null, 'дроби');
+    eq(box.R.puzzleIndexForTopic('integer:add:1'), null, 'старый ключ без знака');
     eq(box.R.puzzleIndexForTopic(null), null, 'пусто');
+});
+
+group('Картинки закрытого раздела');
+
+// Картинки раздела видит тот, кому открыт сам раздел, — как везде, где разделы
+// показываются. И счёт из видимых: «из 20», пока отрицательные закрыты.
+test('пока отрицательные закрыты, коллекция — из двадцати', () => {
+    const box = load({}, null, ['integer+']);
+    eq(box.R.visiblePuzzleCount(), 20, 'картинок в коллекции');
+    eq(box.R.puzzleVisible(19), true, 'деление 5★');
+    eq(box.R.puzzleVisible(20), false, 'сложение отрицательных 1★');
+});
+
+test('отрицательные открыты — в коллекции все картинки', () => {
+    const box = load({}, null, ['integer+', 'integer-']);
+    eq(box.R.visiblePuzzleCount(), IMAGES, 'картинок в коллекции');
+    eq(box.R.puzzleVisible(20), true, 'сложение отрицательных 1★');
+});
+
+test('собранное в закрытом разделе не пропадает, а только не считается', () => {
+    const solved = { 'integer+:add:1': { correct: 100 }, 'integer-:add:2': { correct: 130 } };
+    const col = NONE.slice(); col[23] = true;   // старая отметка — тоже в закрытом разделе
+    const closed = load(solved, col, ['integer+']);
+    eq(closed.R.collectionTimes()[21], 1, 'сбор по ответам на месте');
+    eq(closed.R.collectionTimes()[23], 1, 'отметка на месте');
+    eq(closed.R.collectionCollectedCount(closed.R.collectionTimes()), 1, 'в счёте — только положительная');
+    const open = load(solved, col, ['integer+', 'integer-']);
+    eq(open.R.collectionCollectedCount(open.R.collectionTimes()), 3, 'раздел открыли — в счёте все три');
+});
+
+// «3/25» у ученика, которому отрицательные не открыли, рассказал бы о картинках, которых
+// ему не видно. Поэтому вторая половина счёта везде — visiblePuzzleCount: в значке,
+// заголовке коллекции, меню, окне собранного пазла, итогах миссии и у друга.
+test('длина списка картинок нигде не выводится как счёт', () => {
+    const shown = SCRIPT.match(/\$\{PUZZLE_IMAGE_SRCS\.length\}|tf\([^;]*PUZZLE_IMAGE_SRCS\.length/g) || [];
+    eq(shown.length, 0, `счёт из всех картинок, а не из видимых: ${shown.join(' | ')}`);
 });
 
 group('Клетка текущей миссии');
@@ -227,7 +283,7 @@ test('картинки разложены по действиям', () => {
     const groupsFrom = SCRIPT.indexOf('function collectionGroups');
     assert(groupsFrom > 0, 'нет collectionGroups — группы сетки строить нечем');
     const groups = SCRIPT.slice(groupsFrom, SCRIPT.indexOf('\n        }', groupsFrom));
-    assert(/collectionGroups\(\)\.forEach/.test(body), 'сетка должна строиться по группам collectionGroups');
+    assert(/collectionGroups\(\)/.test(body), 'сетка должна строиться по группам collectionGroups');
     assert(/PUZZLE_CELL_OPS\.forEach/.test(groups), 'группы должны строиться по действиям');
     assert(/OP_LABELS\[group\.op\]/.test(body), 'у группы должен быть заголовок с названием действия');
 });
