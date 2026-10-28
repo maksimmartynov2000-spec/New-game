@@ -86,7 +86,8 @@ const NEG_THUMBS = [2474, 2475, 2476, 2477, 2478].map(n => `images/thumbs/IMG_${
             tiles: items.map(x => x.querySelector('img').getAttribute('src')),
             unlocked: items.filter(x => x.classList.contains('unlocked')).map(x => x.querySelector('img').getAttribute('src')),
             started: items.filter(x => x.classList.contains('started')).map(x => x.querySelector('.collection-progress-count').innerText),
-            heads: [...grid.querySelectorAll('.collection-pics-section')].map(x => x.innerText),
+            heads: [...grid.querySelectorAll('.collection-pics-section .collection-fold-label')].map(x => x.innerText),
+            sums: [...grid.querySelectorAll('.collection-pics-section .collection-fold-sum')].map(x => x.innerText),
             titles: [...grid.querySelectorAll('.collection-group-title')].map(x => x.innerText),
             label: document.getElementById('collectionCountLabel').innerText,
             badge: document.getElementById('puzzleCollectionBadge').innerText,
@@ -106,6 +107,7 @@ const NEG_THUMBS = [2474, 2475, 2476, 2477, 2478].map(n => `images/thumbs/IMG_${
     await checkAsync('двадцать пять плиток, над рядами — названия разделов', async () => {
         eq(tutor.tiles.length, 25, 'плиток');
         eq(tutor.heads.join(' | '), '🔵 Положительные | 🔴 Отрицательные', 'разделы');
+        eq(tutor.sums.join(' | '), '1/20 | 1/5', 'собрано в разделе');
         eq(tutor.titles.join(' | '), '➕ Сложение — 1/5 | ➖ Вычитание — 0/5 | ✖️ Умножение — 0/5 | ➗ Деление — 0/5 | ➕ Сложение — 1/5', 'ряды');
     });
     await checkAsync('ряд отрицательных — пять своих картинок по звёздам, начатая — со счётом', async () => {
