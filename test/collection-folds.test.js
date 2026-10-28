@@ -200,6 +200,41 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
         eq(await page.evaluate(`document.querySelector('#collectionModal .puzzle-modal-inner').style.marginTop`), '', 'отступ сверху');
     });
 
+    console.log('\nКоллекция из окна пазла');
+    // Новый пазл отрицательных лежит в разделе, свёрнутом по умолчанию. Из окна пазла его
+    // раздел и ряд раскрываются сами — даже если ряд свернули нарочно.
+    await page.evaluate(`localStorage.removeItem('mathCitadelFolds_v1'); null`);
+    await as('TUT1', 'self', null);
+    await page.evaluate(`(() => { const f = loadFolds(); f['collection:pics:integer-:add'] = false; saveFolds(f); return null; })()`);
+    const tileShown = (i) => page.evaluate(`(() => {
+        const img = [...document.querySelectorAll('#collectionGroups .collection-item img')]
+            .find(x => x.getAttribute('src') === puzzleThumbSrc(${i}));
+        return !!(img && img.offsetParent); })()`);
+    await page.evaluate(`(() => {
+        closeCollectionModal();
+        Progress.get().byTopic['integer-:add:3'] = { correct: 100, wrong: 0 };
+        pendingPuzzleReveals.length = 0;
+        currentProblemMeta = { category: 'integer', opKey: 'add', level: 3, isNegative: true };
+        addPuzzlePiece();
+        showNextPuzzleReveal();
+        document.getElementById('btnViewCollection').click();
+        return null; })()`);
+    v = await look('pics');
+    await checkAsync('из собранного пазла: его раздел и ряд раскрыты, картинка видна', async () => {
+        eq(v.sections.map(s => s.folded).join(','), 'false,false', 'разделы свёрнуты');
+        eq(v.rows.find(r => r.title.indexOf('➕ Сложение — 2/5') === 0 && r.shown).folded, false, 'ряд сложения отрицательных');
+        assert(await tileShown(22), 'картинки 22 не видно');
+    });
+    await page.evaluate(`localStorage.removeItem('mathCitadelFolds_v1'); closeCollectionModal();
+        setupPuzzleForCell('integer-:add:4'); openPuzzleModal();
+        document.getElementById('btnOpenCollectionLive').click(); null`);
+    v = await look('pics');
+    await checkAsync('из пазла, который собирается: его раздел раскрыт', async () => {
+        eq(v.sections.map(s => s.folded).join(','), 'false,false', 'разделы свёрнуты');
+        assert(await tileShown(23), 'картинки 23 не видно');
+    });
+    await page.evaluate(`closePuzzleModal(); closeCollectionModal(); null`);
+
     console.log('\nУченик с одним разделом');
     await page.evaluate(`localStorage.removeItem('mathCitadelFolds_v1'); null`);
     await as('KID1', 'linked', { 'integer+': 'all' });

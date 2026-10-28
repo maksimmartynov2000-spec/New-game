@@ -7200,8 +7200,10 @@
             Progress.flush(); // контрольная точка синхронизации
         }
 
-        // Картинка, которая сейчас в окне собранного пазла, — для просмотра на весь экран.
+        // Картинка, которая сейчас в окне собранного пазла, — для просмотра на весь экран,
+        // и её номер — чтобы коллекция, открытая из этого окна, показала её сразу.
         let puzzleRevealSrc = null;
+        let puzzleRevealIndex = null;
 
         // Собранные, но ещё не показанные пазлы. За одну миссию их обычно ноль или
         // один: картинка стоит сотни верных ответов, а миссия столько не длится.
@@ -7236,6 +7238,7 @@
             seams.removeAttribute('src');
             document.getElementById('puzzleCompleteImg').src = item.src;
             puzzleRevealSrc = item.src;
+            puzzleRevealIndex = item.index;
             renderSnapshotDataURL(item.src, item.paths, (dataUrl) => {
                 seams.onload = () => {
                     seams.onload = null;
@@ -7950,8 +7953,24 @@
             modal.style.zIndex = '';
             modal.style.background = '';
         }
-        document.getElementById('btnViewCollection').addEventListener('click', openCollectionModal);
-        document.getElementById('btnOpenCollectionLive').addEventListener('click', openCollectionModal);
+        // Коллекцию открыли из окна пазла — только что собранного или того, что собирается
+        // сейчас. Его картинка должна быть видна сразу: раздел и ряд, где она лежит,
+        // раскрываются и такими запоминаются, даже если раньше их свернули. Иначе новая
+        // картинка отрицательных пряталась бы в разделе, свёрнутом по умолчанию.
+        function openCollectionAt(idx) {
+            const key = idx === null ? null : puzzleTopicForIndex(idx);
+            if (key) {
+                const p = parseTopicKey(key);
+                const st = loadFolds();
+                st[`collection:pics:${p.category}${p.sign}`] = true;
+                st[`collection:pics:${p.category}${p.sign}:${p.op}`] = true;
+                saveFolds(st);
+            }
+            openCollectionModal();
+        }
+        document.getElementById('btnViewCollection').addEventListener('click', () => openCollectionAt(puzzleRevealIndex));
+        document.getElementById('btnOpenCollectionLive').addEventListener('click',
+            () => openCollectionAt(puzzleCellKey ? puzzleIndexForTopic(puzzleCellKey) : null));
         document.getElementById('collectionTabPics').addEventListener('click', () => showCollectionTab('pics'));
         document.getElementById('collectionTabTasks').addEventListener('click', () => showCollectionTab('tasks'));
 
