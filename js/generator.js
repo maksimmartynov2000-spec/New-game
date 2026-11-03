@@ -2285,6 +2285,20 @@ function decToString(d, wrapNegative = false) {
     return (wrapNegative && isNeg) ? `(${signedStr})` : signedStr;
 }
 
+// Как число видит ученик. В русском, французском и немецком дробную часть отделяет
+// запятая, в английском — точка (то же правило, что у num() в js/i18n.js). До этой
+// правки игра на всех языках писала «5.2», а подсказки и задачи за мастерство — «5,2»,
+// и поверх примера с точкой всплывала подсказка с запятой.
+//
+// decToString остаётся записью «для машины»: с точкой и обычным дефисом. На экран
+// идёт только decShow; ключи ответов и проверка от вида не зависят.
+function decShow(d, wrapNegative = false) {
+    const s = decToString(d, wrapNegative);
+    const comma = (typeof currentLang === 'function') ? !!currentLang().comma : true;
+    const shown = comma ? s.replace('.', ',') : s;
+    return (typeof showMinus === 'function') ? showMinus(shown) : shown;
+}
+
 // Пулы по уровням: величина целой части для сложения/вычитания.
 // Сложность растёт плавно: сначала величина целой части, потом количество знаков
 // после запятой, и только на старших уровнях — их сочетание. Само количество знаков
@@ -2296,6 +2310,15 @@ const ADD_SUB_DECIMAL_POOLS = {
     4: { maxWhole: 30 },
     5: { maxWhole: 18 }
 };
+
+// Доля примеров с переносом (сложение) и заёмом (вычитание) на 1–3★.
+//
+// До этой правки их там не было вовсе: 1–3★ строились «без перехода через разряд»,
+// и ошибка, которую репетитор видит у учеников чаще всего, — «5,2 − 3,8 = 2,6», из
+// меньшей цифры вычли наоборот, — в игре просто не могла случиться. Решение репетитора
+// (03.11): половина примеров на 2★ и 3★. 1★ остаётся знакомством, без перехода;
+// на 4–5★ перенос и заём уже есть, у них своя механика (genDecAddSub45).
+const DEC_CARRY_SHARE = { 1: 0, 2: 0.5, 3: 0.5 };
 
 // Умножение и деление — числа строятся по принципу "цифра + сдвиг запятой": сама
 // арифметика (перемножаемые/делимые цифры) остаётся простой, а сложность растёт через
@@ -2645,20 +2668,71 @@ function genDecAddSub45(opKey, maxWhole, pNoCarryBorrow) {
     return [{ intVal: intVal1, dp: dp1 }, { intVal: intVal2, dp: dp2 }];
 }
 
+// Разряды двух чисел парами, младшие первыми: 52 и 38 → [2, 8], [5, 3].
+function decColumns(v1, v2) {
+    const cols = [];
+    while (v1 > 0 || v2 > 0) {
+        cols.push([v1 % 10, v2 % 10]);
+        v1 = Math.floor(v1 / 10);
+        v2 = Math.floor(v2 / 10);
+    }
+    return cols;
+}
+// Есть ли в столбик перенос (сложение) или заём (вычитание). Заём начинается там, где
+// цифра сверху меньше цифры снизу; перенос — где сумма цифр с прошлым переносом больше 9.
+function decHasCarry(opKey, v1, v2) {
+    let carry = 0;
+    for (const [x, y] of decColumns(v1, v2)) {
+        if (opKey === 'add') {
+            if (x + y + carry > 9) return true;
+            carry = 0;
+        } else if (x < y) return true;
+    }
+    return false;
+}
+
+// 2–3★: пример того же вида, что без переноса (те же знаки после запятой и та же целая
+// часть), но с переносом или заёмом хотя бы в одном разряде: 2,7 + 1,5 и 5,2 − 3,8.
+// Дробные части обоих чисел ненулевые, первая цифра после запятой тоже — как и у
+// примеров без переноса. Не нашлось за 400 попыток — вернёт null, и будет пример без.
+function genDecAddSubCarry(opKey, dp, maxWhole) {
+    const scale = Math.pow(10, dp), lead = scale / 10;
+    // Потолок суммы — как у примеров без переноса: целые части вместе не больше min(9, 2 × maxWhole).
+    const top = (Math.min(9, 2 * maxWhole) + 1) * scale - 1;
+    for (let guard = 0; guard < 400; guard++) {
+        let a = randInt(0, maxWhole) * scale + randInt(lead, scale - 1);
+        let b = randInt(0, maxWhole) * scale + randInt(lead, scale - 1);
+        if (opKey === 'sub' && a < b) [a, b] = [b, a];
+        if (opKey === 'add' ? a + b > top : a === b) continue;
+        if (!decHasCarry(opKey, a, b)) continue;
+        return [{ intVal: a, dp }, { intVal: b, dp }];
+    }
+    return null;
+}
+
 function genDecAddSub(opKey, level) {
     let d1, d2;
-    if (level === 1) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 1, ADD_SUB_DECIMAL_POOLS[1].maxWhole);
-    else if (level === 2) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 1, ADD_SUB_DECIMAL_POOLS[2].maxWhole);
-    else if (level === 3) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 2, ADD_SUB_DECIMAL_POOLS[3].maxWhole);
-    else if (level === 4) [d1, d2] = genDecAddSub45(opKey, ADD_SUB_DECIMAL_POOLS[4].maxWhole, 0.62);
-    else [d1, d2] = genDecAddSub45(opKey, ADD_SUB_DECIMAL_POOLS[5].maxWhole, 0.32);
+    const carryShare = DEC_CARRY_SHARE[level] || 0;
+    for (let guard = 0; guard < 30; guard++) {
+        const withCarry = level <= 3 && Math.random() < carryShare
+            && genDecAddSubCarry(opKey, level === 3 ? 2 : 1, ADD_SUB_DECIMAL_POOLS[level].maxWhole);
+        if (withCarry) [d1, d2] = withCarry;
+        else if (level === 1) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 1, ADD_SUB_DECIMAL_POOLS[1].maxWhole);
+        else if (level === 2) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 1, ADD_SUB_DECIMAL_POOLS[2].maxWhole);
+        else if (level === 3) [d1, d2] = genDecAddSubNoCarryBorrow(opKey, 2, ADD_SUB_DECIMAL_POOLS[3].maxWhole);
+        else if (level === 4) [d1, d2] = genDecAddSub45(opKey, ADD_SUB_DECIMAL_POOLS[4].maxWhole, 0.62);
+        else [d1, d2] = genDecAddSub45(opKey, ADD_SUB_DECIMAL_POOLS[5].maxWhole, 0.32);
 
-    // Во всех ветках выше (1-5★) неотрицательный результат гарантирован самой
-    // конструкцией (уменьшаемое >= вычитаемого по построению) — отдельная перестановка
-    // операндов не требуется ни на одном уровне.
+        // Во всех ветках выше (1-5★) неотрицательный результат гарантирован самой
+        // конструкцией (уменьшаемое >= вычитаемого по построению) — отдельная перестановка
+        // операндов не требуется ни на одном уровне.
 
-    d1 = stripTrailingZeros(d1);
-    d2 = stripTrailingZeros(d2);
+        d1 = stripTrailingZeros(d1);
+        d2 = stripTrailingZeros(d2);
+        // Ни ноля среди чисел, ни ноля в ответе. «3,8 + 0» и «0,6 − 0,6» — не пример на
+        // десятичные, а случайно выпавший ноль: замер до правки — до 9,5% примеров на 1–3★.
+        if (d1.intVal !== 0 && d2.intVal !== 0 && !(opKey === 'sub' && decSub(d1, d2).intVal === 0)) break;
+    }
     const answer = opKey === 'add' ? decAdd(d1, d2) : decSub(d1, d2);
     return { isDecimal: true, opKey, level, d1, d2, answer };
 }
@@ -2672,14 +2746,15 @@ function generateDecimalProblem(opKey, level) {
     return genDecDiv(level);
 }
 
+// Запись примера на экране: запятая по языку и настоящий минус «−», как у целых.
 function buildDecimalQuestionText(d1, d2, opKey) {
-    const OP_SYMBOL = { add: '+', sub: '-', mul: '×', div: '÷' };
+    const OP_SYMBOL = { add: '+', sub: '−', mul: '×', div: '÷' };
     if ((opKey === 'add' || opKey === 'sub') && d2.intVal < 0) {
         const flippedOp = opKey === 'add' ? 'sub' : 'add';
         const absD2 = { intVal: -d2.intVal, dp: d2.dp };
-        return `${decToString(d1, false)} ${OP_SYMBOL[flippedOp]} ${decToString(absD2, false)}`;
+        return `${decShow(d1, false)} ${OP_SYMBOL[flippedOp]} ${decShow(absD2, false)}`;
     }
-    return `${decToString(d1, false)} ${OP_SYMBOL[opKey]} ${decToString(d2, true)}`;
+    return `${decShow(d1, false)} ${OP_SYMBOL[opKey]} ${decShow(d2, true)}`;
 }
 
 function pushDec(arr, cand, correctAnswer, used) {
@@ -2695,8 +2770,29 @@ function pushDec(arr, cand, correctAnswer, used) {
     arr.push({ intVal, dp });
 }
 
+// Ошибки в столбик, которые репетитор видит у учеников чаще всего. Сложение без
+// переноса: в каждом разряде пишут последнюю цифру суммы, а единицу дальше не несут
+// (2,7 + 1,5 = 3,2). Вычитание наоборот: в каждом разряде из большей цифры вычитают
+// меньшую, где бы она ни стояла (5,2 − 3,8 = 2,6). null — в этом примере так не ошибиться.
+function decColumnMistake(opKey, d1, d2) {
+    if ((opKey !== 'add' && opKey !== 'sub') || !d1 || !d2) return null;
+    const dp = Math.max(d1.dp, d2.dp);
+    const v1 = d1.intVal * Math.pow(10, dp - d1.dp), v2 = d2.intVal * Math.pow(10, dp - d2.dp);
+    if (v1 < 0 || v2 < 0 || !decHasCarry(opKey, v1, v2)) return null;
+    let r = 0, m = 1;
+    for (const [x, y] of decColumns(v1, v2)) {
+        r += (opKey === 'add' ? (x + y) % 10 : Math.abs(x - y)) * m;
+        m *= 10;
+    }
+    return stripTrailingZeros({ intVal: r, dp });
+}
+
 function buildDecimalDistractors(opKey, d1, d2, correctAnswer, count) {
     const used = new Set([decKey(correctAnswer)]);
+
+    // ===== ПРИОРИТЕТ 0: ошибка в столбик — всегда, когда в примере так можно ошибиться =====
+    const column = [];
+    pushDec(column, decColumnMistake(opKey, d1, d2), correctAnswer, used);
 
     // ===== ПРИОРИТЕТ 1: самые частые реальные ошибки =====
     let priority = [];
@@ -2739,6 +2835,7 @@ function buildDecimalDistractors(opKey, d1, d2, correctAnswer, count) {
     }
 
     const result = [];
+    for (const v of column) { if (result.length >= count) break; result.push(v); }
     for (const v of priority) { if (result.length >= count) break; result.push(v); }
     for (const v of shuffleArray(structural)) { if (result.length >= count) break; result.push(v); }
 

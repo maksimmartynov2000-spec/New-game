@@ -6124,7 +6124,7 @@
             if (v === 'NO_SOLUTION') return t('нет решения');
             if (typeof v === 'number') return String(v);
             if (typeof v === 'object' && 'num' in v) return fracText(v);
-            if (typeof v === 'object' && 'intVal' in v) return decToString(v);
+            if (typeof v === 'object' && 'intVal' in v) return decShow(v);
             return '';
         }
         function bankExampleText(item) {
@@ -6138,7 +6138,7 @@
                 else if (meta.opKey === 'fracOfNumber') q = tf('%1 от %2', `${p.fracNum}/${p.fracDen}`, p.N);
                 else q = `${fracText(p.f1)} ${sign} ${fracText(p.f2)}`;
             } else if (meta.category === 'decimal') {
-                q = (p.d1 && p.d2) ? `${decToString(p.d1)} ${sign} ${decToString(p.d2)}` : '';
+                q = (p.d1 && p.d2) ? `${decShow(p.d1)} ${sign} ${decShow(p.d2)}` : '';
             } else {
                 q = p.text || '';
             }
@@ -15597,7 +15597,7 @@
                 options.forEach(opt => {
                     const btn = document.createElement('button');
                     btn.className = 'btn-answer';
-                    btn.innerText = decToString(opt, false);
+                    btn.innerText = decShow(opt, false);
                     btn.dataset.key = answerKey(opt);
                     btn.onclick = (e) => checkAnswer(opt, e);
                     grid.appendChild(btn);

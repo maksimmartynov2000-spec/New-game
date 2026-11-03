@@ -2426,6 +2426,136 @@ test('в примерах с нулём второе число всё равн�
     assert(bad.length === 0, `ноль без запятой рядом: ${bad.slice(0, 3).join('; ')}`);
 });
 
+group('Десятичные: переход через разряд и ошибки в столбик');
+// Решение репетитора (03.11): на 2★ и 3★ половина примеров сложения и вычитания —
+// с переносом или заёмом. До правки их там не было ни одного, и ошибка, которую
+// репетитор чаще всего видит у учеников, — «5,2 − 3,8 = 2,6», вычли наоборот, — в
+// игре просто не могла случиться. 1★ остаётся знакомством, без перехода.
+//
+// Перенос и ошибку в столбик тест считает сам, по цифрам, а не функциями генератора:
+// иначе сломанная функция проверяла бы сама себя.
+function decColumnsOf(p) {
+    const dp = Math.max(p.d1.dp, p.d2.dp);
+    let a = p.d1.intVal * Math.pow(10, dp - p.d1.dp), b = p.d2.intVal * Math.pow(10, dp - p.d2.dp);
+    const cols = [];
+    while (a > 0 || b > 0) { cols.push([a % 10, b % 10]); a = Math.floor(a / 10); b = Math.floor(b / 10); }
+    return { dp, cols };
+}
+function decHasTransfer(op, p) {
+    let carry = 0;
+    for (const [x, y] of decColumnsOf(p).cols) {
+        if (op === 'add') { carry = (x + y + carry > 9) ? 1 : 0; if (carry) return true; }
+        else if (x < y) return true;
+    }
+    return false;
+}
+const decPlain = (d) => { let { intVal, dp } = d; while (dp > 0 && intVal % 10 === 0) { intVal /= 10; dp--; } return `${intVal}_${dp}`; };
+
+test('на 2★ и 3★ примерно половина примеров с переходом, на 1★ — ни одного', () => {
+    const bad = [];
+    ['add', 'sub'].forEach(op => [1, 2, 3].forEach(lvl => {
+        const N = 4000;
+        let n = 0;
+        for (let i = 0; i < N; i++) if (decHasTransfer(op, G.generateDecimalProblem(op, lvl))) n++;
+        const share = n / N;
+        if (lvl === 1 ? share > 0 : (share < 0.40 || share > 0.60)) bad.push(`${op} ${lvl}★: ${(share * 100).toFixed(1)}%`);
+    }));
+    assert(bad.length === 0, `доля примеров с переходом не та: ${bad.join(', ')}`);
+});
+
+test('в сложении и вычитании нет ноля среди чисел и нет ответа 0', () => {
+    // «3,8 + 0» и «0,6 − 0,6» — не пример на десятичные, а случайно выпавший ноль.
+    // Замер до правки: до 9,5% примеров на 1–3★.
+    const bad = [];
+    ['add', 'sub'].forEach(op => {
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 3000; i++) {
+                const p = G.generateDecimalProblem(op, lvl);
+                if (p.d1.intVal === 0 || p.d2.intVal === 0 || p.answer.intVal === 0) {
+                    bad.push(`${op} ${lvl}★: ${G.decToString(p.d1, false)} ${op} ${G.decToString(p.d2, false)}`);
+                }
+            }
+        }
+    });
+    assert(bad.length === 0, `ноль в примере: ${bad.slice(0, 3).join('; ')} (всего ${bad.length} из 30000)`);
+});
+
+test('в примере с переходом среди вариантов есть ошибка в столбик', () => {
+    // Сложение без переноса (2,7 + 1,5 → 3,2): в каждом разряде последняя цифра суммы.
+    // Вычитание наоборот (5,2 − 3,8 → 2,6): в каждом разряде из большей цифры меньшая.
+    const miss = [];
+    let checked = 0;
+    ['add', 'sub'].forEach(op => [2, 3, 4, 5].forEach(lvl => {
+        for (let i = 0; i < 1500; i++) {
+            const p = G.generateDecimalProblem(op, lvl);
+            if (!decHasTransfer(op, p)) continue;
+            const { dp, cols } = decColumnsOf(p);
+            let r = 0, m = 1;
+            cols.forEach(([x, y]) => { r += (op === 'add' ? (x + y) % 10 : Math.abs(x - y)) * m; m *= 10; });
+            const want = decPlain({ intVal: r, dp });
+            if (want === decPlain(p.answer)) continue;
+            checked++;
+            const fakes = G.buildDecimalDistractors(op, p.d1, p.d2, p.answer, 3);
+            if (!fakes.some(f => decPlain(f) === want) && miss.length < 3) {
+                miss.push(`${G.decToString(p.d1, false)} ${op} ${G.decToString(p.d2, false)}: нет ${want.replace('_', ' при знаках ')}`);
+            }
+        }
+    }));
+    assert(checked > 3000, `примеров с переходом в выборке ${checked} — проверка почти ничего не проверила`);
+    assert(miss.length === 0, `ошибки в столбик нет среди вариантов: ${miss.join('; ')}`);
+});
+
+test('ошибка в столбик и «не то действие» названы своими именами', () => {
+    const D = (intVal, dp) => ({ intVal, dp });
+    [
+        ['sub', D(52, 1), D(38, 1), D(26, 1), 'переставил цифры'],
+        ['sub', D(41, 2), D(39, 2), D(18, 2), 'переставил цифры'],
+        ['add', D(27, 1), D(15, 1), D(32, 1), 'не перенёс единицу'],
+        ['add', D(36, 2), D(145, 2), D(171, 2), 'не перенёс единицу'],
+        // Ноль в конце. 0,75 − 0,35: «не то действие» даёт 1,10, а вариант ответа
+        // приходит уже без нуля — 1,1. Раньше разбор их не сопоставлял и молчал.
+        ['sub', D(75, 2), D(35, 2), D(11, 1), 'перепутал действие'],
+        ['add', D(9, 1), D(53, 2), D(62, 2), 'не выровнял запятую']
+    ].forEach(([op, d1, d2, chosen, want]) => {
+        const answer = op === 'add' ? G.decAdd(d1, d2) : G.decSub(d1, d2);
+        const got = G.classifyMistake({ category: 'decimal', opKey: op }, { d1, d2, opKey: op, answer }, answer, chosen);
+        eq(got, want, `${G.decToString(d1, false)} ${op} ${G.decToString(d2, false)}, выбрано ${G.decToString(chosen, false)}`);
+    });
+});
+
+test('у новых видов есть название и короткая подпись', () => {
+    ['переставил цифры', 'не перенёс единицу'].forEach(kind => {
+        assert(G.MISTAKE_LABELS[kind], `нет названия для «${kind}»`);
+        assert(G.MISTAKE_SHORT[kind], `нет короткой подписи для «${kind}»`);
+    });
+});
+
+test('десятичные на экране: запятая по языку и настоящий минус', () => {
+    // В русском, французском и немецком дробную часть отделяет запятая, в английском —
+    // точка. Раньше игра на всех языках писала «5.2 - 3.8», а подсказки и задачи — «5,2».
+    const d1 = { intVal: 52, dp: 1 }, d2 = { intVal: 38, dp: 1 };
+    const was = vm.runInContext('LANG', G);
+    const shown = {};
+    try {
+        ['ru', 'en', 'fr', 'de'].forEach(lang => {
+            vm.runInContext(`LANG = ${JSON.stringify(lang)};`, G);
+            shown[lang] = G.buildDecimalQuestionText(d1, d2, 'sub') + ' | ' + G.decShow({ intVal: 125, dp: 3 });
+        });
+    } finally {
+        vm.runInContext(`LANG = ${JSON.stringify(was)};`, G);
+    }
+    eq(shown.ru, '5,2 − 3,8 | 0,125', 'по-русски');
+    eq(shown.en, '5.2 − 3.8 | 0.125', 'по-английски');
+    eq(shown.fr, '5,2 − 3,8 | 0,125', 'по-французски');
+    eq(shown.de, '5,2 − 3,8 | 0,125', 'по-немецки');
+    // Запись «для машины» прежняя: на ней держатся ключи и проверки.
+    eq(G.decToString(d1, false), '5.2', 'decToString');
+    // И в самой игре на экран не идёт ни одной записи мимо decShow: кнопки ответов,
+    // копилка ошибок, повтор — всё через неё.
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    assert(!/decToString\(/.test(html), 'в index.html десятичное число показывается мимо decShow');
+});
+
 group('Ответ действительно верен');
 // Этой проверки не было вовсе, и это самая крупная дыра, какая может быть у генератора:
 // подсадка «в одном проценте случаев возвращать неверный ответ» проходила все прежние
