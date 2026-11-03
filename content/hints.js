@@ -224,6 +224,59 @@ window.HINT_CONTENT = {
         'минус в скобках': {
             game: 'Плюс перед скобкой и минус в скобке вместе дают минус: %1 — это %2.',
             review: 'Плюс перед скобкой и минус в скобке вместе дают минус: %1 — это %2. Прибавить отрицательное число — то же, что вычесть его модуль.'
+        },
+        // ===== Десятичные (03.11) =====
+        'переставил цифры:decTenths': {
+            game: 'Из %1 не вычесть %2 — займи у соседнего разряда: %3 − %2.',
+            review: '%1 − %2: из %3 не вычесть %4 десятых, поэтому занимаем одну целую — это 10 десятых: %5 − %4 = %6, а целых остаётся на одну меньше. Вычесть наоборот, %4 − %7, — частая ошибка: так выходит %8.'
+        },
+        'переставил цифры:decHundredths': {
+            game: 'Из %1 не вычесть %2 — займи у соседнего разряда: %3 − %2.',
+            review: '%1 − %2: из %3 не вычесть %4 сотых, поэтому занимаем одну десятую — это 10 сотых: %5 − %4 = %6, а десятых остаётся на одну меньше. Вычесть наоборот, %4 − %7, — частая ошибка: так выходит %8.'
+        },
+        'не перенёс единицу:decTenths': {
+            game: '%1 + %2 = %3 — больше десяти: единица уходит в соседний разряд.',
+            review: '%1 + %2: десятые дают %3 + %4 = %5 десятых — это одна целая и ещё %6. Пишем %7, а целую переносим к целым. Её легко потерять — тогда ответ выходит на одну целую меньше.'
+        },
+        'не перенёс единицу:decHundredths': {
+            game: '%1 + %2 = %3 — больше десяти: единица уходит в соседний разряд.',
+            review: '%1 + %2: сотые дают %3 + %4 = %5 сотых — это одна десятая и ещё %6. Пишем %7, а десятую переносим к десятым. Её легко потерять — тогда ответ выходит на одну десятую меньше.'
+        },
+        'не выровнял запятую:decWholeAdd': {
+            game: '%1 — это целые: прибавляй их к целым, а не к десятым.',
+            review: '%1 + %2: у числа %3 нет знаков после запятой — это %3 целых, то же, что %4. Поэтому %3 складывается с целой частью: %5 + %3. Если подписать %3 под последней цифрой, выйдет %6 — сложены не те разряды.'
+        },
+        'не выровнял запятую:decWholeSub': {
+            game: '%1 — это целые: вычитай их из целых, а не из десятых.',
+            review: '%1 − %2: у числа %3 нет знаков после запятой — это %3 целых. Поэтому %3 вычитается из целой части: %4 − %3. Если подписать %3 под последней цифрой, выйдет %5 — вычтены не те разряды.'
+        },
+        'не выровнял запятую:decPad': {
+            game: 'Допиши ноль: %1 = %2 — тогда разряды встанут друг под другом.',
+            review: '%1 + %2: у чисел разное число знаков после запятой. Допиши ноль: %3 + %4 — и десятые встанут под десятыми, сотые под сотыми. Если складывать цифры, как они стоят, выйдет %5: %6 десятых прибавились к сотым.'
+        },
+        'запятая не на месте:decLess': {
+            game: 'Цифры верные, запятая — нет. Прикинь: %1 %2 %3 — это около %4.',
+            review: '%1 %2 %3: цифры ответа верные, а запятая сдвинута — %4 в десять раз меньше нужного. Прикидка ловит это сразу: %5 %2 %6 — это около %7, значит и ответ около %7, а не около %8.'
+        },
+        'запятая не на месте:decMore': {
+            game: 'Цифры верные, запятая — нет. Прикинь: %1 %2 %3 — это около %4.',
+            review: '%1 %2 %3: цифры ответа верные, а запятая сдвинута — %4 в десять раз больше нужного. Прикидка ловит это сразу: %5 %2 %6 — это около %7, значит и ответ около %7, а не около %8.'
+        },
+        'запятая не на месте:decMul': {
+            game: 'Знаков после запятой: %1 и %2 — в ответе столько же вместе.',
+            review: '%1 × %2: перемножаем без запятых — %3 × %4 = %5, — а потом отсчитываем справа столько знаков после запятой, сколько их у обоих чисел вместе: %6 + %7 = %8. Выходит %9.'
+        },
+        'запятая не на месте:decDiv': {
+            game: 'Сдвинь запятую в обоих числах, чтобы делитель стал целым: %1 ÷ %2.',
+            review: '%1 ÷ %2: если сдвинуть запятую в обоих числах на один знак, ответ не изменится — это %3 ÷ %4 = %5. Делить на %2 — значит узнать, сколько раз %2 помещается в %1: %6, а не меньше одного.'
+        },
+        'сложил вместо умножения:decOneWhole': {
+            game: '%1 × %2 — это %3, взятое %4, а не %1 + %2.',
+            review: '%1 × %2 — это %3 + %3 + … %4: %5 × %6 = %7, то есть %8. А %1 + %2 — совсем другое действие.'
+        },
+        'сложил вместо умножения:decBothPoint': {
+            game: 'Это сложение. Перемножь %1 × %2 и отсчитай знаки после запятой.',
+            review: '%1 × %2 — это %2 от %1, то есть меньше самого %1. Перемножаем без запятых: %3 × %4 = %5, знаков после запятой два — %6. А %1 + %2 = %7 — это сложение.'
         }
     },
 
@@ -383,6 +436,59 @@ window.HINT_CONTENT = {
         'минус в скобках': {
             game: 'A plus before the bracket and a minus inside make a minus: %1 is %2.',
             review: 'A plus before the bracket and a minus inside it together make a minus: %1 is %2. Adding a negative number is the same as taking away its absolute value.'
+        },
+        // ===== Десятичные (03.11) =====
+        'переставил цифры:decTenths': {
+            game: 'You cannot take %2 from %1 — borrow from the next place: %3 − %2.',
+            review: '%1 − %2: %4 tenths will not come out of %3, so you borrow one whole — that is 10 tenths: %5 − %4 = %6, and one whole fewer is left. Subtracting the other way round, %4 − %7, is a common mistake: that gives %8.'
+        },
+        'переставил цифры:decHundredths': {
+            game: 'You cannot take %2 from %1 — borrow from the next place: %3 − %2.',
+            review: '%1 − %2: %4 hundredths will not come out of %3, so you borrow one tenth — that is 10 hundredths: %5 − %4 = %6, and one tenth fewer is left. Subtracting the other way round, %4 − %7, is a common mistake: that gives %8.'
+        },
+        'не перенёс единицу:decTenths': {
+            game: '%1 + %2 = %3 — more than ten: one carries over to the next place.',
+            review: '%1 + %2: the tenths give %3 + %4 = %5 tenths — that is one whole and %6. Write %7 and carry the whole over to the wholes. It is easy to lose — and then the answer comes out one whole too small.'
+        },
+        'не перенёс единицу:decHundredths': {
+            game: '%1 + %2 = %3 — more than ten: one carries over to the next place.',
+            review: '%1 + %2: the hundredths give %3 + %4 = %5 hundredths — that is one tenth and %6. Write %7 and carry the tenth over to the tenths. It is easy to lose — and then the answer comes out one tenth too small.'
+        },
+        'не выровнял запятую:decWholeAdd': {
+            game: '%1 is a whole number: add it to the wholes, not to the tenths.',
+            review: '%1 + %2: the number %3 has no digits after the point — it is %3 wholes, the same as %4. So %3 is added to the whole part: %5 + %3. If you write %3 under the last digit, you get %6 — the wrong places have been added.'
+        },
+        'не выровнял запятую:decWholeSub': {
+            game: '%1 is a whole number: take it from the wholes, not from the tenths.',
+            review: '%1 − %2: the number %3 has no digits after the point — it is %3 wholes. So %3 is taken from the whole part: %4 − %3. If you write %3 under the last digit, you get %5 — the wrong places have been subtracted.'
+        },
+        'не выровнял запятую:decPad': {
+            game: 'Add a zero: %1 = %2 — then the places line up.',
+            review: '%1 + %2: the numbers have a different number of digits after the point. Add a zero: %3 + %4 — and tenths line up under tenths, hundredths under hundredths. If you add the digits as they stand, you get %5: %6 tenths were added to the hundredths.'
+        },
+        'запятая не на месте:decLess': {
+            game: 'The digits are right, the point is not. Estimate: %1 %2 %3 is about %4.',
+            review: '%1 %2 %3: the digits of the answer are right, but the point has moved — %4 is ten times too small. An estimate catches this at once: %5 %2 %6 is about %7, so the answer is about %7 too, not about %8.'
+        },
+        'запятая не на месте:decMore': {
+            game: 'The digits are right, the point is not. Estimate: %1 %2 %3 is about %4.',
+            review: '%1 %2 %3: the digits of the answer are right, but the point has moved — %4 is ten times too big. An estimate catches this at once: %5 %2 %6 is about %7, so the answer is about %7 too, not about %8.'
+        },
+        'запятая не на месте:decMul': {
+            game: 'Digits after the point: %1 and %2 — the answer has as many together.',
+            review: '%1 × %2: multiply without the points — %3 × %4 = %5 — and then count from the right as many digits after the point as both numbers have together: %6 + %7 = %8. That gives %9.'
+        },
+        'запятая не на месте:decDiv': {
+            game: 'Move the point in both numbers so you divide by a whole number: %1 ÷ %2.',
+            review: '%1 ÷ %2: if you move the point one place in both numbers, the answer does not change — it is %3 ÷ %4 = %5. Dividing by %2 means finding how many times %2 fits into %1: %6, not less than once.'
+        },
+        'сложил вместо умножения:decOneWhole': {
+            game: '%1 × %2 means %3 taken %4, not %1 + %2.',
+            review: '%1 × %2 is %3 + %3 + … %4: %5 × %6 = %7, that is %8. And %1 + %2 is a different operation altogether.'
+        },
+        'сложил вместо умножения:decBothPoint': {
+            game: 'That is addition. Multiply %1 × %2 and count the digits after the point.',
+            review: '%1 × %2 is %2 of %1, so less than %1 itself. Multiply without the points: %3 × %4 = %5, two digits after the point — %6. And %1 + %2 = %7 is addition.'
         }
     },
 
@@ -542,6 +648,59 @@ window.HINT_CONTENT = {
         'минус в скобках': {
             game: 'Un plus devant la parenthèse et un moins dedans font un moins : %1 = %2.',
             review: 'Un plus devant la parenthèse et un moins dedans font ensemble un moins : %1, c’est %2. Ajouter un nombre négatif, c’est soustraire sa valeur absolue.'
+        },
+        // ===== Десятичные (03.11) =====
+        'переставил цифры:decTenths': {
+            game: 'De %1 on ne peut pas ôter %2 — emprunte au rang voisin : %3 − %2.',
+            review: '%1 − %2 : %4 dixièmes ne sortent pas de %3, alors on emprunte une unité — c’est 10 dixièmes : %5 − %4 = %6, et il reste une unité de moins. Soustraire à l’envers, %4 − %7, est une erreur fréquente : on obtient alors %8.'
+        },
+        'переставил цифры:decHundredths': {
+            game: 'De %1 on ne peut pas ôter %2 — emprunte au rang voisin : %3 − %2.',
+            review: '%1 − %2 : %4 centièmes ne sortent pas de %3, alors on emprunte un dixième — c’est 10 centièmes : %5 − %4 = %6, et il reste un dixième de moins. Soustraire à l’envers, %4 − %7, est une erreur fréquente : on obtient alors %8.'
+        },
+        'не перенёс единицу:decTenths': {
+            game: '%1 + %2 = %3 — plus de dix : une retenue passe au rang voisin.',
+            review: '%1 + %2 : les dixièmes donnent %3 + %4 = %5 dixièmes — c’est une unité et encore %6. On écrit %7 et on reporte l’unité vers les unités. Elle se perd facilement — et le résultat est alors trop petit d’une unité.'
+        },
+        'не перенёс единицу:decHundredths': {
+            game: '%1 + %2 = %3 — plus de dix : une retenue passe au rang voisin.',
+            review: '%1 + %2 : les centièmes donnent %3 + %4 = %5 centièmes — c’est un dixième et encore %6. On écrit %7 et on reporte le dixième vers les dixièmes. Il se perd facilement — et le résultat est alors trop petit d’un dixième.'
+        },
+        'не выровнял запятую:decWholeAdd': {
+            game: '%1, ce sont des unités : ajoute-les aux unités, pas aux dixièmes.',
+            review: '%1 + %2 : le nombre %3 n’a pas de chiffres après la virgule — ce sont %3 unités, comme %4. Donc %3 s’ajoute à la partie entière : %5 + %3. Si on écrit %3 sous le dernier chiffre, on obtient %6 — on a additionné les mauvais rangs.'
+        },
+        'не выровнял запятую:decWholeSub': {
+            game: '%1, ce sont des unités : ôte-les des unités, pas des dixièmes.',
+            review: '%1 − %2 : le nombre %3 n’a pas de chiffres après la virgule — ce sont %3 unités. Donc %3 s’ôte de la partie entière : %4 − %3. Si on écrit %3 sous le dernier chiffre, on obtient %5 — on a soustrait les mauvais rangs.'
+        },
+        'не выровнял запятую:decPad': {
+            game: 'Ajoute un zéro : %1 = %2 — alors les rangs s’alignent.',
+            review: '%1 + %2 : les nombres n’ont pas autant de chiffres après la virgule. Ajoute un zéro : %3 + %4 — et les dixièmes se placent sous les dixièmes, les centièmes sous les centièmes. Si on additionne les chiffres tels qu’ils sont, on obtient %5 : %6 dixièmes se sont ajoutés aux centièmes.'
+        },
+        'запятая не на месте:decLess': {
+            game: 'Les chiffres sont bons, la virgule non. Estime : %1 %2 %3, c’est environ %4.',
+            review: '%1 %2 %3 : les chiffres du résultat sont bons, mais la virgule a bougé — %4 est dix fois trop petit. Une estimation le repère tout de suite : %5 %2 %6, c’est environ %7, donc le résultat est lui aussi d’environ %7, pas d’environ %8.'
+        },
+        'запятая не на месте:decMore': {
+            game: 'Les chiffres sont bons, la virgule non. Estime : %1 %2 %3, c’est environ %4.',
+            review: '%1 %2 %3 : les chiffres du résultat sont bons, mais la virgule a bougé — %4 est dix fois trop grand. Une estimation le repère tout de suite : %5 %2 %6, c’est environ %7, donc le résultat est lui aussi d’environ %7, pas d’environ %8.'
+        },
+        'запятая не на месте:decMul': {
+            game: 'Chiffres après la virgule : %1 et %2 — le résultat en a autant, ensemble.',
+            review: '%1 × %2 : on multiplie sans les virgules — %3 × %4 = %5 —, puis on compte à partir de la droite autant de chiffres après la virgule qu’en ont les deux nombres ensemble : %6 + %7 = %8. On obtient %9.'
+        },
+        'запятая не на месте:decDiv': {
+            game: 'Déplace la virgule dans les deux nombres pour diviser par un entier : %1 ÷ %2.',
+            review: '%1 ÷ %2 : si on déplace la virgule d’un rang dans les deux nombres, le résultat ne change pas — c’est %3 ÷ %4 = %5. Diviser par %2, c’est chercher combien de fois %2 tient dans %1 : %6, et pas moins d’une fois.'
+        },
+        'сложил вместо умножения:decOneWhole': {
+            game: '%1 × %2, c’est %3 pris %4, pas %1 + %2.',
+            review: '%1 × %2, c’est %3 + %3 + … %4 : %5 × %6 = %7, soit %8. Et %1 + %2 est une tout autre opération.'
+        },
+        'сложил вместо умножения:decBothPoint': {
+            game: 'Ça, c’est une addition. Multiplie %1 × %2 et compte les chiffres décimaux.',
+            review: '%1 × %2, c’est %2 de %1, donc moins que %1 lui-même. On multiplie sans les virgules : %3 × %4 = %5, deux chiffres après la virgule — %6. Et %1 + %2 = %7, c’est une addition.'
         }
     },
 
@@ -701,6 +860,59 @@ window.HINT_CONTENT = {
         'минус в скобках': {
             game: 'Plus vor der Klammer und Minus darin ergeben Minus: %1 ist %2.',
             review: 'Plus vor der Klammer und Minus in der Klammer ergeben zusammen Minus: %1 ist %2. Eine negative Zahl addieren heißt, ihren Betrag abziehen.'
+        },
+        // ===== Десятичные (03.11) =====
+        'переставил цифры:decTenths': {
+            game: 'Von %1 lässt sich %2 nicht abziehen — borg dir eins: %3 − %2.',
+            review: '%1 − %2: %4 Zehntel gehen nicht aus %3, also holt man sich ein Ganzes — das sind 10 Zehntel: %5 − %4 = %6, und es bleibt ein Ganzes weniger. Andersherum zu rechnen, %4 − %7, ist ein häufiger Fehler: So kommt %8 heraus.'
+        },
+        'переставил цифры:decHundredths': {
+            game: 'Von %1 lässt sich %2 nicht abziehen — borg dir eins: %3 − %2.',
+            review: '%1 − %2: %4 Hundertstel gehen nicht aus %3, also holt man sich ein Zehntel — das sind 10 Hundertstel: %5 − %4 = %6, und es bleibt ein Zehntel weniger. Andersherum zu rechnen, %4 − %7, ist ein häufiger Fehler: So kommt %8 heraus.'
+        },
+        'не перенёс единицу:decTenths': {
+            game: '%1 + %2 = %3 — mehr als zehn: eins wandert in die Nachbarstelle.',
+            review: '%1 + %2: Die Zehntel ergeben %3 + %4 = %5 Zehntel — das ist ein Ganzes und noch %6. Man schreibt %7 und trägt das Ganze zu den Ganzen hinüber. Es geht leicht verloren — dann ist das Ergebnis um ein Ganzes zu klein.'
+        },
+        'не перенёс единицу:decHundredths': {
+            game: '%1 + %2 = %3 — mehr als zehn: eins wandert in die Nachbarstelle.',
+            review: '%1 + %2: Die Hundertstel ergeben %3 + %4 = %5 Hundertstel — das ist ein Zehntel und noch %6. Man schreibt %7 und trägt das Zehntel zu den Zehnteln hinüber. Es geht leicht verloren — dann ist das Ergebnis um ein Zehntel zu klein.'
+        },
+        'не выровнял запятую:decWholeAdd': {
+            game: '%1 sind Ganze: zähl sie zu den Ganzen, nicht zu den Zehnteln.',
+            review: '%1 + %2: Die Zahl %3 hat keine Stellen nach dem Komma — das sind %3 Ganze, dasselbe wie %4. Deshalb wird %3 zum ganzen Teil addiert: %5 + %3. Schreibt man %3 unter die letzte Ziffer, kommt %6 heraus — die falschen Stellen wurden addiert.'
+        },
+        'не выровнял запятую:decWholeSub': {
+            game: '%1 sind Ganze: zieh sie von den Ganzen ab, nicht von den Zehnteln.',
+            review: '%1 − %2: Die Zahl %3 hat keine Stellen nach dem Komma — das sind %3 Ganze. Deshalb wird %3 vom ganzen Teil abgezogen: %4 − %3. Schreibt man %3 unter die letzte Ziffer, kommt %5 heraus — die falschen Stellen wurden subtrahiert.'
+        },
+        'не выровнял запятую:decPad': {
+            game: 'Häng eine Null an: %1 = %2 — dann stehen die Stellen untereinander.',
+            review: '%1 + %2: Die Zahlen haben unterschiedlich viele Stellen nach dem Komma. Häng eine Null an: %3 + %4 — dann stehen Zehntel unter Zehnteln und Hundertstel unter Hundertsteln. Rechnet man die Ziffern so, wie sie stehen, kommt %5 heraus: %6 Zehntel wurden zu den Hundertsteln gezählt.'
+        },
+        'запятая не на месте:decLess': {
+            game: 'Die Ziffern stimmen, das Komma nicht. Überschlag: %1 %2 %3 ist etwa %4.',
+            review: '%1 %2 %3: Die Ziffern des Ergebnisses stimmen, aber das Komma ist verrutscht — %4 ist zehnmal zu klein. Ein Überschlag zeigt das sofort: %5 %2 %6 ist etwa %7, also ist auch das Ergebnis etwa %7, nicht etwa %8.'
+        },
+        'запятая не на месте:decMore': {
+            game: 'Die Ziffern stimmen, das Komma nicht. Überschlag: %1 %2 %3 ist etwa %4.',
+            review: '%1 %2 %3: Die Ziffern des Ergebnisses stimmen, aber das Komma ist verrutscht — %4 ist zehnmal zu groß. Ein Überschlag zeigt das sofort: %5 %2 %6 ist etwa %7, also ist auch das Ergebnis etwa %7, nicht etwa %8.'
+        },
+        'запятая не на месте:decMul': {
+            game: 'Stellen nach dem Komma: %1 und %2 — das Ergebnis hat zusammen so viele.',
+            review: '%1 × %2: Man multipliziert ohne Kommas — %3 × %4 = %5 — und zählt dann von rechts so viele Stellen nach dem Komma ab, wie beide Zahlen zusammen haben: %6 + %7 = %8. Das ergibt %9.'
+        },
+        'запятая не на месте:decDiv': {
+            game: 'Verschieb das Komma in beiden Zahlen, bis du durch eine ganze teilst: %1 ÷ %2.',
+            review: '%1 ÷ %2: Verschiebt man das Komma in beiden Zahlen um eine Stelle, ändert sich das Ergebnis nicht — es ist %3 ÷ %4 = %5. Durch %2 teilen heißt herausfinden, wie oft %2 in %1 passt: %6, nicht weniger als einmal.'
+        },
+        'сложил вместо умножения:decOneWhole': {
+            game: '%1 × %2 heißt %3 %4 genommen, nicht %1 + %2.',
+            review: '%1 × %2 ist %3 + %3 + … %4: %5 × %6 = %7, also %8. Und %1 + %2 ist eine ganz andere Rechnung.'
+        },
+        'сложил вместо умножения:decBothPoint': {
+            game: 'Das ist eine Addition. Rechne %1 × %2 und zähl die Stellen nach dem Komma.',
+            review: '%1 × %2 ist %2 von %1, also weniger als %1 selbst. Man multipliziert ohne Kommas: %3 × %4 = %5, zwei Stellen nach dem Komma — %6. Und %1 + %2 = %7 ist eine Addition.'
         }
     }
 };
@@ -777,6 +989,12 @@ window.TRICK_CONTENT = {
         "div:round": "Убери по нулю: %1 ÷ %2",
         "div:zeroTop": "Делить нечего — ноль",
         "div:byZero": "На ноль делить нельзя",
+        // Десятичные (03.11). Переход через разряд берёт приёмы add:2 и sub:ten.
+        "dec:wholeAdd": "%1 — целое: прибавь его к целой части %2",
+        "dec:wholeSub": "%1 — целое: вычти его из целой части %2",
+        "dec:pad": "Допиши ноль: %1 = %2",
+        "dec:mul": "Перемножь без запятых: %1 × %2. Знаков после запятой — %3 и %4",
+        "dec:div": "Сдвинь запятую в обоих: %1 ÷ %2",
     },
     en: {
         "add:1": "%1 and %2 make a ten",
@@ -809,6 +1027,12 @@ window.TRICK_CONTENT = {
         "div:round": "Drop a zero from each: %1 ÷ %2",
         "div:zeroTop": "Nothing to share — zero",
         "div:byZero": "You can't divide by zero",
+        // Десятичные (03.11). Переход через разряд берёт приёмы add:2 и sub:ten.
+        "dec:wholeAdd": "%1 is a whole number: add it to the whole part of %2",
+        "dec:wholeSub": "%1 is a whole number: take it from the whole part of %2",
+        "dec:pad": "Add a zero: %1 = %2",
+        "dec:mul": "Multiply without the points: %1 × %2. Digits after the point: %3 and %4",
+        "dec:div": "Move the point in both: %1 ÷ %2",
     },
     fr: {
         "add:1": "%1 et %2 font une dizaine",
@@ -841,6 +1065,12 @@ window.TRICK_CONTENT = {
         "div:round": "Enlève un zéro des deux : %1 ÷ %2",
         "div:zeroTop": "Rien à partager — zéro",
         "div:byZero": "On ne divise pas par zéro",
+        // Десятичные (03.11). Переход через разряд берёт приёмы add:2 и sub:ten.
+        "dec:wholeAdd": "%1 est un nombre entier : ajoute-le à la partie entière de %2",
+        "dec:wholeSub": "%1 est un nombre entier : ôte-le de la partie entière de %2",
+        "dec:pad": "Ajoute un zéro : %1 = %2",
+        "dec:mul": "Multiplie sans les virgules : %1 × %2. Chiffres après la virgule : %3 et %4",
+        "dec:div": "Déplace la virgule dans les deux : %1 ÷ %2",
     },
     de: {
         "add:1": "%1 und %2 ergeben einen Zehner",
@@ -873,5 +1103,11 @@ window.TRICK_CONTENT = {
         "div:round": "Streiche bei beiden eine Null: %1 ÷ %2",
         "div:zeroTop": "Nichts zu teilen — null",
         "div:byZero": "Durch null darf man nicht teilen",
+        // Десятичные (03.11). Переход через разряд берёт приёмы add:2 и sub:ten.
+        "dec:wholeAdd": "%1 ist eine ganze Zahl: zähl sie zum ganzen Teil von %2 dazu",
+        "dec:wholeSub": "%1 ist eine ganze Zahl: zieh sie vom ganzen Teil von %2 ab",
+        "dec:pad": "Häng eine Null an: %1 = %2",
+        "dec:mul": "Multipliziere ohne Kommas: %1 × %2. Stellen nach dem Komma: %3 und %4",
+        "dec:div": "Verschieb das Komma in beiden: %1 ÷ %2",
     }
 };

@@ -2294,7 +2294,8 @@ function decToString(d, wrapNegative = false) {
 // идёт только decShow; ключи ответов и проверка от вида не зависят.
 function decShow(d, wrapNegative = false) {
     const s = decToString(d, wrapNegative);
-    const comma = (typeof currentLang === 'function') ? !!currentLang().comma : true;
+    const comma = (typeof currentLang === 'function') ? !!currentLang().comma
+        : !(typeof LANG === 'string' && LANG === 'en');
     const shown = comma ? s.replace('.', ',') : s;
     return (typeof showMinus === 'function') ? showMinus(shown) : shown;
 }
