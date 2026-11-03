@@ -152,9 +152,10 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
     await tab('tasks');
     v = await look('tasks');
     await checkAsync('у задач свой выбор: снова раскрыт только первый раздел', async () => {
-        eq(v.sections.map(s => s.label).join(' | '), '🔵 Положительные | 🔴 Отрицательные', 'разделы');
-        eq(v.sections.map(s => s.folded).join(','), 'false,true', 'свёрнут');
-        eq(v.sections.map(s => s.sum).join(' | '), '2/40 | 0/40', 'счёт в заголовке');
+        // У десятичных теперь свои задачи за мастерство, и репетитор видит их разделом.
+        eq(v.sections.map(s => s.label).join(' | '), '🔵 Положительные | 🔴 Отрицательные | 🔟 Десятичные', 'разделы');
+        eq(v.sections.map(s => s.folded).join(','), 'false,true,true', 'свёрнут');
+        eq(v.sections.map(s => s.sum).join(' | '), '2/40 | 0/40 | 0/40', 'счёт в заголовке');
         eq(v.tasks, 2, 'задач на экране');
     });
     await press('tasks', 'Сложение');
@@ -181,7 +182,7 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
     });
 
     console.log('\nОкно не уезжает');
-    // Свернуть оба раздела — окно станет коротким. Раньше короткое окно вставало посередине,
+    // Свернуть все разделы — окно станет коротким. Раньше короткое окно вставало посередине,
     // и заголовок, на который только что нажали, уходил из-под пальца.
     await page.evaluate(`localStorage.removeItem('mathCitadelFolds_v1'); null`);
     await open();
@@ -192,7 +193,7 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
     const after = await headTop();
     await checkAsync('свернул раздел — заголовок остался под пальцем', async () => {
         const folded = await page.evaluate(`[...document.querySelectorAll('#collectionTasks .collection-section')].every(s => s.classList.contains('folded'))`);
-        assert(folded, 'свёрнуты не оба раздела — окно не стало коротким, проверять нечего');
+        assert(folded, 'свёрнуты не все разделы — окно не стало коротким, проверять нечего');
         assert(Math.abs(after - before) <= 1, `заголовок был на ${before}, стал на ${after}`);
     });
     await open();
