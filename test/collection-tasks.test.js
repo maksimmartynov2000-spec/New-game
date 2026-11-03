@@ -243,8 +243,10 @@ catch (e) {
     await tab('collectionTabTasks');
     v = await view();
     await check('репетитору открыто всё, но замков над ненаписанными задачами нет', () => {
-        eq(v.count, '0/80', 'счётчик');
-        assert(!/Десятичные|Дроби/.test(v.text), 'показаны разделы, где задач нет');
+        // Положительные, отрицательные и десятичные — по сорок задач; у дробей их пока нет.
+        eq(v.count, '0/120', 'счётчик');
+        assert(/Десятичные/.test(v.text), 'десятичных с их задачами не видно');
+        assert(!/Дроби/.test(v.text), 'показан раздел, где задач нет');
     });
     const top = await page.evaluate(`(() => { const m = document.getElementById('collectionModal'); m.scrollTop = 0;
         return { close: document.getElementById('collectionCloseBtn').getBoundingClientRect().top,

@@ -6124,7 +6124,7 @@
             if (v === 'NO_SOLUTION') return t('нет решения');
             if (typeof v === 'number') return String(v);
             if (typeof v === 'object' && 'num' in v) return fracText(v);
-            if (typeof v === 'object' && 'intVal' in v) return decToString(v);
+            if (typeof v === 'object' && 'intVal' in v) return decShow(v);
             return '';
         }
         function bankExampleText(item) {
@@ -6138,7 +6138,7 @@
                 else if (meta.opKey === 'fracOfNumber') q = tf('%1 от %2', `${p.fracNum}/${p.fracDen}`, p.N);
                 else q = `${fracText(p.f1)} ${sign} ${fracText(p.f2)}`;
             } else if (meta.category === 'decimal') {
-                q = (p.d1 && p.d2) ? `${decToString(p.d1)} ${sign} ${decToString(p.d2)}` : '';
+                q = (p.d1 && p.d2) ? `${decShow(p.d1)} ${sign} ${decShow(p.d2)}` : '';
             } else {
                 q = p.text || '';
             }
@@ -15073,6 +15073,9 @@
                     // сказала бы «Пересчитай −35 × 5» вместо «−5 × 7 × 5».
                     factors: (currentProblem && Array.isArray(currentProblem.factors))
                         ? currentProblem.factors.slice() : null,
+                    // Десятичные числа примера — для той же подсказки: у них нет a и b.
+                    d1: (currentProblem && currentProblem.d1) ? { intVal: currentProblem.d1.intVal, dp: currentProblem.d1.dp } : null,
+                    d2: (currentProblem && currentProblem.d2) ? { intVal: currentProblem.d2.intVal, dp: currentProblem.d2.dp } : null,
                     correctVal: correctAnswer,
                     chosenVal: chosen,
                     opKey: meta.opKey || null,
@@ -15111,10 +15114,10 @@
         function renderReviewHint(wrap) {
             const kind = topMistakeKind(sessionMistakes);
             if (!kind) return;
-            const m = sessionMistakes.filter(x => x.kind === kind && x.a !== null)[0];
+            const m = sessionMistakes.filter(x => x.kind === kind && (x.a !== null || x.d1))[0];
             if (!m) return;
             const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
-                { a: m.a, b: m.b, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
+                { a: m.a, b: m.b, d1: m.d1, d2: m.d2, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
             if (!text) return;
 
             const box = document.createElement('div');
@@ -15221,11 +15224,11 @@
         // Правило к этому конкретному примеру — из той же таблицы подсказок, что и
         // сводная «самая частая ошибка» над списком. Своей копии текстов тут нет.
         function appendMistakeHint(card, m) {
-            if (m.a === null || m.b === null) return;
+            if ((m.a === null || m.b === null) && !(m.d1 && m.d2)) return;
             const kind = m.isAlmost ? 'не сократил' : (m.kind || null);
             if (!kind) return;
             const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
-                { a: m.a, b: m.b, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
+                { a: m.a, b: m.b, d1: m.d1, d2: m.d2, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
             if (!text) return;
             const box = document.createElement('div');
             box.className = 'hint-review';
@@ -15597,7 +15600,7 @@
                 options.forEach(opt => {
                     const btn = document.createElement('button');
                     btn.className = 'btn-answer';
-                    btn.innerText = decToString(opt, false);
+                    btn.innerText = decShow(opt, false);
                     btn.dataset.key = answerKey(opt);
                     btn.onclick = (e) => checkAnswer(opt, e);
                     grid.appendChild(btn);

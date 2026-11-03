@@ -60,7 +60,9 @@ const MISTAKE_LABELS = {
     'переставил числа':            t('Числа поменялись местами'),
     'взял одно из чисел':          t('Это одно из чисел примера'),
     'сложил вместо умножения':     t('Сложение вместо умножения'),
-    'не выровнял запятую':         t('Запятые перед сложением не выровнены'),
+    'не выровнял запятую':         t('Сложены или вычтены не те разряды'),
+    'переставил цифры':            t('Цифры вычтены наоборот: заём пропущен'),
+    'не перенёс единицу':          t('Перенос в соседний разряд потерян'),
     'забыл поделить':              t('Умножено, но не поделено на знаменатель'),
     'нашёл только одну долю':      t('Найдена одна доля, но не умножена'),
     'нашёл остаток':               t('Это остаток, а не сама доля'),
@@ -105,7 +107,9 @@ const MISTAKE_SHORT = {
     'переставил числа':            t('числа местами'),
     'взял одно из чисел':          t('число из примера'),
     'сложил вместо умножения':     t('сложение вместо ×'),
-    'не выровнял запятую':         t('запятые не выровнены'),
+    'не выровнял запятую':         t('не те разряды'),
+    'переставил цифры':            t('вычтено наоборот'),
+    'не перенёс единицу':          t('без переноса'),
     'забыл поделить':              t('без деления'),
     'нашёл только одну долю':      t('одна доля'),
     'нашёл остаток':               t('остаток'),
@@ -431,13 +435,25 @@ function classifyMistake(meta, problem, correct, chosen) {
                 const commonDp = Math.max(d1.dp, d2.dp);
                 const v1 = d1.intVal * Math.pow(10, commonDp - d1.dp);
                 const v2 = d2.intVal * Math.pow(10, commonDp - d2.dp);
-                const same = (iv, dp) => chosen.intVal === iv && chosen.dp === dp;
+                // Сравниваем без нулей в конце: варианты ответа приходят уже без них
+                // (0,40 показывается как 0,4), а посчитанная здесь ошибка — нет. Раньше
+                // «0,75 − 0,35 → 1,10» не узнавалось как «не то действие» и уходило
+                // в «другую ошибку»: 1,1 ≠ 1,10 по записи.
+                const plain = stripTrailingZeros(chosen);
+                const same = (iv, dp) => {
+                    const x = stripTrailingZeros({ intVal: iv, dp });
+                    return plain.intVal === x.intVal && plain.dp === x.dp;
+                };
 
                 // Сложил сырые цифры, не выровняв запятые (0.5 + 0.25 как 5 + 25).
                 if ((opKey === 'add' || opKey === 'sub') && d1.dp !== d2.dp) {
                     const raw = opKey === 'add' ? d1.intVal + d2.intVal : d1.intVal - d2.intVal;
                     if (same(raw, Math.max(d1.dp, d2.dp))) return 'не выровнял запятую';
                 }
+                // Ошибка в столбик: сложили без переноса (2,7 + 1,5 = 3,2) или вычли
+                // наоборот (5,2 − 3,8 = 2,6). Модель та же, что строит вариант ответа.
+                const column = decColumnMistake(opKey, d1, d2);
+                if (column && same(column.intVal, column.dp)) return opKey === 'add' ? 'не перенёс единицу' : 'переставил цифры';
                 if (opKey === 'add' && same(v1 - v2, commonDp)) return 'перепутал действие';
                 if (opKey === 'sub' && same(v1 + v2, commonDp)) return 'перепутал действие';
                 if (opKey === 'mul') {
@@ -531,7 +547,8 @@ function hintNegArith(problem, correct) {
 // (neg:same / neg:diff): первое число и то, что к нему на деле прибавили.
 // У «3 − 8» это 3 и −8. Так правило после ошибки звучит теми же словами и о
 // тех же числах, что и подсказка до неё.
-function hintVariant(kind, meta, problem, correct) {
+function hintVariant(kind, meta, problem, correct, chosen) {
+    if (isDecProblem(problem)) return decHintVariant(kind, meta, problem, correct, chosen);
     const op = meta && meta.opKey;
     const a = problem && problem.a, b = problem && problem.b;
     if (typeof a !== 'number' || typeof b !== 'number') return null;
@@ -606,6 +623,7 @@ function mulFactUsed(a, b, chosen) {
 // Аргументы подстановки, отдельно для строки в игре и для разбора. Порядок
 // описан в шапке content/hints.js и обязан совпадать во всех языках.
 function hintArgs(kind, meta, problem, correct, chosen) {
+    if (isDecProblem(problem)) return decHintArgs(kind, meta, problem, correct, chosen);
     const op = meta && meta.opKey;
     const a = problem && problem.a, b = problem && problem.b;
     if (typeof a !== 'number' || typeof b !== 'number') return null;
@@ -807,11 +825,218 @@ function hintArgs(kind, meta, problem, correct, chosen) {
     return null;
 }
 
+// ===================== ДЕСЯТИЧНЫЕ: ПОДСКАЗКИ =====================
+// Тексты утвердил репетитор 03.11. Числа идут в подстановки, как у целых, а запятая
+// стоит по языку (decShow): в английском точка. Где слово зависит от числа («из
+// 1 десятой» и «из 2 десятых»), фраза собирается здесь целиком, как «21 раз» у целых.
+// Где согласовать нельзя без вранья — «больше десяти» у суммы ровно 10, «4 целых» у
+// единицы, — подсказки нет: молчание лучше неправды.
+//
+// «Не то действие» у десятичных говорит теми же словами, что у целых: ключ по
+// действию, только числа с запятой.
+
+const isDecObj = (v) => !!(v && typeof v === 'object' && 'intVal' in v && 'dp' in v);
+const isDecProblem = (p) => !!(p && isDecObj(p.d1) && isDecObj(p.d2));
+const hintLang = () => (typeof LANG === 'string' && LANG) || 'ru';
+const decWhole = (d) => Math.floor(d.intVal / Math.pow(10, d.dp));
+
+// Число ровно с dp знаками после запятой: 0,9 → «0,90». Нужно там, где ноль
+// дописывают нарочно; decShow такие нули убирает.
+function decPadded(d, dp) {
+    const s = String(d.intVal * Math.pow(10, dp - d.dp)).padStart(dp + 1, '0');
+    const sep = hintLang() === 'en' ? '.' : ',';
+    return dp ? `${s.slice(0, s.length - dp)}${sep}${s.slice(s.length - dp)}` : s;
+}
+
+// Названия разрядов с числом. from — «из 2 десятых» (по-немецки «aus 2 Zehnteln»),
+// left — «и ещё 2 десятых» (по-английски «and 2 more tenths»), count — «56 десятых».
+const DEC_PLACE_WORDS = {
+    from: { ru: { tenths: ['десятой', 'десятых'], hundredths: ['сотой', 'сотых'] },
+            en: { tenths: ['tenth', 'tenths'], hundredths: ['hundredth', 'hundredths'] },
+            fr: { tenths: ['dixième', 'dixièmes'], hundredths: ['centième', 'centièmes'] },
+            de: { tenths: ['Zehntel', 'Zehnteln'], hundredths: ['Hundertstel', 'Hundertsteln'] } },
+    left: { ru: { tenths: ['десятая', 'десятых'], hundredths: ['сотая', 'сотых'] },
+            en: { tenths: ['more tenth', 'more tenths'], hundredths: ['more hundredth', 'more hundredths'] },
+            fr: { tenths: ['dixième', 'dixièmes'], hundredths: ['centième', 'centièmes'] },
+            de: { tenths: ['Zehntel', 'Zehntel'], hundredths: ['Hundertstel', 'Hundertstel'] } },
+    count: { ru: { tenths: ['десятая', 'десятых'] },
+             en: { tenths: ['tenth', 'tenths'] },
+             fr: { tenths: ['dixième', 'dixièmes'] },
+             de: { tenths: ['Zehntel', 'Zehntel'] } }
+};
+// Единственное число: по-русски 1, 21, 31…; по-французски 0 и 1; иначе только 1.
+function decSingular(n, lang) {
+    if (lang === 'ru') return n % 10 === 1 && n % 100 !== 11;
+    if (lang === 'fr') return n < 2;
+    return n === 1;
+}
+function decPlacePhrase(form, n, place) {
+    const lang = hintLang();
+    const forms = (DEC_PLACE_WORDS[form][lang] || DEC_PLACE_WORDS[form].ru)[place];
+    return `${n} ${decSingular(n, lang) ? forms[0] : forms[1]}`;
+}
+
+// Самый младший разряд, где в столбик есть перенос (сложение) или заём (вычитание).
+// place — 'tenths' или 'hundredths'; у целых и выше — null: про них тексты не писались.
+// i — номер разряда от последней цифры, cols — цифры в общем числе знаков.
+function decFirstTransfer(op, d1, d2) {
+    const dp = Math.max(d1.dp, d2.dp);
+    const v1 = d1.intVal * Math.pow(10, dp - d1.dp), v2 = d2.intVal * Math.pow(10, dp - d2.dp);
+    const cols = decColumns(v1, v2);
+    for (let i = 0; i < cols.length; i++) {
+        const [x, y] = cols[i];
+        if (op === 'add' ? x + y > 9 : x < y) {
+            const pos = dp - i;
+            return { x, y, i, dp, v1, v2, place: pos === 1 ? 'tenths' : pos === 2 ? 'hundredths' : null };
+        }
+    }
+    return null;
+}
+
+function decHintVariant(kind, meta, problem, correct, chosen) {
+    const op = meta && meta.opKey, d1 = problem.d1, d2 = problem.d2;
+    if (kind === 'переставил цифры' || kind === 'не перенёс единицу') {
+        const t = decFirstTransfer(op, d1, d2);
+        if (!t || !t.place) return null;
+        return t.place === 'tenths' ? 'decTenths' : 'decHundredths';
+    }
+    if (kind === 'не выровнял запятую') {
+        const whole = d1.dp === 0 ? d1 : (d2.dp === 0 ? d2 : null);
+        if (whole) {
+            // Тексты — про десятые: «прибавляй к целым, а не к десятым».
+            if ((whole === d1 ? d2 : d1).dp !== 1) return null;
+            if (op === 'add') return 'decWholeAdd';
+            if (op === 'sub' && whole === d2) return 'decWholeSub';
+            return null;
+        }
+        if (op === 'add' && Math.min(d1.dp, d2.dp) === 1 && Math.max(d1.dp, d2.dp) === 2) return 'decPad';
+        return null;
+    }
+    if (kind === 'запятая не на месте') {
+        if (op === 'mul') return 'decMul';
+        if (op === 'div') return d2.dp >= 1 ? 'decDiv' : null;
+        if ((op === 'add' || op === 'sub') && isDecObj(chosen) && isDecObj(correct) && correct.intVal) {
+            const k = (chosen.intVal * Math.pow(10, correct.dp)) / (correct.intVal * Math.pow(10, chosen.dp));
+            if (Math.abs(k - 0.1) < 1e-9) return 'decLess';
+            if (Math.abs(k - 10) < 1e-9) return 'decMore';
+        }
+        return null;
+    }
+    if (kind === 'сложил вместо умножения' && op === 'mul') {
+        if ((d1.dp === 0) !== (d2.dp === 0)) return d1.dp + d2.dp === 1 ? 'decOneWhole' : null;
+        if (d1.dp === 1 && d2.dp === 1) return 'decBothPoint';
+        return null;
+    }
+    return null;
+}
+
+function decHintArgs(kind, meta, problem, correct, chosen) {
+    if (typeof decShow !== 'function') return null;
+    const op = meta && meta.opKey, d1 = problem.d1, d2 = problem.d2;
+    const S = (d) => decShow(d);
+    const A = S(d1), B = S(d2);
+    const ch = isDecObj(chosen) ? S(chosen) : null;
+    if (!ch || !isDecObj(correct)) return null;
+
+    // Те же тексты, что у целых: «С теми же числами знак решает всё: 8,4 + 1,3 = 9,7,
+    // а 8,4 − 1,3 = 7,1».
+    if (kind === 'перепутал действие') {
+        const other = op === 'add' ? decSub(d1, d2) : op === 'sub' ? decAdd(d1, d2)
+            : op === 'div' ? decMul(d1, d2) : null;
+        if (!other || other.intVal < 0) return null;
+        return { game: [], review: [A, B, S(correct), S(other)] };
+    }
+
+    const variant = decHintVariant(kind, meta, problem, correct, chosen);
+    if (!variant) return null;
+
+    if (variant === 'decTenths' || variant === 'decHundredths') {
+        const t = decFirstTransfer(op, d1, d2);
+        if (kind === 'переставил цифры') {
+            // «Из 0 не вычесть 1 десятую» — уже другой падеж и другое число; молчим.
+            if (t.y < 2) return null;
+            return { game: [t.x, t.y, t.x + 10],
+                     review: [A, B, decPlacePhrase('from', t.x, t.place), t.y, t.x + 10, t.x + 10 - t.y, t.x, ch] };
+        }
+        const sum = t.x + t.y;
+        // Ровно десять — не «больше десяти», и «ещё 0 десятых» никто не говорит.
+        if (sum === 10) return null;
+        return { game: [t.x, t.y, sum],
+                 review: [A, B, t.x, t.y, sum, decPlacePhrase('left', sum - 10, t.place), sum - 10] };
+    }
+    if (variant === 'decWholeAdd' || variant === 'decWholeSub') {
+        const whole = d1.dp === 0 ? d1 : d2, other = whole === d1 ? d2 : d1;
+        const W = whole.intVal;
+        // «4 целых», но «1 целая» и «21 целая»: с такими числами текст врал бы.
+        if (W < 2 || (W % 10 === 1 && W % 100 !== 11)) return null;
+        if (variant === 'decWholeAdd') {
+            return { game: [W], review: [A, B, W, decPadded(whole, 1), decWhole(other), ch] };
+        }
+        return { game: [W], review: [A, B, W, decWhole(other), ch] };
+    }
+    if (variant === 'decPad') {
+        const short = d1.dp < d2.dp ? d1 : d2;
+        const digit = short.intVal % 10;
+        // «1 десятая прибавилась» — другое согласование; молчим.
+        if (digit < 2) return null;
+        return { game: [S(short), decPadded(short, 2)],
+                 review: [A, B, decPadded(d1, 2), decPadded(d2, 2), ch, digit] };
+    }
+    if (variant === 'decLess' || variant === 'decMore') {
+        const wa = decWhole(d1), wb = decWhole(d2);
+        const est = op === 'add' ? wa + wb : wa - wb;
+        // Прикидка по целым частям верна, только если дробные части через целое не
+        // переходят: иначе «8 + 1 — это около 9» при ответе 10,3 сбило бы с толку.
+        if (est < 1 || decWhole(correct) !== est) return null;
+        const approx = Math.round(chosen.intVal / Math.pow(10, chosen.dp));
+        if (approx === est) return null;
+        const sign = op === 'add' ? '+' : '−';
+        return { game: [wa, sign, wb, est], review: [A, sign, B, ch, wa, wb, est, approx] };
+    }
+    if (variant === 'decMul') {
+        const prod = d1.intVal * d2.intVal;
+        // Ноль в конце произведения ответ теряет (0,5 × 0,4 = 0,2), и «отсчитай два
+        // знака» у 20 выглядел бы обманом. Молчим.
+        if (!prod || prod % 10 === 0) return null;
+        return { game: [d1.dp, d2.dp],
+                 review: [A, B, d1.intVal, d2.intVal, prod, d1.dp, d2.dp, d1.dp + d2.dp, S(correct)] };
+    }
+    if (variant === 'decDiv') {
+        const k = d2.dp;
+        const a10 = { intVal: d1.intVal * Math.pow(10, Math.max(0, k - d1.dp)), dp: Math.max(0, d1.dp - k) };
+        const b10 = { intVal: d2.intVal, dp: 0 };
+        const game = [S(a10), S(b10)];
+        // Разбор написан про один знак и целый ответ от 2 до 9, выбрано в десять раз
+        // меньше: «девять раз, а не меньше одного». В остальных случаях — только строка в игре.
+        const q = correct.dp === 0 ? correct.intVal : 0;
+        const review = (k === 1 && q >= 2 && q <= 9 && chosen.intVal === q && chosen.dp === 1)
+            ? [A, B, S(a10), S(b10), S(correct), hintCountPhrase('times', q)] : null;
+        return { game, review };
+    }
+    if (variant === 'decOneWhole') {
+        const whole = d1.dp === 0 ? d1 : d2, dec = whole === d1 ? d2 : d1;
+        const W = whole.intVal;
+        if (W < 2) return null;
+        const times = hintCountPhrase('times', W);
+        return { game: [A, B, S(dec), times],
+                 review: [A, B, S(dec), times, W, dec.intVal, decPlacePhrase('count', W * dec.intVal, 'tenths'), S(correct)] };
+    }
+    if (variant === 'decBothPoint') {
+        // «0,6 от 0,4 — меньше самого 0,4» верно, только когда оба числа меньше единицы.
+        if (d1.intVal >= 10 || d2.intVal >= 10) return null;
+        const prod = d1.intVal * d2.intVal;
+        if (prod % 10 === 0) return null;
+        return { game: [d1.intVal, d2.intVal],
+                 review: [A, B, d1.intVal, d2.intVal, prod, S(correct), S(decAdd(d1, d2))] };
+    }
+    return null;
+}
+
 // Готовый текст подсказки или пустая строка. Пустая — законный ответ: подсказки
 // нет, файл не доехал, числа не сошлись. Игру это не должно задевать никак.
 function hintText(form, kind, meta, problem, correct, chosen) {
     try {
-        const entry = hintEntry(kind, meta && meta.opKey, hintVariant(kind, meta, problem, correct));
+        const entry = hintEntry(kind, meta && meta.opKey, hintVariant(kind, meta, problem, correct, chosen));
         if (!entry || !entry[form]) return '';
         const args = hintArgs(kind, meta, problem, correct, chosen);
         if (!args || !args[form]) return '';
@@ -866,6 +1091,11 @@ function hintCountPhrase(what, n) {
 // и без неё подсказка висит в воздухе — за ней не видно ни примера, ни ответа,
 // и ученик не понимает, о чём вообще речь.
 function hintProblemLine(meta, problem, correct) {
+    // Десятичные — ровно как на экране игры: запятая по языку, настоящий минус.
+    if (isDecProblem(problem)) {
+        if (!isDecObj(correct) || typeof buildDecimalQuestionText !== 'function') return '';
+        return `${buildDecimalQuestionText(problem.d1, problem.d2, meta && meta.opKey)} = ${decShow(correct)}`;
+    }
     const sign = HINT_OP_SIGNS[meta && meta.opKey];
     if (!sign || !problem || typeof problem.a !== 'number' || typeof problem.b !== 'number') return '';
     const right = (typeof correct === 'number') ? showMinus(correct) : t('Нет решения');
@@ -881,6 +1111,7 @@ function hintProblemLine(meta, problem, correct) {
 }
 
 function hintChosenLine(chosen) {
+    if (isDecObj(chosen) && typeof decShow === 'function') return tf('выбрано: %1', decShow(chosen));
     const what = (typeof chosen === 'number') ? showMinus(chosen)
         : (chosen === 'NO_SOLUTION' ? t('Нет решения') : '');
     return what ? tf('выбрано: %1', what) : '';
@@ -964,6 +1195,63 @@ function resolveTricks() {
     return all[lang] || all.ru || null;
 }
 
+// Десятичные. Приёмы утвердил репетитор 03.11: одно число целое, разное число
+// знаков, умножение и деление; сложение и вычитание с переходом берут приёмы целых
+// («До 10 не хватает 2 — возьми из 5») с числами через запятую. «Цифра к цифре» без
+// перехода, как 7,4 − 2,2, приёма не имеет, и строка остаётся пустой.
+function decTrickPick(meta, problem) {
+    if (!isDecProblem(problem) || typeof decShow !== 'function') return null;
+    const op = meta.opKey, d1 = problem.d1, d2 = problem.d2, S = (d) => decShow(d);
+    if (op === 'add' || op === 'sub') {
+        if ((d1.dp === 0) !== (d2.dp === 0)) {
+            const whole = d1.dp === 0 ? d1 : d2, dec = whole === d1 ? d2 : d1;
+            if (op === 'add') return { key: 'dec:wholeAdd', args: [S(whole), S(dec)] };
+            return whole === d2 ? { key: 'dec:wholeSub', args: [S(whole), S(dec)] } : null;
+        }
+        if (d1.dp !== d2.dp) {
+            const short = d1.dp < d2.dp ? d1 : d2;
+            return { key: 'dec:pad', args: [S(short), decPadded(short, Math.max(d1.dp, d2.dp))] };
+        }
+        const t = decFirstTransfer(op, d1, d2);
+        if (!t) return null;
+        const D = (v) => S({ intVal: v, dp: t.dp });
+        const step = Math.pow(10, t.i + 1);
+        if (op === 'add') {
+            // Дополняем большее число до круглого, недостающее берём из меньшего — как 8 + 5.
+            const big = Math.max(t.v1, t.v2), small = Math.min(t.v1, t.v2);
+            const up = Math.ceil(big / step) * step, need = up - big;
+            // Взять пришлось бы всё меньшее число — тогда круглое и есть ответ. Молчим.
+            if (need <= 0 || need >= small) return null;
+            return { key: 'add:2', args: [D(up), D(need), D(small)] };
+        }
+        // Вычитание: сначала до круглого, потом остаток — как 13 − 5.
+        const part = t.v1 % step, rest = t.v2 - part;
+        if (part <= 0 || rest <= 0) return null;
+        // Остаток «потом ещё» иногда САМ РАВЕН ОТВЕТУ: у 3,1 − 1,6 это 1,5, и ответ
+        // тоже 1,5. Та же болезнь, что у целых (14 − 9), и лечится так же — переворотом
+        // в сложение, где печатаются только числа самого примера. Замер до правки:
+        // 1,1% подсказок вычитания на 2★ и 0,9% на 3★.
+        if (rest === t.v1 - t.v2) return { key: 'sub:toAdd', args: [S(d2), S(d1)] };
+        return { key: 'sub:ten', args: [D(part), D(t.v1 - part), D(rest)] };
+    }
+    // Множитель 1 или 0 — не приём, а определение, как у целых.
+    const isOne = (d) => d.intVal === 1 && d.dp === 0;
+    if (op === 'mul') {
+        if (!d1.intVal || !d2.intVal || isOne(d1) || isOne(d2)) return null;
+        return { key: 'dec:mul', args: [d1.intVal, d2.intVal, d1.dp, d2.dp] };
+    }
+    if (op === 'div') {
+        // ÷ 0,1 и ÷ 0,01: после сдвига делитель — единица, и «4 ÷ 1» уже сам ответ.
+        // Молчим. Замер до правки: 0,9% подсказок деления на 5★.
+        if (d2.dp < 1 || !d1.intVal || d2.intVal === 1) return null;
+        const k = d2.dp;
+        return { key: 'dec:div', args: [
+            S({ intVal: d1.intVal * Math.pow(10, Math.max(0, k - d1.dp)), dp: Math.max(0, d1.dp - k) }),
+            S({ intVal: d2.intVal, dp: 0 })] };
+    }
+    return null;
+}
+
 // Какой приём показать и с какими числами. Возвращает { key, args } либо null,
 // если приёма у этого примера нет — «без перехода», «без заёма», ×1 и ×0.
 //
@@ -972,6 +1260,7 @@ function resolveTricks() {
 // здесь — сотня. Строка одна, и достаётся она более трудному.
 function trickPick(meta, problem) {
     if (!meta || !problem) return null;
+    if (meta.category === 'decimal') return decTrickPick(meta, problem);
     const struct = (typeof structuralClassOf === 'function')
         ? structuralClassOf(meta, problem) : null;
     if (!struct) return null;

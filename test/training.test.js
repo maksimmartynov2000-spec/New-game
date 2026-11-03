@@ -614,6 +614,168 @@ test('в готовой строке не остаётся неподставл�
     eq(bad.slice(0, 5).join(' | '), '', 'остались места подстановки: ' + bad.slice(0, 5).join(' | '));
 });
 
+// ============ Десятичные ============
+//
+// Приёмы утвердил репетитор 03.11: одно число целое, разное число знаков после
+// запятой, переход через разряд (те же приёмы, что у целых, с числами через запятую),
+// умножение и деление. «Цифра к цифре» без перехода приёма не имеет.
+
+console.log('\nДесятичные');
+
+const decMeta = (op, level) => ({ category: 'decimal', opKey: op, level: level || 3, isNegative: false });
+// «0,05» → { intVal: 5, dp: 2 } — так десятичные хранит генератор.
+const DEC = (s) => { const [w, f = ''] = s.split(','); return { intVal: parseInt(w + f, 10), dp: f.length }; };
+// LANG объявлен в js/i18n.js через let — менять его нужно присваиванием внутри песочницы.
+const setLang = (G, lang) => vm.runInContext(`LANG = ${JSON.stringify(lang)};`, G);
+
+// Какие места подстановки — ВЫЧИСЛЕННЫЕ числа. Остальное — числа самого примера
+// (у умножения и у делителя — те же цифры без запятой) и счёт знаков после запятой:
+// всё это ученик и так видит на экране. Новый приём сюда обязательно вписать.
+const DEC_COMPUTED = { 'add:2': [0, 1, 2], 'sub:ten': [0, 1, 2], 'sub:toAdd': [0, 1],
+    'dec:wholeAdd': [0, 1], 'dec:wholeSub': [0, 1], 'dec:pad': [0, 1], 'dec:div': [0], 'dec:mul': [] };
+// Выдаёт ли приём ответ: вычисленное число в нём равно ответу (и это не число примера).
+function decLeak(G, op, d1, d2, answer, level) {
+    const pick = G.trickPick(decMeta(op, level), { d1, d2, answer });
+    if (!pick) return '';
+    const idx = DEC_COMPUTED[pick.key];
+    if (!idx) return `новый приём ${pick.key}: впишите в DEC_COMPUTED, какие места вычисленные`;
+    const S = (d) => G.decShow(d), ans = S(answer), own = [S(d1), S(d2)];
+    const hit = idx.some(i => G.hintValue(pick.args[i]) === ans && own.indexOf(ans) < 0);
+    return hit ? `${G.buildDecimalQuestionText(d1, d2, op)} = ${ans} → «${G.trickHint(decMeta(op, level), { d1, d2, answer })}»` : '';
+}
+
+test('десятичные: приёмы до ответа — ровно утверждённые строки', () => {
+    const G = loadWithGenerator();
+    const bad = [];
+    [
+        ['add', '3,8', '4', '4 — целое: прибавь его к целой части 3,8'],
+        ['sub', '6,8', '3', '3 — целое: вычти его из целой части 6,8'],
+        ['add', '16,8', '22,34', 'Допиши ноль: 16,8 = 16,80'],
+        ['add', '3,9', '3,2', 'До 4 не хватает 0,1 — возьми из 3,2'],
+        ['add', '0,36', '1,45', 'До 1,5 не хватает 0,05 — возьми из 0,36'],
+        ['sub', '3,4', '0,9', 'Отними 0,4 — дойдёшь до 3. Потом ещё 0,5'],
+        ['sub', '0,41', '0,39', 'Отними 0,01 — дойдёшь до 0,4. Потом ещё 0,38'],
+        ['mul', '0,4', '0,6', 'Перемножь без запятых: 4 × 6. Знаков после запятой — 1 и 1'],
+        ['mul', '8', '0,7', 'Перемножь без запятых: 8 × 7. Знаков после запятой — 0 и 1'],
+        ['div', '2,7', '0,3', 'Сдвинь запятую в обоих: 27 ÷ 3'],
+        ['div', '36', '0,6', 'Сдвинь запятую в обоих: 360 ÷ 6'],
+        // «Цифра к цифре» без перехода — приёма нет, строка пустая.
+        ['sub', '7,4', '2,2', ''],
+    ].forEach(([op, a, b, want]) => {
+        const got = G.trickHint(decMeta(op), { d1: DEC(a), d2: DEC(b) });
+        if (got !== want) bad.push(`${a} ${op} ${b}: «${got}» вместо «${want}»`);
+    });
+    eq(bad.join(' | '), '', 'приёмы разошлись с утверждёнными');
+});
+
+test('десятичные: где приём выдал бы ответ, он молчит или переворачивает пример', () => {
+    const G = loadWithGenerator();
+    const bad = [];
+    [
+        // «Потом ещё 1,5» — а ответ и есть 1,5. Переворот в сложение, как у целых 14 − 9.
+        ['sub', '3,1', '1,6', '1,6 плюс что, чтобы получить 3,1?'],
+        ['sub', '1,47', '0,97', '0,97 плюс что, чтобы получить 1,47?'],
+        // После сдвига делитель — единица, и «4 ÷ 1» уже ответ.
+        ['div', '0,4', '0,1', ''],
+        ['div', '20', '0,01', ''],
+        // Добрать пришлось бы всё второе число — круглое и есть ответ.
+        ['add', '3,9', '0,1', ''],
+        // ×1, ×0 и 0 ÷ x — определение, а не приём.
+        ['mul', '1', '0,7', ''],
+        ['mul', '0', '0,7', ''],
+        ['div', '0', '0,7', ''],
+        // Целое уменьшаемое: «вычти целое из целой части» тут не подходит.
+        ['sub', '3', '0,8', ''],
+        // Сложение без перехода — «цифра к цифре».
+        ['add', '2,3', '4,5', ''],
+    ].forEach(([op, a, b, want]) => {
+        const got = G.trickHint(decMeta(op), { d1: DEC(a), d2: DEC(b) });
+        if (got !== want) bad.push(`${a} ${op} ${b}: «${got}» вместо «${want}»`);
+    });
+    eq(bad.join(' | '), '', 'приём выдаёт ответ или говорит лишнее');
+});
+
+test('десятичные: приёмы на всех языках — разделитель по языку, без пустых мест', () => {
+    const G = loadWithGenerator();
+    const bad = [];
+    const want = {
+        en: [['add', '3,9', '3,2', 'To reach 4 you need 0.1 — take them from 3.2'],
+             ['sub', '3,4', '0,9', 'Take off 0.4 — that gets you to 3. Then 0.5 more'],
+             ['add', '16,8', '22,34', 'Add a zero: 16.8 = 16.80'],
+             ['mul', '0,4', '0,6', 'Multiply without the points: 4 × 6. Digits after the point: 1 and 1'],
+             ['div', '36', '0,6', 'Move the point in both: 360 ÷ 6']],
+        fr: [['add', '3,9', '3,2', 'Pour aller à 4 il manque 0,1 — prends-les dans 3,2'],
+             ['add', '3,8', '4', '4 est un nombre entier : ajoute-le à la partie entière de 3,8'],
+             ['add', '16,8', '22,34', 'Ajoute un zéro : 16,8 = 16,80']],
+        de: [['sub', '3,4', '0,9', 'Nimm 0,4 weg — so kommst du auf 3. Dann noch 0,5'],
+             ['sub', '6,8', '3', '3 ist eine ganze Zahl: zieh sie vom ganzen Teil von 6,8 ab'],
+             ['add', '16,8', '22,34', 'Häng eine Null an: 16,8 = 16,80']]
+    };
+    try {
+        Object.keys(want).forEach(lang => {
+            setLang(G, lang);
+            want[lang].forEach(([op, a, b, w]) => {
+                const got = G.trickHint(decMeta(op), { d1: DEC(a), d2: DEC(b) });
+                if (got !== w) bad.push(`[${lang}] ${a} ${op} ${b}: «${got}» вместо «${w}»`);
+            });
+        });
+        // И на всём, что выдаёт генератор: ни одной %N, точка только по-английски.
+        ['ru', 'en', 'fr', 'de'].forEach(lang => {
+            setLang(G, lang);
+            const wrong = lang === 'en' ? /\d,\d/ : /\d\.\d/;
+            ['add', 'sub', 'mul', 'div'].forEach(op => { for (let lvl = 1; lvl <= 5; lvl++) {
+                for (let i = 0; i < 200; i++) {
+                    const p = G.generateDecimalProblem(op, lvl);
+                    const txt = G.trickHint(decMeta(op, lvl), p);
+                    if (/%\d/.test(txt) || wrong.test(txt)) bad.push(`[${lang}] ${op}${lvl}: «${txt}»`);
+                }
+            }});
+        });
+    } finally { setLang(G, 'ru'); }
+    eq([...new Set(bad)].slice(0, 6).join(' | '), '', 'приёмы на других языках');
+});
+
+test('десятичные: перебор пар — вычисленное число в приёме не равно ответу', () => {
+    const G = loadWithGenerator();
+    const bad = [];
+    const z = (d) => G.stripTrailingZeros(d);
+    for (const dp1 of [0, 1, 2]) for (const dp2 of [0, 1, 2]) {
+        for (let a = 1; a <= 160; a++) for (let b = 1; b <= 160; b++) {
+            const d1 = z({ intVal: a, dp: dp1 }), d2 = z({ intVal: b, dp: dp2 });
+            bad.push(decLeak(G, 'add', d1, d2, G.decAdd(d1, d2)));
+            const diff = G.decSub(d1, d2);
+            if (diff.intVal > 0) bad.push(decLeak(G, 'sub', d1, d2, diff));
+            bad.push(decLeak(G, 'mul', d1, d2, G.decMul(d1, d2)));
+        }
+    }
+    // Деление — только точное, как его строит генератор: делитель × частное = делимое.
+    for (const dpA of [0, 1, 2, 3]) for (const dpB of [1, 2, 3]) {
+        for (let f1 = 1; f1 <= 20; f1++) for (let f2 = 1; f2 <= 99; f2++) {
+            const p = G.buildDivisionPair(f1, f2, dpA, dpB);
+            bad.push(decLeak(G, 'div', z(p.dividend), z(p.divisor), z(p.quotient)));
+        }
+    }
+    const found = [...new Set(bad.filter(Boolean))];
+    eq(found.slice(0, 5).join(' | '), '', `приём печатает ответ (${found.length})`);
+});
+
+test('десятичные: на примерах генератора приём не печатает ответ', () => {
+    const G = loadWithGenerator();
+    const bad = [];
+    let shown = 0;
+    ['add', 'sub', 'mul', 'div'].forEach(op => { for (let lvl = 1; lvl <= 5; lvl++) {
+        for (let i = 0; i < 1500; i++) {
+            const p = G.generateDecimalProblem(op, lvl);
+            if (G.trickHint(decMeta(op, lvl), p)) shown++;
+            bad.push(decLeak(G, op, p.d1, p.d2, p.answer, lvl));
+        }
+    }});
+    // Без этого проверка могла бы пройти впустую: на пустых строках утечек нет.
+    assert(shown > 15000, `приёмов слишком мало: ${shown} из 30000`);
+    const found = [...new Set(bad.filter(Boolean))];
+    eq(found.slice(0, 5).join(' | '), '', `приём печатает ответ (${found.length})`);
+});
+
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
 if (failed) {
     console.log('\nУпавшие проверки:');
