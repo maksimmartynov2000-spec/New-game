@@ -44,6 +44,10 @@
 // ДЕКОРАЦИИ НЕ ТОЛПЯТСЯ. Когда сюжеты появились, семь задач подряд оказались
 // про очки в игре. Сейчас миров шесть — деньги, погода, глубина, игра, этажи,
 // люди, — и ни один не занимает больше шести задач из сорока.
+//
+// ДЕСЯТИЧНЫЕ (40 задач, 03.11) — та же мерка плюс своя: запятая в счёте, а не
+// только в условии. Ловушка «0,10» или «1,30» в разборе называется прямо, и
+// ответ с единицей пишет её всегда («0,3 метра», а не «0,3»).
 
 window.CHALLENGE_CONTENT = {
     ru: {
@@ -533,6 +537,250 @@ window.CHALLENGE_CONTENT = {
                 task: 'Долг 960 рублей делят между людьми. Их больше одного, но меньше десяти. Какой самый большой долг достанется одному?',
                 answer: '−480 рублей',
                 why: 'Чем меньше людей, тем больше достаётся каждому, а меньше всего людей — двое. Долг остаётся долгом: 960 на двоих это по 480 рублей минуса. Одного человека исключили — тогда он просто забрал бы весь долг.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · СЛОЖЕНИЕ =========
+        'decimal+:add:1': {
+            diamond: {
+                task: 'Сколько будет 0,5 + 0,5?',
+                answer: '1',
+                why: 'Пять десятых и ещё пять десятых — это десять десятых, то есть одна целая. Ответ «0,10» — частая ловушка: так выходит, если складывать цифры после запятой как отдельные числа.'
+            },
+            legend: {
+                task: 'До листа 1 метр. Улитка проползла 0,3 метра, отдохнула и проползла ещё 0,4 метра. Сколько ей осталось?',
+                answer: '0,3 метра',
+                why: '0,3 + 0,4 = 0,7 — семь десятых метра. До целого метра не хватает трёх десятых: 0,7 + 0,3 = 1. Осталось ровно столько, сколько улитка проползла в первый раз.'
+            }
+        },
+        'decimal+:add:2': {
+            diamond: {
+                task: 'Число 1,9 увеличили на 0,1, а потом ещё на 0,1. Сколько получилось?',
+                answer: '2,1',
+                why: '1,9 + 0,1 = 2: девять десятых и одна десятая дают целую. Ещё десятая — и выходит 2,1. Ответ «1,11» — ловушка: так получается, если считать 9 + 1 = 10 прямо после запятой.'
+            },
+            legend: {
+                task: 'Гимнастке три судьи поставили 9,6, 9,8 и 9,6 балла. Сколько баллов всего?',
+                answer: '29 баллов',
+                why: 'До 10 каждой оценке не хватает: 0,4, 0,2 и 0,4 — вместе ровно 1. Значит, сумма на единицу меньше, чем 10 + 10 + 10: 30 − 1 = 29. Считать недостачу до круглого числа быстрее, чем складывать всё подряд.'
+            }
+        },
+        'decimal+:add:3': {
+            diamond: {
+                task: 'Какой цифры не хватает в записи 0,_7 + 0,26 = 0,63?',
+                answer: '3',
+                why: 'Сотые: 7 + 6 = 13 — пишем 3, а одна десятая переходит к десятым. Десятые: пропущенная цифра, 2 и перешедшая единица вместе дают 6, значит не хватает тройки. Проверка: 0,37 + 0,26 = 0,63.'
+            },
+            legend: {
+                task: 'Сколько надо прибавить к 0,75, чтобы получилось 0,8?',
+                answer: '0,05',
+                why: 'Допиши ноль: 0,8 = 0,80. От 75 сотых до 80 сотых не хватает 5 сотых. Число 0,75 только выглядит больше, чем 0,8: после запятой сравнивают разряд за разрядом, а не числа целиком.'
+            }
+        },
+        'decimal+:add:4': {
+            diamond: {
+                task: 'Сколько получится, если сложить 3, 0,3 и 0,03?',
+                answer: '3,33',
+                why: 'Каждое число стоит в своём разряде: 3 — целые, 0,3 — десятые, 0,03 — сотые. Цифры просто встают по местам. Если подписать одно из чисел не под своим разрядом, выйдет 3,6 или 0,36 — сложены не те разряды.'
+            },
+            legend: {
+                task: 'Подсолнух за неделю вырос на 0,15 метра, а за следующую — ещё на 0,2 метра. На сколько сантиметров он вырос за две недели?',
+                answer: 'На 35 сантиметров',
+                why: 'Допиши ноль: 0,15 + 0,20 = 0,35 метра. В метре сто сантиметров, поэтому сотые доли метра — это и есть сантиметры: 0,35 метра — 35 сантиметров. Ответ «0,17» — сложены не те разряды.'
+            }
+        },
+        'decimal+:add:5': {
+            diamond: {
+                task: 'Как быстро сложить 2,75 + 3,5 + 1,25 + 0,5?',
+                answer: '8',
+                why: 'Сначала то, что даёт целые: 2,75 + 1,25 = 4 и 3,5 + 0,5 = 4. Вместе 8. Складывать можно в любом порядке — выбирай тот, где выходят круглые числа.'
+            },
+            legend: {
+                task: 'Два числа вместе дают ровно 10. Одно из них — 6,37. Какое второе?',
+                answer: '3,63',
+                why: 'Целые и десятые дополняем до 9, а последнюю цифру — до 10: 6 + 3 = 9, 3 + 6 = 9, 7 + 3 = 10. Лишняя десятка из последней цифры переходит дальше и превращает девятки в круглое 10. Проверка: 6,37 + 3,63 = 10.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · ВЫЧИТАНИЕ =========
+        'decimal+:sub:1': {
+            diamond: {
+                task: 'Сколько будет 3,7 − 3?',
+                answer: '0,7',
+                why: '3 — это целые, их вычитают из целых: 3 − 3 = 0, а семь десятых остаются. Ответ 3,4 — ловушка: тройку отняли от десятых, то есть вычли не из того разряда.'
+            },
+            legend: {
+                task: 'Утром термометр показывал 4,5 градуса тепла, а вечером — 1,5. На сколько градусов похолодало?',
+                answer: 'На 3 градуса',
+                why: 'После запятой у обоих чисел по пять десятых — при вычитании они исчезают, и остаётся разница целых: 4 − 1 = 3. Когда хвосты после запятой одинаковые, считать их не нужно.'
+            }
+        },
+        'decimal+:sub:2': {
+            diamond: {
+                task: 'Кто-то посчитал, что 5,2 − 3,8 = 2,6. Сколько на самом деле?',
+                answer: '1,4',
+                why: 'Из 2 десятых не вычесть 8 — занимаем одну целую, это 10 десятых: 12 − 8 = 4. Целых остаётся 4, и 4 − 3 = 1. Выходит 1,4. Ответ 2,6 получается, если вычесть наоборот: 8 − 2.'
+            },
+            legend: {
+                task: 'Бегун пробежал 100 метров за 12,3 секунды, а соперник — на 0,7 секунды быстрее. За сколько секунд пробежал соперник?',
+                answer: 'За 11,6 секунды',
+                why: 'Быстрее — значит меньше времени, поэтому 0,7 не прибавляют, а вычитают: 12,3 − 0,7. Отними 0,3 — будет ровно 12, и ещё 0,4 — выходит 11,6.'
+            }
+        },
+        'decimal+:sub:3': {
+            diamond: {
+                task: 'Сколько будет 0,6 − 0,06?',
+                answer: '0,54',
+                why: 'Шестёрки стоят в разных разрядах: в 0,6 — шесть десятых, в 0,06 — шесть сотых. Допиши ноль: 0,60 − 0,06 = 0,54. Ответ «0» — ловушка: вычли шестёрку из шестёрки, не заметив, что они в разных разрядах.'
+            },
+            legend: {
+                task: 'Прыгун в высоту взял 1,85 метра, а мировой рекорд — 2,45 метра. Сколько ему не хватило до рекорда?',
+                answer: '0,6 метра',
+                why: 'Считай вверх от меньшего числа: от 1,85 до 2 — это 0,15, от 2 до 2,45 — ещё 0,45. Вместе 0,6 метра. Через круглое число считать в уме проще, чем вычитать по разрядам.'
+            }
+        },
+        'decimal+:sub:4': {
+            diamond: {
+                task: 'На сколько 0,50 больше, чем 0,5?',
+                answer: 'Ни на сколько',
+                why: 'Ноль в конце после запятой ничего не меняет: 0,50 — пятьдесят сотых, 0,5 — пять десятых, и это одно и то же. Поэтому ноль можно дописывать, когда надо выровнять разряды.'
+            },
+            legend: {
+                task: 'Сколько раз надо вычесть 0,25 из 1, чтобы получился ноль?',
+                answer: '4 раза',
+                why: '1 − 0,25 = 0,75, потом 0,5, потом 0,25 и наконец 0 — четыре раза. Это и есть деление: в одной целой помещаются четыре четверти, 1 ÷ 0,25 = 4.'
+            }
+        },
+        'decimal+:sub:5': {
+            diamond: {
+                task: 'Не считая точно, скажи: 8,03 − 2,97 — это больше 5 или меньше?',
+                answer: 'Больше',
+                why: '8,03 чуть больше 8, а 2,97 чуть меньше 3. Из числа побольше вычитаем число поменьше — разница выходит больше, чем 8 − 3 = 5. Точно — 5,06.'
+            },
+            legend: {
+                task: '1 − 0,9 = 0,1 и 1 − 0,99 = 0,01. Сколько будет 1 − 0,999?',
+                answer: '0,001',
+                why: 'Каждая новая девятка подводит число ближе к единице в десять раз: не хватает десятой, потом сотой, потом тысячной. Сколько девяток после запятой — столько знаков и у ответа, и последний из них — единица.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · УМНОЖЕНИЕ =========
+        'decimal+:mul:1': {
+            diamond: {
+                task: 'Сколько будет 0,3 × 0,3?',
+                answer: '0,09',
+                why: '3 × 3 = 9, а знаков после запятой у ответа столько, сколько у обоих чисел вместе: 1 + 1 = 2. Выходит 0,09 — девять сотых. Ответ 0,9 — ловушка: десятая доля от трёх десятых — это уже сотые.'
+            },
+            legend: {
+                task: 'Что больше: 8 × 0,9 или просто 8?',
+                answer: 'Просто 8',
+                why: 'Умножить на 0,9 — значит взять девять десятых от восьми, а это меньше, чем все восемь: 7,2. Умножение делает число больше, только когда его умножают на число больше единицы.'
+            }
+        },
+        'decimal+:mul:2': {
+            diamond: {
+                task: 'Сколько будет 0,07 × 100?',
+                answer: '7',
+                why: 'Умножить на 100 — значит сдвинуть запятую на два знака вправо: 0,07 → 0,7 → 7. Сколько нулей у сотни, столько шагов делает запятая.'
+            },
+            legend: {
+                task: 'Черепашка проползает 0,3 метра за секунду. Сколько метров она проползёт за 20 секунд?',
+                answer: '6 метров',
+                why: 'За 10 секунд — в десять раз больше, чем за одну: 3 метра. За 20 секунд — вдвое больше: 6 метров. На 20 удобно умножать в два шага: на 10 и на 2.'
+            }
+        },
+        'decimal+:mul:3': {
+            diamond: {
+                task: 'Какое число надо умножить на 0,1, чтобы получилось 7?',
+                answer: '70',
+                why: 'Умножить на 0,1 — значит взять десятую часть, то есть уменьшить в десять раз. Чтобы десятая часть была 7, само число должно быть в десять раз больше: 70.'
+            },
+            legend: {
+                task: 'Как быстро умножить 46 на 0,5?',
+                answer: '23',
+                why: '0,5 — это половина. Умножить на 0,5 — значит взять половину: 46 ÷ 2 = 23. Так быстрее, чем перемножать и потом искать место для запятой.'
+            }
+        },
+        'decimal+:mul:4': {
+            diamond: {
+                task: '23 × 14 = 322. Сколько будет 2,3 × 1,4?',
+                answer: '3,22',
+                why: 'Цифры те же, значит и цифры ответа те же — 322. Остаётся поставить запятую: у чисел по одному знаку после запятой, у ответа их два. Пересчитывать заново не нужно.'
+            },
+            legend: {
+                task: 'Сколько будет 1,1 × 1,1?',
+                answer: '1,21',
+                why: '1,1 × 1,1 — это 1,1 целиком и ещё одна десятая от 1,1: 1,1 + 0,11 = 1,21. Ответ 1,2 — ловушка: так выходит, если прибавить 0,1, а не десятую от 1,1.'
+            }
+        },
+        'decimal+:mul:5': {
+            diamond: {
+                task: 'Свет пролетает около 300 000 километров за секунду. Сколько километров он пролетит за 0,01 секунды?',
+                answer: '3000 километров',
+                why: 'Умножить на 0,01 — то же, что разделить на 100: 300 000 ÷ 100 = 3000. За сотую долю секунды свет пролетает столько, сколько пассажирский самолёт — больше чем за три часа.'
+            },
+            legend: {
+                task: 'Какое число, умноженное само на себя, даёт 0,49?',
+                answer: '0,7',
+                why: '7 × 7 = 49. Когда число умножают само на себя, знаков после запятой становится вдвое больше. В 0,49 их два, значит, у искомого числа один: 0,7. Проверка: 0,7 × 0,7 = 0,49.'
+            }
+        },
+        // ========== ДЕСЯТИЧНЫЕ · ДЕЛЕНИЕ ==========
+        'decimal+:div:1': {
+            diamond: {
+                task: 'Сколько будет 0,6 ÷ 3?',
+                answer: '0,2',
+                why: 'Шесть десятых разделить на 3 — две десятые, как 6 ÷ 3 = 2, только в десятых. Ответ 2 — ловушка: потерялась запятая, а ответ не может быть больше, чем 0,6.'
+            },
+            legend: {
+                task: 'Доску длиной 1,2 метра распилили на 4 равные части. Какой длины каждая часть?',
+                answer: '0,3 метра',
+                why: '1,2 метра — это 12 десятых метра. 12 ÷ 4 = 3, значит, каждая часть — 3 десятых, то есть 0,3 метра. В десятых считать так же, как с целыми.'
+            }
+        },
+        'decimal+:div:2': {
+            diamond: {
+                task: 'Три шоколадки разделили поровну на четверых. Сколько шоколадки досталось каждому?',
+                answer: '0,75 шоколадки',
+                why: 'Каждую шоколадку делят на четыре части, и каждому достаётся по части от каждой — три четверти. 3 ÷ 4 = 0,75: меньше одной шоколадки, но больше половины.'
+            },
+            legend: {
+                task: 'Сколько минут в 90 секундах?',
+                answer: '1,5 минуты',
+                why: 'В минуте 60 секунд: 90 ÷ 60 = 1,5. Полторы минуты — это одна минута и ещё половина, 30 секунд. Ответ «1,30» — ловушка: секунды — не сотые доли минуты, в минуте их шестьдесят, а не сто.'
+            }
+        },
+        'decimal+:div:3': {
+            diamond: {
+                task: 'Во сколько раз 1 больше, чем 0,01?',
+                answer: 'В 100 раз',
+                why: '0,01 — одна сотая: в единице сто таких частей. Каждый шаг запятой — в десять раз, а здесь шагов два: 10 × 10 = 100.'
+            },
+            legend: {
+                task: 'На 4 порции блинов нужно 0,6 килограмма муки. Сколько муки нужно на одну порцию?',
+                answer: '0,15 килограмма',
+                why: 'Шесть десятых на четыре нацело не делятся — перейди к сотым: 0,6 = 0,60, это 60 сотых. 60 ÷ 4 = 15, значит, 0,15 килограмма. Когда не делится, допиши ноль и дели дальше.'
+            }
+        },
+        'decimal+:div:4': {
+            diamond: {
+                task: 'Сколько будет 6,06 ÷ 6?',
+                answer: '1,01',
+                why: 'Делим по разрядам: 6 целых ÷ 6 = 1, 0 десятых ÷ 6 = 0, 6 сотых ÷ 6 = 1. Выходит 1,01. Ответ 1,1 — ловушка: потерян ноль в десятых, а он держит единицу на месте сотых.'
+            },
+            legend: {
+                task: 'Из ленты длиной 2 метра делают банты, на каждый нужно 0,3 метра. Сколько бантов получится?',
+                answer: '6 бантов',
+                why: '2 ÷ 0,3 — это 20 ÷ 3: шесть бантов заберут 1,8 метра, и останется 0,2 метра — на седьмой не хватит. Поэтому ответ — 6, а не 6,7 и не 7: бант нужен целый.'
+            }
+        },
+        'decimal+:div:5': {
+            diamond: {
+                task: 'Сколько будет 1 ÷ 8?',
+                answer: '0,125',
+                why: 'Делить на 8 — значит трижды делить пополам: 1 → 0,5 → 0,25 → 0,125. Каждый раз пятёрка на конце делится пополам и добавляет ещё один знак после запятой.'
+            },
+            legend: {
+                task: 'Что больше: 0,3 ÷ 0,6 или 0,6 ÷ 0,3?',
+                answer: '0,6 ÷ 0,3',
+                why: '0,6 ÷ 0,3 = 2: в шести десятых три десятых помещаются дважды. А 0,3 ÷ 0,6 = 0,5: три десятых — только половина от шести. Поменяли числа местами — и ответ перевернулся: 2 и 0,5.'
             }
         }
     },
@@ -1024,6 +1272,250 @@ window.CHALLENGE_CONTENT = {
                 answer: '−480 dollars',
                 why: 'The fewer the people, the more each one gets, and the fewest is two. A debt stays a debt: 960 between two is 480 of minus each. One person was ruled out — they would simply take the whole debt.'
             }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · СЛОЖЕНИЕ =========
+        'decimal+:add:1': {
+            diamond: {
+                task: 'What is 0.5 + 0.5?',
+                answer: '1',
+                why: 'Five tenths and five more tenths make ten tenths, that is, one whole. The answer "0.10" is a common trap: it comes out when the digits after the point are added as if they were separate numbers.'
+            },
+            legend: {
+                task: 'The leaf is 1 metre away. A snail crawled 0.3 metres, rested, and crawled another 0.4 metres. How far does it still have to go?',
+                answer: '0.3 metres',
+                why: '0.3 + 0.4 = 0.7 — seven tenths of a metre. Three tenths are still missing to make a whole metre: 0.7 + 0.3 = 1. What is left is exactly as much as the snail crawled the first time.'
+            }
+        },
+        'decimal+:add:2': {
+            diamond: {
+                task: 'The number 1.9 was increased by 0.1, and then by 0.1 again. What is the result?',
+                answer: '2.1',
+                why: '1.9 + 0.1 = 2: nine tenths and one tenth make a whole. One more tenth, and it comes to 2.1. The answer "1.11" is a trap: it comes from counting 9 + 1 = 10 right after the point.'
+            },
+            legend: {
+                task: 'Three judges gave a gymnast 9.6, 9.8 and 9.6 points. How many points is that altogether?',
+                answer: '29 points',
+                why: 'Each score is short of 10: by 0.4, 0.2 and 0.4 — exactly 1 altogether. So the total is one less than 10 + 10 + 10: 30 − 1 = 29. Counting what is missing up to a round number is faster than adding everything in a row.'
+            }
+        },
+        'decimal+:add:3': {
+            diamond: {
+                task: 'Which digit is missing in 0._7 + 0.26 = 0.63?',
+                answer: '3',
+                why: 'Hundredths: 7 + 6 = 13, so write 3, and one tenth moves over to the tenths. Tenths: the missing digit, the 2 and the carried one make 6 together, so a three is missing. Check: 0.37 + 0.26 = 0.63.'
+            },
+            legend: {
+                task: 'What must be added to 0.75 to make 0.8?',
+                answer: '0.05',
+                why: 'Add a zero: 0.8 = 0.80. From 75 hundredths to 80 hundredths, 5 hundredths are missing. The number 0.75 only looks bigger than 0.8: after the point you compare place by place, not the digits as one big number.'
+            }
+        },
+        'decimal+:add:4': {
+            diamond: {
+                task: 'What do you get if you add 3, 0.3 and 0.03?',
+                answer: '3.33',
+                why: 'Each number sits in its own place: 3 in the ones, 0.3 in the tenths, 0.03 in the hundredths. The digits simply fall into place. If one of the numbers is written under the wrong place, you get 3.6 or 0.36 — the wrong places were added.'
+            },
+            legend: {
+                task: 'A sunflower grew 0.15 metres in one week and another 0.2 metres the next. How many centimetres did it grow in the two weeks?',
+                answer: '35 centimetres',
+                why: 'Add a zero: 0.15 + 0.20 = 0.35 metres. A metre has a hundred centimetres, so hundredths of a metre are exactly centimetres: 0.35 metres is 35 centimetres. The answer "0.17" means the wrong places were added.'
+            }
+        },
+        'decimal+:add:5': {
+            diamond: {
+                task: 'How can you quickly add 2.75 + 3.5 + 1.25 + 0.5?',
+                answer: '8',
+                why: 'First take the pairs that make wholes: 2.75 + 1.25 = 4 and 3.5 + 0.5 = 4. Together that is 8. You can add in any order — choose the one where round numbers come out.'
+            },
+            legend: {
+                task: 'Two numbers add up to exactly 10. One of them is 6.37. What is the other?',
+                answer: '3.63',
+                why: 'Make the ones and the tenths up to 9, and the last digit up to 10: 6 + 3 = 9, 3 + 6 = 9, 7 + 3 = 10. The extra ten from the last digit is carried on and turns the nines into a round 10. Check: 6.37 + 3.63 = 10.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · ВЫЧИТАНИЕ =========
+        'decimal+:sub:1': {
+            diamond: {
+                task: 'What is 3.7 − 3?',
+                answer: '0.7',
+                why: 'The 3 is ones, so it is taken from the ones: 3 − 3 = 0, while the seven tenths stay. The answer 3.4 is a trap: the three was taken from the tenths, that is, from the wrong place.'
+            },
+            legend: {
+                task: 'In the morning the thermometer showed 4.5 degrees above zero, and in the evening 1.5. By how many degrees did it get colder?',
+                answer: 'By 3 degrees',
+                why: 'Both numbers have five tenths after the point — they cancel out in the subtraction, and what is left is the difference of the ones: 4 − 1 = 3. When the parts after the point are the same, there is no need to work them out.'
+            }
+        },
+        'decimal+:sub:2': {
+            diamond: {
+                task: 'Someone worked out that 5.2 − 3.8 = 2.6. What is it really?',
+                answer: '1.4',
+                why: 'You can’t take 8 tenths from 2 tenths, so borrow one whole, which is 10 tenths: 12 − 8 = 4. That leaves 4 wholes, and 4 − 3 = 1. So it is 1.4. The answer 2.6 comes from subtracting the wrong way round: 8 − 2.'
+            },
+            legend: {
+                task: 'A runner ran 100 metres in 12.3 seconds, and a rival was 0.7 seconds faster. How many seconds did the rival take?',
+                answer: '11.6 seconds',
+                why: 'Faster means less time, so 0.7 is not added but subtracted: 12.3 − 0.7. Take away 0.3 to get exactly 12, then 0.4 more — that makes 11.6.'
+            }
+        },
+        'decimal+:sub:3': {
+            diamond: {
+                task: 'What is 0.6 − 0.06?',
+                answer: '0.54',
+                why: 'The sixes stand in different places: in 0.6 it is six tenths, in 0.06 six hundredths. Add a zero: 0.60 − 0.06 = 0.54. The answer "0" is a trap: a six was taken from a six without noticing that they stand in different places.'
+            },
+            legend: {
+                task: 'A high jumper cleared 1.85 metres, and the world record is 2.45 metres. How far short of the record was the jump?',
+                answer: '0.6 metres',
+                why: 'Count up from the smaller number: from 1.85 to 2 is 0.15, from 2 to 2.45 another 0.45. Together that is 0.6 metres. Counting through a round number is easier in your head than subtracting place by place.'
+            }
+        },
+        'decimal+:sub:4': {
+            diamond: {
+                task: 'How much bigger is 0.50 than 0.5?',
+                answer: 'Not at all',
+                why: 'A zero at the end after the point changes nothing: 0.50 is fifty hundredths, 0.5 is five tenths, and that is the same thing. That is why a zero can be added whenever the places need to line up.'
+            },
+            legend: {
+                task: 'How many times must 0.25 be subtracted from 1 to get zero?',
+                answer: '4 times',
+                why: '1 − 0.25 = 0.75, then 0.5, then 0.25 and finally 0 — four times. That is division in disguise: one whole holds four quarters, 1 ÷ 0.25 = 4.'
+            }
+        },
+        'decimal+:sub:5': {
+            diamond: {
+                task: 'Without working it out exactly, say: is 8.03 − 2.97 more than 5 or less?',
+                answer: 'More',
+                why: '8.03 is a little more than 8, and 2.97 a little less than 3. A bit more minus a bit less — the difference comes out bigger than 8 − 3 = 5. The exact answer is 5.06.'
+            },
+            legend: {
+                task: '1 − 0.9 = 0.1 and 1 − 0.99 = 0.01. What is 1 − 0.999?',
+                answer: '0.001',
+                why: 'Each new nine brings the number ten times closer to one: a tenth is missing, then a hundredth, then a thousandth. The answer has as many places after the point as there are nines, and the last of them is a one.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · УМНОЖЕНИЕ =========
+        'decimal+:mul:1': {
+            diamond: {
+                task: 'What is 0.3 × 0.3?',
+                answer: '0.09',
+                why: '3 × 3 = 9, and the answer has as many places after the point as both numbers together: 1 + 1 = 2. That gives 0.09 — nine hundredths. The answer 0.9 is a trap: a tenth of three tenths is already hundredths.'
+            },
+            legend: {
+                task: 'Which is bigger: 8 × 0.9 or just 8?',
+                answer: 'Just 8',
+                why: 'Multiplying by 0.9 means taking nine tenths of eight, and that is less than the whole eight: 7.2. Multiplying makes a number bigger only when you multiply by a number bigger than one.'
+            }
+        },
+        'decimal+:mul:2': {
+            diamond: {
+                task: 'What is 0.07 × 100?',
+                answer: '7',
+                why: 'Multiplying by 100 means moving the point two places to the right: 0.07 → 0.7 → 7. The point takes as many steps as a hundred has zeros.'
+            },
+            legend: {
+                task: 'A little turtle crawls 0.3 metres a second. How many metres will it crawl in 20 seconds?',
+                answer: '6 metres',
+                why: 'In 10 seconds it covers ten times as much as in one: 3 metres. In 20 seconds, twice that: 6 metres. Multiplying by 20 is easy in two steps: by 10 and by 2.'
+            }
+        },
+        'decimal+:mul:3': {
+            diamond: {
+                task: 'Which number must be multiplied by 0.1 to get 7?',
+                answer: '70',
+                why: 'Multiplying by 0.1 means taking a tenth, that is, making it ten times smaller. For a tenth to be 7, the number itself must be ten times bigger: 70.'
+            },
+            legend: {
+                task: 'How can you quickly multiply 46 by 0.5?',
+                answer: '23',
+                why: '0.5 is a half. Multiplying by 0.5 means taking half: 46 ÷ 2 = 23. That is faster than multiplying and then hunting for the right place for the point.'
+            }
+        },
+        'decimal+:mul:4': {
+            diamond: {
+                task: '23 × 14 = 322. What is 2.3 × 1.4?',
+                answer: '3.22',
+                why: 'The digits are the same, so the digits of the answer are the same too — 322. All that is left is the point: each number has one place after it, so the answer has two. No need to work it all out again.'
+            },
+            legend: {
+                task: 'What is 1.1 × 1.1?',
+                answer: '1.21',
+                why: '1.1 × 1.1 is the whole 1.1 plus one tenth of 1.1: 1.1 + 0.11 = 1.21. The answer 1.2 is a trap: that is what you get by adding 0.1 instead of a tenth of 1.1.'
+            }
+        },
+        'decimal+:mul:5': {
+            diamond: {
+                task: 'Light travels about 300,000 kilometres a second. How many kilometres does it travel in 0.01 seconds?',
+                answer: '3,000 kilometres',
+                why: 'Multiplying by 0.01 is the same as dividing by 100: 300,000 ÷ 100 = 3,000. In a hundredth of a second, light covers as much as a passenger plane does in more than three hours.'
+            },
+            legend: {
+                task: 'Which number multiplied by itself gives 0.49?',
+                answer: '0.7',
+                why: '7 × 7 = 49. When a number is multiplied by itself, the places after the point double. 0.49 has two of them, so the number we want has one: 0.7. Check: 0.7 × 0.7 = 0.49.'
+            }
+        },
+        // ========== ДЕСЯТИЧНЫЕ · ДЕЛЕНИЕ ==========
+        'decimal+:div:1': {
+            diamond: {
+                task: 'What is 0.6 ÷ 3?',
+                answer: '0.2',
+                why: 'Six tenths divided by 3 is two tenths, just like 6 ÷ 3 = 2, only in tenths. The answer 2 is a trap: the point got lost, and the answer cannot be bigger than 0.6.'
+            },
+            legend: {
+                task: 'A board 1.2 metres long was sawn into 4 equal pieces. How long is each piece?',
+                answer: '0.3 metres',
+                why: '1.2 metres is 12 tenths of a metre. 12 ÷ 4 = 3, so each piece is 3 tenths, that is, 0.3 metres. Tenths are counted just like whole numbers.'
+            }
+        },
+        'decimal+:div:2': {
+            diamond: {
+                task: 'Three chocolate bars were shared equally among four people. How much of a bar did each one get?',
+                answer: '0.75 of a bar',
+                why: 'Each bar is split into four parts, and everyone gets one part of every bar — three quarters. 3 ÷ 4 = 0.75: less than one bar, but more than half.'
+            },
+            legend: {
+                task: 'How many minutes are there in 90 seconds?',
+                answer: '1.5 minutes',
+                why: 'A minute has 60 seconds: 90 ÷ 60 = 1.5. One and a half minutes is one minute and another half, 30 seconds. The answer "1.30" is a trap: seconds are not hundredths of a minute — a minute has sixty of them, not a hundred.'
+            }
+        },
+        'decimal+:div:3': {
+            diamond: {
+                task: 'How many times bigger is 1 than 0.01?',
+                answer: '100 times',
+                why: '0.01 is one hundredth: one whole holds a hundred such parts. Each step of the point means ten times, and here there are two steps: 10 × 10 = 100.'
+            },
+            legend: {
+                task: 'For 4 servings of pancakes you need 0.6 kilograms of flour. How much flour does one serving need?',
+                answer: '0.15 kilograms',
+                why: 'Six tenths will not divide by four exactly — switch to hundredths: 0.6 = 0.60, which is 60 hundredths. 60 ÷ 4 = 15, so it is 0.15 kilograms. When it does not divide, add a zero and keep dividing.'
+            }
+        },
+        'decimal+:div:4': {
+            diamond: {
+                task: 'What is 6.06 ÷ 6?',
+                answer: '1.01',
+                why: 'Divide place by place: 6 ones ÷ 6 = 1, 0 tenths ÷ 6 = 0, 6 hundredths ÷ 6 = 1. That gives 1.01. The answer 1.1 is a trap: the zero in the tenths got lost, and it is what holds the one in the hundredths place.'
+            },
+            legend: {
+                task: 'Bows are made from a ribbon 2 metres long, and each bow needs 0.3 metres. How many bows can be made?',
+                answer: '6 bows',
+                why: '2 ÷ 0.3 is the same as 20 ÷ 3: six bows use up 1.8 metres, and 0.2 metres is left — not enough for a seventh. So the answer is 6, not 6.7 and not 7: a bow has to be whole.'
+            }
+        },
+        'decimal+:div:5': {
+            diamond: {
+                task: 'What is 1 ÷ 8?',
+                answer: '0.125',
+                why: 'Dividing by 8 means halving three times: 1 → 0.5 → 0.25 → 0.125. Each time the five at the end is halved and adds one more place after the point.'
+            },
+            legend: {
+                task: 'Which is bigger: 0.3 ÷ 0.6 or 0.6 ÷ 0.3?',
+                answer: '0.6 ÷ 0.3',
+                why: '0.6 ÷ 0.3 = 2: three tenths fit into six tenths twice. And 0.3 ÷ 0.6 = 0.5: three tenths are only half of six. Swap the numbers, and the answer flips over: 2 and 0.5.'
+            }
         }
     },
     fr: {
@@ -1514,6 +2006,250 @@ window.CHALLENGE_CONTENT = {
                 answer: '−480 euros',
                 why: 'Moins il y a de personnes, plus chacune reçoit, et le minimum est deux. Une dette reste une dette : 960 à deux, cela fait 480 de moins chacun. Une seule personne a été exclue — elle reprendrait simplement toute la dette.'
             }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · СЛОЖЕНИЕ =========
+        'decimal+:add:1': {
+            diamond: {
+                task: 'Combien font 0,5 + 0,5 ?',
+                answer: '1',
+                why: 'Cinq dixièmes et encore cinq dixièmes font dix dixièmes, c’est-à-dire une unité. La réponse « 0,10 » est un piège fréquent : on l’obtient en additionnant les chiffres après la virgule comme des nombres à part.'
+            },
+            legend: {
+                task: 'La feuille est à 1 mètre. Un escargot a rampé 0,3 mètre, s’est reposé, puis a encore rampé 0,4 mètre. Quelle distance lui reste-t-il ?',
+                answer: '0,3 mètre',
+                why: '0,3 + 0,4 = 0,7 — sept dixièmes de mètre. Pour faire un mètre entier, il manque trois dixièmes : 0,7 + 0,3 = 1. Il reste exactement la distance que l’escargot a parcourue la première fois.'
+            }
+        },
+        'decimal+:add:2': {
+            diamond: {
+                task: 'On a augmenté le nombre 1,9 de 0,1, puis encore de 0,1. Combien obtient-on ?',
+                answer: '2,1',
+                why: '1,9 + 0,1 = 2 : neuf dixièmes et un dixième font une unité. Encore un dixième, et on obtient 2,1. La réponse « 1,11 » est un piège : on l’obtient en comptant 9 + 1 = 10 juste après la virgule.'
+            },
+            legend: {
+                task: 'Trois juges ont donné à une gymnaste 9,6 ; 9,8 et 9,6 points. Combien de points en tout ?',
+                answer: '29 points',
+                why: 'Pour atteindre 10, il manque à chaque note 0,4 ; 0,2 et 0,4 — exactement 1 en tout. Le total vaut donc un de moins que 10 + 10 + 10 : 30 − 1 = 29. Compter ce qui manque jusqu’au nombre rond va plus vite que tout additionner à la suite.'
+            }
+        },
+        'decimal+:add:3': {
+            diamond: {
+                task: 'Quel chiffre manque dans 0,_7 + 0,26 = 0,63 ?',
+                answer: '3',
+                why: 'Centièmes : 7 + 6 = 13 — on écrit 3, et un dixième passe aux dixièmes. Dixièmes : le chiffre manquant, le 2 et la retenue font 6 ensemble, il manque donc un trois. Vérification : 0,37 + 0,26 = 0,63.'
+            },
+            legend: {
+                task: 'Combien faut-il ajouter à 0,75 pour obtenir 0,8 ?',
+                answer: '0,05',
+                why: 'Ajoute un zéro : 0,8 = 0,80. De 75 centièmes à 80 centièmes, il manque 5 centièmes. Le nombre 0,75 a seulement l’air plus grand que 0,8 : après la virgule, on compare rang par rang, et non les chiffres comme un seul grand nombre.'
+            }
+        },
+        'decimal+:add:4': {
+            diamond: {
+                task: 'Combien obtient-on en additionnant 3 ; 0,3 et 0,03 ?',
+                answer: '3,33',
+                why: 'Chaque nombre occupe son propre rang : 3 pour les unités, 0,3 pour les dixièmes, 0,03 pour les centièmes. Les chiffres se mettent simplement à leur place. Si l’on écrit l’un des nombres sous le mauvais rang, on obtient 3,6 ou 0,36 — on a additionné les mauvais rangs.'
+            },
+            legend: {
+                task: 'Un tournesol a poussé de 0,15 mètre en une semaine, puis encore de 0,2 mètre la semaine suivante. De combien de centimètres a-t-il poussé en deux semaines ?',
+                answer: 'De 35 centimètres',
+                why: 'Ajoute un zéro : 0,15 + 0,20 = 0,35 mètre. Il y a cent centimètres dans un mètre, donc les centièmes de mètre sont justement des centimètres : 0,35 mètre, c’est 35 centimètres. La réponse « 0,17 » vient d’une addition des mauvais rangs.'
+            }
+        },
+        'decimal+:add:5': {
+            diamond: {
+                task: 'Comment calculer vite 2,75 + 3,5 + 1,25 + 0,5 ?',
+                answer: '8',
+                why: 'D’abord ce qui donne des unités entières : 2,75 + 1,25 = 4 et 3,5 + 0,5 = 4. Ensemble, 8. On peut additionner dans n’importe quel ordre — choisis celui qui donne des nombres ronds.'
+            },
+            legend: {
+                task: 'Deux nombres font ensemble exactement 10. L’un d’eux est 6,37. Quel est l’autre ?',
+                answer: '3,63',
+                why: 'On complète les unités et les dixièmes jusqu’à 9, et le dernier chiffre jusqu’à 10 : 6 + 3 = 9, 3 + 6 = 9, 7 + 3 = 10. La dizaine en trop du dernier chiffre se reporte plus loin et change les neuf en un 10 bien rond. Vérification : 6,37 + 3,63 = 10.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · ВЫЧИТАНИЕ =========
+        'decimal+:sub:1': {
+            diamond: {
+                task: 'Combien font 3,7 − 3 ?',
+                answer: '0,7',
+                why: '3 représente des unités, et les unités se retirent des unités : 3 − 3 = 0, les sept dixièmes restent. La réponse 3,4 est un piège : on a retiré le trois des dixièmes, c’est-à-dire du mauvais rang.'
+            },
+            legend: {
+                task: 'Le matin, le thermomètre indiquait 4,5 degrés au-dessus de zéro, et le soir 1,5. De combien de degrés la température a-t-elle baissé ?',
+                answer: 'De 3 degrés',
+                why: 'Après la virgule, les deux nombres ont cinq dixièmes — dans la soustraction, ils disparaissent, et il reste l’écart des unités : 4 − 1 = 3. Quand ce qui suit la virgule est identique, inutile de le calculer.'
+            }
+        },
+        'decimal+:sub:2': {
+            diamond: {
+                task: 'Quelqu’un a calculé que 5,2 − 3,8 = 2,6. Combien cela fait-il vraiment ?',
+                answer: '1,4',
+                why: 'On ne peut pas retirer 8 dixièmes de 2 — on emprunte une unité, soit 10 dixièmes : 12 − 8 = 4. Il reste 4 unités, et 4 − 3 = 1. On obtient 1,4. La réponse 2,6 vient d’une soustraction à l’envers : 8 − 2.'
+            },
+            legend: {
+                task: 'Un coureur a fait le 100 mètres en 12,3 secondes, et son adversaire a été plus rapide de 0,7 seconde. En combien de secondes l’adversaire a-t-il couru ?',
+                answer: 'En 11,6 secondes',
+                why: 'Plus rapide veut dire moins de temps, donc 0,7 ne s’ajoute pas, il se soustrait : 12,3 − 0,7. Retire 0,3 — on arrive pile à 12, puis encore 0,4 — on obtient 11,6.'
+            }
+        },
+        'decimal+:sub:3': {
+            diamond: {
+                task: 'Combien font 0,6 − 0,06 ?',
+                answer: '0,54',
+                why: 'Les six ne sont pas au même rang : dans 0,6, ce sont six dixièmes ; dans 0,06, six centièmes. Ajoute un zéro : 0,60 − 0,06 = 0,54. La réponse « 0 » est un piège : on a retiré un six d’un six sans voir qu’ils sont à des rangs différents.'
+            },
+            legend: {
+                task: 'Un sauteur en hauteur a franchi 1,85 mètre, et le record du monde est de 2,45 mètres. Combien lui a-t-il manqué pour atteindre le record ?',
+                answer: '0,6 mètre',
+                why: 'Compte vers le haut à partir du plus petit nombre : de 1,85 à 2, c’est 0,15 ; de 2 à 2,45, encore 0,45. Ensemble, 0,6 mètre. Passer par un nombre rond est plus simple de tête que de soustraire rang par rang.'
+            }
+        },
+        'decimal+:sub:4': {
+            diamond: {
+                task: 'De combien 0,50 est-il plus grand que 0,5 ?',
+                answer: 'Pas du tout',
+                why: 'Un zéro à la fin, après la virgule, ne change rien : 0,50 fait cinquante centièmes ; 0,5 fait cinq dixièmes — et c’est la même chose. C’est pourquoi on peut ajouter un zéro quand il faut aligner les rangs.'
+            },
+            legend: {
+                task: 'Combien de fois faut-il soustraire 0,25 de 1 pour obtenir zéro ?',
+                answer: '4 fois',
+                why: '1 − 0,25 = 0,75 ; on passe ensuite à 0,5 puis à 0,25 et enfin à 0 — quatre fois. C’est justement une division : une unité contient quatre quarts, 1 ÷ 0,25 = 4.'
+            }
+        },
+        'decimal+:sub:5': {
+            diamond: {
+                task: 'Sans calculer exactement : 8,03 − 2,97 fait-il plus ou moins que 5 ?',
+                answer: 'Plus',
+                why: '8,03 dépasse un peu 8, et 2,97 n’atteint pas tout à fait 3. On retire un peu moins d’un peu plus — l’écart dépasse donc 8 − 3 = 5. Exactement, cela fait 5,06.'
+            },
+            legend: {
+                task: '1 − 0,9 = 0,1 et 1 − 0,99 = 0,01. Combien font 1 − 0,999 ?',
+                answer: '0,001',
+                why: 'Chaque nouveau neuf rend l’écart avec l’unité dix fois plus petit : il manque un dixième, puis un centième, puis un millième. Autant de neuf après la virgule, autant de chiffres après la virgule dans la réponse, et le dernier vaut un.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · УМНОЖЕНИЕ =========
+        'decimal+:mul:1': {
+            diamond: {
+                task: 'Combien font 0,3 × 0,3 ?',
+                answer: '0,09',
+                why: '3 × 3 = 9, et la réponse a autant de chiffres après la virgule que les deux nombres réunis : 1 + 1 = 2. On obtient 0,09 — neuf centièmes. La réponse 0,9 est un piège : un dixième de trois dixièmes, ce sont déjà des centièmes.'
+            },
+            legend: {
+                task: 'Qu’est-ce qui est plus grand : 8 × 0,9 ou simplement 8 ?',
+                answer: 'Simplement 8',
+                why: 'Multiplier par 0,9, c’est prendre neuf dixièmes de huit — moins que les huit en entier : 7,2. La multiplication n’agrandit un nombre que si on le multiplie par un nombre plus grand que un.'
+            }
+        },
+        'decimal+:mul:2': {
+            diamond: {
+                task: 'Combien font 0,07 × 100 ?',
+                answer: '7',
+                why: 'Multiplier par 100, c’est déplacer la virgule de deux rangs vers la droite : 0,07 → 0,7 → 7. La virgule fait autant de pas que cent a de zéros.'
+            },
+            legend: {
+                task: 'Une petite tortue avance de 0,3 mètre par seconde. Combien de mètres parcourt-elle en 20 secondes ?',
+                answer: '6 mètres',
+                why: 'En 10 secondes, dix fois plus qu’en une : 3 mètres. En 20 secondes, deux fois plus : 6 mètres. Multiplier par 20 se fait bien en deux étapes : par 10, puis par 2.'
+            }
+        },
+        'decimal+:mul:3': {
+            diamond: {
+                task: 'Quel nombre faut-il multiplier par 0,1 pour obtenir 7 ?',
+                answer: '70',
+                why: 'Multiplier par 0,1, c’est prendre le dixième, donc rendre dix fois plus petit. Pour que le dixième vaille 7, le nombre lui-même doit être dix fois plus grand : 70.'
+            },
+            legend: {
+                task: 'Comment multiplier vite 46 par 0,5 ?',
+                answer: '23',
+                why: '0,5, c’est une moitié. Multiplier par 0,5, c’est prendre la moitié : 46 ÷ 2 = 23. C’est plus rapide que de multiplier puis de chercher où mettre la virgule.'
+            }
+        },
+        'decimal+:mul:4': {
+            diamond: {
+                task: '23 × 14 = 322. Combien font 2,3 × 1,4 ?',
+                answer: '3,22',
+                why: 'Les chiffres sont les mêmes, donc ceux de la réponse aussi — 322. Il reste à placer la virgule : chaque nombre a un chiffre après la virgule, la réponse en a deux. Inutile de tout recalculer.'
+            },
+            legend: {
+                task: 'Combien font 1,1 × 1,1 ?',
+                answer: '1,21',
+                why: 'Dans 1,1 × 1,1, il y a 1,1 en entier et encore un dixième de 1,1 : 1,1 + 0,11 = 1,21. La réponse 1,2 est un piège : on l’obtient en ajoutant 0,1 au lieu du dixième de 1,1.'
+            }
+        },
+        'decimal+:mul:5': {
+            diamond: {
+                task: 'La lumière parcourt environ 300 000 kilomètres par seconde. Combien de kilomètres parcourt-elle en 0,01 seconde ?',
+                answer: '3000 kilomètres',
+                why: 'Multiplier par 0,01, c’est diviser par 100 : 300 000 ÷ 100 = 3000. En un centième de seconde, la lumière parcourt autant qu’un avion de ligne en plus de trois heures.'
+            },
+            legend: {
+                task: 'Quel nombre multiplié par lui-même donne 0,49 ?',
+                answer: '0,7',
+                why: '7 × 7 = 49. Quand on multiplie un nombre par lui-même, le nombre de chiffres après la virgule double. 0,49 en a deux, donc le nombre cherché en a un : 0,7. Vérification : 0,7 × 0,7 = 0,49.'
+            }
+        },
+        // ========== ДЕСЯТИЧНЫЕ · ДЕЛЕНИЕ ==========
+        'decimal+:div:1': {
+            diamond: {
+                task: 'Combien font 0,6 ÷ 3 ?',
+                answer: '0,2',
+                why: 'Six dixièmes divisés par 3, ce sont deux dixièmes, comme 6 ÷ 3 = 2, mais en dixièmes. La réponse 2 est un piège : la virgule s’est perdue, alors que la réponse ne peut pas dépasser 0,6.'
+            },
+            legend: {
+                task: 'Une planche de 1,2 mètre a été sciée en 4 morceaux égaux. Quelle est la longueur de chaque morceau ?',
+                answer: '0,3 mètre',
+                why: '1,2 mètre, ce sont 12 dixièmes de mètre. 12 ÷ 4 = 3, donc chaque morceau mesure 3 dixièmes, soit 0,3 mètre. En dixièmes, on compte comme avec des nombres entiers.'
+            }
+        },
+        'decimal+:div:2': {
+            diamond: {
+                task: 'On a partagé trois tablettes de chocolat équitablement entre quatre personnes. Quelle part de tablette chaque personne a-t-elle reçue ?',
+                answer: '0,75 tablette',
+                why: 'Chaque tablette est coupée en quatre parts, et chaque personne reçoit une part de chaque tablette — trois quarts. 3 ÷ 4 = 0,75 : moins d’une tablette, mais plus de la moitié.'
+            },
+            legend: {
+                task: 'Combien de minutes y a-t-il dans 90 secondes ?',
+                answer: '1,5 minute',
+                why: 'Une minute compte 60 secondes : 90 ÷ 60 = 1,5. Une minute et demie, c’est une minute et encore une moitié, 30 secondes. La réponse « 1,30 » est un piège : les secondes ne sont pas des centièmes de minute — une minute en compte soixante, pas cent.'
+            }
+        },
+        'decimal+:div:3': {
+            diamond: {
+                task: 'Combien de fois 1 est-il plus grand que 0,01 ?',
+                answer: '100 fois',
+                why: '0,01 est un centième : une unité contient cent de ces parts. Chaque pas de la virgule, c’est dix fois, et ici il y a deux pas : 10 × 10 = 100.'
+            },
+            legend: {
+                task: 'Pour 4 portions de crêpes, il faut 0,6 kilogramme de farine. Combien de farine faut-il pour une portion ?',
+                answer: '0,15 kilogramme',
+                why: 'Six dixièmes ne se divisent pas exactement par quatre — passe aux centièmes : 0,6 = 0,60, soit 60 centièmes. 60 ÷ 4 = 15, donc 0,15 kilogramme. Quand la division ne tombe pas juste, ajoute un zéro et continue.'
+            }
+        },
+        'decimal+:div:4': {
+            diamond: {
+                task: 'Combien font 6,06 ÷ 6 ?',
+                answer: '1,01',
+                why: 'On divise rang par rang : 6 unités ÷ 6 = 1, 0 dixième ÷ 6 = 0, 6 centièmes ÷ 6 = 1. On obtient 1,01. La réponse 1,1 est un piège : le zéro des dixièmes s’est perdu, or c’est lui qui garde le un à la place des centièmes.'
+            },
+            legend: {
+                task: 'Avec un ruban de 2 mètres, on fait des nœuds, et chaque nœud demande 0,3 mètre. Combien de nœuds peut-on faire ?',
+                answer: '6 nœuds',
+                why: '2 ÷ 0,3 revient à 20 ÷ 3 : six nœuds prennent 1,8 mètre, et il reste 0,2 mètre — pas assez pour un septième. La réponse est donc 6, et non 6,7 ni 7 : un nœud doit être entier.'
+            }
+        },
+        'decimal+:div:5': {
+            diamond: {
+                task: 'Combien font 1 ÷ 8 ?',
+                answer: '0,125',
+                why: 'Diviser par 8, c’est diviser trois fois par deux : 1 → 0,5 → 0,25 → 0,125. À chaque fois, le cinq de la fin se partage en deux et ajoute un chiffre après la virgule.'
+            },
+            legend: {
+                task: 'Qu’est-ce qui est plus grand : 0,3 ÷ 0,6 ou 0,6 ÷ 0,3 ?',
+                answer: '0,6 ÷ 0,3',
+                why: '0,6 ÷ 0,3 = 2 : trois dixièmes tiennent deux fois dans six dixièmes. Et 0,3 ÷ 0,6 = 0,5 : trois dixièmes ne font que la moitié de six. On a échangé les nombres — et la réponse s’est retournée : 2 et 0,5.'
+            }
         }
     },
     de: {
@@ -2003,6 +2739,250 @@ window.CHALLENGE_CONTENT = {
                 task: 'Eine Schuld von 960 Euro wird unter Leuten aufgeteilt. Es sind mehr als einer und weniger als zehn. Welche größte Schuld kann einen treffen?',
                 answer: '−480 Euro',
                 why: 'Je weniger Leute, desto mehr bekommt jeder, und am wenigsten sind zwei. Eine Schuld bleibt eine Schuld: 960 auf zwei sind je 480 im Minus. Einen Einzelnen hat man ausgeschlossen — er würde einfach die ganze Schuld übernehmen.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · СЛОЖЕНИЕ =========
+        'decimal+:add:1': {
+            diamond: {
+                task: 'Wie viel ist 0,5 + 0,5?',
+                answer: '1',
+                why: 'Fünf Zehntel und noch fünf Zehntel sind zehn Zehntel, also ein Ganzes. Die Antwort „0,10“ ist eine häufige Falle: Sie entsteht, wenn man die Ziffern nach dem Komma wie eigene Zahlen addiert.'
+            },
+            legend: {
+                task: 'Bis zum Blatt ist es 1 Meter. Eine Schnecke kroch 0,3 Meter, ruhte sich aus und kroch noch 0,4 Meter. Wie weit hat sie es noch?',
+                answer: '0,3 Meter',
+                why: '0,3 + 0,4 = 0,7 — sieben Zehntel Meter. Bis zum ganzen Meter fehlen drei Zehntel: 0,7 + 0,3 = 1. Übrig ist genau so viel, wie die Schnecke beim ersten Mal gekrochen ist.'
+            }
+        },
+        'decimal+:add:2': {
+            diamond: {
+                task: 'Die Zahl 1,9 wurde um 0,1 vergrößert und danach noch einmal um 0,1. Was kommt heraus?',
+                answer: '2,1',
+                why: '1,9 + 0,1 = 2: Neun Zehntel und ein Zehntel ergeben ein Ganzes. Noch ein Zehntel dazu — und es wird 2,1. Die Antwort „1,11“ ist eine Falle: Sie entsteht, wenn man 9 + 1 = 10 direkt hinter das Komma schreibt.'
+            },
+            legend: {
+                task: 'Drei Kampfrichter gaben einer Turnerin 9,6; 9,8 und 9,6 Punkte. Wie viele Punkte sind das zusammen?',
+                answer: '29 Punkte',
+                why: 'Jeder Wertung fehlt etwas bis 10: 0,4; 0,2 und 0,4 — zusammen genau 1. Also ist die Summe um eins kleiner als 10 + 10 + 10: 30 − 1 = 29. Den Rest bis zur runden Zahl zu zählen geht schneller, als alles der Reihe nach zu addieren.'
+            }
+        },
+        'decimal+:add:3': {
+            diamond: {
+                task: 'Welche Ziffer fehlt in 0,_7 + 0,26 = 0,63?',
+                answer: '3',
+                why: 'Hundertstel: 7 + 6 = 13 — man schreibt 3, und ein Zehntel wandert zu den Zehnteln. Zehntel: die fehlende Ziffer, die 2 und der Übertrag ergeben zusammen 6, also fehlt eine Drei. Probe: 0,37 + 0,26 = 0,63.'
+            },
+            legend: {
+                task: 'Wie viel muss man zu 0,75 addieren, damit 0,8 herauskommt?',
+                answer: '0,05',
+                why: 'Häng eine Null an: 0,8 = 0,80. Von 75 bis 80 Hundertstel fehlen 5 Hundertstel. Die Zahl 0,75 sieht nur größer aus als 0,8: Nach dem Komma vergleicht man Stelle für Stelle und nicht die Ziffern wie eine große Zahl.'
+            }
+        },
+        'decimal+:add:4': {
+            diamond: {
+                task: 'Was kommt heraus, wenn man 3; 0,3 und 0,03 addiert?',
+                answer: '3,33',
+                why: 'Jede Zahl steht an ihrer eigenen Stelle: 3 bei den Einern, 0,3 bei den Zehnteln, 0,03 bei den Hundertsteln. Die Ziffern rücken einfach an ihre Plätze. Schreibt man eine der Zahlen unter die falsche Stelle, kommt 3,6 oder 0,36 heraus — dann wurden die falschen Stellen addiert.'
+            },
+            legend: {
+                task: 'Eine Sonnenblume wuchs in einer Woche um 0,15 Meter und in der nächsten um weitere 0,2 Meter. Um wie viele Zentimeter wuchs sie in den zwei Wochen?',
+                answer: 'Um 35 Zentimeter',
+                why: 'Häng eine Null an: 0,15 + 0,20 = 0,35 Meter. Ein Meter hat hundert Zentimeter, also sind Hundertstel eines Meters genau Zentimeter: 0,35 Meter sind 35 Zentimeter. Die Antwort „0,17“ heißt: Es wurden die falschen Stellen addiert.'
+            }
+        },
+        'decimal+:add:5': {
+            diamond: {
+                task: 'Wie rechnet man schnell 2,75 + 3,5 + 1,25 + 0,5?',
+                answer: '8',
+                why: 'Zuerst das, was Ganze ergibt: 2,75 + 1,25 = 4 und 3,5 + 0,5 = 4. Zusammen 8. Addieren kann man in jeder Reihenfolge — wähle die, bei der runde Zahlen herauskommen.'
+            },
+            legend: {
+                task: 'Zwei Zahlen ergeben zusammen genau 10. Eine davon ist 6,37. Wie heißt die andere?',
+                answer: '3,63',
+                why: 'Einer und Zehntel ergänzt man bis 9, die letzte Ziffer bis 10: 6 + 3 = 9, 3 + 6 = 9, 7 + 3 = 10. Der überzählige Zehner aus der letzten Ziffer wandert weiter und macht aus den Neunen eine runde 10. Probe: 6,37 + 3,63 = 10.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · ВЫЧИТАНИЕ =========
+        'decimal+:sub:1': {
+            diamond: {
+                task: 'Wie viel ist 3,7 − 3?',
+                answer: '0,7',
+                why: '3 sind Einer, und Einer zieht man von Einern ab: 3 − 3 = 0, die sieben Zehntel bleiben. Die Antwort 3,4 ist eine Falle: Die Drei wurde von den Zehnteln abgezogen, also von der falschen Stelle.'
+            },
+            legend: {
+                task: 'Morgens zeigte das Thermometer 4,5 Grad über null, abends 1,5. Um wie viel Grad ist es kälter geworden?',
+                answer: 'Um 3 Grad',
+                why: 'Nach dem Komma haben beide Zahlen fünf Zehntel — beim Abziehen heben sie sich auf, und es bleibt der Unterschied der Einer: 4 − 1 = 3. Wenn die Stellen nach dem Komma gleich sind, muss man sie nicht ausrechnen.'
+            }
+        },
+        'decimal+:sub:2': {
+            diamond: {
+                task: 'Jemand hat ausgerechnet, dass 5,2 − 3,8 = 2,6 ist. Wie viel ist es wirklich?',
+                answer: '1,4',
+                why: 'Von 2 Zehnteln kann man 8 nicht abziehen — man borgt sich ein Ganzes, das sind 10 Zehntel: 12 − 8 = 4. Es bleiben 4 Ganze, und 4 − 3 = 1. Das ergibt 1,4. Die Antwort 2,6 entsteht, wenn man andersherum abzieht: 8 − 2.'
+            },
+            legend: {
+                task: 'Ein Läufer lief 100 Meter in 12,3 Sekunden, sein Gegner war 0,7 Sekunden schneller. In wie vielen Sekunden lief der Gegner?',
+                answer: 'In 11,6 Sekunden',
+                why: 'Schneller heißt weniger Zeit, deshalb wird 0,7 nicht addiert, sondern abgezogen: 12,3 − 0,7. Zieh 0,3 ab — dann ist es genau 12, und noch 0,4 — das ergibt 11,6.'
+            }
+        },
+        'decimal+:sub:3': {
+            diamond: {
+                task: 'Wie viel ist 0,6 − 0,06?',
+                answer: '0,54',
+                why: 'Die Sechsen stehen an verschiedenen Stellen: In 0,6 sind es sechs Zehntel, in 0,06 sechs Hundertstel. Häng eine Null an: 0,60 − 0,06 = 0,54. Die Antwort „0“ ist eine Falle: Da wurde eine Sechs von einer Sechs abgezogen, ohne zu merken, dass sie an verschiedenen Stellen stehen.'
+            },
+            legend: {
+                task: 'Ein Hochspringer hat 1,85 Meter geschafft, der Weltrekord liegt bei 2,45 Metern. Wie viel hat ihm zum Rekord gefehlt?',
+                answer: '0,6 Meter',
+                why: 'Zähl vom kleineren Wert aufwärts: von 1,85 bis 2 sind es 0,15, von 2 bis 2,45 noch 0,45. Zusammen 0,6 Meter. Über eine runde Zahl zu zählen ist im Kopf leichter, als Stelle für Stelle abzuziehen.'
+            }
+        },
+        'decimal+:sub:4': {
+            diamond: {
+                task: 'Um wie viel ist 0,50 größer als 0,5?',
+                answer: 'Um gar nichts',
+                why: 'Eine Null am Ende nach dem Komma ändert nichts: 0,50 sind fünfzig Hundertstel, 0,5 sind fünf Zehntel — und das ist dasselbe. Deshalb darf man eine Null anhängen, wenn die Stellen genau untereinander stehen sollen.'
+            },
+            legend: {
+                task: 'Wie oft muss man 0,25 von 1 abziehen, bis null herauskommt?',
+                answer: '4-mal',
+                why: '1 − 0,25 = 0,75; danach kommen 0,5 und 0,25 und schließlich 0 — viermal. Genau das ist Teilen: In ein Ganzes passen vier Viertel, 1 ÷ 0,25 = 4.'
+            }
+        },
+        'decimal+:sub:5': {
+            diamond: {
+                task: 'Ohne genau zu rechnen: Ist 8,03 − 2,97 mehr oder weniger als 5?',
+                answer: 'Mehr',
+                why: '8,03 ist etwas mehr als 8, und 2,97 etwas weniger als 3. Von etwas mehr wird etwas weniger abgezogen — der Unterschied ist also größer als 8 − 3 = 5. Genau sind es 5,06.'
+            },
+            legend: {
+                task: '1 − 0,9 = 0,1 und 1 − 0,99 = 0,01. Wie viel ist 1 − 0,999?',
+                answer: '0,001',
+                why: 'Jede neue Neun bringt die Zahl zehnmal näher an die Eins: Es fehlt ein Zehntel, dann ein Hundertstel, dann ein Tausendstel. So viele Neunen nach dem Komma, so viele Stellen hat die Antwort, und die letzte davon ist eine Eins.'
+            }
+        },
+        // ========= ДЕСЯТИЧНЫЕ · УМНОЖЕНИЕ =========
+        'decimal+:mul:1': {
+            diamond: {
+                task: 'Wie viel ist 0,3 × 0,3?',
+                answer: '0,09',
+                why: '3 × 3 = 9, und die Antwort hat so viele Nachkommastellen wie beide Zahlen zusammen: 1 + 1 = 2. Das ergibt 0,09 — neun Hundertstel. Die Antwort 0,9 ist eine Falle: Ein Zehntel von drei Zehnteln sind schon Hundertstel.'
+            },
+            legend: {
+                task: 'Was ist größer: 8 × 0,9 oder einfach 8?',
+                answer: 'Einfach 8',
+                why: 'Mit 0,9 malnehmen heißt neun Zehntel von acht nehmen, und das ist weniger als die ganzen acht: 7,2. Malnehmen macht eine Zahl nur dann größer, wenn man mit einer Zahl größer als eins malnimmt.'
+            }
+        },
+        'decimal+:mul:2': {
+            diamond: {
+                task: 'Wie viel ist 0,07 × 100?',
+                answer: '7',
+                why: 'Mit 100 malnehmen heißt, das Komma um zwei Stellen nach rechts zu schieben: 0,07 → 0,7 → 7. Das Komma macht so viele Schritte, wie Hundert Nullen hat.'
+            },
+            legend: {
+                task: 'Eine kleine Schildkröte kriecht 0,3 Meter pro Sekunde. Wie viele Meter schafft sie in 20 Sekunden?',
+                answer: '6 Meter',
+                why: 'In 10 Sekunden zehnmal so viel wie in einer: 3 Meter. In 20 Sekunden doppelt so viel: 6 Meter. Mit 20 malnehmen geht bequem in zwei Schritten: mit 10 und mit 2.'
+            }
+        },
+        'decimal+:mul:3': {
+            diamond: {
+                task: 'Welche Zahl muss man mit 0,1 malnehmen, damit 7 herauskommt?',
+                answer: '70',
+                why: 'Mit 0,1 malnehmen heißt, ein Zehntel nehmen, also zehnmal kleiner machen. Damit ein Zehntel 7 ist, muss die Zahl selbst zehnmal größer sein: 70.'
+            },
+            legend: {
+                task: 'Wie rechnet man schnell 46 mal 0,5?',
+                answer: '23',
+                why: '0,5 ist eine Hälfte. Mit 0,5 malnehmen heißt, die Hälfte nehmen: 46 ÷ 2 = 23. Das geht schneller, als erst zu multiplizieren und dann den Platz für das Komma zu suchen.'
+            }
+        },
+        'decimal+:mul:4': {
+            diamond: {
+                task: '23 × 14 = 322. Wie viel ist 2,3 × 1,4?',
+                answer: '3,22',
+                why: 'Die Ziffern sind dieselben, also auch die Ziffern der Antwort — 322. Bleibt nur das Komma: Jede Zahl hat eine Nachkommastelle, die Antwort hat zwei. Neu rechnen muss man nicht.'
+            },
+            legend: {
+                task: 'Wie viel ist 1,1 × 1,1?',
+                answer: '1,21',
+                why: '1,1 × 1,1 ist die ganze 1,1 und noch ein Zehntel von 1,1: 1,1 + 0,11 = 1,21. Die Antwort 1,2 ist eine Falle: Sie entsteht, wenn man 0,1 addiert statt eines Zehntels von 1,1.'
+            }
+        },
+        'decimal+:mul:5': {
+            diamond: {
+                task: 'Licht legt etwa 300.000 Kilometer pro Sekunde zurück. Wie viele Kilometer schafft es in 0,01 Sekunden?',
+                answer: '3000 Kilometer',
+                why: 'Mit 0,01 malnehmen ist dasselbe wie durch 100 teilen: 300.000 ÷ 100 = 3000. In einer Hundertstelsekunde legt Licht so viel zurück wie ein Passagierflugzeug in mehr als drei Stunden.'
+            },
+            legend: {
+                task: 'Welche Zahl ergibt mit sich selbst malgenommen 0,49?',
+                answer: '0,7',
+                why: '7 × 7 = 49. Wenn man eine Zahl mit sich selbst malnimmt, verdoppelt sich die Zahl der Nachkommastellen. 0,49 hat zwei, also hat die gesuchte Zahl eine: 0,7. Probe: 0,7 × 0,7 = 0,49.'
+            }
+        },
+        // ========== ДЕСЯТИЧНЫЕ · ДЕЛЕНИЕ ==========
+        'decimal+:div:1': {
+            diamond: {
+                task: 'Wie viel ist 0,6 ÷ 3?',
+                answer: '0,2',
+                why: 'Sechs Zehntel geteilt durch 3 sind zwei Zehntel, wie 6 ÷ 3 = 2, nur eben in Zehnteln. Die Antwort 2 ist eine Falle: Das Komma ist verloren gegangen, dabei kann die Antwort nicht größer als 0,6 sein.'
+            },
+            legend: {
+                task: 'Ein 1,2 Meter langes Brett wurde in 4 gleiche Teile zersägt. Wie lang ist jedes Teil?',
+                answer: '0,3 Meter',
+                why: '1,2 Meter sind 12 Zehntel Meter. 12 ÷ 4 = 3, also ist jedes Teil 3 Zehntel lang, das heißt 0,3 Meter. Mit Zehnteln rechnet man genauso wie mit ganzen Zahlen.'
+            }
+        },
+        'decimal+:div:2': {
+            diamond: {
+                task: 'Drei Tafeln Schokolade wurden gerecht unter vier Leuten aufgeteilt. Wie viel Schokolade bekam jede Person?',
+                answer: '0,75 Tafeln',
+                why: 'Jede Tafel wird in vier Stücke geteilt, und jede Person bekommt von jeder Tafel ein Stück — drei Viertel. 3 ÷ 4 = 0,75: weniger als eine Tafel, aber mehr als die Hälfte.'
+            },
+            legend: {
+                task: 'Wie viele Minuten sind 90 Sekunden?',
+                answer: '1,5 Minuten',
+                why: 'Eine Minute hat 60 Sekunden: 90 ÷ 60 = 1,5. Anderthalb Minuten sind eine Minute und noch eine halbe, also 30 Sekunden. Die Antwort „1,30“ ist eine Falle: Sekunden sind keine Hundertstel einer Minute — eine Minute hat sechzig davon, nicht hundert.'
+            }
+        },
+        'decimal+:div:3': {
+            diamond: {
+                task: 'Wievielmal größer ist 1 als 0,01?',
+                answer: '100-mal',
+                why: '0,01 ist ein Hundertstel: Ein Ganzes enthält hundert solcher Teile. Jeder Schritt des Kommas bedeutet zehnmal, und hier sind es zwei Schritte: 10 × 10 = 100.'
+            },
+            legend: {
+                task: 'Für 4 Portionen Pfannkuchen braucht man 0,6 Kilogramm Mehl. Wie viel Mehl braucht man für eine Portion?',
+                answer: '0,15 Kilogramm',
+                why: 'Sechs Zehntel lassen sich nicht glatt durch vier teilen — geh zu den Hundertsteln über: 0,6 = 0,60, das sind 60 Hundertstel. 60 ÷ 4 = 15, also 0,15 Kilogramm. Wenn es nicht aufgeht, häng eine Null an und teile weiter.'
+            }
+        },
+        'decimal+:div:4': {
+            diamond: {
+                task: 'Wie viel ist 6,06 ÷ 6?',
+                answer: '1,01',
+                why: 'Man teilt Stelle für Stelle: 6 Einer ÷ 6 = 1, 0 Zehntel ÷ 6 = 0, 6 Hundertstel ÷ 6 = 1. Das ergibt 1,01. Die Antwort 1,1 ist eine Falle: Die Null bei den Zehnteln ist verloren gegangen, dabei hält gerade sie die Eins an der Hundertstelstelle.'
+            },
+            legend: {
+                task: 'Aus einem 2 Meter langen Band werden Schleifen gemacht, für jede braucht man 0,3 Meter. Wie viele Schleifen werden es?',
+                answer: '6 Schleifen',
+                why: '2 ÷ 0,3 ist dasselbe wie 20 ÷ 3: Sechs Schleifen verbrauchen 1,8 Meter, und 0,2 Meter bleiben übrig — zu wenig für eine siebte. Deshalb ist die Antwort 6, nicht 6,7 und nicht 7: Eine Schleife muss ganz sein.'
+            }
+        },
+        'decimal+:div:5': {
+            diamond: {
+                task: 'Wie viel ist 1 ÷ 8?',
+                answer: '0,125',
+                why: 'Durch 8 teilen heißt dreimal halbieren: 1 → 0,5 → 0,25 → 0,125. Jedes Mal wird die Fünf am Ende halbiert und bringt eine Nachkommastelle mehr.'
+            },
+            legend: {
+                task: 'Was ist größer: 0,3 ÷ 0,6 oder 0,6 ÷ 0,3?',
+                answer: '0,6 ÷ 0,3',
+                why: '0,6 ÷ 0,3 = 2: Drei Zehntel passen zweimal in sechs Zehntel. Und 0,3 ÷ 0,6 = 0,5: Drei Zehntel sind nur die Hälfte von sechs. Zahlen vertauscht — und die Antwort hat sich umgedreht: 2 und 0,5.'
             }
         }
     }
