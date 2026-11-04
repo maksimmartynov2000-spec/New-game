@@ -302,10 +302,22 @@ catch (e) {
     await page.evaluate(`closeCollectionModal(); window.MAINTENANCE = { until: null }; renderMaintenance(); null`);
 
     console.log('\nНа английском');
-    await page.evaluate(`localStorage.setItem('mathCitadelLang_v1', 'en'); null`);
-    await page.reload();
-    await boot();
+    // Запись в localStorage браузер сохраняет не мгновенно, и перезагрузка сразу после
+    // неё изредка (около 1 раза из 10) поднимала страницу со старым языком и без медалей
+    // KT1 — тест падал целиком на чтении задачи, которой нет. Поэтому язык проверяется
+    // после загрузки, а медали ставятся заново: unlock повторно ничего не портит.
+    for (let attempt = 0; attempt < 5; attempt++) {
+        await page.evaluate(`localStorage.setItem('mathCitadelLang_v1', 'en'); null`);
+        await page.waitForTimeout(100 * (attempt + 1));
+        await page.reload();
+        await boot();
+        if (await page.evaluate(`LANG`) === 'en') break;
+    }
+    await check('после перезагрузки язык английский', async () => eq(await page.evaluate(`LANG`), 'en', 'язык'));
     await as('KT1', 'solo');
+    await grant('integer+:add:1', 5);
+    await grant('integer+:mul:3', 4);
+    await grant('integer+:sub:2', 4, ['s', 'a']);
     await open();
     await tab('collectionTabTasks');
     const en = await page.evaluate(`({ tab: document.getElementById('collectionTabTasks').innerText,
