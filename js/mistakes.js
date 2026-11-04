@@ -37,6 +37,11 @@ const MISTAKE_LABELS = {
     'не перевернул дробь':         t('При делении вторая дробь не перевёрнута'),
     'забыл целую часть':           t('Целая часть потеряна'),
     'ошибся в переводе':           t('Ошибка при переводе дроби'),
+    // Пять ошибок перевода (решение репетитора 04.11). «Целая часть потеряна» — выше.
+    'ошибся в целой части':        t('Мимо на одну целую'),
+    'переставил целую и остаток':  t('Целая часть и остаток поменялись местами'),
+    'не прибавил числитель':       t('Целые переведены в доли, а числитель не прибавлен'),
+    'сложил целую и числитель':    t('Целая часть не умножена на знаменатель'),
     'сократил не до конца':        t('Сокращено не до конца'),
     'ошибся в сокращении':         t('Ошибка в сокращении'),
     'ошибся в знаке':              t('Ошибка в знаке'),
@@ -84,6 +89,11 @@ const MISTAKE_SHORT = {
     'не перевернул дробь':         t('без переворота'),
     'забыл целую часть':           t('без целой части'),
     'ошибся в переводе':           t('перевод дроби'),
+    'ошибся в целой части':        t('мимо на целую'),
+    // Утверждено «целая и остаток местами», но это 23 знака при пределе 22. Временно.
+    'переставил целую и остаток':  t('поменялись местами'),
+    'не прибавил числитель':       t('без числителя'),
+    'сложил целую и числитель':    t('без умножения'),
     'сократил не до конца':        t('не до конца'),
     'ошибся в сокращении':         t('сокращение'),
     'ошибся в знаке':              t('знак'),
@@ -399,6 +409,29 @@ function classifyZeroInExample(opKey, problem, chosen) {
 }
 
 // «Дробь от числа»: модели ошибок здесь свои, см. buildFracOfNumberDistractors.
+// «В смешанное» и «В неправильную». Варианты ответа построены как конкретные ошибки
+// (buildMixedConvertDistractors), и разбор узнаёт их по величине выбранной дроби.
+// Названия утвердил репетитор 04.11. Вариант, не похожий ни на одну из этих ошибок,
+// остаётся «ошибкой при переводе» — как было для всех до этой правки.
+function classifyMixedConvert(problem, correct, chosen) {
+    if (!isFrac(chosen) || !isFrac(correct)) return null;
+    const { whole, properNum, den, direction } = problem;
+    if (!(whole >= 1) || !(properNum >= 1) || !(den >= 2)) return null;
+    const is = (num) => chosen.num * den === num * chosen.den;
+    if (direction === 'toMixed') {
+        if (is(properNum)) return 'забыл целую часть';
+        // Перестановку видно, только когда переставленная запись — смешанное число с
+        // правильной дробью: у 3 1/2 она дала бы «1 3/2», а на экране это 2 1/2.
+        if (whole < den && whole !== properNum && is(properNum * den + whole)) return 'переставил целую и остаток';
+        if (is((whole - 1) * den + properNum) || is((whole + 1) * den + properNum)) return 'ошибся в целой части';
+        return null;
+    }
+    if (is(whole * den)) return 'не прибавил числитель';
+    if (is(whole + properNum)) return 'сложил целую и числитель';
+    if (is(correct.num + den) || is(correct.num - den)) return 'ошибся в целой части';
+    return null;
+}
+
 function classifyFracOfNumber(problem, correct, chosen) {
     if (typeof chosen !== 'number') return null;
     const { fracNum, N, k } = problem;
@@ -427,7 +460,9 @@ function classifyMistake(meta, problem, correct, chosen) {
                 if (sameValue(chosen, correct)) return 'сократил не до конца';
                 return 'ошибся в сокращении';
             }
-            if (opKey === 'toMixed' || opKey === 'toImproper') return 'ошибся в переводе';
+            if (opKey === 'toMixed' || opKey === 'toImproper') {
+                return classifyMixedConvert(problem, correct, chosen) || 'ошибся в переводе';
+            }
             if (opKey === 'fracOfNumber') return classifyFracOfNumber(problem, correct, chosen) || 'другая ошибка';
             return classifyFractionArith(problem, correct, chosen) || 'другая ошибка';
         }
