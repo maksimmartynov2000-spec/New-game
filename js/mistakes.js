@@ -149,6 +149,9 @@ function classifyFractionArith(problem, correct, chosen) {
         ? { num: f1.num - f2.num, den: f1.den - f2.den }
         : { num: f1.num + f2.num, den: f1.den + f2.den };
     if (flat.den !== 0 && (sameFrac(chosen, flat) || sameValue(chosen, flat))) return 'сложил знаменатели';
+    // В вычитании с одинаковыми знаменателями «в лоб» даёт ноль в знаменателе, и доли
+    // пропадают совсем: 5/7 − 2/7 = 3. Это та же ошибка — знаменатели вычтены тоже.
+    if (opKey === 'sub' && f1.den === f2.den && chosen.den === 1 && chosen.num === f1.num - f2.num) return 'сложил знаменатели';
 
     // Деление без переворота второй дроби — то же самое, что умножение.
     if (opKey === 'div' && f2.num !== 0) {
@@ -187,6 +190,10 @@ function classifyFractionArith(problem, correct, chosen) {
                 : opposite === 'mul' ? fracMul(f1, f2)
                 : (f2.num !== 0 ? fracDiv(f1, f2) : null);
             if (other && (sameFrac(chosen, other) || sameValue(chosen, other))) return 'перепутал действие';
+            // Сложение с одинаковыми знаменателями, где второе число больше: вычитая,
+            // из большего вычитают меньшее (1/7 + 3/7 → 2/7).
+            if (other && opposite === 'sub' && f1.den === f2.den && other.num < 0 && chosen.num > 0
+                && sameValue(chosen, { num: -other.num, den: other.den })) return 'перепутал действие';
         } catch (e) { /* обратное действие неопределено — просто идём дальше */ }
     }
 
@@ -194,6 +201,11 @@ function classifyFractionArith(problem, correct, chosen) {
     const m = toMixedParts(correct);
     if (m && m.whole !== 0 && m.remNum !== 0
         && Math.abs(chosen.num) === m.remNum && chosen.den === m.den) return 'забыл целую часть';
+
+    // Сложение и вычитание с одинаковыми знаменателями: знаменатель тот же, числитель
+    // на единицу больше или меньше — промах в счёте долей, а не в правиле: 3/7 + 1/7 = 5/7.
+    if ((opKey === 'add' || opKey === 'sub') && f1.den === f2.den
+        && chosen.den === correct.den && correct.den > 1 && Math.abs(chosen.num - correct.num) === 1) return 'ошибся на одну долю';
 
     return null;
 }
