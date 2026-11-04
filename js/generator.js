@@ -1863,9 +1863,17 @@ function buildFractionDistractors(opKey, f1, f2, correctAnswer, isNegative, coun
     // тот же den, то есть добавляет общий множитель, даже когда сокращать нечего.
     // Выбор такого варианта тогда засчитывался бы как мягкое "почти", а не как
     // отсутствующий вариант — на этом уровне такого исхода быть не должно вообще.
+    //
+    // Одинаковые знаменатели (2★): «не сократил» — это сумма или разность числителей
+    // над тем же знаменателем, 8/10 + 6/10 → 14/10: так выходит у того, кто сложил
+    // верно и забыл сократить. Раньше знаменатели и здесь перемножались крест-накрест —
+    // 140/100, — а такую запись насчитает только тот, кто искал общий знаменатель там,
+    // где он уже общий (решение репетитора 04.11).
     if (!(level === 1 && (opKey === 'add' || opKey === 'sub'))) {
         let rawNum, rawDen;
-        if (opKey === 'add') { rawNum = f1.num * f2.den + f2.num * f1.den; rawDen = f1.den * f2.den; }
+        const sameDen = (opKey === 'add' || opKey === 'sub') && f1.den === f2.den;
+        if (sameDen) { rawNum = opKey === 'add' ? f1.num + f2.num : f1.num - f2.num; rawDen = f1.den; }
+        else if (opKey === 'add') { rawNum = f1.num * f2.den + f2.num * f1.den; rawDen = f1.den * f2.den; }
         else if (opKey === 'sub') { rawNum = f1.num * f2.den - f2.num * f1.den; rawDen = f1.den * f2.den; }
         else if (opKey === 'mul') { rawNum = f1.num * f2.num; rawDen = f1.den * f2.den; }
         else { rawNum = f1.num * f2.den; rawDen = f1.den * f2.num; }

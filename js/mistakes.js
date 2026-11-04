@@ -1242,12 +1242,6 @@ function fracArithHintArgs(kind, op, problem, correct, chosen) {
             const step = `${f1.num} ${sign} ${f2.num}`;
             return { game: [step], review: [example, `${step} = ${n}`, f1.den, S(correct), S(chosen)] };
         }
-        if (kind === 'общий знаменатель зря') {
-            if (!sameDen) return null;
-            const s = simplifyFrac(n, f1.den);
-            // «4/6, а сократив, 2/3» — когда сокращать нечего, разбору сказать нечего.
-            return { game: [], review: s.den === f1.den ? null : [example, `${n}/${f1.den}`, S(s), S(chosen)] };
-        }
         return null;
     }
 

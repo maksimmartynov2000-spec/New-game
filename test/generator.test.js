@@ -2919,6 +2919,29 @@ test('Перевод: варианты генератора названы — �
     });
 });
 
+test('2★: «почти» — сумма числителей над тем же знаменателем, 14/10, а не 140/100 (решение 04.11)', () => {
+    // Так выходит у того, кто сложил верно и забыл сократить. Перемноженные крест-накрест
+    // знаменатели насчитал бы только тот, кто ищет общий знаменатель там, где он общий.
+    const bad = [];
+    ['add', 'sub'].forEach(op => {
+        for (let i = 0; i < 3000; i++) {
+            const p = G.generateFractionProblem(op, 2, false);
+            const d = p.f1.den;
+            const n = op === 'add' ? p.f1.num + p.f2.num : p.f1.num - p.f2.num;
+            const fakes = G.buildFractionDistractors(op, p.f1, p.f2, p.answer, false, 3, 2);
+            const almost = fakes.filter(f => f.num * p.answer.den === p.answer.num * f.den);
+            const shown = (f) => `${p.f1.num}/${d} ${op} ${p.f2.num}/${d} → ${almost.map(x => x.num + '/' + x.den).join(', ') || 'нет'}`;
+            if (almost.length !== 1 || almost[0].num !== n || almost[0].den !== d) { if (bad.length < 3) bad.push(shown()); }
+        }
+    });
+    eq(bad.join('; '), '', '«почти» на 2★');
+    // На 3★–5★ знаменатели разные, и там «не сократил» по-прежнему с произведением
+    // знаменателей: 1/2 + 1/4 → 6/8.
+    const p = { f1: { num: 1, den: 2 }, f2: { num: 1, den: 4 }, answer: { num: 3, den: 4 } };
+    const keys = G.buildFractionDistractors('add', p.f1, p.f2, p.answer, false, 3, 3).map(f => f.num + '/' + f.den);
+    assert(keys.indexOf('6/8') >= 0, `на 3★ нет 6/8: ${keys.join(', ')}`);
+});
+
 group('Десятичные: вариант Б (решение 04.11)');
 
 const dmeta = (op) => ({ category: 'decimal', opKey: op });

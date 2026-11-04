@@ -87,7 +87,6 @@
 //   перепутал действие:fracRev  как у целых, но второе действие — «второе минус первое»
 //   ошибся на одну долю:fracAddMore, :fracAddLess, :fracSubMore, :fracSubLess
 //                    game «3 + 1»     review пример, «3 + 1 = 4», знаменатель, ответ, что выбрано
-//   общий знаменатель зря:add, :sub   game —   review пример, «4/6», она же сокращённая, что выбрано
 //   забыл перемножить знаменатели:mul  game знаменатель1, знаменатель2
 //                    review дробь1, дробь2, «2 × 4 = 8», «3 × 5 = 15», ответ, что выбрано
 //   не перевернул дробь:div   game дробь1, вторая перевёрнутая
@@ -385,14 +384,6 @@ window.HINT_CONTENT = {
         'ошибся на одну долю:fracSubLess': {
             game: 'Мимо на одну долю — пересчитай числители: %1.',
             review: '%1: вычитаем числители — %2, знаменатель остаётся %3: %4. Выбрано %5 — на одну долю меньше. Правило верное, сбился счёт: числители стоит пересчитать.'
-        },
-        'общий знаменатель зря:add': {
-            game: 'Знаменатели уже одинаковые — общий искать не нужно.',
-            review: '%1: знаменатели одинаковые — складываем числители сразу: %2, а сократив, %3. Перемножать знаменатели здесь лишнее: выходит %4 — то же число, только записанное длиннее.'
-        },
-        'общий знаменатель зря:sub': {
-            game: 'Знаменатели уже одинаковые — общий искать не нужно.',
-            review: '%1: знаменатели одинаковые — вычитаем числители сразу: %2, а сократив, %3. Перемножать знаменатели здесь лишнее: выходит %4 — то же число, только записанное длиннее.'
         },
         'забыл перемножить знаменатели:mul': {
             game: 'Знаменатели тоже перемножаются: %1 × %2.',
@@ -728,14 +719,6 @@ window.HINT_CONTENT = {
             game: 'One part off — recount the numerators: %1.',
             review: '%1: subtract the numerators — %2, the denominator stays %3: %4. You picked %5 — one part too few. The rule was right, the count slipped: recount the numerators.'
         },
-        'общий знаменатель зря:add': {
-            game: 'The denominators already match — no need to look for a common one.',
-            review: '%1: the denominators match — add the numerators straight away: %2, and simplified, %3. Multiplying the denominators is extra work here: it gives %4 — the same number, just written longer.'
-        },
-        'общий знаменатель зря:sub': {
-            game: 'The denominators already match — no need to look for a common one.',
-            review: '%1: the denominators match — subtract the numerators straight away: %2, and simplified, %3. Multiplying the denominators is extra work here: it gives %4 — the same number, just written longer.'
-        },
         'забыл перемножить знаменатели:mul': {
             game: 'The denominators get multiplied too: %1 × %2.',
             review: '%1 × %2: multiply the numerators — %3, and the denominators too — %4, which makes %5. You picked %6 — the denominator was taken from one fraction, without multiplying.'
@@ -1070,14 +1053,6 @@ window.HINT_CONTENT = {
             game: 'Raté d’une part — recompte les numérateurs : %1.',
             review: '%1 : on soustrait les numérateurs — %2, le dénominateur reste %3 : %4. Tu as choisi %5 — une part de moins. La règle était bonne, c’est le compte qui a glissé : recompte les numérateurs.'
         },
-        'общий знаменатель зря:add': {
-            game: 'Les dénominateurs sont déjà les mêmes — inutile d’en chercher un commun.',
-            review: '%1 : les dénominateurs sont les mêmes — on additionne tout de suite les numérateurs : %2, et après simplification, %3. Multiplier les dénominateurs est ici superflu : on obtient %4 — le même nombre, simplement écrit plus long.'
-        },
-        'общий знаменатель зря:sub': {
-            game: 'Les dénominateurs sont déjà les mêmes — inutile d’en chercher un commun.',
-            review: '%1 : les dénominateurs sont les mêmes — on soustrait tout de suite les numérateurs : %2, et après simplification, %3. Multiplier les dénominateurs est ici superflu : on obtient %4 — le même nombre, simplement écrit plus long.'
-        },
         'забыл перемножить знаменатели:mul': {
             game: 'Les dénominateurs se multiplient aussi : %1 × %2.',
             review: '%1 × %2 : on multiplie les numérateurs — %3, et les dénominateurs aussi — %4, cela fait %5. Tu as choisi %6 — le dénominateur a été pris dans une seule fraction, sans multiplication.'
@@ -1411,14 +1386,6 @@ window.HINT_CONTENT = {
         'ошибся на одну долю:fracSubLess': {
             game: 'Um einen Teil daneben — rechne die Zähler nach: %1.',
             review: '%1: Die Zähler werden subtrahiert — %2, der Nenner bleibt %3: %4. Gewählt wurde %5 — ein Teil zu wenig. Die Regel stimmt, nur die Rechnung ist verrutscht: Die Zähler lohnt es sich nachzurechnen.'
-        },
-        'общий знаменатель зря:add': {
-            game: 'Die Nenner sind schon gleich — ein gemeinsamer muss nicht gesucht werden.',
-            review: '%1: Die Nenner sind gleich — die Zähler werden sofort addiert: %2, gekürzt %3. Die Nenner zu multiplizieren ist hier überflüssig: Es kommt %4 heraus — dieselbe Zahl, nur länger geschrieben.'
-        },
-        'общий знаменатель зря:sub': {
-            game: 'Die Nenner sind schon gleich — ein gemeinsamer muss nicht gesucht werden.',
-            review: '%1: Die Nenner sind gleich — die Zähler werden sofort subtrahiert: %2, gekürzt %3. Die Nenner zu multiplizieren ist hier überflüssig: Es kommt %4 heraus — dieselbe Zahl, nur länger geschrieben.'
         },
         'забыл перемножить знаменатели:mul': {
             game: 'Die Nenner werden auch multipliziert: %1 × %2.',
