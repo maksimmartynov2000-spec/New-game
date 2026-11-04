@@ -501,6 +501,8 @@ function classifyMistake(meta, problem, correct, chosen) {
                 // наоборот (5,2 − 3,8 = 2,6). Модель та же, что строит вариант ответа.
                 const column = decColumnMistake(opKey, d1, d2);
                 if (column && same(column.intVal, column.dp)) return opKey === 'add' ? 'не перенёс единицу' : 'переставил цифры';
+                // Соседний факт таблицы в умножении и делении (вариант Б, 04.11).
+                if (decTableSlips(opKey, d1, d2).some(v => same(v.intVal, v.dp))) return 'таблица умножения';
                 if (opKey === 'add' && same(v1 - v2, commonDp)) return 'перепутал действие';
                 if (opKey === 'sub' && same(v1 + v2, commonDp)) return 'перепутал действие';
                 if (opKey === 'mul') {
@@ -516,6 +518,13 @@ function classifyMistake(meta, problem, correct, chosen) {
                 for (const k of [0.001, 0.01, 0.1, 10, 100, 1000]) {
                     if (Math.abs(ratio - k) < 1e-9) return 'запятая не на месте';
                 }
+            }
+            // Вариант Б: ответ рядом — на той же сетке знаков, что и верный, — промах в
+            // счёте, а не «другая ошибка». Граница та же, что у случайного варианта.
+            // Сравнение по величине: у 9,0 ноль в конце убран, и запись короче, чем у 9,7.
+            if (chosen.dp <= correct.dp) {
+                const diff = Math.abs(chosen.intVal * Math.pow(10, correct.dp - chosen.dp) - correct.intVal);
+                if (diff >= 1 && diff <= Math.max(3, Math.round(Math.abs(correct.intVal) * 0.2))) return 'промахнулся рядом';
             }
             return 'другая ошибка';
         }

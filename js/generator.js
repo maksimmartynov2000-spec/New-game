@@ -2879,6 +2879,32 @@ function decColumnMistake(opKey, d1, d2) {
     return stripTrailingZeros({ intVal: r, dp });
 }
 
+// Соседний факт таблицы — вариант Б, решение репетитора 04.11. В умножении один
+// множитель без запятой сдвигается на единицу: 0,3 × 3 = 0,9 → вариант 0,6 (2 × 3).
+// В делении частное без запятой на единицу больше или меньше: 5,4 ÷ 0,9 = 6 → 7.
+// Только для однозначных цифр — там это и есть строчка таблицы. Запятая стоит верно:
+// ошибка в самом факте, а не в знаках после запятой.
+function decTableSlips(opKey, d1, d2) {
+    const out = [];
+    if (!d1 || !d2) return out;
+    if (opKey === 'mul') {
+        const a = d1.intVal, b = d2.intVal, dp = d1.dp + d2.dp;
+        if (a < 2 || a > 9 || b < 2 || b > 9) return out;
+        for (const [x, y] of [[a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]]) {
+            if (x >= 1 && y >= 1) out.push(stripTrailingZeros({ intVal: x * y, dp }));
+        }
+    } else if (opKey === 'div') {
+        const A = d1.intVal, B = d2.intVal;
+        if (B < 2 || B > 9 || A % B !== 0 || A / B < 2) return out;
+        const e = d2.dp - d1.dp;
+        for (const q of [A / B - 1, A / B + 1]) {
+            if (q < 1) continue;
+            out.push(stripTrailingZeros(e >= 0 ? { intVal: q * Math.pow(10, e), dp: 0 } : { intVal: q, dp: -e }));
+        }
+    }
+    return out;
+}
+
 function buildDecimalDistractors(opKey, d1, d2, correctAnswer, count) {
     const used = new Set([decKey(correctAnswer)]);
 
@@ -2930,6 +2956,11 @@ function buildDecimalDistractors(opKey, d1, d2, correctAnswer, count) {
     for (const v of column) { if (result.length >= count) break; result.push(v); }
     for (const v of priority) { if (result.length >= count) break; result.push(v); }
     for (const v of shuffleArray(structural)) { if (result.length >= count) break; result.push(v); }
+    // Вариант Б: соседний факт таблицы — раньше случайной дроби.
+    for (const v of shuffleArray(decTableSlips(opKey, d1, d2))) {
+        if (result.length >= count) break;
+        pushDec(result, v, correctAnswer, used);
+    }
 
     // случайный фолбэк, масштаб — от величины ответа
     let guard = 0;
