@@ -90,7 +90,8 @@ const MISTAKE_SHORT = {
     'забыл целую часть':           t('без целой части'),
     'ошибся в переводе':           t('перевод дроби'),
     'ошибся в целой части':        t('мимо на целую'),
-    // Утверждено «целая и остаток местами», но это 23 знака при пределе 22. Временно.
+    // Утверждено «целая и остаток местами», но это 23 знака при пределе 22; 04.11
+    // репетитор выбрал «поменялись местами».
     'переставил целую и остаток':  t('поменялись местами'),
     'не прибавил числитель':       t('без числителя'),
     'сложил целую и числитель':    t('без умножения'),
@@ -978,10 +979,40 @@ function decHintVariant(kind, meta, problem, correct, chosen) {
         }
         return null;
     }
+    // Вариант Б (04.11): соседний факт таблицы и ответ рядом.
+    if (kind === 'таблица умножения') return op === 'mul' ? 'decMul' : op === 'div' ? 'decDiv' : null;
+    if (kind === 'промахнулся рядом') return 'dec';
     if (kind === 'сложил вместо умножения' && op === 'mul') {
         if ((d1.dp === 0) !== (d2.dp === 0)) return d1.dp + d2.dp === 1 ? 'decOneWhole' : null;
         if (d1.dp === 1 && d2.dp === 1) return 'decBothPoint';
         return null;
+    }
+    return null;
+}
+
+// Соседний факт таблицы. Умножение: какой множитель сдвинут — ищем тот же сдвиг, что
+// строит вариант ответа (decTableSlips). Деление: проверка умножением; разбор со
+// сдвигом запятой — только когда у делителя есть знаки после запятой, иначе «сдвинем
+// запятую» было бы неправдой.
+function decTableHintArgs(op, d1, d2, correct, chosen) {
+    const S = (d) => decShow(d);
+    const plain = stripTrailingZeros(chosen);
+    const same = (d) => { const x = stripTrailingZeros(d); return x.intVal === plain.intVal && x.dp === plain.dp; };
+    if (op === 'mul') {
+        const a = d1.intVal, b = d2.intVal, dp = d1.dp + d2.dp;
+        const pair = [[a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]]
+            .find(([x, y]) => x >= 1 && y >= 1 && same({ intVal: x * y, dp }));
+        if (!pair) return null;
+        const [x, y] = pair;
+        return { game: [a, b, x, y], review: [S(d1), S(d2), a, b, a * b, x, y, x * y] };
+    }
+    if (op === 'div') {
+        const game = [S(chosen), S(d2), S(d1)];
+        if (d2.dp < 1) return { game, review: null };
+        const k = d2.dp;
+        const a10 = { intVal: d1.intVal * Math.pow(10, Math.max(0, k - d1.dp)), dp: Math.max(0, d1.dp - k) };
+        const b10 = { intVal: d2.intVal, dp: 0 };
+        return { game, review: [S(d1), S(d2), S(a10), S(b10), S(correct), S(chosen), S(decMul(chosen, b10))] };
     }
     return null;
 }
@@ -1002,6 +1033,10 @@ function decHintArgs(kind, meta, problem, correct, chosen) {
         if (!other || other.intVal < 0) return null;
         return { game: [], review: [A, B, S(correct), S(other)] };
     }
+
+    // Вариант Б: тексты утвердил репетитор 04.11.
+    if (kind === 'таблица умножения') return decTableHintArgs(op, d1, d2, correct, chosen);
+    if (kind === 'промахнулся рядом') return { game: [], review: [ch, S(correct)] };
 
     const variant = decHintVariant(kind, meta, problem, correct, chosen);
     if (!variant) return null;

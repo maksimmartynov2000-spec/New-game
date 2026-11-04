@@ -277,6 +277,19 @@ window.HINT_CONTENT = {
         'сложил вместо умножения:decBothPoint': {
             game: 'Это сложение. Перемножь %1 × %2 и отсчитай знаки после запятой.',
             review: '%1 × %2 — это %2 от %1, то есть меньше самого %1. Перемножаем без запятых: %3 × %4 = %5, знаков после запятой два — %6. А %1 + %2 = %7 — это сложение.'
+        },
+        // Вариант Б (04.11)
+        'таблица умножения:decMul': {
+            game: 'Без запятых это %1 × %2, а выбранный ответ — от %3 × %4.',
+            review: '%1 × %2: без запятых это %3 × %4 = %5, а %6 × %7 = %8 — соседняя строчка таблицы. Запятая стоит верно, ошибка в самом факте таблицы.'
+        },
+        'таблица умножения:decDiv': {
+            game: 'Проверь умножением: %1 × %2 — это не %3.',
+            review: '%1 ÷ %2: сдвинем запятую — %3 ÷ %4 = %5. Проверка умножением: %5 × %4 = %3, а %6 × %4 = %7 — соседняя строчка таблицы.'
+        },
+        'промахнулся рядом:dec': {
+            game: 'Ответ рядом — значит счёт верный, а последний шаг сбился.',
+            review: 'Выбрано %1, верный ответ %2 — совсем рядом. Это не незнание, а сбитый счёт: один шаг потерялся или посчитался дважды. Помогает досчитать последний шаг вслух — тогда он не теряется.'
         }
     },
 
@@ -489,6 +502,19 @@ window.HINT_CONTENT = {
         'сложил вместо умножения:decBothPoint': {
             game: 'That is addition. Multiply %1 × %2 and count the digits after the point.',
             review: '%1 × %2 is %2 of %1, so less than %1 itself. Multiply without the points: %3 × %4 = %5, two digits after the point — %6. And %1 + %2 = %7 is addition.'
+        },
+        // Вариант Б (04.11)
+        'таблица умножения:decMul': {
+            game: 'Without the points this is %1 × %2, but the answer chosen comes from %3 × %4.',
+            review: '%1 × %2: without the points this is %3 × %4 = %5, while %6 × %7 = %8 is the next row of the table. The point is in the right place — the slip is in the table fact itself.'
+        },
+        'таблица умножения:decDiv': {
+            game: 'Check by multiplying: %1 × %2 is not %3.',
+            review: '%1 ÷ %2: move the point — %3 ÷ %4 = %5. Check by multiplying: %5 × %4 = %3, while %6 × %4 = %7 — the next row of the table.'
+        },
+        'промахнулся рядом:dec': {
+            game: 'The answer was close — the method held, the last step slipped.',
+            review: 'You picked %1, the answer is %2 — very close. It is not missing knowledge, it is a slipped count: one step got lost or counted twice. Counting the last step out loud helps — then it does not get lost.'
         }
     },
 
@@ -701,6 +727,19 @@ window.HINT_CONTENT = {
         'сложил вместо умножения:decBothPoint': {
             game: 'Ça, c’est une addition. Multiplie %1 × %2 et compte les chiffres décimaux.',
             review: '%1 × %2, c’est %2 de %1, donc moins que %1 lui-même. On multiplie sans les virgules : %3 × %4 = %5, deux chiffres après la virgule — %6. Et %1 + %2 = %7, c’est une addition.'
+        },
+        // Вариант Б (04.11)
+        'таблица умножения:decMul': {
+            game: 'Sans les virgules, c’est %1 × %2, mais la réponse choisie vient de %3 × %4.',
+            review: '%1 × %2 : sans les virgules, c’est %3 × %4 = %5, alors que %6 × %7 = %8 — la ligne voisine de la table. La virgule est bien placée, l’erreur est dans le résultat de la table lui-même.'
+        },
+        'таблица умножения:decDiv': {
+            game: 'Vérifie par une multiplication : %1 × %2, ce n’est pas %3.',
+            review: '%1 ÷ %2 : déplaçons la virgule — %3 ÷ %4 = %5. Vérification : %5 × %4 = %3, alors que %6 × %4 = %7 — la ligne voisine de la table.'
+        },
+        'промахнулся рядом:dec': {
+            game: 'La réponse était tout près — le calcul tenait, la dernière étape a glissé.',
+            review: 'Tu as choisi %1, la bonne réponse est %2 — tout près. Ce n’est pas un manque de savoir, c’est un comptage qui dérape : une étape s’est perdue ou a été comptée deux fois. Recompter la dernière étape à voix haute aide à ne pas la perdre.'
         }
     },
 
@@ -913,6 +952,19 @@ window.HINT_CONTENT = {
         'сложил вместо умножения:decBothPoint': {
             game: 'Das ist eine Addition. Rechne %1 × %2 und zähl die Stellen nach dem Komma.',
             review: '%1 × %2 ist %2 von %1, also weniger als %1 selbst. Man multipliziert ohne Kommas: %3 × %4 = %5, zwei Stellen nach dem Komma — %6. Und %1 + %2 = %7 ist eine Addition.'
+        },
+        // Вариант Б (04.11)
+        'таблица умножения:decMul': {
+            game: 'Ohne Kommas ist das %1 × %2, aber die gewählte Antwort kommt von %3 × %4.',
+            review: '%1 × %2: ohne Kommas ist das %3 × %4 = %5, aber %6 × %7 = %8 — die Nachbarzeile des Einmaleins. Das Komma steht richtig, der Fehler steckt in der Einmaleins-Aufgabe selbst.'
+        },
+        'таблица умножения:decDiv': {
+            game: 'Prüf mit Malnehmen: %1 × %2 ist nicht %3.',
+            review: '%1 ÷ %2: Komma verschieben — %3 ÷ %4 = %5. Probe: %5 × %4 = %3, aber %6 × %4 = %7 — die Nachbarzeile des Einmaleins.'
+        },
+        'промахнулся рядом:dec': {
+            game: 'Ganz nah dran — gerechnet war richtig, der letzte Schritt ist verrutscht.',
+            review: 'Gewählt wurde %1, richtig ist %2 — ganz nah dran. Das ist keine Wissenslücke, sondern ein verrutschtes Zählen: ein Schritt ging verloren oder wurde doppelt gezählt. Den letzten Schritt laut nachzurechnen hilft — dann geht er nicht verloren.'
         }
     }
 };
