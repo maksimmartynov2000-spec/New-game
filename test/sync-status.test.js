@@ -8,6 +8,8 @@
 //   - «нет связи» — когда не принял, и это проходит само, когда связь вернулась;
 //   - «войди заново» — когда вход на устройстве закрыт: само это не пройдёт;
 //   - ответ, данный, пока запрос был в пути, не теряет отметку «есть что отправить».
+//   - ответ сервера для прежнего профиля не трогает новый, если профиль сменили,
+//     пока ответ был в пути: ни прогресс, ни доступ, ни задания, ни значок.
 //
 // Как запускать:  node test/sync-status.test.js
 
@@ -219,6 +221,188 @@ test('ничего не менялось — второй flush() ничего �
     const again = await P.flush();
     eq(again, undefined, 'отправили то, что уже отправлено');
     eq(srv.writes, 1, 'записей на сервере');
+});
+
+group('Профиль сменили, пока шёл ответ сервера');
+
+// Пока ответ для одного профиля в пути, на устройстве включили другой (список
+// профилей, вход в другой аккаунт). Раньше ответ прежнего вливался в новый: тот
+// получал чужие ответы и имя, а слитое уходило на сервер под ключом прежнего.
+function twoPupils() {
+    const P = loadProgress();
+    P.init();
+    P.switchTo('ANNA', null, { accountType: 'linked', ownerCode: 'TUT', profileLabel: 'Аня' });
+    P.setToken('ANNA', 'tokA');
+    return P;
+}
+function toBoris(P) {
+    P.switchTo('BORIS', null, { accountType: 'linked', ownerCode: 'TUT', profileLabel: 'Боря' });
+    P.setToken('BORIS', 'tokB');
+}
+// Подставной сервер: что пришло на запись — с чьим ключом и чьими данными.
+function recorder(P, o) {
+    const srv = { writes: [], held: [], kept: [] };
+    const hold = () => new Promise((resolve, reject) => srv.held.push({ resolve, reject }));
+    P.attachRemote({
+        async read() {
+            if (o && o.gateRead) await hold();
+            return (o && o.remote) || {};
+        },
+        async write(code, auth, state) {
+            srv.writes.push({ code, token: auth.token, playerCode: state.playerCode,
+                              label: state.profileLabel, correct: state.totals.correct });
+            if (o && o.gateWrite) await hold();
+        },
+        writeKeepalive(code) { srv.kept.push(code); return true; }
+    });
+    srv.release = () => srv.held.shift().resolve();
+    srv.fail = () => srv.held.shift().reject(new Error('offline'));
+    return srv;
+}
+const ANNA_ON_SERVER = { schema: 2, playerCode: 'ANNA', updatedAt: 5, accountType: 'linked', ownerCode: 'TUT',
+                         profileLabel: 'Аня', totals: { correct: 500, wrong: 0 } };
+
+test('ответ для прежнего профиля не вливается в новый и не уходит на сервер', async () => {
+    const P = twoPupils();
+    const srv = recorder(P, { gateRead: true, remote: ANNA_ON_SERVER });
+    const done = P.flush(true);
+    await settle();
+    toBoris(P);
+    srv.release();
+    eq(await done, false, 'обмен прежнего профиля не брошен');
+    eq(P.getCode(), 'BORIS', 'текущий профиль');
+    eq(P.getProfileLabel(), 'Боря', 'имя нового профиля');
+    eq(P.getAccountType(), 'linked', 'тип нового профиля');
+    eq(P.get().totals.correct, 0, 'новому профилю влились чужие ответы');
+    eq(JSON.stringify(srv.writes), '[]', 'на сервер ушло');
+});
+
+test('изменения прежнего профиля не пропадают: уходят, когда он снова текущий', async () => {
+    const P = twoPupils();
+    P.get().totals.correct = 3;
+    let srv = recorder(P, { gateRead: true, remote: {} });
+    const done = P.flush(true);
+    await settle();
+    toBoris(P);
+    srv.release();
+    await done;
+    P.switchTo('ANNA');
+    srv = recorder(P, { remote: {} });
+    eq(await P.flush(true), true, 'отправка прежнего профиля не удалась');
+    const w = srv.writes[0] || {};
+    eq(`${w.code} ${w.token} ${w.playerCode} ${w.correct}`, 'ANNA tokA ANNA 3', 'что ушло на сервер');
+});
+
+test('запись прежнего профиля дошла — новый не получает «сохранено» и не теряет «есть что отправить»', async () => {
+    const P = twoPupils();
+    const srv = recorder(P, { gateWrite: true });
+    P.recordTrainingAnswer();
+    const done = P.flush();
+    await settle();                     // чтение прошло, запись висит
+    toBoris(P);
+    srv.release();
+    eq(await done, true, 'запись прежнего профиля');
+    const w = srv.writes[0] || {};
+    eq(`${w.code} ${w.token} ${w.playerCode}`, 'ANNA tokA ANNA', 'запись ушла не с теми данными');
+    eq(P.syncStatus(), null, 'новый профиль получил «сохранено» от чужой записи');
+    const again = recorder(P);
+    eq(await P.flush(), true, 'новый профиль ничего не отправил');
+    eq((again.writes[0] || {}).code, 'BORIS', 'чья запись ушла');
+});
+
+test('сеть упала у прежнего профиля — новому не пишем «нет связи»', async () => {
+    const P = twoPupils();
+    const srv = recorder(P, { gateRead: true });
+    const done = P.flush(true);
+    await settle();
+    toBoris(P);
+    srv.fail();
+    eq(await done, false, 'отправка прежнего профиля');
+    eq(P.syncStatus(), null, 'новому профилю досталось «нет связи»');
+});
+
+test('прощальная запись нового профиля не опирается на слияние прежнего', async () => {
+    // Прощальная запись уходит без слияния — только если слияние было меньше минуты
+    // назад. Было оно у прежнего профиля: новый своей копии с сервером ещё не сверял.
+    const P = twoPupils();
+    const srv = recorder(P);
+    P.recordTrainingAnswer();
+    eq(await P.flush(), true, 'слияние прежнего профиля');
+    toBoris(P);
+    P.recordTrainingAnswer();
+    eq(P.farewell(), false, 'прощальная запись ушла без слияния нового профиля');
+    eq(JSON.stringify(srv.kept), '[]', 'что ушло прощальной записью');
+    // И сама прощальная запись по-прежнему работает: после своего слияния — уходит.
+    eq(await P.flush(), true, 'слияние нового профиля');
+    P.recordTrainingAnswer();
+    eq(P.farewell(), true, 'после своего слияния прощальная запись не ушла');
+    eq(srv.kept.join(','), 'BORIS', 'чья прощальная запись');
+});
+
+// Доступ и задания приходят с сервера тем же путём — и тем же путём опаздывают.
+// Срез асинхронной функции из index.html: от объявления до её закрывающей скобки.
+function sliceAsync(name) {
+    const at = HTML.indexOf(`async function ${name}(`);
+    assert(at >= 0, `в index.html нет функции ${name}`);
+    let depth = 0;
+    for (let i = HTML.indexOf('{', at); i < HTML.length; i++) {
+        if (HTML[i] === '{') depth++;
+        else if (HTML[i] === '}' && --depth === 0) return HTML.slice(at, i + 1);
+    }
+    throw new Error(`не нашёлся конец функции ${name}`);
+}
+function lateAnswer(name, payload) {
+    const box = { cur: 'ANNA', applied: [], saved: [], gate: null };
+    box.Progress = {
+        getCode: () => box.cur, authFor: () => ({ token: 't' }), getAccountType: () => 'linked',
+        setAccess: (a) => box.applied.push(a)
+    };
+    box.supabaseClient = {};
+    box.callAuthed = () => new Promise(resolve => { box.gate = () => resolve({ data: payload, error: null }); });
+    box.refreshSectionLocks = () => {};
+    box.refreshHomework = async () => {};
+    box.saveMyHomework = (list) => box.saved.push(list);
+    box.noteHomeworkDone = () => {};
+    box.renderConfigTasks = () => {};
+    box.renderHomeworkCard = () => {};
+    vm.createContext(box);
+    vm.runInContext(sliceAsync(name) + `;globalThis.run = ${name};`, box);
+    return box;
+}
+
+test('опоздавший доступ прежнего профиля не применяется к новому', async () => {
+    // setAccess тут же чистит закрытые разделы: чужой доступ стёр бы новому ученику
+    // прогресс там, где у прежнего закрыто.
+    const late = lateAnswer('refreshAccess', { ok: true, access: { 'integer-': 'all' } });
+    const done = late.run();
+    await settle();
+    late.cur = 'BORIS';
+    late.gate();
+    await done;
+    eq(late.applied.length, 0, 'чужой доступ применён');
+    // Без переключения доступ применяется, как раньше.
+    const same = lateAnswer('refreshAccess', { ok: true, access: { 'integer-': 'all' } });
+    const ok = same.run();
+    await settle();
+    same.gate();
+    await ok;
+    eq(same.applied.length, 1, 'свой доступ не применился');
+});
+
+test('опоздавшие задания прежнего профиля не сохраняются новому', async () => {
+    const late = lateAnswer('refreshHomework', { ok: true, homework: [{ id: 1 }] });
+    const done = late.run();
+    await settle();
+    late.cur = 'BORIS';
+    late.gate();
+    await done;
+    eq(late.saved.length, 0, 'чужие задания сохранены');
+    const same = lateAnswer('refreshHomework', { ok: true, homework: [{ id: 1 }] });
+    const ok = same.run();
+    await settle();
+    same.gate();
+    await ok;
+    eq(same.saved.length, 1, 'свои задания не сохранились');
 });
 
 group('Разметка и проводка');

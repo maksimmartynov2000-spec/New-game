@@ -1115,8 +1115,10 @@ const Progress = (() => {
     function doSwitch(code, password, opts) {
         if (!code) return;
         // Доступ принадлежит профилю, а не устройству: при переключении забываем.
-        // Итог прошлой отправки — тоже: он был про другой аккаунт.
-        if (state.playerCode !== code) { access = null; lastSyncOk = null; }
+        // Итог прошлой отправки — тоже: он был про другой аккаунт. И время последнего
+        // слияния: по нему прощальная запись решает, свежая ли копия на устройстве, а
+        // слияние было у прежнего профиля — новый его ещё не прошёл.
+        if (state.playerCode !== code) { access = null; lastSyncOk = null; lastMergeAt = 0; }
         if (state.playerCode && state.playerCode !== code) profiles[state.playerCode] = state;
         if (password) passwords[code] = password;
         if (profiles[code]) {
@@ -1658,13 +1660,27 @@ const Progress = (() => {
             // но проверка стоит явно: служебный код не должен оказаться в базе даже
             // если когда-нибудь ему по ошибке припишут пароль.
             if (state.playerCode === GUEST_CODE) return;
-            const auth = authFor(state.playerCode);
+            // Чей это обмен. Пока ответ сервера в пути, на устройстве могут включить
+            // другой профиль (список профилей, вход в другой аккаунт) — и тогда `state`
+            // ниже уже чужой. Без проверки ответ для прежнего профиля вливался в новый,
+            // а слитое уходило на сервер под ключом прежнего: новый ученик получал
+            // чужие ответы и имя, а запись прежнего — чужой код. Нашлось по проверке
+            // визитки (profile-card.test.js): время от времени ученик репетитора там
+            // становился «самостоятельным».
+            const code = state.playerCode;
+            const auth = authFor(code);
             if (!auth) return; // подтвердить личность нечем — ждём входа
             if (!dirty && !force) return;
             syncInFlight++;
             notifySync();
             try {
-                const raw = await remoteDriver.read(state.playerCode, auth);
+                const raw = await remoteDriver.read(code, auth);
+                // Профиль сменили, пока шёл ответ, — бросаем обмен целиком. Слить его
+                // в прежний профиль сейчас тоже нельзя: доступ у модуля уже про новый,
+                // и чистка закрытых разделов стёрла бы прежнему лишнее. Его изменения
+                // не пропадут: они лежат на устройстве и уйдут, когда он снова станет
+                // текущим.
+                if (state.playerCode !== code) return false;
                 // Аккаунт сменил хозяина на сервере: привязали к репетитору или
                 // отпустили. Что мы знали о доступе — про прежнего хозяина, поэтому
                 // забываем: пока не спросили заново, открыто всё, и чистка закрытых
@@ -1685,7 +1701,11 @@ const Progress = (() => {
                 // Слепок уходит таким, каким он есть сейчас. Всё, что изменится, пока
                 // запрос в пути, в него не попадёт — значит, и dirty тогда снимать нельзя.
                 const sentSeq = changeSeq;
-                await remoteDriver.write(state.playerCode, auth, state);
+                await remoteDriver.write(code, auth, state);
+                // Запись прежнего профиля дошла, но текущий уже другой: «есть что
+                // отправить», «сохранено» и время слияния — про него, и ставить их от
+                // чужой записи нельзя.
+                if (state.playerCode !== code) return true;
                 if (changeSeq === sentSeq) dirty = false;
                 lastMergeAt = Date.now();
                 lastSyncOk = true;
@@ -1693,7 +1713,8 @@ const Progress = (() => {
             } catch (e) {
                 // Сеть недоступна — оставляем данные локально и попробуем позже. Игра
                 // при этом не должна ничего заметить; заметит только значок «сохранено».
-                lastSyncOk = false;
+                // Неудача прежнего профиля — не повод писать «нет связи» новому.
+                if (state.playerCode === code) lastSyncOk = false;
                 return false;
             } finally {
                 syncInFlight--;
