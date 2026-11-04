@@ -301,6 +301,30 @@ test('🧩 — значок пазла, и только его', () => {
     assert(bad.length === 0, `🧩 не у пазла: ${bad.map(x => `«${x.slice(0, 50)}»`).join('; ')}`);
 });
 
+group('Род во французском');
+
+test('по-французски о ребёнке, репетиторе и учениках — без мужского рода', () => {
+    // Во французском прошедшее время с être и прилагательные о человеке меняются по
+    // роду: «tu es sûr» девочке не подходит, нужно «sûre»; «s'est trompé» — о мальчике.
+    // Договорённость — писать так, чтобы род не угадывался: «Vraiment ?», «Erreur de
+    // signe», «En difficulté». Формы с avoir («a perdu») род не выдают — они в порядке.
+    // До этой проверки таких строк было семь. Буквы с акцентом — не «слово» для \b,
+    // поэтому конец слова проверяется через \p{L}.
+    const forms = [
+        /\b(tu es|es-tu|t['’]es)\s+(pas\s+)?(sûrs?|prêts?|contents?|seuls?|partis?|arrivés?|allés?|venus?|restés?|tombés?|perdus?|bloqués?)(?![\p{L}])/iu,
+        /\bs['’]est\s+(pas\s+)?(trompé|synchronisé|connecté|inscrit|perdu|arrêté|amélioré)(?![\p{L}])/iu,
+        /\bse sont\s+(pas\s+)?(trompés|synchronisés|connectés|inscrits)(?![\p{L}])/iu,
+        /^\W*(Bloqués|Prêts|Inscrits|Connectés|Absents)(?![\p{L}])/u
+    ];
+    const bad = Object.keys(DICT.fr).filter(k => forms.some(re => re.test(DICT.fr[k])))
+        .map(k => `«${DICT.fr[k].slice(0, 60)}»`);
+    assert(bad.length === 0, `формы с родом: ${bad.join('; ')}`);
+    // Сторож не пустой: прежние строки он бы поймал.
+    ['Tu es sûr ?', "S'est trompé de signe", '🧱 Bloqués', "🚀 Prêts pour l'étoile suivante",
+     '%1 élève ne s’est pas synchronisé depuis plus d’une semaine.'].forEach(x =>
+        assert(forms.some(re => re.test(x)), `сторож пропускает «${x}»`));
+});
+
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
     console.log(`Все проверки пройдены: ${passed}`);
