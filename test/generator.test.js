@@ -2753,6 +2753,172 @@ test('на трёх множителях нет разбора «как у дв�
     assert(seen['таблица умножения'], 'у пар пропала «таблица умножения»');
 });
 
+group('Дроби: решения репетитора 24.10 и 04.11');
+
+// Константы объявлены через const — свойствами песочницы они не стали, но читаются
+// из той же песочницы кодом.
+const FR = (name) => vm.runInContext(name, G);
+const fmeta = (op) => ({ category: 'fraction', opKey: op });
+const fkind = (op, p, f) => G.classifyMistake(fmeta(op), p, p.answer, f);
+const isIrr = (f) => G.gcd(Math.abs(f.num), f.den) === 1;
+
+test('1★ сложение и вычитание: все три неверных варианта — названные ошибки', () => {
+    // Решение 24.10: вместо случайных дробей — «и числители, и знаменатели», «не то
+    // действие» и «мимо на одну долю». Первая встреча с дробями: ни одного варианта
+    // без названия.
+    const bad = [];
+    ['add', 'sub'].forEach(op => {
+        for (let i = 0; i < 3000; i++) {
+            const p = G.generateFractionProblem(op, 1, false);
+            const fakes = G.buildFractionDistractors(op, p.f1, p.f2, p.answer, false, 3, 1);
+            eq(fakes.length, 3, 'вариантов не три');
+            fakes.forEach(f => { const k = fkind(op, p, f); if (k === 'другая ошибка' && bad.length < 3) bad.push(`${p.f1.num}/${p.f1.den} ${op} ${p.f2.num}/${p.f2.den} → ${f.num}/${f.den}`); });
+            if (op === 'add') {
+                // Два варианта одной величины — «4/14» и «2/7» — разбор не различил бы.
+                const vals = [p.answer, ...fakes].map(f => f.num / f.den);
+                if (new Set(vals.map(v => v.toFixed(9))).size !== 4 && bad.length < 3) bad.push(`одна величина дважды: ${p.f1.num}/${p.f1.den} + ${p.f2.num}/${p.f2.den}`);
+            }
+        }
+    });
+    eq(bad.join('; '), '', 'неназванные или одинаковые варианты');
+});
+
+test('1★ вычитание: «и знаменатели тоже» даёт целое число — доли пропали', () => {
+    const p = { f1: { num: 5, den: 7 }, f2: { num: 2, den: 7 }, answer: { num: 3, den: 7 }, opKey: 'sub' };
+    const fakes = G.buildFractionDistractors('sub', p.f1, p.f2, p.answer, false, 3, 1);
+    const whole = fakes.filter(f => f.den === 1 && f.num === 3);
+    eq(whole.length, 1, 'нет варианта «3»');
+    eq(fkind('sub', p, whole[0]), 'сложил знаменатели', 'название варианта «3»');
+    eq(fkind('sub', p, { num: 7, den: 7 }), 'перепутал действие', '7/7 — не то действие');
+    eq(fkind('sub', p, { num: 4, den: 7 }), 'ошибся на одну долю', '4/7 — мимо на долю');
+    // 1/7 + 4/7 → 3/7: вычитая, из большего вычли меньшее. (У 1/7 + 3/7 так не проверить:
+    // «в лоб» там 4/14 — та же величина, что 2/7, и генератор второй вариант не ставит.)
+    eq(fkind('add', { f1: { num: 1, den: 7 }, f2: { num: 4, den: 7 }, answer: { num: 5, den: 7 }, opKey: 'add' }, { num: 3, den: 7 }),
+       'перепутал действие', '1/7 + 4/7 → 3/7: из большего вычли меньшее');
+});
+
+test('1★: вес знаменателя — корень из числа его примеров (решение 04.11)', () => {
+    const T = FR('ADD_SUB_LEVEL1_TABLE');
+    ['add', 'sub'].forEach(op => {
+        const rows = T[op];
+        eq(rows.map(r => r.den).join(','), '3,4,5,6,7,8,9,10,11', `${op}: знаменатели`);
+        const total = rows.reduce((s2, r) => s2 + Math.sqrt(r.pairs.length), 0);
+        rows.forEach(r => assert(Math.abs(r.share - Math.sqrt(r.pairs.length) / total) < 1e-12, `${op} ${r.den}: доля не по корню`));
+        assert(Math.abs(rows.reduce((s2, r) => s2 + r.share, 0) - 1) < 1e-12, `${op}: доли не дают 1`);
+    });
+    eq(T.sub[0].pairs.length, 1, 'со знаменателем 3 в вычитании один пример — 2/3 − 1/3');
+    eq(T.sub[8].pairs.length, 45, 'со знаменателем 11 в вычитании 45 примеров');
+    eq(T.add[8].pairs.length, 90, 'со знаменателем 11 в сложении 90 примеров');
+    // И генератор действительно так выбирает: доли по выборке.
+    const N = 30000, byDen = {}, byEx = {};
+    for (let i = 0; i < N; i++) {
+        const m = G.pickAddSubMagnitudes(1, 'sub');
+        assert(m.n1 > m.n2, `вычитание из меньшего: ${m.n1}/${m.d1} − ${m.n2}/${m.d1}`);
+        byDen[m.d1] = (byDen[m.d1] || 0) + 1;
+        const k = `${m.n1}/${m.d1}-${m.n2}`; byEx[k] = (byEx[k] || 0) + 1;
+    }
+    const pct = (n) => 100 * n / N;
+    assert(pct(byDen[11]) > 20 && pct(byDen[11]) < 26, `знаменатель 11: ${pct(byDen[11]).toFixed(1)}%, ждали около 23%`);
+    assert(pct(byDen[3]) > 2.4 && pct(byDen[3]) < 4.5, `знаменатель 3: ${pct(byDen[3]).toFixed(1)}%, ждали около 3,4%`);
+    const top = Math.max(...Object.values(byEx));
+    assert(pct(top) < 4.5, `самый частый пример вычитания — ${pct(top).toFixed(1)}%, ждали не больше 3,4%`);
+});
+
+test('3★: десять пар знаменателей и 72 примера, каждый поровну', () => {
+    const pairs = FR('ADD_SUB_LEVEL3_PAIRS').map(p => p.join('&')).join(' ');
+    ['2&8', '3&12', '4&12', '6&12'].forEach(x => assert(pairs.indexOf(x) >= 0, `нет пары ${x}: ${pairs}`));
+    eq(FR('ADD_SUB_LEVEL3_EXAMPLES').length, 72, 'примеров 3★');
+    const N = 30000, seen = {};
+    for (let i = 0; i < N; i++) {
+        const m = G.pickAddSubMagnitudes(3, 'add');
+        const k = `${m.n1}/${m.d1}+${m.n2}/${m.d2}`; seen[k] = (seen[k] || 0) + 1;
+    }
+    eq(Object.keys(seen).length, 72, 'разных примеров в выборке');
+    const top = Math.max(...Object.values(seen));
+    assert(100 * top / N < 2.2, `самый частый пример 3★ — ${(100 * top / N).toFixed(1)}%, ждали около 1,4%`);
+});
+
+test('3★–5★: верный ответ не бывает единственной несократимой дробью', () => {
+    // Было: 50% примеров сложения 3★, 24% вычитания, 7–11% на 4★–5★. Ученик, заметивший
+    // это, выбирал ответ, не считая.
+    const bad = [];
+    ['add', 'sub'].forEach(op => [3, 4, 5].forEach(lvl => {
+        for (let i = 0; i < 2000; i++) {
+            const p = G.generateFractionProblem(op, lvl, false);
+            const fakes = G.buildFractionDistractors(op, p.f1, p.f2, p.answer, false, 3, lvl);
+            const irr = [p.answer, ...fakes].filter(isIrr);
+            if (irr.length === 1 && bad.length < 3) bad.push(`${op} ${lvl}★: ${p.f1.num}/${p.f1.den}, ${p.f2.num}/${p.f2.den} → ${fakes.map(f => f.num + '/' + f.den).join(', ')}`);
+            // Несократимы все ловушки, кроме нарочной «не сократил».
+            fakes.forEach(f => { if (!isIrr(f) && fkind(op, p, f) !== 'не сократил' && bad.length < 3) bad.push(`несокращённая ловушка ${f.num}/${f.den} («${fkind(op, p, f)}»)`); });
+        }
+    }));
+    eq(bad.join('; '), '', 'подсказка «единственная несократимая»');
+});
+
+test('3★: ловушки сокращены, а названия ошибок те же', () => {
+    const p = { f1: { num: 1, den: 2 }, f2: { num: 5, den: 8 }, answer: { num: 9, den: 8 }, opKey: 'add' };
+    const fakes = G.buildFractionDistractors('add', p.f1, p.f2, p.answer, false, 3, 3);
+    const shown = fakes.map(f => `${f.num}/${f.den} ${fkind('add', p, f)}`).sort().join('; ');
+    // Раньше: 18/16 (не сократил), 6/10 (в лоб), 6/8 (одна дробь). Теперь в лоб — 3/5, одна дробь — 3/4.
+    assert(shown.indexOf('3/5 сложил знаменатели') >= 0, `нет 3/5: ${shown}`);
+    assert(shown.indexOf('18/16 не сократил') >= 0, `нет 18/16: ${shown}`);
+});
+
+test('Перевод 1★: все 18 примеров поровну (решение 04.11)', () => {
+    eq(FR('MIXED_CONVERT_LEVEL1_EXAMPLES').length, 18, 'примеров перевода 1★');
+    ['toMixed', 'toImproper'].forEach(op => {
+        const N = 18000, seen = {};
+        for (let i = 0; i < N; i++) {
+            const p = op === 'toMixed' ? G.generateToMixedProblem(1) : G.generateToImproperProblem(1);
+            const k = `${p.whole} ${p.properNum}/${p.den}`; seen[k] = (seen[k] || 0) + 1;
+        }
+        eq(Object.keys(seen).length, 18, `${op}: разных примеров`);
+        const v = Object.values(seen).map(n => 100 * n / N);
+        assert(Math.max(...v) < 7.5 && Math.min(...v) > 3.8, `${op}: доли от ${Math.min(...v).toFixed(1)}% до ${Math.max(...v).toFixed(1)}%, ждали около 5,6%`);
+    });
+});
+
+test('Перевод: пять ошибок называются по выбранному варианту (названия 04.11)', () => {
+    const mixed = { whole: 3, properNum: 2, den: 5, direction: 'toMixed', answer: { num: 17, den: 5 } };
+    const impr = { whole: 3, properNum: 2, den: 5, direction: 'toImproper', answer: { num: 17, den: 5 } };
+    const k = (op, p, num, den) => G.classifyMistake(fmeta(op), p, p.answer, { num, den });
+    eq(k('toMixed', mixed, 2, 5), 'забыл целую часть', '17/5 → 2/5');
+    eq(k('toMixed', mixed, 12, 5), 'ошибся в целой части', '17/5 → 2 2/5');
+    eq(k('toMixed', mixed, 22, 5), 'ошибся в целой части', '17/5 → 4 2/5');
+    eq(k('toMixed', mixed, 13, 5), 'переставил целую и остаток', '17/5 → 2 3/5');
+    eq(k('toMixed', mixed, 16, 5), 'ошибся в переводе', '17/5 → 3 1/5 — ни одна из пяти');
+    eq(k('toImproper', impr, 15, 5), 'не прибавил числитель', '3 2/5 → 15/5');
+    eq(k('toImproper', impr, 5, 5), 'сложил целую и числитель', '3 2/5 → 5/5');
+    eq(k('toImproper', impr, 22, 5), 'ошибся в целой части', '3 2/5 → 22/5');
+    eq(k('toImproper', impr, 12, 5), 'ошибся в целой части', '3 2/5 → 12/5');
+    eq(k('toImproper', impr, 16, 5), 'ошибся в переводе', '3 2/5 → 16/5 — ни одна из пяти');
+    // 3 1/2: перестановка дала бы «1 3/2», а на экране 2 1/2 — это мимо на одну целую.
+    const half = { whole: 3, properNum: 1, den: 2, direction: 'toMixed', answer: { num: 7, den: 2 } };
+    eq(k('toMixed', half, 5, 2), 'ошибся в целой части', '7/2 → 2 1/2');
+    ['ошибся в целой части', 'переставил целую и остаток', 'не прибавил числитель', 'сложил целую и числитель'].forEach(x => {
+        assert(G.MISTAKE_LABELS[x], `нет названия «${x}»`);
+        assert(G.MISTAKE_SHORT[x], `нет короткой подписи «${x}»`);
+    });
+});
+
+test('Перевод: варианты генератора названы — без названия только случайные', () => {
+    ['toMixed', 'toImproper'].forEach(op => {
+        let total = 0, generic = 0;
+        for (let lvl = 1; lvl <= 5; lvl++) {
+            for (let i = 0; i < 1500; i++) {
+                const p = op === 'toMixed' ? G.generateToMixedProblem(lvl) : G.generateToImproperProblem(lvl);
+                G.buildMixedConvertDistractors(p, 3).forEach(f => {
+                    total++;
+                    if (fkind(op, p, f) === 'ошибся в переводе') generic++;
+                });
+            }
+        }
+        const pct = 100 * generic / total;
+        // Замер 04.11: в «В смешанное» 5–9% — случайные дроби, в «В неправильную» 0%.
+        assert(pct < (op === 'toMixed' ? 12 : 2), `${op}: «ошибка при переводе» — ${pct.toFixed(1)}%`);
+    });
+});
+
 // ---------- итог ----------
 console.log(`\n${'─'.repeat(50)}`);
 if (failed === 0) {
