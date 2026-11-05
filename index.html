@@ -15083,6 +15083,9 @@
                     // Десятичные числа примера — для той же подсказки: у них нет a и b.
                     d1: (currentProblem && currentProblem.d1) ? { intVal: currentProblem.d1.intVal, dp: currentProblem.d1.dp } : null,
                     d2: (currentProblem && currentProblem.d2) ? { intVal: currentProblem.d2.intVal, dp: currentProblem.d2.dp } : null,
+                    // И дробные: дроби, смешанные числа, «дробь от числа» — у них нет ни a и b, ни d1 и d2.
+                    frac: (meta.category === 'fraction' && typeof fracProblemSnapshot === 'function')
+                        ? fracProblemSnapshot(currentProblem, meta.opKey) : null,
                     correctVal: correctAnswer,
                     chosenVal: chosen,
                     opKey: meta.opKey || null,
@@ -15121,10 +15124,11 @@
         function renderReviewHint(wrap) {
             const kind = topMistakeKind(sessionMistakes);
             if (!kind) return;
-            const m = sessionMistakes.filter(x => x.kind === kind && (x.a !== null || x.d1))[0];
+            const m = sessionMistakes.filter(x => x.kind === kind && (x.a !== null || x.d1 || x.frac))[0];
             if (!m) return;
             const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
-                { a: m.a, b: m.b, d1: m.d1, d2: m.d2, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
+                Object.assign({ a: m.a, b: m.b, d1: m.d1, d2: m.d2, triple: m.triple, factors: m.factors }, m.frac || {}),
+                m.correctVal, m.chosenVal);
             if (!text) return;
 
             const box = document.createElement('div');
@@ -15231,11 +15235,12 @@
         // Правило к этому конкретному примеру — из той же таблицы подсказок, что и
         // сводная «самая частая ошибка» над списком. Своей копии текстов тут нет.
         function appendMistakeHint(card, m) {
-            if ((m.a === null || m.b === null) && !(m.d1 && m.d2)) return;
+            if ((m.a === null || m.b === null) && !(m.d1 && m.d2) && !m.frac) return;
             const kind = m.isAlmost ? 'не сократил' : (m.kind || null);
             if (!kind) return;
             const text = hintText('review', kind, { opKey: m.opKey, category: m.category },
-                { a: m.a, b: m.b, d1: m.d1, d2: m.d2, triple: m.triple, factors: m.factors }, m.correctVal, m.chosenVal);
+                Object.assign({ a: m.a, b: m.b, d1: m.d1, d2: m.d2, triple: m.triple, factors: m.factors }, m.frac || {}),
+                m.correctVal, m.chosenVal);
             if (!text) return;
             const box = document.createElement('div');
             box.className = 'hint-review';
@@ -15894,7 +15899,7 @@
 
             const freezeExample = freezeHint
                 ? { example: hintProblemLine(currentProblemMeta, currentProblem, correctAnswer),
-                    chosen: hintChosenLine(chosen) }
+                    chosen: hintChosenLine(chosen, currentProblemMeta) }
                 : null;
 
             setTimeout(() => {

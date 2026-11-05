@@ -37,6 +37,11 @@ const MISTAKE_LABELS = {
     'не перевернул дробь':         t('При делении вторая дробь не перевёрнута'),
     'забыл целую часть':           t('Целая часть потеряна'),
     'ошибся в переводе':           t('Ошибка при переводе дроби'),
+    // Пять ошибок перевода (решение репетитора 04.11). «Целая часть потеряна» — выше.
+    'ошибся в целой части':        t('Мимо на одну целую'),
+    'переставил целую и остаток':  t('Целая часть и остаток поменялись местами'),
+    'не прибавил числитель':       t('Целые переведены в доли, а числитель не прибавлен'),
+    'сложил целую и числитель':    t('Целая часть не умножена на знаменатель'),
     'сократил не до конца':        t('Сокращено не до конца'),
     'ошибся в сокращении':         t('Ошибка в сокращении'),
     'ошибся в знаке':              t('Ошибка в знаке'),
@@ -84,6 +89,12 @@ const MISTAKE_SHORT = {
     'не перевернул дробь':         t('без переворота'),
     'забыл целую часть':           t('без целой части'),
     'ошибся в переводе':           t('перевод дроби'),
+    'ошибся в целой части':        t('мимо на целую'),
+    // Утверждено «целая и остаток местами», но это 23 знака при пределе 22; 04.11
+    // репетитор выбрал «поменялись местами».
+    'переставил целую и остаток':  t('поменялись местами'),
+    'не прибавил числитель':       t('без числителя'),
+    'сложил целую и числитель':    t('без умножения'),
     'сократил не до конца':        t('не до конца'),
     'ошибся в сокращении':         t('сокращение'),
     'ошибся в знаке':              t('знак'),
@@ -149,6 +160,9 @@ function classifyFractionArith(problem, correct, chosen) {
         ? { num: f1.num - f2.num, den: f1.den - f2.den }
         : { num: f1.num + f2.num, den: f1.den + f2.den };
     if (flat.den !== 0 && (sameFrac(chosen, flat) || sameValue(chosen, flat))) return 'сложил знаменатели';
+    // В вычитании с одинаковыми знаменателями «в лоб» даёт ноль в знаменателе, и доли
+    // пропадают совсем: 5/7 − 2/7 = 3. Это та же ошибка — знаменатели вычтены тоже.
+    if (opKey === 'sub' && f1.den === f2.den && chosen.den === 1 && chosen.num === f1.num - f2.num) return 'сложил знаменатели';
 
     // Деление без переворота второй дроби — то же самое, что умножение.
     if (opKey === 'div' && f2.num !== 0) {
@@ -187,6 +201,10 @@ function classifyFractionArith(problem, correct, chosen) {
                 : opposite === 'mul' ? fracMul(f1, f2)
                 : (f2.num !== 0 ? fracDiv(f1, f2) : null);
             if (other && (sameFrac(chosen, other) || sameValue(chosen, other))) return 'перепутал действие';
+            // Сложение с одинаковыми знаменателями, где второе число больше: вычитая,
+            // из большего вычитают меньшее (1/7 + 3/7 → 2/7).
+            if (other && opposite === 'sub' && f1.den === f2.den && other.num < 0 && chosen.num > 0
+                && sameValue(chosen, { num: -other.num, den: other.den })) return 'перепутал действие';
         } catch (e) { /* обратное действие неопределено — просто идём дальше */ }
     }
 
@@ -194,6 +212,11 @@ function classifyFractionArith(problem, correct, chosen) {
     const m = toMixedParts(correct);
     if (m && m.whole !== 0 && m.remNum !== 0
         && Math.abs(chosen.num) === m.remNum && chosen.den === m.den) return 'забыл целую часть';
+
+    // Сложение и вычитание с одинаковыми знаменателями: знаменатель тот же, числитель
+    // на единицу больше или меньше — промах в счёте долей, а не в правиле: 3/7 + 1/7 = 5/7.
+    if ((opKey === 'add' || opKey === 'sub') && f1.den === f2.den
+        && chosen.den === correct.den && correct.den > 1 && Math.abs(chosen.num - correct.num) === 1) return 'ошибся на одну долю';
 
     return null;
 }
@@ -387,6 +410,29 @@ function classifyZeroInExample(opKey, problem, chosen) {
 }
 
 // «Дробь от числа»: модели ошибок здесь свои, см. buildFracOfNumberDistractors.
+// «В смешанное» и «В неправильную». Варианты ответа построены как конкретные ошибки
+// (buildMixedConvertDistractors), и разбор узнаёт их по величине выбранной дроби.
+// Названия утвердил репетитор 04.11. Вариант, не похожий ни на одну из этих ошибок,
+// остаётся «ошибкой при переводе» — как было для всех до этой правки.
+function classifyMixedConvert(problem, correct, chosen) {
+    if (!isFrac(chosen) || !isFrac(correct)) return null;
+    const { whole, properNum, den, direction } = problem;
+    if (!(whole >= 1) || !(properNum >= 1) || !(den >= 2)) return null;
+    const is = (num) => chosen.num * den === num * chosen.den;
+    if (direction === 'toMixed') {
+        if (is(properNum)) return 'забыл целую часть';
+        // Перестановку видно, только когда переставленная запись — смешанное число с
+        // правильной дробью: у 3 1/2 она дала бы «1 3/2», а на экране это 2 1/2.
+        if (whole < den && whole !== properNum && is(properNum * den + whole)) return 'переставил целую и остаток';
+        if (is((whole - 1) * den + properNum) || is((whole + 1) * den + properNum)) return 'ошибся в целой части';
+        return null;
+    }
+    if (is(whole * den)) return 'не прибавил числитель';
+    if (is(whole + properNum)) return 'сложил целую и числитель';
+    if (is(correct.num + den) || is(correct.num - den)) return 'ошибся в целой части';
+    return null;
+}
+
 function classifyFracOfNumber(problem, correct, chosen) {
     if (typeof chosen !== 'number') return null;
     const { fracNum, N, k } = problem;
@@ -415,7 +461,9 @@ function classifyMistake(meta, problem, correct, chosen) {
                 if (sameValue(chosen, correct)) return 'сократил не до конца';
                 return 'ошибся в сокращении';
             }
-            if (opKey === 'toMixed' || opKey === 'toImproper') return 'ошибся в переводе';
+            if (opKey === 'toMixed' || opKey === 'toImproper') {
+                return classifyMixedConvert(problem, correct, chosen) || 'ошибся в переводе';
+            }
             if (opKey === 'fracOfNumber') return classifyFracOfNumber(problem, correct, chosen) || 'другая ошибка';
             return classifyFractionArith(problem, correct, chosen) || 'другая ошибка';
         }
@@ -454,6 +502,8 @@ function classifyMistake(meta, problem, correct, chosen) {
                 // наоборот (5,2 − 3,8 = 2,6). Модель та же, что строит вариант ответа.
                 const column = decColumnMistake(opKey, d1, d2);
                 if (column && same(column.intVal, column.dp)) return opKey === 'add' ? 'не перенёс единицу' : 'переставил цифры';
+                // Соседний факт таблицы в умножении и делении (вариант Б, 04.11).
+                if (decTableSlips(opKey, d1, d2).some(v => same(v.intVal, v.dp))) return 'таблица умножения';
                 if (opKey === 'add' && same(v1 - v2, commonDp)) return 'перепутал действие';
                 if (opKey === 'sub' && same(v1 + v2, commonDp)) return 'перепутал действие';
                 if (opKey === 'mul') {
@@ -469,6 +519,13 @@ function classifyMistake(meta, problem, correct, chosen) {
                 for (const k of [0.001, 0.01, 0.1, 10, 100, 1000]) {
                     if (Math.abs(ratio - k) < 1e-9) return 'запятая не на месте';
                 }
+            }
+            // Вариант Б: ответ рядом — на той же сетке знаков, что и верный, — промах в
+            // счёте, а не «другая ошибка». Граница та же, что у случайного варианта.
+            // Сравнение по величине: у 9,0 ноль в конце убран, и запись короче, чем у 9,7.
+            if (chosen.dp <= correct.dp) {
+                const diff = Math.abs(chosen.intVal * Math.pow(10, correct.dp - chosen.dp) - correct.intVal);
+                if (diff >= 1 && diff <= Math.max(3, Math.round(Math.abs(correct.intVal) * 0.2))) return 'промахнулся рядом';
             }
             return 'другая ошибка';
         }
@@ -549,6 +606,7 @@ function hintNegArith(problem, correct) {
 // тех же числах, что и подсказка до неё.
 function hintVariant(kind, meta, problem, correct, chosen) {
     if (isDecProblem(problem)) return decHintVariant(kind, meta, problem, correct, chosen);
+    if (isFracHintMeta(meta)) return fracHintVariant(kind, meta, problem, correct, chosen);
     const op = meta && meta.opKey;
     const a = problem && problem.a, b = problem && problem.b;
     if (typeof a !== 'number' || typeof b !== 'number') return null;
@@ -624,6 +682,7 @@ function mulFactUsed(a, b, chosen) {
 // описан в шапке content/hints.js и обязан совпадать во всех языках.
 function hintArgs(kind, meta, problem, correct, chosen) {
     if (isDecProblem(problem)) return decHintArgs(kind, meta, problem, correct, chosen);
+    if (isFracHintMeta(meta)) return fracHintArgs(kind, meta, problem, correct, chosen);
     const op = meta && meta.opKey;
     const a = problem && problem.a, b = problem && problem.b;
     if (typeof a !== 'number' || typeof b !== 'number') return null;
@@ -922,10 +981,40 @@ function decHintVariant(kind, meta, problem, correct, chosen) {
         }
         return null;
     }
+    // Вариант Б (04.11): соседний факт таблицы и ответ рядом.
+    if (kind === 'таблица умножения') return op === 'mul' ? 'decMul' : op === 'div' ? 'decDiv' : null;
+    if (kind === 'промахнулся рядом') return 'dec';
     if (kind === 'сложил вместо умножения' && op === 'mul') {
         if ((d1.dp === 0) !== (d2.dp === 0)) return d1.dp + d2.dp === 1 ? 'decOneWhole' : null;
         if (d1.dp === 1 && d2.dp === 1) return 'decBothPoint';
         return null;
+    }
+    return null;
+}
+
+// Соседний факт таблицы. Умножение: какой множитель сдвинут — ищем тот же сдвиг, что
+// строит вариант ответа (decTableSlips). Деление: проверка умножением; разбор со
+// сдвигом запятой — только когда у делителя есть знаки после запятой, иначе «сдвинем
+// запятую» было бы неправдой.
+function decTableHintArgs(op, d1, d2, correct, chosen) {
+    const S = (d) => decShow(d);
+    const plain = stripTrailingZeros(chosen);
+    const same = (d) => { const x = stripTrailingZeros(d); return x.intVal === plain.intVal && x.dp === plain.dp; };
+    if (op === 'mul') {
+        const a = d1.intVal, b = d2.intVal, dp = d1.dp + d2.dp;
+        const pair = [[a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]]
+            .find(([x, y]) => x >= 1 && y >= 1 && same({ intVal: x * y, dp }));
+        if (!pair) return null;
+        const [x, y] = pair;
+        return { game: [a, b, x, y], review: [S(d1), S(d2), a, b, a * b, x, y, x * y] };
+    }
+    if (op === 'div') {
+        const game = [S(chosen), S(d2), S(d1)];
+        if (d2.dp < 1) return { game, review: null };
+        const k = d2.dp;
+        const a10 = { intVal: d1.intVal * Math.pow(10, Math.max(0, k - d1.dp)), dp: Math.max(0, d1.dp - k) };
+        const b10 = { intVal: d2.intVal, dp: 0 };
+        return { game, review: [S(d1), S(d2), S(a10), S(b10), S(correct), S(chosen), S(decMul(chosen, b10))] };
     }
     return null;
 }
@@ -946,6 +1035,10 @@ function decHintArgs(kind, meta, problem, correct, chosen) {
         if (!other || other.intVal < 0) return null;
         return { game: [], review: [A, B, S(correct), S(other)] };
     }
+
+    // Вариант Б: тексты утвердил репетитор 04.11.
+    if (kind === 'таблица умножения') return decTableHintArgs(op, d1, d2, correct, chosen);
+    if (kind === 'промахнулся рядом') return { game: [], review: [ch, S(correct)] };
 
     const variant = decHintVariant(kind, meta, problem, correct, chosen);
     if (!variant) return null;
@@ -1032,6 +1125,279 @@ function decHintArgs(kind, meta, problem, correct, chosen) {
     return null;
 }
 
+// ===================== ДРОБИ: ПОДСКАЗКИ =====================
+// Тексты утвердил репетитор 04.11, двумя пачками: сложение, вычитание, умножение и
+// деление; сокращение, перевод и дробь от числа. Подсказка говорит числами того
+// примера, на котором споткнулись, а там, где текст оказался бы неправдой, молчит:
+//   — отрицательные дроби: тексты написаны про положительные, знаки в них не учтены;
+//   — пример с целым числом (4★ умножения и деления): «знаменатель на знаменатель» и
+//     «вторая дробь» про целое не скажешь. Деление НА дробь (4 ÷ 2/3) — не в счёт:
+//     там вторая дробь настоящая, и текст верен как есть;
+//   — «мимо на одну долю» — только если ответ не сокращался: у 4/6 + 4/6 = 4/3 доля
+//     ответа — треть, а не шестая, и «на одну долю больше» было бы неправдой;
+//   — дробь от числа с числителем 1: «таких долей нужно 1: 5 × 1» — не объяснение,
+//     поэтому у неё свои тексты (утверждены 05.11): пример там — одно деление.
+// Дроби в текстах — через косую черту, смешанные числа — с пробелом: «5/7», «3 2/5».
+const isFracVal = (v) => !!(v && typeof v === 'object' && typeof v.num === 'number'
+    && typeof v.den === 'number' && v.den > 0);
+const isFracHintMeta = (meta) => !!(meta && meta.category === 'fraction');
+
+function fracHintStr(f) {
+    const sign = f.num < 0 ? '−' : '';
+    const n = Math.abs(f.num);
+    return f.den === 1 ? `${sign}${n}` : `${sign}${n}/${f.den}`;
+}
+function fracHintMixed(f) {
+    const m = toMixedParts(f);
+    const sign = m.sign < 0 ? '−' : '';
+    if (m.whole && m.remNum) return `${sign}${m.whole} ${m.remNum}/${m.den}`;
+    if (m.whole) return `${sign}${m.whole}`;
+    return m.remNum ? `${sign}${m.remNum}/${m.den}` : '0';
+}
+// «4/6 = 2/3», а если сокращать нечего — просто «5/7».
+function fracHintReduced(num, den) {
+    const s = simplifyFrac(num, den);
+    return (s.num === num && s.den === den) ? fracHintStr(s) : `${num}/${den} = ${fracHintStr(s)}`;
+}
+// «3 раза», «3 times». Но «1 times» по-английски не говорят — только «once».
+function fracTimesPhrase(n) {
+    if (n === 1 && ((typeof LANG === 'string' && LANG) || 'ru') === 'en') return 'once';
+    return hintCountPhrase('times', n);
+}
+
+// Вариант текста. У «знаменатели тоже» их четыре: одинаковые знаменатели или разные,
+// сложение или вычитание. У «мимо на одну долю» — в какую сторону промах. У «не того
+// действия» свой текст только для 1/7 + 4/7 → 3/7: вычитая, из большего вычли меньшее.
+// Остальное — тексты по действию: 'сложил знаменатели:mul', 'перепутал действие:sub'.
+function fracHintVariant(kind, meta, problem, correct, chosen) {
+    const op = meta && meta.opKey;
+    // Дробь от числа с числителем 1 — свои тексты (утверждены 05.11): «таких долей
+    // нужно 1: 5 × 1» не объяснение, а сам пример — это одно деление.
+    if (op === 'fracOfNumber') return (problem && problem.fracNum === 1) ? 'fracOfNumberOne' : null;
+    const f1 = problem && problem.f1, f2 = problem && problem.f2;
+    if (!isFracVal(f1) || !isFracVal(f2) || (op !== 'add' && op !== 'sub')) return null;
+    const A = op === 'add' ? 'Add' : 'Sub';
+    if (kind === 'сложил знаменатели') return (f1.den === f2.den ? 'fracSame' : 'fracDiff') + A;
+    if (kind === 'перепутал действие') {
+        return (op === 'add' && f1.den === f2.den && f1.num < f2.num) ? 'fracRev' : null;
+    }
+    if (kind === 'ошибся на одну долю' && isFracVal(chosen) && isFracVal(correct)) {
+        return 'frac' + A + (chosen.num > correct.num ? 'More' : 'Less');
+    }
+    return null;
+}
+
+function fracHintArgs(kind, meta, problem, correct, chosen) {
+    if (typeof simplifyFrac !== 'function' || typeof toMixedParts !== 'function' || !problem) return null;
+    const op = meta && meta.opKey;
+    if (op === 'simplify') return fracSimplifyHintArgs(kind, problem, correct, chosen);
+    if (op === 'toMixed' || op === 'toImproper') return fracConvertHintArgs(kind, op, problem, correct, chosen);
+    if (op === 'fracOfNumber') return fracOfNumberHintArgs(kind, problem, correct, chosen);
+    if (HINT_OP_SIGNS[op]) return fracArithHintArgs(kind, op, problem, correct, chosen);
+    return null;
+}
+
+function fracArithHintArgs(kind, op, problem, correct, chosen) {
+    const f1 = problem.f1, f2 = problem.f2;
+    if (!isFracVal(f1) || !isFracVal(f2) || !isFracVal(correct) || !isFracVal(chosen)) return null;
+    if (f1.num < 0 || f2.num < 0 || correct.num < 0 || chosen.num < 0) return null;
+    const S = fracHintStr, F1 = S(f1), F2 = S(f2);
+    const sign = HINT_OP_SIGNS[op];
+    const example = `${F1} ${sign} ${F2}`;
+    const sameDen = f1.den === f2.den;
+    const lcd = f1.den * f2.den / gcd(f1.den, f2.den);
+    const toLcd = (f) => ({ num: f.num * (lcd / f.den), den: lcd });
+
+    // Те же тексты, что у целых и десятичных: «С теми же числами знак решает всё».
+    if (kind === 'перепутал действие') return { game: [], review: [F1, F2, S(correct), S(chosen)] };
+
+    if (op === 'add' || op === 'sub') {
+        const plus = op === 'add';
+        const n = plus ? f1.num + f2.num : f1.num - f2.num;
+        if (kind === 'сложил знаменатели') {
+            if (sameDen) {
+                // Разбор вычитания написан про ответ без знаменателя: 5/7 − 2/7 → 3.
+                if (!plus && !(chosen.den === 1 && chosen.num === n)) return null;
+                return { game: [f1.num, f2.num], review: [F1, F2, f1.num, f2.num, n, f1.den, fracHintReduced(n, f1.den)] };
+            }
+            const c1 = toLcd(f1), c2 = toLcd(f2);
+            const conv = [f1, f2].filter(f => f.den !== lcd).map(f => `${S(f)} = ${S(toLcd(f))}`).join(', ');
+            const raw = plus ? c1.num + c2.num : c1.num - c2.num;
+            const review = [F1, F2, lcd, conv, S(c1), S(c2), fracHintReduced(raw, lcd)];
+            // «…выйдет 3/5 — это даже меньше, чем 5/8»: сумма «в лоб» всегда лежит между
+            // двумя дробями, то есть меньше большей из них.
+            if (plus) review.push(S(chosen), S(f1.num * f2.den >= f2.num * f1.den ? f1 : f2));
+            return { game: [lcd], review };
+        }
+        if (kind === 'перевёл не обе дроби') {
+            if (sameDen) return null;
+            const game = [lcd];
+            // «Переводить нужно обе дроби» — неправда, когда одна уже со знаменателем lcd (3★).
+            if (f1.den === lcd || f2.den === lcd) return { game, review: null };
+            const c1 = toLcd(f1), c2 = toLcd(f2);
+            const raw = plus ? c1.num + c2.num : c1.num - c2.num;
+            return { game, review: [example, lcd, `${F1} = ${S(c1)}, ${F2} = ${S(c2)}`,
+                `${S(c1)} ${sign} ${S(c2)} = ${fracHintReduced(raw, lcd)}`, S(chosen)] };
+        }
+        if (kind === 'ошибся на одну долю') {
+            if (!sameDen || correct.den !== f1.den || chosen.den !== f1.den) return null;
+            const step = `${f1.num} ${sign} ${f2.num}`;
+            return { game: [step], review: [example, `${step} = ${n}`, f1.den, S(correct), S(chosen)] };
+        }
+        return null;
+    }
+
+    const proper = (f) => f.den > 1;
+    if (op === 'mul') {
+        if (!proper(f1) || !proper(f2)) return null;
+        const np = f1.num * f2.num, dp = f1.den * f2.den;
+        const nums = `${f1.num} × ${f2.num} = ${np}`, dens = `${f1.den} × ${f2.den} = ${dp}`;
+        if (kind === 'сложил знаменатели') return { game: [], review: [F1, F2, nums, dens, fracHintReduced(np, dp), S(chosen)] };
+        if (kind === 'забыл перемножить знаменатели') {
+            // Выбранное стоит на экране сокращённым: 2 — это 6/3. Тогда видно обе записи,
+            // иначе «знаменатель взят из одной дроби» про 2 непонятно.
+            const used = [f1.den, f2.den].find(d => {
+                const s = simplifyFrac(np, d);
+                return s.num === chosen.num && s.den === chosen.den;
+            });
+            if (!used) return null;
+            const shown = (chosen.num === np && chosen.den === used) ? S(chosen) : `${S(chosen)} = ${np}/${used}`;
+            return { game: [f1.den, f2.den], review: [F1, F2, nums, dens, fracHintReduced(np, dp), shown] };
+        }
+        return null;
+    }
+    if (op === 'div') {
+        if (!proper(f2) || f2.num === 0) return null;
+        const flip = `${f2.den}/${f2.num}`;
+        if (kind === 'не перевернул дробь') {
+            return { game: [F1, flip], review: [F1, F2, flip, fracHintReduced(f1.num * f2.den, f1.den * f2.num), S(chosen)] };
+        }
+        if (kind === 'перевернул не ту дробь') {
+            if (!proper(f1)) return null;
+            return { game: [F1, flip], review: [F1, F2, flip, S(correct), S(chosen)] };
+        }
+    }
+    return null;
+}
+
+function fracSimplifyHintArgs(kind, problem, correct, chosen) {
+    const given = problem.given;
+    if (!isFracVal(given) || !isFracVal(correct) || !isFracVal(chosen)) return null;
+    const g = gcd(given.num, given.den);
+    if (g < 2) return null;
+    const S = fracHintStr;
+    if (kind === 'сократил не до конца') {
+        // «У 6 и 9 ещё есть общий делитель» — говорим, только если он и правда есть.
+        if (gcd(chosen.num, chosen.den) < 2) return null;
+        return { game: [chosen.num, chosen.den], review: [S(given), g, S(correct)] };
+    }
+    if (kind === 'ошибся в сокращении') return { game: [], review: [S(given), g, S(correct), S(chosen)] };
+    return null;
+}
+
+// Перевод. Варианты ответа — модели ошибок со знаменателем примера; выбранное с другим
+// знаменателем — случайный вариант, и что-то утверждать про него нельзя.
+function fracConvertHintArgs(kind, op, problem, correct, chosen) {
+    const whole = problem.whole, p = problem.properNum, den = problem.den;
+    if (!(whole >= 1) || !(p >= 1) || !(den >= 2) || p >= den) return null;
+    if (!isFracVal(chosen) || chosen.den !== den) return null;
+    const imp = whole * den + p;
+    if (!isFracVal(correct) || correct.num * den !== imp * correct.den) return null;
+    const mixed = `${whole} ${p}/${den}`, improper = `${imp}/${den}`;
+    if (op === 'toMixed') {
+        const shown = fracHintMixed(chosen);
+        if (kind === 'забыл целую часть') return { game: [improper], review: [improper, imp, den, whole, p, mixed, shown] };
+        if (kind === 'ошибся в целой части') {
+            return { game: [den, imp], review: [improper, den, imp, fracTimesPhrase(whole), whole, whole * den, p, mixed, shown] };
+        }
+        if (kind === 'переставил целую и остаток') return { game: [den, imp], review: [improper, imp, den, whole, p, mixed, shown] };
+        return null;
+    }
+    const shown = fracHintStr(chosen);
+    if (kind === 'не прибавил числитель') {
+        return { game: [p], review: [mixed, whole, den, whole * den, p, imp, improper, shown, `${p}/${den}`] };
+    }
+    if (kind === 'сложил целую и числитель') {
+        return { game: [whole, den, p], review: [mixed, whole, den, whole * den, p, imp, improper, shown] };
+    }
+    if (kind === 'ошибся в целой части') {
+        // «Выбрано 2/5 — это 2/5»: у выбранного нет целой части, и разбору сказать нечего.
+        const m = toMixedParts(chosen);
+        const review = (m.whole >= 1 && m.remNum >= 1)
+            ? [mixed, whole, den, whole * den, p, imp, improper, shown, fracHintMixed(chosen)] : null;
+        return { game: [whole, den, p], review };
+    }
+    return null;
+}
+
+function fracOfNumberHintArgs(kind, problem, correct, chosen) {
+    const num = problem.fracNum, den = problem.fracDen, N = problem.N, k = problem.k;
+    if (!(num >= 1) || !(den >= 2) || !(k >= 1) || N !== den * k) return null;
+    if (typeof correct !== 'number' || correct !== num * k || typeof chosen !== 'number') return null;
+    const frac = `${num}/${den}`;
+    const base = [frac, N, den, k, num, correct];
+    // Числитель 1 — свои тексты (утверждены 05.11): пример здесь — одно деление,
+    // 1/4 от 20 — это 20 ÷ 4.
+    if (num === 1) {
+        if (kind === 'забыл поделить') {
+            return { game: [frac, den, N], review: [frac, N, hintCountPhrase('equalParts', den), den, k, chosen] };
+        }
+        if (kind === 'ошибся на единицу') return { game: [N, den], review: [frac, N, den, k, chosen] };
+        if (kind === 'нашёл остаток') return { game: [frac, N], review: [frac, N, den, k, chosen, `${den - num}/${den}`] };
+        // «Это две доли» — правда, только если выбрано ровно две.
+        if (kind === 'ошибся на одну долю') return { game: [num], review: chosen === 2 * k ? [frac, N, den, k, chosen] : null };
+        return null;
+    }
+    if (kind === 'забыл поделить') return { game: [N, den, num], review: base.concat([chosen]) };
+    if (kind === 'нашёл только одну долю') return { game: [N, den, num], review: base };
+    if (kind === 'нашёл остаток') return { game: [frac, N], review: base.concat([chosen, `${den - num}/${den}`]) };
+    if (kind === 'ошибся на одну долю') return { game: [num], review: base.concat([chosen]) };
+    if (kind === 'ошибся на единицу') return { game: [k, num], review: base.concat([chosen]) };
+    return null;
+}
+
+// Строка примера для карточки подсказки — в той же записи, что и тексты.
+function fracHintProblemLine(meta, problem, correct) {
+    const op = meta && meta.opKey;
+    if (!problem) return '';
+    if (op === 'simplify') {
+        return (isFracVal(problem.given) && isFracVal(correct)) ? `${fracHintStr(problem.given)} = ${fracHintStr(correct)}` : '';
+    }
+    if (op === 'toMixed' || op === 'toImproper') {
+        if (!isFracVal(correct)) return '';
+        const imp = fracHintStr(correct), mix = fracHintMixed(correct);
+        return op === 'toMixed' ? `${imp} = ${mix}` : `${mix} = ${imp}`;
+    }
+    if (op === 'fracOfNumber') {
+        if (typeof correct !== 'number' || !(problem.fracDen >= 2)) return '';
+        return tf('%1 от %2 = %3', `${problem.fracNum}/${problem.fracDen}`, problem.N, correct);
+    }
+    const sign = HINT_OP_SIGNS[op];
+    if (!sign || !isFracVal(problem.f1) || !isFracVal(problem.f2) || !isFracVal(correct)) return '';
+    return `${fracHintStr(problem.f1)} ${sign} ${fracHintStr(problem.f2)} = ${fracHintStr(correct)}`;
+}
+
+// Числа дробного примера — для подсказки в разборе после миссии: a и b у дробей нет.
+// Копия, а не ссылка, и никогда не бросает: запись ошибки важнее подсказки к ней.
+function fracProblemSnapshot(p, opKey) {
+    try {
+        if (!p) return null;
+        const F = (f) => ({ num: f.num, den: f.den });
+        const num = (x) => typeof x === 'number';
+        if (opKey === 'simplify') return isFracVal(p.given) ? { given: F(p.given) } : null;
+        if (opKey === 'toMixed' || opKey === 'toImproper') {
+            return (num(p.whole) && num(p.properNum) && num(p.den)) ? { whole: p.whole, properNum: p.properNum, den: p.den } : null;
+        }
+        if (opKey === 'fracOfNumber') {
+            return (num(p.fracNum) && num(p.fracDen) && num(p.N) && num(p.k))
+                ? { fracNum: p.fracNum, fracDen: p.fracDen, N: p.N, k: p.k } : null;
+        }
+        return (isFracVal(p.f1) && isFracVal(p.f2)) ? { f1: F(p.f1), f2: F(p.f2) } : null;
+    } catch (e) {
+        return null;
+    }
+}
+
 // Готовый текст подсказки или пустая строка. Пустая — законный ответ: подсказки
 // нет, файл не доехал, числа не сошлись. Игру это не должно задевать никак.
 function hintText(form, kind, meta, problem, correct, chosen) {
@@ -1066,7 +1432,10 @@ const HINT_OP_SIGNS = { add: '+', sub: '−', mul: '×', div: '÷' };
 // всех четырёх языков остаются сверяемыми.
 const HINT_COUNT_WORDS = {
     times: { ru: ['раз', 'раза', 'раз'], en: ['times'], fr: ['fois'], de: ['-mal'] },
-    zeros: { ru: ['ноль', 'нуля', 'нулей'], en: ['zeros'], fr: ['zéros'], de: ['Nullen'] }
+    zeros: { ru: ['ноль', 'нуля', 'нулей'], en: ['zeros'], fr: ['zéros'], de: ['Nullen'] },
+    // «на 4 равные доли», но «на 5 равных долей». Долей в дроби от числа не меньше двух.
+    equalParts: { ru: ['равную долю', 'равные доли', 'равных долей'], en: ['equal parts'],
+                  fr: ['parts égales'], de: ['gleiche Teile'] }
 };
 
 // 1, 21, 31 — первая форма; 2–4, 22–24 — вторая; остальное — третья.
@@ -1091,6 +1460,7 @@ function hintCountPhrase(what, n) {
 // и без неё подсказка висит в воздухе — за ней не видно ни примера, ни ответа,
 // и ученик не понимает, о чём вообще речь.
 function hintProblemLine(meta, problem, correct) {
+    if (isFracHintMeta(meta)) return fracHintProblemLine(meta, problem, correct);
     // Десятичные — ровно как на экране игры: запятая по языку, настоящий минус.
     if (isDecProblem(problem)) {
         if (!isDecObj(correct) || typeof buildDecimalQuestionText !== 'function') return '';
@@ -1110,8 +1480,16 @@ function hintProblemLine(meta, problem, correct) {
     return `${problem.a} ${sign} ${problem.b} = ${right}`;
 }
 
-function hintChosenLine(chosen) {
+// meta нужна дробям: при переводе в смешанное число варианты на экране — смешанные.
+function hintChosenLine(chosen, meta) {
     if (isDecObj(chosen) && typeof decShow === 'function') return tf('выбрано: %1', decShow(chosen));
+    if (isFracVal(chosen)) {
+        try {
+            return tf('выбрано: %1', (meta && meta.opKey === 'toMixed') ? fracHintMixed(chosen) : fracHintStr(chosen));
+        } catch (e) {
+            return '';
+        }
+    }
     const what = (typeof chosen === 'number') ? showMinus(chosen)
         : (chosen === 'NO_SOLUTION' ? t('Нет решения') : '');
     return what ? tf('выбрано: %1', what) : '';

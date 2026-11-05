@@ -1441,6 +1441,28 @@ const ADD_SUB_FRAC_DEN_POOL = {
 };
 const ADD_SUB_MAX_LCM = { 4: 20, 5: 24 };
 
+// 3★: один знаменатель кратен другому. Было шесть пар (2 и 4, 2 и 6, 3 и 6, 3 и 9,
+// 4 и 8, 5 и 10) — всего 44 разных примера на звезду, и каждый четвёртый с 1/2.
+// По решению репетитора (24.10) добавлены 2 и 8, 3 и 12, 4 и 12, 6 и 12.
+//
+// Пример берётся равномерно из ВСЕХ примеров всех пар, а не «сначала пара, потом
+// числители»: у 1/2 числитель один, и при выборе по парам каждый пример с половиной
+// выпадал бы в разы чаще остальных («1/2 + 3/4» — 6% звезды). Условие, как и
+// раньше, в несократимом виде: числители взаимно просты со знаменателями.
+const ADD_SUB_LEVEL3_PAIRS = [[2, 4], [2, 6], [2, 8], [3, 6], [3, 9], [3, 12], [4, 8], [4, 12], [5, 10], [6, 12]];
+const ADD_SUB_LEVEL3_EXAMPLES = (() => {
+    const out = [];
+    for (const [d1, d2] of ADD_SUB_LEVEL3_PAIRS) {
+        for (let n1 = 1; n1 < d1; n1++) {
+            if (gcd(n1, d1) !== 1) continue;
+            for (let n2 = 1; n2 < d2; n2++) {
+                if (gcd(n2, d2) === 1) out.push({ n1, d1, n2, d2 });
+            }
+        }
+    }
+    return out;
+})();
+
 // Умножение/деление на 5★ — без смешанных чисел. Пул для случая с гарантированным
 // сокращением можно держать широким: суть в том, чтобы увидеть общий множитель до
 // умножения, а не в размере самих чисел — после сокращения считать всё равно легко.
@@ -1512,41 +1534,41 @@ function pickReducibleAddSubPair(den, isAdd) {
     return { n1, n2: isAdd ? (den - n1) : n1 };
 }
 
-// Подбор пары числителей (общий знаменатель den) так, чтобы результат (сумма/разность)
-// НЕ сокращался. Используется на 1★, где сокращать пока вообще не нужно уметь.
+// Все примеры 1★ сложения и вычитания: общий знаменатель, и результат (сумма или
+// разность) НЕ сокращается — на 1★ сокращать пока вообще не нужно уметь.
 //
 // В отличие от остальных уровней, сами исходные дроби здесь НЕ обязаны быть
 // несократимыми — иначе чётные знаменатели были бы недостижимы совсем (см. подробный
 // разбор у ADD_SUB_FRAC_DEN_POOL). Поэтому числители берутся из всего диапазона
-// 1..den-1, а единственное требование — к результату.
+// 1..den-1, а единственное требование — к результату. В вычитании первое число
+// больше второго, и «0» как ответ не встречается.
 //
-// Заодно исключается n1===n2 при вычитании: gcd(0, den) по определению равен den
-// (и не 1 при den>1), так что "0" как ответ отсеивается той же проверкой, без
-// отдельного условия.
-function pickIrreducibleAddSubPair(den, isAdd) {
-    let guard = 0;
-    while (guard < 30) {
-        guard++;
-        const n1 = randInt(1, den - 1);
-        const n2 = randInt(1, den - 1);
-        const result = isAdd ? (n1 + n2) : Math.abs(n1 - n2);
-        if (gcd(result, den) === 1) return { n1, n2 };
-    }
-    // Детерминированный фолбэк — полный перебор. Диапазон крошечный (den ≤ 11),
-    // так что это дешевле и надёжнее, чем выводить формулу подходящей пары.
-    const all = [];
-    for (let n1 = 1; n1 < den; n1++) {
-        for (let n2 = 1; n2 < den; n2++) {
-            const result = isAdd ? (n1 + n2) : Math.abs(n1 - n2);
-            if (gcd(result, den) === 1) all.push({ n1, n2 });
-        }
-    }
-    if (all.length) return all[randInt(0, all.length - 1)];
-    // Сюда попасть нельзя ни при одном знаменателе из ADD_SUB_FRAC_DEN_POOL[1]:
-    // проверено перебором, для каждого из 3..11 валидные пары существуют. Осталось
-    // на случай, если пул когда-нибудь расширят знаменателем без решения (например 2).
-    return { n1: 1, n2: 1 };
-}
+// Как выбирается пример. Раньше знаменатель выбирался поровну, и у маленьких
+// знаменателей вся их доля ложилась на один-два примера: «2/3 − 1/3», единственный
+// пример со знаменателем 3, выпадал в 11% вычитаний. Строго поровну по примерам тоже
+// плохо: знаменатель 11 занял бы 37% звезды, а 3, 4 и 5 вместе — 7%, и первая
+// встреча с дробями стала бы заметно труднее. Решение репетитора 04.11 — середина:
+// вес знаменателя — корень из числа его примеров, пример внутри знаменателя —
+// поровну. Самый частый пример — 3,4% вычитаний, знаменатель 11 — 23% звезды,
+// знаменатели 3–5 вместе — 16%.
+const ADD_SUB_LEVEL1_TABLE = (() => {
+    const build = (isAdd) => {
+        const rows = ADD_SUB_FRAC_DEN_POOL[1].map(den => {
+            const pairs = [];
+            for (let n1 = 1; n1 < den; n1++) {
+                for (let n2 = 1; n2 < den; n2++) {
+                    if (!isAdd && n1 <= n2) continue;
+                    if (gcd(isAdd ? n1 + n2 : n1 - n2, den) === 1) pairs.push({ n1, n2 });
+                }
+            }
+            return { den, pairs };
+        }).filter(row => row.pairs.length);
+        const total = rows.reduce((sum, row) => sum + Math.sqrt(row.pairs.length), 0);
+        rows.forEach(row => { row.share = Math.sqrt(row.pairs.length) / total; });
+        return rows;
+    };
+    return { add: build(true), sub: build(false) };
+})();
 
 // Пара разных знаменателей, ни один из которых не делится на другой, С ОГРАНИЧЕНИЕМ НОК
 // сверху (maxLcm) — иначе даже "разные, не делящиеся" знаменатели могут дать неподъёмный
@@ -1650,10 +1672,10 @@ function pickNoCancelDivPair(pool) {
 // ===================== ДРОБИ: ПОДБОР ВЕЛИЧИН ПО УРОВНЯМ =====================
 function pickAddSubMagnitudes(level, opKey) {
     if (level === 1) {
-        const pool = ADD_SUB_FRAC_DEN_POOL[1];
-        const den = pool[randInt(0, pool.length - 1)];
-        const pair = pickIrreducibleAddSubPair(den, opKey === 'add');
-        return { whole1: 0, n1: pair.n1, d1: den, whole2: 0, n2: pair.n2, d2: den };
+        const rows = ADD_SUB_LEVEL1_TABLE[opKey === 'add' ? 'add' : 'sub'];
+        const row = rows[pickByShare(rows.map(r => r.share))];
+        const pair = row.pairs[randInt(0, row.pairs.length - 1)];
+        return { whole1: 0, n1: pair.n1, d1: row.den, whole2: 0, n2: pair.n2, d2: row.den };
     }
     if (level === 2) {
         const pool = ADD_SUB_FRAC_DEN_POOL[2];
@@ -1662,15 +1684,8 @@ function pickAddSubMagnitudes(level, opKey) {
         return { whole1: 0, n1: pair.n1, d1: den, whole2: 0, n2: pair.n2, d2: den };
     }
     if (level === 3) {
-        const smallPool = [2, 3, 4, 5];
-        let d1 = smallPool[randInt(0, smallPool.length - 1)];
-        let mult = randInt(2, 3);
-        let d2 = d1 * mult;
-        if (d2 > 10) { mult = 2; d2 = d1 * mult; }
-        if (d2 > 10) { d1 = 2; d2 = 4; }
-        const n1 = randFracProper(d1);
-        const n2 = randFracProper(d2);
-        return { whole1: 0, n1, d1, whole2: 0, n2, d2 };
+        const e = ADD_SUB_LEVEL3_EXAMPLES[randInt(0, ADD_SUB_LEVEL3_EXAMPLES.length - 1)];
+        return { whole1: 0, n1: e.n1, d1: e.d1, whole2: 0, n2: e.n2, d2: e.d2 };
     }
     // level 4 и 5 — разные знаменатели, требуется настоящий НОК, но с ограничением сверху
     // (ADD_SUB_MAX_LCM), чтобы даже самый сложный случай оставался решаемым в уме.
@@ -1789,8 +1804,46 @@ function pushFrac(arr, cand, correctAnswer, used, isNegative) {
     arr.push({ num, den });
 }
 
+// 1★ сложения и вычитания: знаменатели одинаковые, это первая встреча с дробями.
+// Все три неверных варианта — модели ошибок, а не случайные дроби (решение репетитора
+// 24.10: «из ошибок — это просто складывать/вычитать числители и знаменатели»).
+// Варианты записаны так, как их получил бы ученик, — без сокращения: на 1★ сокращать
+// ещё не умеют, и «9/6» не должно превращаться в «3/2», которого никто не насчитает.
+//
+//   1. И числители, и знаменатели: 2/7 + 3/7 = 5/14. В вычитании знаменатели дают
+//      ноль — такую дробь не покажешь, — и доли пропадают совсем: 5/7 − 2/7 = 3.
+//   2. Не то действие: 5/7 − 2/7 → 7/7; в сложении из большего вычитают меньшее.
+//   3. Мимо на одну долю: числитель на единицу больше или меньше — промах в счёте,
+//      а не в правиле. Без него верный ответ можно выбрать, вообще не считая.
+//
+// В сложении два варианта с одинаковой величиной не ставятся: «4/14» и «2/7» — одно
+// и то же число, и разбор не отличил бы «знаменатели тоже» от «не того действия».
+// Вместо второго берётся другой промах на долю. В вычитании так совпадают только
+// «1» и «3/3» (2/3 − 1/3), и разбор их различает, поэтому там оба остаются.
+function sameDenLevel1Models(opKey, f1, f2, correctAnswer, used) {
+    const d = f1.den;
+    const n = opKey === 'add' ? f1.num + f2.num : f1.num - f2.num;
+    const out = [];
+    const sameAsChosen = (c) => opKey === 'add' && out.some(o => o.num * c.den === c.num * o.den);
+    const push = (c) => { if (c && !sameAsChosen(c)) pushFrac(out, c, correctAnswer, used, false); };
+
+    push(opKey === 'add' ? { num: n, den: 2 * d } : { num: n, den: 1 });
+    const other = opKey === 'add' ? Math.abs(f1.num - f2.num) : f1.num + f2.num;
+    push(other === 0 ? { num: 0, den: 1 } : { num: other, den: d });
+
+    // Сначала промах, который нельзя сократить: на 1★ верный ответ несократим всегда,
+    // и сократимый вариант рядом с ним выделялся бы сам.
+    const near = shuffleArray([n + 1, n - 1].filter(x => x >= 1))
+        .sort((x, y) => (gcd(y, d) === 1) - (gcd(x, d) === 1));
+    for (const x of near) { if (out.length >= 3) break; push({ num: x, den: d }); }
+    return out;
+}
+
 function buildFractionDistractors(opKey, f1, f2, correctAnswer, isNegative, count, level) {
     const used = new Set([fracKey(correctAnswer.num, correctAnswer.den)]);
+    const level1Models = (level === 1 && !isNegative && (opKey === 'add' || opKey === 'sub') && f1.den === f2.den)
+        ? sameDenLevel1Models(opKey, f1, f2, correctAnswer, used)
+        : null;
 
     // ===== ПРИОРИТЕТ 1: самые частые реальные ошибки с дробями =====
     let priority = [];
@@ -1804,15 +1857,23 @@ function buildFractionDistractors(opKey, f1, f2, correctAnswer, isNegative, coun
     // Считаем "сырые" числитель/знаменатель до вызова simplifyFrac.
     //
     // На 1★ сложения/вычитания эта ошибка структурно невозможна: числа подобраны
-    // так (см. pickIrreducibleAddSubPair), что результат никогда не сокращается.
+    // так (см. ADD_SUB_LEVEL1_TABLE), что результат никогда не сокращается.
     // Без этой оговорки формула ниже всё равно "раздула" бы дробь — при одинаковом
     // знаменателе перекрёстное умножение домножает и числитель, и знаменатель на
     // тот же den, то есть добавляет общий множитель, даже когда сокращать нечего.
     // Выбор такого варианта тогда засчитывался бы как мягкое "почти", а не как
     // отсутствующий вариант — на этом уровне такого исхода быть не должно вообще.
+    //
+    // Одинаковые знаменатели (2★): «не сократил» — это сумма или разность числителей
+    // над тем же знаменателем, 8/10 + 6/10 → 14/10: так выходит у того, кто сложил
+    // верно и забыл сократить. Раньше знаменатели и здесь перемножались крест-накрест —
+    // 140/100, — а такую запись насчитает только тот, кто искал общий знаменатель там,
+    // где он уже общий (решение репетитора 04.11).
     if (!(level === 1 && (opKey === 'add' || opKey === 'sub'))) {
         let rawNum, rawDen;
-        if (opKey === 'add') { rawNum = f1.num * f2.den + f2.num * f1.den; rawDen = f1.den * f2.den; }
+        const sameDen = (opKey === 'add' || opKey === 'sub') && f1.den === f2.den;
+        if (sameDen) { rawNum = opKey === 'add' ? f1.num + f2.num : f1.num - f2.num; rawDen = f1.den; }
+        else if (opKey === 'add') { rawNum = f1.num * f2.den + f2.num * f1.den; rawDen = f1.den * f2.den; }
         else if (opKey === 'sub') { rawNum = f1.num * f2.den - f2.num * f1.den; rawDen = f1.den * f2.den; }
         else if (opKey === 'mul') { rawNum = f1.num * f2.num; rawDen = f1.den * f2.den; }
         else { rawNum = f1.num * f2.den; rawDen = f1.den * f2.num; }
@@ -1841,6 +1902,18 @@ function buildFractionDistractors(opKey, f1, f2, correctAnswer, isNegative, coun
     // ===== ПРИОРИТЕТ 2: типовые структурные ошибки по операциям =====
     let structural = [];
 
+    // 3★–5★ сложения и вычитания: ловушки показываются сокращёнными, как и верный
+    // ответ. Раньше «сложил в лоб» и «привёл к общему только одну дробь» стояли как
+    // получились — 6/10, 2/12, — и верный ответ часто оказывался единственной
+    // несократимой дробью среди четырёх: 50% примеров сложения 3★ и 24% вычитания.
+    // Ученик, заметивший это, выбирал ответ, не считая. Несокращённой остаётся
+    // только нарочная ловушка «не сократил» — в ней это и есть ошибка. Разбор узнаёт
+    // ошибки по величине, поэтому названия от сокращения не меняются. На 1★ варианты
+    // записаны так, как их получил бы ученик (sameDenLevel1Models), на 2★ подсказки нет.
+    const shownTrap = (level >= 3 && (opKey === 'add' || opKey === 'sub'))
+        ? (c) => (c && c.den !== 0 ? simplifyFrac(c.num, c.den) : c)
+        : (c) => c;
+
     // "Перепутали операцию" — сделали сложение вместо вычитания и наоборот
     if (opKey === 'add') {
         pushFrac(structural, fracSub(f1, f2), correctAnswer, used, isNegative);
@@ -1850,9 +1923,9 @@ function buildFractionDistractors(opKey, f1, f2, correctAnswer, isNegative, coun
 
     if (opKey === 'add') {
         // "сложили в лоб": числители и знаменатели отдельно
-        pushFrac(structural, { num: f1.num + f2.num, den: f1.den + f2.den }, correctAnswer, used, isNegative);
+        pushFrac(structural, shownTrap({ num: f1.num + f2.num, den: f1.den + f2.den }), correctAnswer, used, isNegative);
     } else if (opKey === 'sub') {
-        pushFrac(structural, { num: f1.num - f2.num, den: f1.den - f2.den }, correctAnswer, used, isNegative);
+        pushFrac(structural, shownTrap({ num: f1.num - f2.num, den: f1.den - f2.den }), correctAnswer, used, isNegative);
     } else if (opKey === 'mul') {
         // перемножили "как складывают"
         pushFrac(structural, { num: f1.num + f2.num, den: f1.den + f2.den }, correctAnswer, used, isNegative);
@@ -1873,8 +1946,8 @@ function buildFractionDistractors(opKey, f1, f2, correctAnswer, isNegative, coun
         const conv1 = f1.num * (lcd / f1.den);
         const conv2 = f2.num * (lcd / f2.den);
         const sign = opKey === 'add' ? 1 : -1;
-        pushFrac(structural, { num: conv1 + sign * f2.num, den: lcd }, correctAnswer, used, isNegative); // забыли перевести вторую
-        pushFrac(structural, { num: f1.num + sign * conv2, den: lcd }, correctAnswer, used, isNegative); // забыли перевести первую
+        pushFrac(structural, shownTrap({ num: conv1 + sign * f2.num, den: lcd }), correctAnswer, used, isNegative); // забыли перевести вторую
+        pushFrac(structural, shownTrap({ num: f1.num + sign * conv2, den: lcd }), correctAnswer, used, isNegative); // забыли перевести первую
     }
 
     // Смешанные числа (5★, вычитание): "не заняли" — вычли дробные части по модулю
@@ -1913,8 +1986,12 @@ function buildFractionDistractors(opKey, f1, f2, correctAnswer, isNegative, coun
     structural = shuffleArray(structural);
 
     const result = [];
-    for (const v of priority) { if (result.length >= count) break; result.push(v); }
-    for (const v of structural) { if (result.length >= count) break; result.push(v); }
+    if (level1Models) {
+        for (const v of level1Models) { if (result.length >= count) break; result.push(v); }
+    } else {
+        for (const v of priority) { if (result.length >= count) break; result.push(v); }
+        for (const v of structural) { if (result.length >= count) break; result.push(v); }
+    }
 
     // Остаток — случайный разброс на основе знаменателей самого примера.
     // Если правильный ответ — целое число (den=1), фолбэк тоже должен иногда предлагать целые числа.
@@ -2052,11 +2129,33 @@ const MIXED_CONVERT_POOLS = {
     5: { wholePool: [3, 4, 5, 6], denPool: [2, 3, 4, 5, 6, 7, 8, 9, 10] }
 };
 
+// 1★: всего 18 примеров. Раньше знаменатель выбирался поровну, и «3/2» с «5/2» —
+// единственные примеры со знаменателем 2 — выпадали по 12,5%. Теперь все 18 —
+// поровну, по 5,6% (решение репетитора 04.11). Числитель, как и у randFracProper,
+// взаимно прост со знаменателем. На 2★ и выше выбор прежний.
+const MIXED_CONVERT_LEVEL1_EXAMPLES = (() => {
+    const out = [];
+    const { wholePool, denPool } = MIXED_CONVERT_POOLS[1];
+    for (const whole of wholePool) {
+        for (const den of denPool) {
+            for (let properNum = 1; properNum < den; properNum++) {
+                if (gcd(properNum, den) === 1) out.push({ whole, den, properNum });
+            }
+        }
+    }
+    return out;
+})();
+
 function buildMixedConvertCore(level, direction) {
-    const { wholePool, denPool } = MIXED_CONVERT_POOLS[level];
-    const whole = wholePool[randInt(0, wholePool.length - 1)];
-    const den = denPool[randInt(0, denPool.length - 1)];
-    const properNum = randFracProper(den);
+    let whole, den, properNum;
+    if (level === 1) {
+        ({ whole, den, properNum } = MIXED_CONVERT_LEVEL1_EXAMPLES[randInt(0, MIXED_CONVERT_LEVEL1_EXAMPLES.length - 1)]);
+    } else {
+        const { wholePool, denPool } = MIXED_CONVERT_POOLS[level];
+        whole = wholePool[randInt(0, wholePool.length - 1)];
+        den = denPool[randInt(0, denPool.length - 1)];
+        properNum = randFracProper(den);
+    }
     const improperNum = whole * den + properNum;
     const value = { num: improperNum, den }; // единое каноническое значение — форма лишь отображение
     return { isFraction: true, opKey: direction, level, direction, given: value, answer: value, whole, properNum, den };
@@ -2788,6 +2887,32 @@ function decColumnMistake(opKey, d1, d2) {
     return stripTrailingZeros({ intVal: r, dp });
 }
 
+// Соседний факт таблицы — вариант Б, решение репетитора 04.11. В умножении один
+// множитель без запятой сдвигается на единицу: 0,3 × 3 = 0,9 → вариант 0,6 (2 × 3).
+// В делении частное без запятой на единицу больше или меньше: 5,4 ÷ 0,9 = 6 → 7.
+// Только для однозначных цифр — там это и есть строчка таблицы. Запятая стоит верно:
+// ошибка в самом факте, а не в знаках после запятой.
+function decTableSlips(opKey, d1, d2) {
+    const out = [];
+    if (!d1 || !d2) return out;
+    if (opKey === 'mul') {
+        const a = d1.intVal, b = d2.intVal, dp = d1.dp + d2.dp;
+        if (a < 2 || a > 9 || b < 2 || b > 9) return out;
+        for (const [x, y] of [[a + 1, b], [a - 1, b], [a, b + 1], [a, b - 1]]) {
+            if (x >= 1 && y >= 1) out.push(stripTrailingZeros({ intVal: x * y, dp }));
+        }
+    } else if (opKey === 'div') {
+        const A = d1.intVal, B = d2.intVal;
+        if (B < 2 || B > 9 || A % B !== 0 || A / B < 2) return out;
+        const e = d2.dp - d1.dp;
+        for (const q of [A / B - 1, A / B + 1]) {
+            if (q < 1) continue;
+            out.push(stripTrailingZeros(e >= 0 ? { intVal: q * Math.pow(10, e), dp: 0 } : { intVal: q, dp: -e }));
+        }
+    }
+    return out;
+}
+
 function buildDecimalDistractors(opKey, d1, d2, correctAnswer, count) {
     const used = new Set([decKey(correctAnswer)]);
 
@@ -2839,6 +2964,11 @@ function buildDecimalDistractors(opKey, d1, d2, correctAnswer, count) {
     for (const v of column) { if (result.length >= count) break; result.push(v); }
     for (const v of priority) { if (result.length >= count) break; result.push(v); }
     for (const v of shuffleArray(structural)) { if (result.length >= count) break; result.push(v); }
+    // Вариант Б: соседний факт таблицы — раньше случайной дроби.
+    for (const v of shuffleArray(decTableSlips(opKey, d1, d2))) {
+        if (result.length >= count) break;
+        pushDec(result, v, correctAnswer, used);
+    }
 
     // случайный фолбэк, масштаб — от величины ответа
     let guard = 0;

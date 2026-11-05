@@ -67,6 +67,62 @@
 //   записи, а по делу: при одинаковых знаках — текст :add, при разных — :sub,
 //   и подставляет величины без знаков («−17 − 18» — это 17 + 18).
 
+//
+// Дроби (утверждено 04.11). Подстановки:
+//   сложил знаменатели:fracSameAdd, :fracSameSub
+//                    game числитель1, числитель2
+//                    review дробь1, дробь2, числитель1, числитель2, их сумма (разность),
+//                           знаменатель, ответ («4/6 = 2/3», если он сокращается)
+//   сложил знаменатели:fracDiffAdd
+//                    game общий знаменатель
+//                    review дробь1, дробь2, общий знаменатель, перевод («1/2 = 4/8»),
+//                           обе дроби с общим знаменателем, ответ, что выбрано,
+//                           бо́льшая из двух дробей
+//   сложил знаменатели:fracDiffSub — то же без двух последних
+//   сложил знаменатели:mul  game —
+//                    review дробь1, дробь2, «2 × 4 = 8», «3 × 5 = 15», ответ, что выбрано
+//   перевёл не обе дроби     game общий знаменатель
+//                    review пример, общий знаменатель, перевод обеих дробей,
+//                           действие над переведёнными с ответом, что выбрано
+//   перепутал действие:fracRev  как у целых, но второе действие — «второе минус первое»
+//   ошибся на одну долю:fracAddMore, :fracAddLess, :fracSubMore, :fracSubLess
+//                    game «3 + 1»     review пример, «3 + 1 = 4», знаменатель, ответ, что выбрано
+//   забыл перемножить знаменатели:mul  game знаменатель1, знаменатель2
+//                    review дробь1, дробь2, «2 × 4 = 8», «3 × 5 = 15», ответ, что выбрано
+//   не перевернул дробь:div   game дробь1, вторая перевёрнутая
+//                    review дробь1, дробь2, вторая перевёрнутая, произведение с ответом, что выбрано
+//   перевернул не ту дробь:div  game то же
+//                    review дробь1, дробь2, вторая перевёрнутая, ответ, что выбрано
+//   сократил не до конца:simplify  game числитель и знаменатель выбранного
+//                    review дробь, на что делится, ответ
+//   ошибся в сокращении:simplify   game —   review дробь, на что делится, ответ, что выбрано
+//   забыл целую часть:toMixed  game дробь
+//                    review дробь, числитель, знаменатель, целых, остаток, ответ, что выбрано
+//   ошибся в целой части:toMixed  game знаменатель, числитель
+//                    review дробь, знаменатель, числитель, «3 раза», целых,
+//                           целых × знаменатель, остаток, ответ, что выбрано
+//   переставил целую и остаток:toMixed  game знаменатель, числитель
+//                    review как у «забыл целую часть»
+//   не прибавил числитель:toImproper  game числитель
+//                    review смешанное, целых, знаменатель, целых × знаменатель, числитель,
+//                           новый числитель, ответ, что выбрано, дробная часть
+//   сложил целую и числитель:toImproper  game целых, знаменатель, числитель
+//                    review как у «не прибавил числитель», без дробной части
+//   ошибся в целой части:toImproper  game целых, знаменатель, числитель
+//                    review как у «не прибавил числитель», последним — выбранное смешанным
+//   дробь от числа (ключи :fracOfNumber): разбор у всех начинается с «дробь, число,
+//                    знаменатель, одна доля, числитель, ответ», дальше — что выбрано
+//                    (у «нашёл остаток» ещё и остальная дробь, у «одной доли» — ничего).
+//                    В игре: «забыл поделить» и «одна доля» — число, знаменатель,
+//                    числитель; «остаток» — дробь, число; «мимо на одну долю» —
+//                    числитель; «мимо на единицу» — одна доля, числитель.
+//   дробь от числа с числителем 1 (вариант :fracOfNumberOne, утверждено 05.11):
+//                    «забыл поделить» game дробь, знаменатель, число;
+//                      review дробь, число, «4 равные доли», знаменатель, одна доля, что выбрано;
+//                    «мимо на единицу» game число, знаменатель;
+//                      review дробь, число, знаменатель, одна доля, что выбрано;
+//                    «остаток» — как у числителя больше 1, но без «таких долей нужно»;
+//                    «мимо на одну долю» review дробь, число, знаменатель, одна доля, что выбрано.
 window.HINT_CONTENT = {
     ru: {
         'ноль в примере:mul': {
@@ -277,6 +333,144 @@ window.HINT_CONTENT = {
         'сложил вместо умножения:decBothPoint': {
             game: 'Это сложение. Перемножь %1 × %2 и отсчитай знаки после запятой.',
             review: '%1 × %2 — это %2 от %1, то есть меньше самого %1. Перемножаем без запятых: %3 × %4 = %5, знаков после запятой два — %6. А %1 + %2 = %7 — это сложение.'
+        },
+        // Вариант Б (04.11)
+        'таблица умножения:decMul': {
+            game: 'Без запятых это %1 × %2, а выбранный ответ — от %3 × %4.',
+            review: '%1 × %2: без запятых это %3 × %4 = %5, а %6 × %7 = %8 — соседняя строчка таблицы. Запятая стоит верно, ошибка в самом факте таблицы.'
+        },
+        'таблица умножения:decDiv': {
+            game: 'Проверь умножением: %1 × %2 — это не %3.',
+            review: '%1 ÷ %2: сдвинем запятую — %3 ÷ %4 = %5. Проверка умножением: %5 × %4 = %3, а %6 × %4 = %7 — соседняя строчка таблицы.'
+        },
+        'промахнулся рядом:dec': {
+            game: 'Ответ рядом — значит счёт верный, а последний шаг сбился.',
+            review: 'Выбрано %1, верный ответ %2 — совсем рядом. Это не незнание, а сбитый счёт: один шаг потерялся или посчитался дважды. Помогает досчитать последний шаг вслух — тогда он не теряется.'
+        },
+        // Дроби (утверждено 04.11)
+        'сложил знаменатели:fracSameAdd': {
+            game: 'Знаменатель — размер долей, он не меняется. Сложи только числители: %1 + %2.',
+            review: '%1 + %2: доли одного размера, поэтому складывают только числители: %3 + %4 = %5, а знаменатель остаётся %6 — выходит %7. Знаменатель показывает, на сколько частей делили целое, и от сложения он не меняется.'
+        },
+        'сложил знаменатели:fracSameSub': {
+            game: 'Знаменатель — размер долей, он не меняется. Вычти только числители: %1 − %2.',
+            review: '%1 − %2: доли одного размера, поэтому вычитают только числители: %3 − %4 = %5, а знаменатель остаётся %6 — выходит %7. Если вычесть и знаменатели, %6 − %6 = 0 — доли пропадают совсем, и остаётся просто %5.'
+        },
+        'сложил знаменатели:fracDiffAdd': {
+            game: 'Доли разного размера так не складывают — сначала приведи к знаменателю %1.',
+            review: '%1 + %2: знаменатели разные — доли разного размера, и складывать их «в лоб» нельзя. Сначала общий знаменатель %3: %4, и %5 + %6 = %7. А если сложить числители и знаменатели, выйдет %8 — это даже меньше, чем %9, хотя мы прибавляли.'
+        },
+        'сложил знаменатели:fracDiffSub': {
+            game: 'Доли разного размера так не вычитают — сначала приведи к знаменателю %1.',
+            review: '%1 − %2: знаменатели разные — доли разного размера, и вычитать их «в лоб» нельзя. Сначала общий знаменатель %3: %4, и %5 − %6 = %7.'
+        },
+        'сложил знаменатели:mul': {
+            game: 'Дроби умножают так: числитель на числитель, знаменатель на знаменатель.',
+            review: '%1 × %2: числители перемножаем — %3, знаменатели тоже — %4, выходит %5. Складывать при умножении нечего: %6 получается, если сложить числители и знаменатели.'
+        },
+        'перевёл не обе дроби': {
+            game: 'К знаменателю %1 приводят обе дроби, а не одну.',
+            review: '%1: общий знаменатель %2, и переводить к нему нужно обе дроби: %3, — а потом %4. Выбрано %5 — так выходит, если перевести только одну дробь, а у другой взять числитель как есть.'
+        },
+        'перепутал действие:fracRev': {
+            game: 'Это вычитание, а в примере сложение.',
+            review: 'С теми же числами знак решает всё: %1 + %2 = %3, а %2 − %1 = %4. Сначала посмотри на знак, потом на числа.'
+        },
+        'ошибся на одну долю:fracAddMore': {
+            game: 'Мимо на одну долю — пересчитай числители: %1.',
+            review: '%1: складываем числители — %2, знаменатель остаётся %3: %4. Выбрано %5 — на одну долю больше. Правило верное, сбился счёт: числители стоит пересчитать.'
+        },
+        'ошибся на одну долю:fracAddLess': {
+            game: 'Мимо на одну долю — пересчитай числители: %1.',
+            review: '%1: складываем числители — %2, знаменатель остаётся %3: %4. Выбрано %5 — на одну долю меньше. Правило верное, сбился счёт: числители стоит пересчитать.'
+        },
+        'ошибся на одну долю:fracSubMore': {
+            game: 'Мимо на одну долю — пересчитай числители: %1.',
+            review: '%1: вычитаем числители — %2, знаменатель остаётся %3: %4. Выбрано %5 — на одну долю больше. Правило верное, сбился счёт: числители стоит пересчитать.'
+        },
+        'ошибся на одну долю:fracSubLess': {
+            game: 'Мимо на одну долю — пересчитай числители: %1.',
+            review: '%1: вычитаем числители — %2, знаменатель остаётся %3: %4. Выбрано %5 — на одну долю меньше. Правило верное, сбился счёт: числители стоит пересчитать.'
+        },
+        'забыл перемножить знаменатели:mul': {
+            game: 'Знаменатели тоже перемножаются: %1 × %2.',
+            review: '%1 × %2: числители перемножаем — %3, и знаменатели тоже — %4, выходит %5. Выбрано %6 — знаменатель взят из одной дроби, без умножения.'
+        },
+        'не перевернул дробь:div': {
+            game: 'При делении вторую дробь переворачивают: %1 × %2.',
+            review: '%1 ÷ %2: делить на дробь — значит умножать на перевёрнутую: %1 × %3 = %4. Если не перевернуть, выйдет %5 — это умножение, а не деление.'
+        },
+        'перевернул не ту дробь:div': {
+            game: 'Переворачивают вторую дробь — ту, на которую делят: %1 × %2.',
+            review: '%1 ÷ %2: переворачивают делитель — вторую дробь: %1 × %3 = %4. Выбрано %5: так выходит, если перевернуть первую дробь вместо второй.'
+        },
+        'сократил не до конца:simplify': {
+            game: 'У %1 и %2 ещё есть общий делитель — сокращай до конца.',
+            review: '%1: числитель и знаменатель делятся на %2 — выходит %3. Сокращают до конца: пока у числителя и знаменателя есть общий делитель, кроме 1, дробь можно сократить ещё.'
+        },
+        'ошибся в сокращении:simplify': {
+            game: 'Числитель и знаменатель делят на одно и то же число.',
+            review: '%1: числитель и знаменатель делим на одно и то же число — на %2: выходит %3. Выбрано %4 — это уже другая дробь, не равная %1.'
+        },
+        'забыл целую часть:toMixed': {
+            game: 'Сколько целых в %1? Их тоже записывают.',
+            review: '%1: %2 ÷ %3 = %4, остаток %5 — значит, %6. Выбрано %7 — только остаток, а целая часть, %4, потерялась.'
+        },
+        'ошибся в целой части:toMixed': {
+            game: 'Целых — столько, сколько раз %1 помещается в %2.',
+            review: '%1: %2 помещается в %3 целиком %4 — %5 × %2 = %6, остаток %7: выходит %8. Выбрано %9 — промах на одну целую.'
+        },
+        'переставил целую и остаток:toMixed': {
+            game: 'Целая часть — сколько раз %1 помещается в %2, остаток — числитель.',
+            review: '%1: %2 ÷ %3 = %4, остаток %5. Целая часть — %4, остаток — числитель дроби: %6. Выбрано %7 — целая часть и остаток поменялись местами.'
+        },
+        'не прибавил числитель:toImproper': {
+            game: 'Целые переведены в доли — теперь прибавь числитель %1.',
+            review: '%1: %2 × %3 = %4 — это только целые. Прибавляем числитель: %4 + %5 = %6, выходит %7. Выбрано %8 — это ровно %2, дробная часть %9 потерялась.'
+        },
+        'сложил целую и числитель:toImproper': {
+            game: 'Целую часть сначала умножают на знаменатель: %1 × %2, потом прибавляют %3.',
+            review: '%1: целые переводим в доли умножением — %2 × %3 = %4, потом прибавляем числитель: %4 + %5 = %6, выходит %7. Выбрано %8 — целая часть просто прибавлена к числителю: %2 + %5.'
+        },
+        'ошибся в целой части:toImproper': {
+            game: 'Целые в доли: %1 × %2, потом прибавь числитель %3.',
+            review: '%1: целые переводим в доли — %2 × %3 = %4, прибавляем числитель — %4 + %5 = %6: выходит %7. Выбрано %8 — это %9, промах на одну целую.'
+        },
+        'забыл поделить:fracOfNumber': {
+            game: 'Сначала одна доля: %1 ÷ %2, а потом умножь на %3.',
+            review: '%1 от %2: одна доля — %2 ÷ %3 = %4, а таких долей нужно %5: %4 × %5 = %6. Выбрано %7 — это %2 × %5: умножили, а поделить на %3 забыли.'
+        },
+        'нашёл только одну долю:fracOfNumber': {
+            game: '%1 ÷ %2 — это одна доля, а долей нужно %3.',
+            review: '%1 от %2: одна доля — %2 ÷ %3 = %4, а таких долей нужно %5: %4 × %5 = %6. Выбрано %4 — это только одна доля.'
+        },
+        'нашёл остаток:fracOfNumber': {
+            game: 'Это то, что осталось. А нужно %1 от %2.',
+            review: '%1 от %2: одна доля — %2 ÷ %3 = %4, а таких долей нужно %5: %4 × %5 = %6. Выбрано %7 — это остальные %8, то, что остаётся после %1.'
+        },
+        'ошибся на одну долю:fracOfNumber': {
+            game: 'Мимо на одну долю: долей нужно ровно %1.',
+            review: '%1 от %2: одна доля — %2 ÷ %3 = %4, а таких долей нужно %5: %4 × %5 = %6. Выбрано %7 — промах на одну долю.'
+        },
+        'ошибся на единицу:fracOfNumber': {
+            game: 'Мимо на единицу — пересчитай последний шаг: %1 × %2.',
+            review: '%1 от %2: одна доля — %2 ÷ %3 = %4, а таких долей нужно %5: %4 × %5 = %6. Выбрано %7 — промах на единицу в последнем шаге.'
+        },
+        'забыл поделить:fracOfNumberOne': {
+            game: 'Это всё число. А %1 — одна доля из %2: раздели %3 на %2.',
+            review: '%1 от %2: целое делят на %3 и берут одну — %2 ÷ %4 = %5. Выбрано %6 — это всё число, его не поделили.'
+        },
+        'ошибся на единицу:fracOfNumberOne': {
+            game: 'Мимо на единицу — пересчитай: %1 ÷ %2.',
+            review: '%1 от %2 — это одна доля из %3: %2 ÷ %3 = %4. Выбрано %5 — промах на единицу.'
+        },
+        'нашёл остаток:fracOfNumberOne': {
+            game: 'Это то, что осталось. А нужно %1 от %2.',
+            review: '%1 от %2: одна доля — %2 ÷ %3 = %4. Выбрано %5 — это остальные %6, то, что остаётся после %1.'
+        },
+        'ошибся на одну долю:fracOfNumberOne': {
+            game: 'Мимо на одну долю: долей нужно ровно %1.',
+            review: '%1 от %2: одна доля — %2 ÷ %3 = %4, а нужна ровно одна. Выбрано %5 — это две доли.'
         }
     },
 
@@ -489,6 +683,144 @@ window.HINT_CONTENT = {
         'сложил вместо умножения:decBothPoint': {
             game: 'That is addition. Multiply %1 × %2 and count the digits after the point.',
             review: '%1 × %2 is %2 of %1, so less than %1 itself. Multiply without the points: %3 × %4 = %5, two digits after the point — %6. And %1 + %2 = %7 is addition.'
+        },
+        // Вариант Б (04.11)
+        'таблица умножения:decMul': {
+            game: 'Without the points this is %1 × %2, but the answer chosen comes from %3 × %4.',
+            review: '%1 × %2: without the points this is %3 × %4 = %5, while %6 × %7 = %8 is the next row of the table. The point is in the right place — the slip is in the table fact itself.'
+        },
+        'таблица умножения:decDiv': {
+            game: 'Check by multiplying: %1 × %2 is not %3.',
+            review: '%1 ÷ %2: move the point — %3 ÷ %4 = %5. Check by multiplying: %5 × %4 = %3, while %6 × %4 = %7 — the next row of the table.'
+        },
+        'промахнулся рядом:dec': {
+            game: 'The answer was close — the method held, the last step slipped.',
+            review: 'You picked %1, the answer is %2 — very close. It is not missing knowledge, it is a slipped count: one step got lost or counted twice. Counting the last step out loud helps — then it does not get lost.'
+        },
+        // Дроби (утверждено 04.11)
+        'сложил знаменатели:fracSameAdd': {
+            game: 'The denominator is the part size; it stays. Add only the numerators: %1 + %2.',
+            review: '%1 + %2: the parts are the same size, so only the numerators are added: %3 + %4 = %5, and the denominator stays %6 — that makes %7. The denominator shows how many parts the whole was cut into, and adding does not change it.'
+        },
+        'сложил знаменатели:fracSameSub': {
+            game: 'The denominator is the part size; it stays. Subtract the numerators: %1 − %2.',
+            review: '%1 − %2: the parts are the same size, so only the numerators are subtracted: %3 − %4 = %5, and the denominator stays %6 — that makes %7. Subtract the denominators too and %6 − %6 = 0 — the parts vanish altogether, leaving just %5.'
+        },
+        'сложил знаменатели:fracDiffAdd': {
+            game: 'Unequal-sized parts do not add like this — first make the denominators %1.',
+            review: '%1 + %2: the denominators differ — the parts are different sizes, so they cannot be added head-on. First the common denominator %3: %4, and %5 + %6 = %7. Adding numerators and denominators would give %8 — even less than %9, though we were adding.'
+        },
+        'сложил знаменатели:fracDiffSub': {
+            game: 'Unequal-sized parts do not subtract like this — first make the denominators %1.',
+            review: '%1 − %2: the denominators differ — the parts are different sizes, so they cannot be subtracted head-on. First the common denominator %3: %4, and %5 − %6 = %7.'
+        },
+        'сложил знаменатели:mul': {
+            game: 'Multiply fractions numerator by numerator, denominator by denominator.',
+            review: '%1 × %2: multiply the numerators — %3, and the denominators too — %4, which makes %5. There is nothing to add when multiplying: %6 is what adding numerators and denominators gives.'
+        },
+        'перевёл не обе дроби': {
+            game: 'Both fractions get denominator %1, not just one.',
+            review: '%1: the common denominator is %2, and both fractions must be changed to it: %3 — and then %4. You picked %5 — that comes from changing only one fraction and taking the other numerator as it is.'
+        },
+        'перепутал действие:fracRev': {
+            game: 'You subtracted, but the problem is addition.',
+            review: 'With the same numbers the sign decides everything: %1 + %2 = %3, while %2 − %1 = %4. Look at the sign before you look at the numbers.'
+        },
+        'ошибся на одну долю:fracAddMore': {
+            game: 'One part off — recount the numerators: %1.',
+            review: '%1: add the numerators — %2, the denominator stays %3: %4. You picked %5 — one part too many. The rule was right, the count slipped: recount the numerators.'
+        },
+        'ошибся на одну долю:fracAddLess': {
+            game: 'One part off — recount the numerators: %1.',
+            review: '%1: add the numerators — %2, the denominator stays %3: %4. You picked %5 — one part too few. The rule was right, the count slipped: recount the numerators.'
+        },
+        'ошибся на одну долю:fracSubMore': {
+            game: 'One part off — recount the numerators: %1.',
+            review: '%1: subtract the numerators — %2, the denominator stays %3: %4. You picked %5 — one part too many. The rule was right, the count slipped: recount the numerators.'
+        },
+        'ошибся на одну долю:fracSubLess': {
+            game: 'One part off — recount the numerators: %1.',
+            review: '%1: subtract the numerators — %2, the denominator stays %3: %4. You picked %5 — one part too few. The rule was right, the count slipped: recount the numerators.'
+        },
+        'забыл перемножить знаменатели:mul': {
+            game: 'The denominators get multiplied too: %1 × %2.',
+            review: '%1 × %2: multiply the numerators — %3, and the denominators too — %4, which makes %5. You picked %6 — the denominator was taken from one fraction, without multiplying.'
+        },
+        'не перевернул дробь:div': {
+            game: 'When dividing, flip the second fraction: %1 × %2.',
+            review: '%1 ÷ %2: dividing by a fraction means multiplying by it flipped: %1 × %3 = %4. Without flipping you get %5 — that is multiplication, not division.'
+        },
+        'перевернул не ту дробь:div': {
+            game: 'Flip the second fraction — the one you divide by: %1 × %2.',
+            review: '%1 ÷ %2: flip the divisor — the second fraction: %1 × %3 = %4. You picked %5: that comes from flipping the first fraction instead of the second.'
+        },
+        'сократил не до конца:simplify': {
+            game: '%1 and %2 still share a factor — keep simplifying to the end.',
+            review: '%1: numerator and denominator both divide by %2 — that gives %3. Simplify all the way: as long as numerator and denominator share a factor other than 1, the fraction can be simplified further.'
+        },
+        'ошибся в сокращении:simplify': {
+            game: 'Numerator and denominator are divided by the same number.',
+            review: '%1: divide numerator and denominator by the same number — by %2: that gives %3. You picked %4 — a different fraction, not equal to %1.'
+        },
+        'забыл целую часть:toMixed': {
+            game: 'How many wholes are in %1? Write them down too.',
+            review: '%1: %2 ÷ %3 = %4, remainder %5 — so %6. You picked %7 — only the remainder; the whole part, %4, got lost.'
+        },
+        'ошибся в целой части:toMixed': {
+            game: 'The wholes: how many times %1 fits into %2.',
+            review: '%1: %2 fits %4 into %3 — %5 × %2 = %6, remainder %7: that makes %8. You picked %9 — one whole off.'
+        },
+        'переставил целую и остаток:toMixed': {
+            game: 'Whole part: how many times %1 fits into %2; the remainder is the numerator.',
+            review: '%1: %2 ÷ %3 = %4, remainder %5. The whole part is %4, the remainder is the numerator: %6. You picked %7 — the whole part and the remainder swapped places.'
+        },
+        'не прибавил числитель:toImproper': {
+            game: 'The wholes are in parts now — add the numerator %1.',
+            review: '%1: %2 × %3 = %4 — that is only the wholes. Add the numerator: %4 + %5 = %6, which makes %7. You picked %8 — exactly %2; the fraction part %9 got lost.'
+        },
+        'сложил целую и числитель:toImproper': {
+            game: 'First multiply the whole part by the denominator: %1 × %2, then add %3.',
+            review: '%1: turn the wholes into parts by multiplying — %2 × %3 = %4, then add the numerator: %4 + %5 = %6, which makes %7. You picked %8 — the whole part was simply added to the numerator: %2 + %5.'
+        },
+        'ошибся в целой части:toImproper': {
+            game: 'Wholes into parts: %1 × %2, then add the numerator %3.',
+            review: '%1: turn the wholes into parts — %2 × %3 = %4, add the numerator — %4 + %5 = %6: that makes %7. You picked %8 — that is %9, one whole off.'
+        },
+        'забыл поделить:fracOfNumber': {
+            game: 'First one part: %1 ÷ %2, then multiply by %3.',
+            review: '%1 of %2: one part is %2 ÷ %3 = %4, and %5 such parts are needed: %4 × %5 = %6. You picked %7 — that is %2 × %5: multiplied, but the division by %3 was forgotten.'
+        },
+        'нашёл только одну долю:fracOfNumber': {
+            game: '%1 ÷ %2 is one part, but %3 parts are needed.',
+            review: '%1 of %2: one part is %2 ÷ %3 = %4, and %5 such parts are needed: %4 × %5 = %6. You picked %4 — that is just one part.'
+        },
+        'нашёл остаток:fracOfNumber': {
+            game: 'That is what is left over. What is needed is %1 of %2.',
+            review: '%1 of %2: one part is %2 ÷ %3 = %4, and %5 such parts are needed: %4 × %5 = %6. You picked %7 — that is the other %8, what is left after %1.'
+        },
+        'ошибся на одну долю:fracOfNumber': {
+            game: 'One part off: the number of parts needed is exactly %1.',
+            review: '%1 of %2: one part is %2 ÷ %3 = %4, and %5 such parts are needed: %4 × %5 = %6. You picked %7 — one part off.'
+        },
+        'ошибся на единицу:fracOfNumber': {
+            game: 'Off by one — redo the last step: %1 × %2.',
+            review: '%1 of %2: one part is %2 ÷ %3 = %4, and %5 such parts are needed: %4 × %5 = %6. You picked %7 — off by one in the last step.'
+        },
+        'забыл поделить:fracOfNumberOne': {
+            game: 'That is the whole number. %1 is one part out of %2: divide %3 by %2.',
+            review: '%1 of %2: the whole is cut into %3 and one is taken — %2 ÷ %4 = %5. You picked %6 — that is the whole number, not divided.'
+        },
+        'ошибся на единицу:fracOfNumberOne': {
+            game: 'Off by one — recount: %1 ÷ %2.',
+            review: '%1 of %2 is one part out of %3: %2 ÷ %3 = %4. You picked %5 — off by one.'
+        },
+        'нашёл остаток:fracOfNumberOne': {
+            game: 'That is what is left over. What is needed is %1 of %2.',
+            review: '%1 of %2: one part is %2 ÷ %3 = %4. You picked %5 — that is the other %6, what is left after %1.'
+        },
+        'ошибся на одну долю:fracOfNumberOne': {
+            game: 'One part off: the number of parts needed is exactly %1.',
+            review: '%1 of %2: one part is %2 ÷ %3 = %4, and exactly one is needed. You picked %5 — that is two parts.'
         }
     },
 
@@ -701,6 +1033,144 @@ window.HINT_CONTENT = {
         'сложил вместо умножения:decBothPoint': {
             game: 'Ça, c’est une addition. Multiplie %1 × %2 et compte les chiffres décimaux.',
             review: '%1 × %2, c’est %2 de %1, donc moins que %1 lui-même. On multiplie sans les virgules : %3 × %4 = %5, deux chiffres après la virgule — %6. Et %1 + %2 = %7, c’est une addition.'
+        },
+        // Вариант Б (04.11)
+        'таблица умножения:decMul': {
+            game: 'Sans les virgules, c’est %1 × %2, mais la réponse choisie vient de %3 × %4.',
+            review: '%1 × %2 : sans les virgules, c’est %3 × %4 = %5, alors que %6 × %7 = %8 — la ligne voisine de la table. La virgule est bien placée, l’erreur est dans le résultat de la table lui-même.'
+        },
+        'таблица умножения:decDiv': {
+            game: 'Vérifie par une multiplication : %1 × %2, ce n’est pas %3.',
+            review: '%1 ÷ %2 : déplaçons la virgule — %3 ÷ %4 = %5. Vérification : %5 × %4 = %3, alors que %6 × %4 = %7 — la ligne voisine de la table.'
+        },
+        'промахнулся рядом:dec': {
+            game: 'La réponse était tout près — le calcul tenait, la dernière étape a glissé.',
+            review: 'Tu as choisi %1, la bonne réponse est %2 — tout près. Ce n’est pas un manque de savoir, c’est un comptage qui dérape : une étape s’est perdue ou a été comptée deux fois. Recompter la dernière étape à voix haute aide à ne pas la perdre.'
+        },
+        // Дроби (утверждено 04.11)
+        'сложил знаменатели:fracSameAdd': {
+            game: 'Le dénominateur est la taille des parts. Additionne les numérateurs : %1 + %2.',
+            review: '%1 + %2 : les parts ont la même taille, donc on additionne seulement les numérateurs : %3 + %4 = %5, et le dénominateur reste %6 — cela fait %7. Le dénominateur dit en combien de parts l’unité a été coupée, et l’addition ne le change pas.'
+        },
+        'сложил знаменатели:fracSameSub': {
+            game: 'Le dénominateur est la taille des parts. Soustrais les numérateurs : %1 − %2.',
+            review: '%1 − %2 : les parts ont la même taille, donc on soustrait seulement les numérateurs : %3 − %4 = %5, et le dénominateur reste %6 — cela fait %7. Si l’on soustrait aussi les dénominateurs, %6 − %6 = 0 — les parts disparaissent complètement, et il ne reste que %5.'
+        },
+        'сложил знаменатели:fracDiffAdd': {
+            game: 'Ces parts n’ont pas la même taille : mets d’abord tout au dénominateur %1.',
+            review: '%1 + %2 : les dénominateurs sont différents — les parts n’ont pas la même taille, et on ne peut pas les additionner telles quelles. D’abord le dénominateur commun %3 : %4, et %5 + %6 = %7. Si l’on additionne numérateurs et dénominateurs, on obtient %8 — c’est même moins que %9, alors qu’on ajoutait.'
+        },
+        'сложил знаменатели:fracDiffSub': {
+            game: 'Ces parts n’ont pas la même taille : mets d’abord tout au dénominateur %1.',
+            review: '%1 − %2 : les dénominateurs sont différents — les parts n’ont pas la même taille, et on ne peut pas les soustraire telles quelles. D’abord le dénominateur commun %3 : %4, et %5 − %6 = %7.'
+        },
+        'сложил знаменатели:mul': {
+            game: 'On multiplie numérateur par numérateur, dénominateur par dénominateur.',
+            review: '%1 × %2 : on multiplie les numérateurs — %3, et les dénominateurs aussi — %4, cela fait %5. Dans une multiplication, il n’y a rien à additionner : %6, c’est ce qu’on obtient en additionnant numérateurs et dénominateurs.'
+        },
+        'перевёл не обе дроби': {
+            game: 'Les deux fractions passent au dénominateur %1, pas une seule.',
+            review: '%1 : le dénominateur commun est %2, et il faut y mettre les deux fractions : %3 — puis %4. Tu as choisi %5 — c’est ce qu’on obtient en ne transformant qu’une fraction et en gardant l’autre numérateur tel quel.'
+        },
+        'перепутал действие:fracRev': {
+            game: 'Tu as soustrait, mais le calcul est une addition.',
+            review: 'Avec les mêmes nombres, le signe décide de tout : %1 + %2 = %3, alors que %2 − %1 = %4. Regarde le signe avant les nombres.'
+        },
+        'ошибся на одну долю:fracAddMore': {
+            game: 'Raté d’une part — recompte les numérateurs : %1.',
+            review: '%1 : on additionne les numérateurs — %2, le dénominateur reste %3 : %4. Tu as choisi %5 — une part de trop. La règle était bonne, c’est le compte qui a glissé : recompte les numérateurs.'
+        },
+        'ошибся на одну долю:fracAddLess': {
+            game: 'Raté d’une part — recompte les numérateurs : %1.',
+            review: '%1 : on additionne les numérateurs — %2, le dénominateur reste %3 : %4. Tu as choisi %5 — une part de moins. La règle était bonne, c’est le compte qui a glissé : recompte les numérateurs.'
+        },
+        'ошибся на одну долю:fracSubMore': {
+            game: 'Raté d’une part — recompte les numérateurs : %1.',
+            review: '%1 : on soustrait les numérateurs — %2, le dénominateur reste %3 : %4. Tu as choisi %5 — une part de trop. La règle était bonne, c’est le compte qui a glissé : recompte les numérateurs.'
+        },
+        'ошибся на одну долю:fracSubLess': {
+            game: 'Raté d’une part — recompte les numérateurs : %1.',
+            review: '%1 : on soustrait les numérateurs — %2, le dénominateur reste %3 : %4. Tu as choisi %5 — une part de moins. La règle était bonne, c’est le compte qui a glissé : recompte les numérateurs.'
+        },
+        'забыл перемножить знаменатели:mul': {
+            game: 'Les dénominateurs se multiplient aussi : %1 × %2.',
+            review: '%1 × %2 : on multiplie les numérateurs — %3, et les dénominateurs aussi — %4, cela fait %5. Tu as choisi %6 — le dénominateur a été pris dans une seule fraction, sans multiplication.'
+        },
+        'не перевернул дробь:div': {
+            game: 'Pour diviser, on retourne la deuxième fraction : %1 × %2.',
+            review: '%1 ÷ %2 : diviser par une fraction, c’est multiplier par la fraction retournée : %1 × %3 = %4. Sans la retourner, on obtient %5 — c’est une multiplication, pas une division.'
+        },
+        'перевернул не ту дробь:div': {
+            game: 'On retourne la deuxième fraction — le diviseur : %1 × %2.',
+            review: '%1 ÷ %2 : on retourne le diviseur — la deuxième fraction : %1 × %3 = %4. Tu as choisi %5 : c’est ce qu’on obtient en retournant la première fraction au lieu de la deuxième.'
+        },
+        'сократил не до конца:simplify': {
+            game: '%1 et %2 ont encore un diviseur commun — simplifie jusqu’au bout.',
+            review: '%1 : le numérateur et le dénominateur se divisent par %2 — cela donne %3. On simplifie jusqu’au bout : tant que le numérateur et le dénominateur ont un diviseur commun autre que 1, la fraction peut encore se simplifier.'
+        },
+        'ошибся в сокращении:simplify': {
+            game: 'On divise le numérateur et le dénominateur par le même nombre.',
+            review: '%1 : on divise le numérateur et le dénominateur par le même nombre — par %2 : cela donne %3. Tu as choisi %4 — c’est une autre fraction, qui n’est pas égale à %1.'
+        },
+        'забыл целую часть:toMixed': {
+            game: 'Combien d’unités entières dans %1 ? Elles s’écrivent aussi.',
+            review: '%1 : %2 ÷ %3 = %4, reste %5 — donc %6. Tu as choisi %7 — seulement le reste : la partie entière, %4, s’est perdue.'
+        },
+        'ошибся в целой части:toMixed': {
+            game: 'Les unités entières : combien de fois %1 tient dans %2.',
+            review: '%1 : %2 tient %4 en entier dans %3 — %5 × %2 = %6, reste %7 : cela fait %8. Tu as choisi %9 — raté d’une unité entière.'
+        },
+        'переставил целую и остаток:toMixed': {
+            game: 'Entier : combien de fois %1 tient dans %2 ; le reste : le numérateur.',
+            review: '%1 : %2 ÷ %3 = %4, reste %5. La partie entière est %4, le reste est le numérateur : %6. Tu as choisi %7 — la partie entière et le reste ont échangé leurs places.'
+        },
+        'не прибавил числитель:toImproper': {
+            game: 'Les entiers sont convertis en parts — ajoute maintenant le numérateur %1.',
+            review: '%1 : %2 × %3 = %4 — ce ne sont que les entiers. On ajoute le numérateur : %4 + %5 = %6, cela fait %7. Tu as choisi %8 — c’est exactement %2 : la partie fractionnaire %9 s’est perdue.'
+        },
+        'сложил целую и числитель:toImproper': {
+            game: 'D’abord la partie entière fois le dénominateur : %1 × %2, puis ajoute %3.',
+            review: '%1 : on convertit les entiers en parts par une multiplication — %2 × %3 = %4, puis on ajoute le numérateur : %4 + %5 = %6, cela fait %7. Tu as choisi %8 — la partie entière a simplement été ajoutée au numérateur : %2 + %5.'
+        },
+        'ошибся в целой части:toImproper': {
+            game: 'Les entiers en parts : %1 × %2, puis ajoute le numérateur %3.',
+            review: '%1 : on convertit les entiers en parts — %2 × %3 = %4, on ajoute le numérateur — %4 + %5 = %6 : cela fait %7. Tu as choisi %8 — c’est %9, raté d’une unité entière.'
+        },
+        'забыл поделить:fracOfNumber': {
+            game: 'D’abord une part : %1 ÷ %2, puis multiplie par %3.',
+            review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4, et il faut %5 parts comme celle-ci : %4 × %5 = %6. Tu as choisi %7 — c’est %2 × %5 : la multiplication est faite, mais la division par %3 a été oubliée.'
+        },
+        'нашёл только одну долю:fracOfNumber': {
+            game: '%1 ÷ %2, c’est une part, mais il en faut %3.',
+            review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4, et il faut %5 parts comme celle-ci : %4 × %5 = %6. Tu as choisi %4 — ce n’est qu’une part.'
+        },
+        'нашёл остаток:fracOfNumber': {
+            game: 'Ça, c’est ce qui reste. Il faut %1 de %2.',
+            review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4, et il faut %5 parts comme celle-ci : %4 × %5 = %6. Tu as choisi %7 — ce sont les %8 restants, ce qui reste après %1.'
+        },
+        'ошибся на одну долю:fracOfNumber': {
+            game: 'Raté d’une part : le nombre de parts voulu est exactement %1.',
+            review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4, et il faut %5 parts comme celle-ci : %4 × %5 = %6. Tu as choisi %7 — raté d’une part.'
+        },
+        'ошибся на единицу:fracOfNumber': {
+            game: 'Raté d’une unité — refais la dernière étape : %1 × %2.',
+            review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4, et il faut %5 parts comme celle-ci : %4 × %5 = %6. Tu as choisi %7 — raté d’une unité à la dernière étape.'
+        },
+        'забыл поделить:fracOfNumberOne': {
+            game: 'C’est le nombre entier. %1, c’est une part sur %2 : divise %3 par %2.',
+            review: '%1 de %2 : on coupe l’unité en %3 et on en prend une — %2 ÷ %4 = %5. Tu as choisi %6 — c’est le nombre entier, sans division.'
+        },
+        'ошибся на единицу:fracOfNumberOne': {
+            game: 'Raté d’une unité — recompte : %1 ÷ %2.',
+            review: '%1 de %2, c’est une part sur %3 : %2 ÷ %3 = %4. Tu as choisi %5 — raté d’une unité.'
+        },
+        'нашёл остаток:fracOfNumberOne': {
+            game: 'Ça, c’est ce qui reste. Il faut %1 de %2.',
+            review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4. Tu as choisi %5 — ce sont les %6 restants, ce qui reste après %1.'
+        },
+        'ошибся на одну долю:fracOfNumberOne': {
+            game: 'Raté d’une part : le nombre de parts voulu est exactement %1.',
+            review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4, et il en faut exactement une. Tu as choisi %5 — ce sont deux parts.'
         }
     },
 
@@ -913,6 +1383,144 @@ window.HINT_CONTENT = {
         'сложил вместо умножения:decBothPoint': {
             game: 'Das ist eine Addition. Rechne %1 × %2 und zähl die Stellen nach dem Komma.',
             review: '%1 × %2 ist %2 von %1, also weniger als %1 selbst. Man multipliziert ohne Kommas: %3 × %4 = %5, zwei Stellen nach dem Komma — %6. Und %1 + %2 = %7 ist eine Addition.'
+        },
+        // Вариант Б (04.11)
+        'таблица умножения:decMul': {
+            game: 'Ohne Kommas ist das %1 × %2, aber die gewählte Antwort kommt von %3 × %4.',
+            review: '%1 × %2: ohne Kommas ist das %3 × %4 = %5, aber %6 × %7 = %8 — die Nachbarzeile des Einmaleins. Das Komma steht richtig, der Fehler steckt in der Einmaleins-Aufgabe selbst.'
+        },
+        'таблица умножения:decDiv': {
+            game: 'Prüf mit Malnehmen: %1 × %2 ist nicht %3.',
+            review: '%1 ÷ %2: Komma verschieben — %3 ÷ %4 = %5. Probe: %5 × %4 = %3, aber %6 × %4 = %7 — die Nachbarzeile des Einmaleins.'
+        },
+        'промахнулся рядом:dec': {
+            game: 'Ganz nah dran — gerechnet war richtig, der letzte Schritt ist verrutscht.',
+            review: 'Gewählt wurde %1, richtig ist %2 — ganz nah dran. Das ist keine Wissenslücke, sondern ein verrutschtes Zählen: ein Schritt ging verloren oder wurde doppelt gezählt. Den letzten Schritt laut nachzurechnen hilft — dann geht er nicht verloren.'
+        },
+        // Дроби (утверждено 04.11)
+        'сложил знаменатели:fracSameAdd': {
+            game: 'Der Nenner ist die Teilgröße, er bleibt. Addiere nur die Zähler: %1 + %2.',
+            review: '%1 + %2: Die Teile sind gleich groß, deshalb addiert man nur die Zähler: %3 + %4 = %5, und der Nenner bleibt %6 — das ergibt %7. Der Nenner zeigt, in wie viele Teile das Ganze geteilt wurde, und beim Addieren ändert er sich nicht.'
+        },
+        'сложил знаменатели:fracSameSub': {
+            game: 'Der Nenner ist die Teilgröße, er bleibt. Subtrahiere nur die Zähler: %1 − %2.',
+            review: '%1 − %2: Die Teile sind gleich groß, deshalb subtrahiert man nur die Zähler: %3 − %4 = %5, und der Nenner bleibt %6 — das ergibt %7. Subtrahiert man auch die Nenner, ist %6 − %6 = 0 — die Teile verschwinden ganz, und übrig bleibt nur %5.'
+        },
+        'сложил знаменатели:fracDiffAdd': {
+            game: 'Ungleich große Teile addiert man so nicht — erst auf den Nenner %1 bringen.',
+            review: '%1 + %2: Die Nenner sind verschieden — die Teile sind verschieden groß, und man kann sie nicht einfach so addieren. Zuerst der gemeinsame Nenner %3: %4, und %5 + %6 = %7. Addiert man Zähler und Nenner, kommt %8 heraus — das ist sogar weniger als %9, obwohl wir addiert haben.'
+        },
+        'сложил знаменатели:fracDiffSub': {
+            game: 'Ungleich große Teile subtrahiert man so nicht — erst auf den Nenner %1 bringen.',
+            review: '%1 − %2: Die Nenner sind verschieden — die Teile sind verschieden groß, und man kann sie nicht einfach so subtrahieren. Zuerst der gemeinsame Nenner %3: %4, und %5 − %6 = %7.'
+        },
+        'сложил знаменатели:mul': {
+            game: 'Brüche multipliziert man Zähler mal Zähler, Nenner mal Nenner.',
+            review: '%1 × %2: Die Zähler werden multipliziert — %3, die Nenner auch — %4, das ergibt %5. Beim Multiplizieren gibt es nichts zu addieren: %6 kommt heraus, wenn man Zähler und Nenner addiert.'
+        },
+        'перевёл не обе дроби': {
+            game: 'Beide Brüche kommen auf den Nenner %1, nicht nur einer.',
+            review: '%1: Der gemeinsame Nenner ist %2, und beide Brüche müssen darauf gebracht werden: %3 — und dann %4. Gewählt wurde %5 — so kommt es heraus, wenn man nur einen Bruch umrechnet und beim anderen den Zähler einfach so nimmt.'
+        },
+        'перепутал действие:fracRev': {
+            game: 'Du hast subtrahiert, gefragt war eine Addition.',
+            review: 'Bei denselben Zahlen entscheidet das Zeichen alles: %1 + %2 = %3, aber %2 − %1 = %4. Erst auf das Zeichen schauen, dann auf die Zahlen.'
+        },
+        'ошибся на одну долю:fracAddMore': {
+            game: 'Um einen Teil daneben — rechne die Zähler nach: %1.',
+            review: '%1: Die Zähler werden addiert — %2, der Nenner bleibt %3: %4. Gewählt wurde %5 — ein Teil zu viel. Die Regel stimmt, nur die Rechnung ist verrutscht: Die Zähler lohnt es sich nachzurechnen.'
+        },
+        'ошибся на одну долю:fracAddLess': {
+            game: 'Um einen Teil daneben — rechne die Zähler nach: %1.',
+            review: '%1: Die Zähler werden addiert — %2, der Nenner bleibt %3: %4. Gewählt wurde %5 — ein Teil zu wenig. Die Regel stimmt, nur die Rechnung ist verrutscht: Die Zähler lohnt es sich nachzurechnen.'
+        },
+        'ошибся на одну долю:fracSubMore': {
+            game: 'Um einen Teil daneben — rechne die Zähler nach: %1.',
+            review: '%1: Die Zähler werden subtrahiert — %2, der Nenner bleibt %3: %4. Gewählt wurde %5 — ein Teil zu viel. Die Regel stimmt, nur die Rechnung ist verrutscht: Die Zähler lohnt es sich nachzurechnen.'
+        },
+        'ошибся на одну долю:fracSubLess': {
+            game: 'Um einen Teil daneben — rechne die Zähler nach: %1.',
+            review: '%1: Die Zähler werden subtrahiert — %2, der Nenner bleibt %3: %4. Gewählt wurde %5 — ein Teil zu wenig. Die Regel stimmt, nur die Rechnung ist verrutscht: Die Zähler lohnt es sich nachzurechnen.'
+        },
+        'забыл перемножить знаменатели:mul': {
+            game: 'Die Nenner werden auch multipliziert: %1 × %2.',
+            review: '%1 × %2: Die Zähler werden multipliziert — %3, und die Nenner auch — %4, das ergibt %5. Gewählt wurde %6 — der Nenner stammt aus nur einem Bruch, ohne Multiplikation.'
+        },
+        'не перевернул дробь:div': {
+            game: 'Beim Dividieren nimmt man vom zweiten Bruch den Kehrwert: %1 × %2.',
+            review: '%1 ÷ %2: Durch einen Bruch teilen heißt mit seinem Kehrwert malnehmen: %1 × %3 = %4. Ohne Kehrwert kommt %5 heraus — das ist Multiplikation, keine Division.'
+        },
+        'перевернул не ту дробь:div': {
+            game: 'Den Kehrwert nimmt man vom zweiten Bruch, dem Divisor: %1 × %2.',
+            review: '%1 ÷ %2: Den Kehrwert nimmt man vom Divisor — dem zweiten Bruch: %1 × %3 = %4. Gewählt wurde %5: So kommt es heraus, wenn man den Kehrwert vom ersten Bruch statt vom zweiten nimmt.'
+        },
+        'сократил не до конца:simplify': {
+            game: '%1 und %2 haben noch einen gemeinsamen Teiler — kürze ganz zu Ende.',
+            review: '%1: Zähler und Nenner lassen sich durch %2 teilen — das ergibt %3. Gekürzt wird bis zum Schluss: Solange Zähler und Nenner einen gemeinsamen Teiler außer 1 haben, lässt sich der Bruch weiter kürzen.'
+        },
+        'ошибся в сокращении:simplify': {
+            game: 'Zähler und Nenner werden durch dieselbe Zahl geteilt.',
+            review: '%1: Zähler und Nenner werden durch dieselbe Zahl geteilt — durch %2: das ergibt %3. Gewählt wurde %4 — das ist schon ein anderer Bruch, nicht gleich %1.'
+        },
+        'забыл целую часть:toMixed': {
+            game: 'Wie viele Ganze stecken in %1? Die schreibt man auch hin.',
+            review: '%1: %2 ÷ %3 = %4, Rest %5 — also %6. Gewählt wurde %7 — nur der Rest; der ganze Teil, %4, ist verloren gegangen.'
+        },
+        'ошибся в целой части:toMixed': {
+            game: 'Die Ganzen: so oft, wie %1 in %2 passt.',
+            review: '%1: %2 passt %4 ganz in %3 — %5 × %2 = %6, Rest %7: das ergibt %8. Gewählt wurde %9 — um ein Ganzes daneben.'
+        },
+        'переставил целую и остаток:toMixed': {
+            game: 'Ganzer Teil: wie oft %1 in %2 passt; der Rest ist der Zähler.',
+            review: '%1: %2 ÷ %3 = %4, Rest %5. Der ganze Teil ist %4, der Rest ist der Zähler: %6. Gewählt wurde %7 — ganzer Teil und Rest haben die Plätze getauscht.'
+        },
+        'не прибавил числитель:toImproper': {
+            game: 'Die Ganzen sind in Teile umgerechnet — jetzt den Zähler %1 addieren.',
+            review: '%1: %2 × %3 = %4 — das sind nur die Ganzen. Dazu kommt der Zähler: %4 + %5 = %6, das ergibt %7. Gewählt wurde %8 — das ist genau %2, der Bruchteil %9 ist verloren gegangen.'
+        },
+        'сложил целую и числитель:toImproper': {
+            game: 'Erst den ganzen Teil mit dem Nenner malnehmen: %1 × %2, dann %3 addieren.',
+            review: '%1: Die Ganzen werden durch Multiplizieren in Teile umgerechnet — %2 × %3 = %4, dann kommt der Zähler dazu: %4 + %5 = %6, das ergibt %7. Gewählt wurde %8 — der ganze Teil wurde einfach zum Zähler addiert: %2 + %5.'
+        },
+        'ошибся в целой части:toImproper': {
+            game: 'Die Ganzen in Teile: %1 × %2, dann den Zähler %3 addieren.',
+            review: '%1: Die Ganzen in Teile umrechnen — %2 × %3 = %4, den Zähler addieren — %4 + %5 = %6: das ergibt %7. Gewählt wurde %8 — das ist %9, um ein Ganzes daneben.'
+        },
+        'забыл поделить:fracOfNumber': {
+            game: 'Erst ein Teil: %1 ÷ %2, dann mal %3.',
+            review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4, gebraucht werden %5 solche Teile: %4 × %5 = %6. Gewählt wurde %7 — das ist %2 × %5: multipliziert, aber das Teilen durch %3 vergessen.'
+        },
+        'нашёл только одну долю:fracOfNumber': {
+            game: '%1 ÷ %2 ist ein Teil, gebraucht werden aber %3.',
+            review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4, gebraucht werden %5 solche Teile: %4 × %5 = %6. Gewählt wurde %4 — das ist nur ein Teil.'
+        },
+        'нашёл остаток:fracOfNumber': {
+            game: 'Das ist, was übrig bleibt. Gesucht sind %1 von %2.',
+            review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4, gebraucht werden %5 solche Teile: %4 × %5 = %6. Gewählt wurde %7 — das sind die übrigen %8, das, was nach %1 übrig bleibt.'
+        },
+        'ошибся на одну долю:fracOfNumber': {
+            game: 'Um einen Teil daneben: Die Zahl der Teile ist genau %1.',
+            review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4, gebraucht werden %5 solche Teile: %4 × %5 = %6. Gewählt wurde %7 — um einen Teil daneben.'
+        },
+        'ошибся на единицу:fracOfNumber': {
+            game: 'Um eins daneben — rechne den letzten Schritt nach: %1 × %2.',
+            review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4, gebraucht werden %5 solche Teile: %4 × %5 = %6. Gewählt wurde %7 — um eins daneben im letzten Schritt.'
+        },
+        'забыл поделить:fracOfNumberOne': {
+            game: 'Das ist die ganze Zahl. %1 ist ein Teil von %2: teile %3 durch %2.',
+            review: '%1 von %2: Das Ganze wird in %3 geteilt, und einer davon wird genommen — %2 ÷ %4 = %5. Gewählt wurde %6 — das ist die ganze Zahl, ungeteilt.'
+        },
+        'ошибся на единицу:fracOfNumberOne': {
+            game: 'Um eins daneben — rechne nach: %1 ÷ %2.',
+            review: '%1 von %2 ist ein Teil von %3: %2 ÷ %3 = %4. Gewählt wurde %5 — um eins daneben.'
+        },
+        'нашёл остаток:fracOfNumberOne': {
+            game: 'Das ist, was übrig bleibt. Gesucht sind %1 von %2.',
+            review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4. Gewählt wurde %5 — das sind die übrigen %6, das, was nach %1 übrig bleibt.'
+        },
+        'ошибся на одну долю:fracOfNumberOne': {
+            game: 'Um einen Teil daneben: Die Zahl der Teile ist genau %1.',
+            review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4, gebraucht wird genau einer. Gewählt wurde %5 — das sind zwei Teile.'
         }
     }
 };
