@@ -5027,6 +5027,10 @@
             if (!code || !auth) return;
             try {
                 const { data, error } = await callAuthed('session_my_access', {});
+                // Пока шёл ответ, могли переключить профиль. Чужой доступ применять
+                // нельзя вдвойне: setAccess тут же чистит закрытые разделы — то есть
+                // стёр бы новому ученику прогресс там, где у прежнего закрыто.
+                if (Progress.getCode() !== code) return;
                 if (error || !data || !data.ok || !data.access) return;
                 Progress.setAccess(data.access);
                 refreshSectionLocks();
@@ -14606,8 +14610,11 @@
         async function refreshHomework() {
             if (!supabaseClient || !Progress.authFor()) return;
             if (Progress.getAccountType() !== 'linked') { renderHomeworkCard(); return; }
+            const code = Progress.getCode();
             try {
                 const { data, error } = await callAuthed('session_my_homework', {});
+                // Пока шёл ответ, могли переключить профиль: чужие задания не сохраняем.
+                if (Progress.getCode() !== code) return;
                 if (error || !data || !data.ok || !Array.isArray(data.homework)) return;
                 saveMyHomework(data.homework);
                 noteHomeworkDone(null, false);
