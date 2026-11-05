@@ -776,6 +776,144 @@ test('десятичные: на примерах генератора приё�
     eq(found.slice(0, 5).join(' | '), '', `приём печатает ответ (${found.length})`);
 });
 
+// ============ Дроби ============
+//
+// Приёмы утвердил репетитор 05.11 — на примерах, «все как есть». У каждого вида
+// примеров дробей свой приём, числами примера и за шаг до ответа.
+
+console.log('\nДроби');
+
+const fracMeta = (op, level) => ({ category: 'fraction', opKey: op, level: level || 3, isNegative: false });
+const FR = (s) => { const [n, d = '1'] = String(s).split('/'); return { num: Number(n), den: Number(d) }; };
+const FA = (a, b) => ({ f1: FR(a), f2: FR(b) });
+
+// Утверждённые строки — ровно на тех примерах, на которых их утверждали.
+const FRAC_TRICKS = [
+    ['add', FA('6/11', '7/11'), 'Знаменатель тот же — сложи числители: 6 + 7'],
+    ['sub', FA('6/9', '2/9'), 'Знаменатель тот же — вычти числители: 6 − 2'],
+    ['add', FA('5/8', '1/8'), 'Сложи числители: 5 + 1 — и не забудь сократить'],
+    ['sub', FA('5/6', '2/6'), 'Вычти числители: 5 − 2 — и не забудь сократить'],
+    ['add', FA('1/4', '11/12'), 'Приведи к знаменателю 12: 1/4 = 3/12'],
+    ['add', FA('2/9', '1/2'), 'Приведи к знаменателю 18: 2/9 = 4/18, 1/2 = 9/18'],
+    ['mul', FA('1/5', '3/5'), 'Числитель на числитель, знаменатель на знаменатель: 1 × 3 и 5 × 5'],
+    ['mul', FA('2/3', '1/2'), 'Сначала сократи крест-накрест: 2 и 2 — на 2'],
+    ['mul', FA('3/11', '2'), 'Умножь только числитель: 3 × 2, знаменатель 11 остаётся'],
+    ['div', FA('2/3', '4/5'), 'Переверни вторую дробь и умножь: 2/3 × 5/4'],
+    ['div', FA('10/11', '9'), 'Делить на 9 — значит умножить на 1/9: 10/11 × 1/9'],
+    ['simplify', { given: FR('12/18') }, 'Раздели 12 и 18 на 6'],
+    ['toMixed', { whole: 3, properNum: 2, den: 5 }, 'Раздели 17 на 5 с остатком: частное — целые, остаток — числитель'],
+    ['toImproper', { whole: 3, properNum: 2, den: 5 }, 'Целые в доли: 3 × 5, потом прибавь 2'],
+    ['fracOfNumber', { fracNum: 3, fracDen: 4, N: 20, k: 5 }, 'Одна доля — 20 ÷ 4, потом умножь на 3'],
+    ['fracOfNumber', { fracNum: 1, fracDen: 4, N: 20, k: 5 }, '1/4 — одна доля из 4: 20 ÷ 4'],
+    // Те же тексты в соседних случаях: две пары крест-накрест; целое делят на дробь —
+    // вторая дробь настоящая.
+    ['mul', FA('2/3', '3/4'), 'Сначала сократи крест-накрест: 2 и 4 — на 2, 3 и 3 — на 3'],
+    ['div', FA('4', '2/3'), 'Переверни вторую дробь и умножь: 4 × 3/2'],
+    ['add', FA('1/2', '1/3'), 'Приведи к знаменателю 6: 1/2 = 3/6, 1/3 = 2/6']
+];
+
+test('дроби: приёмы до ответа — ровно утверждённые строки (05.11)', () => {
+    const G = loadWithGenerator();
+    const bad = [];
+    FRAC_TRICKS.forEach(([op, p, want]) => {
+        const got = G.trickHint(fracMeta(op), p);
+        if (got !== want) bad.push(`${op} ${JSON.stringify(p)}: «${got}» вместо «${want}»`);
+    });
+    eq(bad.join(' | '), '', 'приёмы разошлись с утверждёнными');
+});
+
+test('дроби: где приём не написан, он молчит', () => {
+    const G = loadWithGenerator();
+    const bad = [];
+    [
+        // Отрицательных дробей в приложении нет: тексты про них не писаны.
+        ['add', FA('-1/7', '3/7')],
+        ['mul', FA('2/3', '-4/5')],
+        // Ноль — не дробь для приёма: умножать и делить нечего.
+        ['mul', FA('0/3', '4/5')],
+        ['div', FA('2/3', '0/5')],
+        // Сокращать нечего.
+        ['simplify', { given: FR('5/7') }],
+        // Чисел примера нет — молчим, а не печатаем «undefined».
+        ['toMixed', {}],
+        ['fracOfNumber', { fracNum: 0, fracDen: 4, N: 20 }]
+    ].forEach(([op, p]) => {
+        const got = G.trickHint(fracMeta(op), p);
+        if (got !== '') bad.push(`${op} ${JSON.stringify(p)}: «${got}»`);
+    });
+    eq(bad.join(' | '), '', 'приём там, где его быть не должно');
+});
+
+test('дроби: приёмы на всех языках — те же ключи и подстановки, без пустых мест', () => {
+    const G = loadWithGenerator();
+    const T = G.window.TRICK_CONTENT;
+    const keys = Object.keys(T.ru).filter(k => /^frac:/.test(k));
+    eq(keys.length, 17, 'ключей приёмов дробей');
+    const marks = (s) => (s.match(/%\d/g) || []).sort().join(',');
+    const bad = [];
+    ['en', 'fr', 'de'].forEach(lang => keys.forEach(k => {
+        if (!T[lang][k]) bad.push(`[${lang}] нет ${k}`);
+        else if (marks(T[lang][k]) !== marks(T.ru[k])) bad.push(`[${lang}] ${k}: подстановки`);
+    }));
+    const want = {
+        en: [['div', FA('2/3', '4/5'), 'Flip the second fraction and multiply: 2/3 × 5/4'],
+             ['mul', FA('2/3', '3/4'), 'First cancel across: 2 and 4 by 2, 3 and 3 by 3']],
+        fr: [['add', FA('6/11', '7/11'), 'Même dénominateur — additionne les numérateurs : 6 + 7'],
+             ['toImproper', { whole: 3, properNum: 2, den: 5 }, 'Les entiers en parts : 3 × 5, puis ajoute 2']],
+        de: [['simplify', { given: FR('12/18') }, 'Teile 12 und 18 durch 6'],
+             ['fracOfNumber', { fracNum: 1, fracDen: 4, N: 20, k: 5 }, '1/4 ist ein Teil von 4: 20 ÷ 4']]
+    };
+    try {
+        Object.keys(want).forEach(lang => {
+            setLang(G, lang);
+            want[lang].forEach(([op, p, w]) => {
+                const got = G.trickHint(fracMeta(op), p);
+                if (got !== w) bad.push(`[${lang}] «${got}» вместо «${w}»`);
+            });
+        });
+    } finally { setLang(G, 'ru'); }
+    eq(bad.join(' | '), '', 'приёмы дробей на других языках');
+});
+
+test('дроби: на примерах генератора приём есть всегда, не печатает ответ и укладывается в строку', () => {
+    const G = loadWithGenerator();
+    const gen = (op, l) => op === 'simplify' ? G.generateSimplifyProblem(l)
+        : op === 'toMixed' ? G.generateToMixedProblem(l) : op === 'toImproper' ? G.generateToImproperProblem(l)
+        : op === 'fracOfNumber' ? G.generateFracOfNumberProblem(l) : G.generateFractionProblem(op, l, false);
+    const S = (f) => (f.den === 1 ? `${f.num}` : `${f.num}/${f.den}`);
+    const bad = [];
+    let total = 0, shown = 0;
+    try {
+        ['ru', 'en', 'fr', 'de'].forEach(lang => {
+            setLang(G, lang);
+            ['add', 'sub', 'mul', 'div', 'simplify', 'toMixed', 'toImproper', 'fracOfNumber'].forEach(op => {
+                for (let lvl = 1; lvl <= 5; lvl++) for (let i = 0; i < 150; i++) {
+                    const p = gen(op, lvl);
+                    const txt = G.trickHint(fracMeta(op, lvl), p);
+                    total++;
+                    if (!txt) { bad.push(`[${lang}] ${op}${lvl}: приёма нет`); continue; }
+                    shown++;
+                    if (/%\d/.test(txt)) bad.push(`[${lang}] ${op}${lvl}: «${txt}»`);
+                    if (txt.length > 80) bad.push(`[${lang}] ${op}${lvl}: ${txt.length} знаков — «${txt}»`);
+                    // Ответ — записью целиком: «2/1» — не «2». Числа самого примера — не ответ.
+                    const ans = op === 'fracOfNumber' ? String(p.answer)
+                        : op === 'toMixed' ? `${p.whole} ${p.properNum}/${p.den}` : S(p.answer);
+                    const own = op === 'fracOfNumber' ? [p.fracNum, p.fracDen, p.N].map(String)
+                        : op === 'simplify' ? [S(p.given), String(p.given.num), String(p.given.den)]
+                        : p.f1 ? [S(p.f1), S(p.f2), String(p.f1.num), String(p.f1.den), String(p.f2.num), String(p.f2.den)]
+                        : [String(p.whole), String(p.properNum), String(p.den)];
+                    const toks = txt.match(/\d+ \d+\/\d+|\d+\/\d+|\d+/g) || [];
+                    if (toks.indexOf(ans) >= 0 && own.indexOf(ans) < 0) bad.push(`[${lang}] ${op}${lvl}: ответ ${ans} — «${txt}»`);
+                }
+            });
+        });
+    } finally { setLang(G, 'ru'); }
+    // Без этого проверка могла бы пройти впустую: на пустых строках утечек нет.
+    eq(shown, total, 'примеров с приёмом');
+    const found = [...new Set(bad)];
+    eq(found.slice(0, 5).join(' | '), '', `плохих строк: ${found.length}`);
+});
+
 console.log(`\nВсего: ${passed + failed}, прошло: ${passed}, упало: ${failed}`);
 if (failed) {
     console.log('\nУпавшие проверки:');

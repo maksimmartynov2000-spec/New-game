@@ -1564,6 +1564,20 @@ window.HINT_CONTENT = {
 //   mul:twoSplit десятки двузначного, однозначный множитель, единицы двузначного
 //   div:general  делитель, делимое
 //   div:round    делимое без нуля, делитель без нуля
+//   frac:sameAdd, frac:sameSub, frac:sameAddReduce, frac:sameSubReduce  числитель1, числитель2
+//   frac:toBig   общий знаменатель, дробь, она же с общим знаменателем
+//   frac:lcd     общий знаменатель, дробь1, она же, дробь2, она же
+//   frac:mul     числитель1, числитель2, знаменатель1, знаменатель2
+//   frac:mulCancel1  числитель, знаменатель другой дроби, на что сократить;
+//   frac:mulCancel2  то же для двух пар подряд
+//   frac:mulWhole    числитель, целое, знаменатель
+//   frac:div     первое число, вторая дробь перевёрнутая
+//   frac:divWhole    целое-делитель, первая дробь
+//   frac:simplify    числитель, знаменатель, общий делитель
+//   frac:toMixed     числитель, знаменатель
+//   frac:toImproper  целые, знаменатель, числитель
+//   frac:ofNum       число, знаменатель, числитель
+//   frac:ofNumOne    дробь, знаменатель, число
 // Остальные ключи подстановок не имеют.
 window.TRICK_CONTENT = {
     ru: {
@@ -1603,6 +1617,24 @@ window.TRICK_CONTENT = {
         "dec:pad": "Допиши ноль: %1 = %2",
         "dec:mul": "Перемножь без запятых: %1 × %2. Знаков после запятой — %3 и %4",
         "dec:div": "Сдвинь запятую в обоих: %1 ÷ %2",
+        // Дроби (05.11).
+        "frac:sameAdd": "Знаменатель тот же — сложи числители: %1 + %2",
+        "frac:sameSub": "Знаменатель тот же — вычти числители: %1 − %2",
+        "frac:sameAddReduce": "Сложи числители: %1 + %2 — и не забудь сократить",
+        "frac:sameSubReduce": "Вычти числители: %1 − %2 — и не забудь сократить",
+        "frac:toBig": "Приведи к знаменателю %1: %2 = %3",
+        "frac:lcd": "Приведи к знаменателю %1: %2 = %3, %4 = %5",
+        "frac:mul": "Числитель на числитель, знаменатель на знаменатель: %1 × %2 и %3 × %4",
+        "frac:mulCancel1": "Сначала сократи крест-накрест: %1 и %2 — на %3",
+        "frac:mulCancel2": "Сначала сократи крест-накрест: %1 и %2 — на %3, %4 и %5 — на %6",
+        "frac:mulWhole": "Умножь только числитель: %1 × %2, знаменатель %3 остаётся",
+        "frac:div": "Переверни вторую дробь и умножь: %1 × %2",
+        "frac:divWhole": "Делить на %1 — значит умножить на 1/%1: %2 × 1/%1",
+        "frac:simplify": "Раздели %1 и %2 на %3",
+        "frac:toMixed": "Раздели %1 на %2 с остатком: частное — целые, остаток — числитель",
+        "frac:toImproper": "Целые в доли: %1 × %2, потом прибавь %3",
+        "frac:ofNum": "Одна доля — %1 ÷ %2, потом умножь на %3",
+        "frac:ofNumOne": "%1 — одна доля из %2: %3 ÷ %2",
     },
     en: {
         "add:1": "%1 and %2 make a ten",
@@ -1641,6 +1673,23 @@ window.TRICK_CONTENT = {
         "dec:pad": "Add a zero: %1 = %2",
         "dec:mul": "Multiply without the points: %1 × %2. Digits after the point: %3 and %4",
         "dec:div": "Move the point in both: %1 ÷ %2",
+        "frac:sameAdd": "Same denominator — add the numerators: %1 + %2",
+        "frac:sameSub": "Same denominator — subtract the numerators: %1 − %2",
+        "frac:sameAddReduce": "Add the numerators: %1 + %2 — and remember to simplify",
+        "frac:sameSubReduce": "Subtract the numerators: %1 − %2 — and remember to simplify",
+        "frac:toBig": "Rewrite with denominator %1: %2 = %3",
+        "frac:lcd": "Rewrite with denominator %1: %2 = %3, %4 = %5",
+        "frac:mul": "Multiply the numerators and the denominators: %1 × %2 and %3 × %4",
+        "frac:mulCancel1": "First cancel across: %1 and %2 by %3",
+        "frac:mulCancel2": "First cancel across: %1 and %2 by %3, %4 and %5 by %6",
+        "frac:mulWhole": "Multiply only the numerator: %1 × %2, the denominator %3 stays",
+        "frac:div": "Flip the second fraction and multiply: %1 × %2",
+        "frac:divWhole": "Dividing by %1 means multiplying by 1/%1: %2 × 1/%1",
+        "frac:simplify": "Divide %1 and %2 by %3",
+        "frac:toMixed": "Divide %1 by %2: the quotient is the wholes, the remainder the numerator",
+        "frac:toImproper": "Wholes into parts: %1 × %2, then add %3",
+        "frac:ofNum": "One part is %1 ÷ %2, then multiply by %3",
+        "frac:ofNumOne": "%1 is one part out of %2: %3 ÷ %2",
     },
     fr: {
         "add:1": "%1 et %2 font une dizaine",
@@ -1679,6 +1728,23 @@ window.TRICK_CONTENT = {
         "dec:pad": "Ajoute un zéro : %1 = %2",
         "dec:mul": "Multiplie sans les virgules : %1 × %2. Chiffres après la virgule : %3 et %4",
         "dec:div": "Déplace la virgule dans les deux : %1 ÷ %2",
+        "frac:sameAdd": "Même dénominateur — additionne les numérateurs : %1 + %2",
+        "frac:sameSub": "Même dénominateur — soustrais les numérateurs : %1 − %2",
+        "frac:sameAddReduce": "Additionne les numérateurs : %1 + %2 — et n’oublie pas de simplifier",
+        "frac:sameSubReduce": "Soustrais les numérateurs : %1 − %2 — et n’oublie pas de simplifier",
+        "frac:toBig": "Passe au dénominateur %1 : %2 = %3",
+        "frac:lcd": "Passe au dénominateur %1 : %2 = %3, %4 = %5",
+        "frac:mul": "Multiplie les numérateurs et les dénominateurs : %1 × %2 et %3 × %4",
+        "frac:mulCancel1": "Simplifie d’abord en croix : %1 et %2 par %3",
+        "frac:mulCancel2": "Simplifie d’abord en croix : %1 et %2 par %3, %4 et %5 par %6",
+        "frac:mulWhole": "Multiplie seulement le numérateur : %1 × %2, le dénominateur %3 reste",
+        "frac:div": "Retourne la deuxième fraction et multiplie : %1 × %2",
+        "frac:divWhole": "Diviser par %1, c’est multiplier par 1/%1 : %2 × 1/%1",
+        "frac:simplify": "Divise %1 et %2 par %3",
+        "frac:toMixed": "Divise %1 par %2 : le quotient donne les entiers, le reste le numérateur",
+        "frac:toImproper": "Les entiers en parts : %1 × %2, puis ajoute %3",
+        "frac:ofNum": "Une part, c’est %1 ÷ %2 ; puis multiplie par %3",
+        "frac:ofNumOne": "%1, c’est une part sur %2 : %3 ÷ %2",
     },
     de: {
         "add:1": "%1 und %2 ergeben einen Zehner",
@@ -1717,5 +1783,22 @@ window.TRICK_CONTENT = {
         "dec:pad": "Häng eine Null an: %1 = %2",
         "dec:mul": "Multipliziere ohne Kommas: %1 × %2. Stellen nach dem Komma: %3 und %4",
         "dec:div": "Verschieb das Komma in beiden: %1 ÷ %2",
+        "frac:sameAdd": "Gleicher Nenner — addiere die Zähler: %1 + %2",
+        "frac:sameSub": "Gleicher Nenner — subtrahiere die Zähler: %1 − %2",
+        "frac:sameAddReduce": "Addiere die Zähler: %1 + %2 — und vergiss das Kürzen nicht",
+        "frac:sameSubReduce": "Subtrahiere die Zähler: %1 − %2 — und vergiss das Kürzen nicht",
+        "frac:toBig": "Bring auf den Nenner %1: %2 = %3",
+        "frac:lcd": "Bring auf den Nenner %1: %2 = %3, %4 = %5",
+        "frac:mul": "Zähler mal Zähler, Nenner mal Nenner: %1 × %2 und %3 × %4",
+        "frac:mulCancel1": "Kürze zuerst über Kreuz: %1 und %2 durch %3",
+        "frac:mulCancel2": "Kürze zuerst über Kreuz: %1 und %2 durch %3, %4 und %5 durch %6",
+        "frac:mulWhole": "Multipliziere nur den Zähler: %1 × %2, der Nenner %3 bleibt",
+        "frac:div": "Nimm vom zweiten Bruch den Kehrwert und multipliziere: %1 × %2",
+        "frac:divWhole": "Durch %1 teilen heißt mit 1/%1 malnehmen: %2 × 1/%1",
+        "frac:simplify": "Teile %1 und %2 durch %3",
+        "frac:toMixed": "Teile %1 durch %2 mit Rest: das Ergebnis sind die Ganzen, der Rest der Zähler",
+        "frac:toImproper": "Ganze in Teile: %1 × %2, dann %3 addieren",
+        "frac:ofNum": "Ein Teil ist %1 ÷ %2, dann mal %3",
+        "frac:ofNumOne": "%1 ist ein Teil von %2: %3 ÷ %2",
     }
 };

@@ -2942,6 +2942,32 @@ test('2★: «почти» — сумма числителей над тем ж�
     assert(keys.indexOf('6/8') >= 0, `на 3★ нет 6/8: ${keys.join(', ')}`);
 });
 
+test('3★: «почти» через общий знаменатель, если там он несокращённый (решение 05.11)', () => {
+    // 1/4 + 7/12 = 3/12 + 7/12 = 10/12 — так выходит у того, кто привёл к общему
+    // знаменателю и забыл сократить. Если на этом пути ответ сразу несократим
+    // (1/2 + 1/4 = 3/4), «почти» — с произведением знаменателей: 6/8.
+    const bad = [];
+    let natural = 0, product = 0;
+    ['add', 'sub'].forEach(op => {
+        for (let i = 0; i < 3000; i++) {
+            const p = G.generateFractionProblem(op, 3, false);
+            const big = Math.max(p.f1.den, p.f2.den);
+            const raw = (op === 'add' ? 1 : -1) * p.f2.num * (big / p.f2.den) + p.f1.num * (big / p.f1.den);
+            const fakes = G.buildFractionDistractors(op, p.f1, p.f2, p.answer, false, 3, 3);
+            const almost = fakes.filter(f => f.num * p.answer.den === p.answer.num * f.den);
+            const want = G.gcd(raw, big) > 1 ? `${raw}/${big}` : null;
+            const got = almost.map(f => f.num + '/' + f.den);
+            if (want) { natural++; if (got.join() !== want && bad.length < 3) bad.push(`${p.f1.num}/${p.f1.den} ${op} ${p.f2.num}/${p.f2.den}: ${got.join() || 'нет'} вместо ${want}`); }
+            else { product++; if (!(almost.length === 1 && almost[0].den === p.f1.den * p.f2.den) && bad.length < 3) bad.push(`${p.f1.num}/${p.f1.den} ${op} ${p.f2.num}/${p.f2.den}: ${got.join() || 'нет'} — ждали произведение`); }
+        }
+    });
+    eq(bad.join('; '), '', '«почти» на 3★');
+    assert(natural > 1000 && product > 1000, `обе ветки должны встречаться: ${natural} и ${product}`);
+    const p = { f1: { num: 1, den: 4 }, f2: { num: 7, den: 12 }, answer: { num: 5, den: 6 } };
+    const keys = G.buildFractionDistractors('add', p.f1, p.f2, p.answer, false, 3, 3).map(f => f.num + '/' + f.den);
+    assert(keys.indexOf('10/12') >= 0 && keys.indexOf('40/48') < 0, `1/4 + 7/12: ${keys.join(', ')}`);
+});
+
 group('Десятичные: вариант Б (решение 04.11)');
 
 const dmeta = (op) => ({ category: 'decimal', opKey: op });
