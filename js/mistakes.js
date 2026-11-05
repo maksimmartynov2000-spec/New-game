@@ -1630,6 +1630,78 @@ function decTrickPick(meta, problem) {
     return null;
 }
 
+// Дроби. Приёмы утвердил репетитор 05.11: у каждого вида примеров свой, числами
+// примера и за шаг до ответа. Отрицательных дробей в приложении нет — встретятся,
+// молчим: тексты про них не писаны.
+function fracTrickPick(meta, problem) {
+    if (!problem || typeof gcd !== 'function') return null;
+    const op = meta.opKey;
+    const S = (f) => (f.den === 1 ? `${f.num}` : `${f.num}/${f.den}`);
+    const ok = (f) => !!(f && typeof f.num === 'number' && typeof f.den === 'number' && f.den > 0 && f.num >= 0);
+    if (op === 'simplify') {
+        const g = problem.given;
+        if (!ok(g) || !g.num) return null;
+        const d = gcd(g.num, g.den);
+        return d > 1 ? { key: 'frac:simplify', args: [g.num, g.den, d] } : null;
+    }
+    if (op === 'toMixed' || op === 'toImproper') {
+        const whole = problem.whole, p = problem.properNum, den = problem.den;
+        if (!(whole >= 1) || !(p >= 1) || !(den >= 2)) return null;
+        return op === 'toMixed'
+            ? { key: 'frac:toMixed', args: [whole * den + p, den] }
+            : { key: 'frac:toImproper', args: [whole, den, p] };
+    }
+    if (op === 'fracOfNumber') {
+        const num = problem.fracNum, den = problem.fracDen, N = problem.N;
+        if (!(num >= 1) || !(den >= 2) || !(N >= 1)) return null;
+        return num === 1
+            ? { key: 'frac:ofNumOne', args: [`1/${den}`, den, N] }
+            : { key: 'frac:ofNum', args: [N, den, num] };
+    }
+    const f1 = problem.f1, f2 = problem.f2;
+    if (!ok(f1) || !ok(f2)) return null;
+    if (op === 'add' || op === 'sub') {
+        if (f1.den === f2.den) {
+            const n = op === 'add' ? f1.num + f2.num : f1.num - f2.num;
+            if (n <= 0) return null;
+            // На 2★ ответ сокращается всегда — об этом и напоминаем.
+            const reduce = gcd(n, f1.den) > 1;
+            return { key: 'frac:same' + (op === 'add' ? 'Add' : 'Sub') + (reduce ? 'Reduce' : ''), args: [f1.num, f2.num] };
+        }
+        const lcd = f1.den * f2.den / gcd(f1.den, f2.den);
+        const to = (f) => `${f.num * (lcd / f.den)}/${lcd}`;
+        // 3★: один знаменатель уже общий — переводим только другую дробь.
+        if (f1.den === lcd) return { key: 'frac:toBig', args: [lcd, S(f2), to(f2)] };
+        if (f2.den === lcd) return { key: 'frac:toBig', args: [lcd, S(f1), to(f1)] };
+        return { key: 'frac:lcd', args: [lcd, S(f1), to(f1), S(f2), to(f2)] };
+    }
+    if (op === 'mul') {
+        if (!f1.num || !f2.num) return null;
+        // 4★: дробь на целое — целое умножает только числитель.
+        if (f2.den === 1 && f1.den > 1) return { key: 'frac:mulWhole', args: [f1.num, f2.num, f1.den] };
+        if (f1.den === 1 && f2.den > 1) return { key: 'frac:mulWhole', args: [f2.num, f1.num, f2.den] };
+        if (f1.den === 1 || f2.den === 1) return null;
+        // Сократить до умножения можно крест-накрест: числитель одной дроби со
+        // знаменателем другой. Внутри одной дроби нечего — условие несократимо.
+        const pairs = [[f1.num, f2.den], [f2.num, f1.den]].filter(([x, y]) => gcd(x, y) > 1);
+        if (pairs.length === 1) {
+            const [x, y] = pairs[0];
+            return { key: 'frac:mulCancel1', args: [x, y, gcd(x, y)] };
+        }
+        if (pairs.length === 2) {
+            const [[a, b], [c, d]] = pairs;
+            return { key: 'frac:mulCancel2', args: [a, b, gcd(a, b), c, d, gcd(c, d)] };
+        }
+        return { key: 'frac:mul', args: [f1.num, f2.num, f1.den, f2.den] };
+    }
+    if (op === 'div') {
+        if (!f1.num || !f2.num) return null;
+        if (f2.den === 1) return { key: 'frac:divWhole', args: [f2.num, S(f1)] };
+        return { key: 'frac:div', args: [S(f1), `${f2.den}/${f2.num}`] };
+    }
+    return null;
+}
+
 // Какой приём показать и с какими числами. Возвращает { key, args } либо null,
 // если приёма у этого примера нет — «без перехода», «без заёма», ×1 и ×0.
 //
@@ -1639,6 +1711,7 @@ function decTrickPick(meta, problem) {
 function trickPick(meta, problem) {
     if (!meta || !problem) return null;
     if (meta.category === 'decimal') return decTrickPick(meta, problem);
+    if (meta.category === 'fraction') return fracTrickPick(meta, problem);
     const struct = (typeof structuralClassOf === 'function')
         ? structuralClassOf(meta, problem) : null;
     if (!struct) return null;
