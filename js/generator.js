@@ -1869,10 +1869,23 @@ function buildFractionDistractors(opKey, f1, f2, correctAnswer, isNegative, coun
     // верно и забыл сократить. Раньше знаменатели и здесь перемножались крест-накрест —
     // 140/100, — а такую запись насчитает только тот, кто искал общий знаменатель там,
     // где он уже общий (решение репетитора 04.11).
+    //
+    // Один знаменатель делится на другой (3★): так же. Через общий знаменатель —
+    // больший из двух — 1/4 + 7/12 = 3/12 + 7/12 = 10/12, и «не сократил» — это 10/12,
+    // а не 40/48 с произведением знаменателей (решение 05.11). Если через общий
+    // знаменатель ответ выходит сразу несократимым (1/2 + 1/4 = 3/4), несокращённой
+    // записи на этом пути нет, и «почти» остаётся с произведением: 6/8.
     if (!(level === 1 && (opKey === 'add' || opKey === 'sub'))) {
         let rawNum, rawDen;
-        const sameDen = (opKey === 'add' || opKey === 'sub') && f1.den === f2.den;
+        const addSub = opKey === 'add' || opKey === 'sub';
+        const sameDen = addSub && f1.den === f2.den;
+        const big = Math.max(f1.den, f2.den);
+        const nested = addSub && !sameDen && big % Math.min(f1.den, f2.den) === 0;
+        const viaBig = nested
+            ? (opKey === 'add' ? 1 : -1) * f2.num * (big / f2.den) + f1.num * (big / f1.den)
+            : 0;
         if (sameDen) { rawNum = opKey === 'add' ? f1.num + f2.num : f1.num - f2.num; rawDen = f1.den; }
+        else if (nested && (gcd(viaBig, big) || 1) > 1) { rawNum = viaBig; rawDen = big; }
         else if (opKey === 'add') { rawNum = f1.num * f2.den + f2.num * f1.den; rawDen = f1.den * f2.den; }
         else if (opKey === 'sub') { rawNum = f1.num * f2.den - f2.num * f1.den; rawDen = f1.den * f2.den; }
         else if (opKey === 'mul') { rawNum = f1.num * f2.num; rawDen = f1.den * f2.den; }
