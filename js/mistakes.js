@@ -1135,9 +1135,8 @@ function decHintArgs(kind, meta, problem, correct, chosen) {
 //     там вторая дробь настоящая, и текст верен как есть;
 //   — «мимо на одну долю» — только если ответ не сокращался: у 4/6 + 4/6 = 4/3 доля
 //     ответа — треть, а не шестая, и «на одну долю больше» было бы неправдой;
-//   — дробь от числа с числителем 1: «таких долей нужно 1: 5 × 1» — не объяснение.
-//     Строка в игре остаётся у «это остаток» и «мимо на одну долю» — им числитель
-//     не мешает.
+//   — дробь от числа с числителем 1: «таких долей нужно 1: 5 × 1» — не объяснение,
+//     поэтому у неё свои тексты (утверждены 05.11): пример там — одно деление.
 // Дроби в текстах — через косую черту, смешанные числа — с пробелом: «5/7», «3 2/5».
 const isFracVal = (v) => !!(v && typeof v === 'object' && typeof v.num === 'number'
     && typeof v.den === 'number' && v.den > 0);
@@ -1172,6 +1171,9 @@ function fracTimesPhrase(n) {
 // Остальное — тексты по действию: 'сложил знаменатели:mul', 'перепутал действие:sub'.
 function fracHintVariant(kind, meta, problem, correct, chosen) {
     const op = meta && meta.opKey;
+    // Дробь от числа с числителем 1 — свои тексты (утверждены 05.11): «таких долей
+    // нужно 1: 5 × 1» не объяснение, а сам пример — это одно деление.
+    if (op === 'fracOfNumber') return (problem && problem.fracNum === 1) ? 'fracOfNumberOne' : null;
     const f1 = problem && problem.f1, f2 = problem && problem.f2;
     if (!isFracVal(f1) || !isFracVal(f2) || (op !== 'add' && op !== 'sub')) return null;
     const A = op === 'add' ? 'Add' : 'Sub';
@@ -1334,12 +1336,23 @@ function fracOfNumberHintArgs(kind, problem, correct, chosen) {
     if (typeof correct !== 'number' || correct !== num * k || typeof chosen !== 'number') return null;
     const frac = `${num}/${den}`;
     const base = [frac, N, den, k, num, correct];
-    const one = num === 1;
-    if (kind === 'забыл поделить') return one ? null : { game: [N, den, num], review: base.concat([chosen]) };
-    if (kind === 'нашёл только одну долю') return one ? null : { game: [N, den, num], review: base };
-    if (kind === 'нашёл остаток') return { game: [frac, N], review: one ? null : base.concat([chosen, `${den - num}/${den}`]) };
-    if (kind === 'ошибся на одну долю') return { game: [num], review: one ? null : base.concat([chosen]) };
-    if (kind === 'ошибся на единицу') return one ? null : { game: [k, num], review: base.concat([chosen]) };
+    // Числитель 1 — свои тексты (утверждены 05.11): пример здесь — одно деление,
+    // 1/4 от 20 — это 20 ÷ 4.
+    if (num === 1) {
+        if (kind === 'забыл поделить') {
+            return { game: [frac, den, N], review: [frac, N, hintCountPhrase('equalParts', den), den, k, chosen] };
+        }
+        if (kind === 'ошибся на единицу') return { game: [N, den], review: [frac, N, den, k, chosen] };
+        if (kind === 'нашёл остаток') return { game: [frac, N], review: [frac, N, den, k, chosen, `${den - num}/${den}`] };
+        // «Это две доли» — правда, только если выбрано ровно две.
+        if (kind === 'ошибся на одну долю') return { game: [num], review: chosen === 2 * k ? [frac, N, den, k, chosen] : null };
+        return null;
+    }
+    if (kind === 'забыл поделить') return { game: [N, den, num], review: base.concat([chosen]) };
+    if (kind === 'нашёл только одну долю') return { game: [N, den, num], review: base };
+    if (kind === 'нашёл остаток') return { game: [frac, N], review: base.concat([chosen, `${den - num}/${den}`]) };
+    if (kind === 'ошибся на одну долю') return { game: [num], review: base.concat([chosen]) };
+    if (kind === 'ошибся на единицу') return { game: [k, num], review: base.concat([chosen]) };
     return null;
 }
 
@@ -1419,7 +1432,10 @@ const HINT_OP_SIGNS = { add: '+', sub: '−', mul: '×', div: '÷' };
 // всех четырёх языков остаются сверяемыми.
 const HINT_COUNT_WORDS = {
     times: { ru: ['раз', 'раза', 'раз'], en: ['times'], fr: ['fois'], de: ['-mal'] },
-    zeros: { ru: ['ноль', 'нуля', 'нулей'], en: ['zeros'], fr: ['zéros'], de: ['Nullen'] }
+    zeros: { ru: ['ноль', 'нуля', 'нулей'], en: ['zeros'], fr: ['zéros'], de: ['Nullen'] },
+    // «на 4 равные доли», но «на 5 равных долей». Долей в дроби от числа не меньше двух.
+    equalParts: { ru: ['равную долю', 'равные доли', 'равных долей'], en: ['equal parts'],
+                  fr: ['parts égales'], de: ['gleiche Teile'] }
 };
 
 // 1, 21, 31 — первая форма; 2–4, 22–24 — вторая; остальное — третья.

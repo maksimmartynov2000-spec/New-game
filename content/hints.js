@@ -116,6 +116,13 @@
 //                    В игре: «забыл поделить» и «одна доля» — число, знаменатель,
 //                    числитель; «остаток» — дробь, число; «мимо на одну долю» —
 //                    числитель; «мимо на единицу» — одна доля, числитель.
+//   дробь от числа с числителем 1 (вариант :fracOfNumberOne, утверждено 05.11):
+//                    «забыл поделить» game дробь, знаменатель, число;
+//                      review дробь, число, «4 равные доли», знаменатель, одна доля, что выбрано;
+//                    «мимо на единицу» game число, знаменатель;
+//                      review дробь, число, знаменатель, одна доля, что выбрано;
+//                    «остаток» — как у числителя больше 1, но без «таких долей нужно»;
+//                    «мимо на одну долю» review дробь, число, знаменатель, одна доля, что выбрано.
 window.HINT_CONTENT = {
     ru: {
         'ноль в примере:mul': {
@@ -448,6 +455,22 @@ window.HINT_CONTENT = {
         'ошибся на единицу:fracOfNumber': {
             game: 'Мимо на единицу — пересчитай последний шаг: %1 × %2.',
             review: '%1 от %2: одна доля — %2 ÷ %3 = %4, а таких долей нужно %5: %4 × %5 = %6. Выбрано %7 — промах на единицу в последнем шаге.'
+        },
+        'забыл поделить:fracOfNumberOne': {
+            game: 'Это всё число. А %1 — одна доля из %2: раздели %3 на %2.',
+            review: '%1 от %2: целое делят на %3 и берут одну — %2 ÷ %4 = %5. Выбрано %6 — это всё число, его не поделили.'
+        },
+        'ошибся на единицу:fracOfNumberOne': {
+            game: 'Мимо на единицу — пересчитай: %1 ÷ %2.',
+            review: '%1 от %2 — это одна доля из %3: %2 ÷ %3 = %4. Выбрано %5 — промах на единицу.'
+        },
+        'нашёл остаток:fracOfNumberOne': {
+            game: 'Это то, что осталось. А нужно %1 от %2.',
+            review: '%1 от %2: одна доля — %2 ÷ %3 = %4. Выбрано %5 — это остальные %6, то, что остаётся после %1.'
+        },
+        'ошибся на одну долю:fracOfNumberOne': {
+            game: 'Мимо на одну долю: долей нужно ровно %1.',
+            review: '%1 от %2: одна доля — %2 ÷ %3 = %4, а нужна ровно одна. Выбрано %5 — это две доли.'
         }
     },
 
@@ -782,6 +805,22 @@ window.HINT_CONTENT = {
         'ошибся на единицу:fracOfNumber': {
             game: 'Off by one — redo the last step: %1 × %2.',
             review: '%1 of %2: one part is %2 ÷ %3 = %4, and %5 such parts are needed: %4 × %5 = %6. You picked %7 — off by one in the last step.'
+        },
+        'забыл поделить:fracOfNumberOne': {
+            game: 'That is the whole number. %1 is one part out of %2: divide %3 by %2.',
+            review: '%1 of %2: the whole is cut into %3 and one is taken — %2 ÷ %4 = %5. You picked %6 — that is the whole number, not divided.'
+        },
+        'ошибся на единицу:fracOfNumberOne': {
+            game: 'Off by one — recount: %1 ÷ %2.',
+            review: '%1 of %2 is one part out of %3: %2 ÷ %3 = %4. You picked %5 — off by one.'
+        },
+        'нашёл остаток:fracOfNumberOne': {
+            game: 'That is what is left over. What is needed is %1 of %2.',
+            review: '%1 of %2: one part is %2 ÷ %3 = %4. You picked %5 — that is the other %6, what is left after %1.'
+        },
+        'ошибся на одну долю:fracOfNumberOne': {
+            game: 'One part off: the number of parts needed is exactly %1.',
+            review: '%1 of %2: one part is %2 ÷ %3 = %4, and exactly one is needed. You picked %5 — that is two parts.'
         }
     },
 
@@ -1116,6 +1155,22 @@ window.HINT_CONTENT = {
         'ошибся на единицу:fracOfNumber': {
             game: 'Raté d’une unité — refais la dernière étape : %1 × %2.',
             review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4, et il faut %5 parts comme celle-ci : %4 × %5 = %6. Tu as choisi %7 — raté d’une unité à la dernière étape.'
+        },
+        'забыл поделить:fracOfNumberOne': {
+            game: 'C’est le nombre entier. %1, c’est une part sur %2 : divise %3 par %2.',
+            review: '%1 de %2 : on coupe l’unité en %3 et on en prend une — %2 ÷ %4 = %5. Tu as choisi %6 — c’est le nombre entier, sans division.'
+        },
+        'ошибся на единицу:fracOfNumberOne': {
+            game: 'Raté d’une unité — recompte : %1 ÷ %2.',
+            review: '%1 de %2, c’est une part sur %3 : %2 ÷ %3 = %4. Tu as choisi %5 — raté d’une unité.'
+        },
+        'нашёл остаток:fracOfNumberOne': {
+            game: 'Ça, c’est ce qui reste. Il faut %1 de %2.',
+            review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4. Tu as choisi %5 — ce sont les %6 restants, ce qui reste après %1.'
+        },
+        'ошибся на одну долю:fracOfNumberOne': {
+            game: 'Raté d’une part : le nombre de parts voulu est exactement %1.',
+            review: '%1 de %2 : une part, c’est %2 ÷ %3 = %4, et il en faut exactement une. Tu as choisi %5 — ce sont deux parts.'
         }
     },
 
@@ -1450,6 +1505,22 @@ window.HINT_CONTENT = {
         'ошибся на единицу:fracOfNumber': {
             game: 'Um eins daneben — rechne den letzten Schritt nach: %1 × %2.',
             review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4, gebraucht werden %5 solche Teile: %4 × %5 = %6. Gewählt wurde %7 — um eins daneben im letzten Schritt.'
+        },
+        'забыл поделить:fracOfNumberOne': {
+            game: 'Das ist die ganze Zahl. %1 ist ein Teil von %2: teile %3 durch %2.',
+            review: '%1 von %2: Das Ganze wird in %3 geteilt, und einer davon wird genommen — %2 ÷ %4 = %5. Gewählt wurde %6 — das ist die ganze Zahl, ungeteilt.'
+        },
+        'ошибся на единицу:fracOfNumberOne': {
+            game: 'Um eins daneben — rechne nach: %1 ÷ %2.',
+            review: '%1 von %2 ist ein Teil von %3: %2 ÷ %3 = %4. Gewählt wurde %5 — um eins daneben.'
+        },
+        'нашёл остаток:fracOfNumberOne': {
+            game: 'Das ist, was übrig bleibt. Gesucht sind %1 von %2.',
+            review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4. Gewählt wurde %5 — das sind die übrigen %6, das, was nach %1 übrig bleibt.'
+        },
+        'ошибся на одну долю:fracOfNumberOne': {
+            game: 'Um einen Teil daneben: Die Zahl der Teile ist genau %1.',
+            review: '%1 von %2: Ein Teil ist %2 ÷ %3 = %4, gebraucht wird genau einer. Gewählt wurde %5 — das sind zwei Teile.'
         }
     }
 };
