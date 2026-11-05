@@ -152,10 +152,11 @@ const byTopic = (solved) => Object.fromEntries(Object.entries(solved).map(([k, n
     await tab('tasks');
     v = await look('tasks');
     await checkAsync('у задач свой выбор: снова раскрыт только первый раздел', async () => {
-        // У десятичных теперь свои задачи за мастерство, и репетитор видит их разделом.
-        eq(v.sections.map(s => s.label).join(' | '), '🔵 Положительные | 🔴 Отрицательные | 🔟 Десятичные', 'разделы');
-        eq(v.sections.map(s => s.folded).join(','), 'false,true,true', 'свёрнут');
-        eq(v.sections.map(s => s.sum).join(' | '), '2/40 | 0/40 | 0/40', 'счёт в заголовке');
+        // У десятичных и дробей теперь свои задачи за мастерство, и репетитор видит их
+        // разделами. У дробей задач восемьдесят: действий восемь, а не четыре (05.11).
+        eq(v.sections.map(s => s.label).join(' | '), '🔵 Положительные | 🔴 Отрицательные | 🔟 Десятичные | 🧮 Дроби', 'разделы');
+        eq(v.sections.map(s => s.folded).join(','), 'false,true,true,true', 'свёрнут');
+        eq(v.sections.map(s => s.sum).join(' | '), '2/40 | 0/40 | 0/40 | 0/80', 'счёт в заголовке');
         eq(v.tasks, 2, 'задач на экране');
     });
     await press('tasks', 'Сложение');

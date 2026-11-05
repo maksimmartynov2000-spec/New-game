@@ -242,11 +242,12 @@ catch (e) {
     await open();
     await tab('collectionTabTasks');
     v = await view();
-    await check('репетитору открыто всё, но замков над ненаписанными задачами нет', () => {
-        // Положительные, отрицательные и десятичные — по сорок задач; у дробей их пока нет.
-        eq(v.count, '0/120', 'счётчик');
+    await check('репетитору открыто всё — и задачи всех четырёх разделов', () => {
+        // Положительные, отрицательные и десятичные — по сорок задач, дроби — восемьдесят:
+        // у них восемь действий, а не четыре (05.11).
+        eq(v.count, '0/200', 'счётчик');
         assert(/Десятичные/.test(v.text), 'десятичных с их задачами не видно');
-        assert(!/Дроби/.test(v.text), 'показан раздел, где задач нет');
+        assert(/Дроби/.test(v.text), 'дробей с их задачами не видно');
     });
     const top = await page.evaluate(`(() => { const m = document.getElementById('collectionModal'); m.scrollTop = 0;
         return { close: document.getElementById('collectionCloseBtn').getBoundingClientRect().top,
@@ -266,6 +267,22 @@ catch (e) {
         eq(scrolled.top, 0, 'прокрутка');
     });
     await page.setViewportSize({ width: 390, height: 844 });
+
+    console.log('\nРаздел, где задач нет');
+    // С 05.11 задачи написаны для всех разделов, но файл внешний: раздел без задач
+    // по-прежнему не должен появляться — ни заголовком, ни замками над пустотой.
+    await page.evaluate(`(() => { window.__savedChallenges = window.CHALLENGE_CONTENT;
+        const copy = JSON.parse(JSON.stringify(window.CHALLENGE_CONTENT));
+        Object.keys(copy).forEach(l => Object.keys(copy[l]).forEach(k => { if (k.indexOf('fraction+:') === 0) delete copy[l][k]; }));
+        window.CHALLENGE_CONTENT = copy; return null; })()`);
+    await open();
+    await tab('collectionTabTasks');
+    v = await view();
+    await check('без задач дробей нет и раздела «Дроби»', () => {
+        eq(v.count, '0/120', 'счётчик');
+        assert(!/Дроби/.test(v.text), 'показан раздел, где задач нет');
+    });
+    await page.evaluate(`window.CHALLENGE_CONTENT = window.__savedChallenges; null`);
 
     console.log('\nКогда задачи не загрузились');
     await page.evaluate(`window.__savedChallenges = window.CHALLENGE_CONTENT; delete window.CHALLENGE_CONTENT; null`);
