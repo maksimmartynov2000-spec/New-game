@@ -89,21 +89,35 @@ const CONTENT = loadContent();
 const RU = CONTENT.ru;
 const CELLS = Object.keys(RU);
 
+// То же содержимое без одной клетки — так выглядит раздел, для которого задачу ещё не
+// написали. С 05.11 написаны все, и иначе проверить честную карточку не на чем.
+function contentWithout(key) {
+    const copy = JSON.parse(JSON.stringify(CONTENT));
+    Object.keys(copy).forEach(lang => { delete copy[lang][key]; });
+    return copy;
+}
+
 group('Содержимое');
 
-test('задача есть у каждой клетки целых чисел и десятичных', () => {
+test('задача есть у каждой клетки: целые, десятичные, дроби', () => {
     // Положительные написаны первыми, отрицательные добавлены позже, десятичные —
-    // 03.11. Дробей здесь пока нет намеренно — там показывается честная карточка
-    // «ещё не написано», и она проверяется отдельно ниже.
-    ['integer+', 'integer-', 'decimal+'].forEach(sec => {
-        ['add', 'sub', 'mul', 'div'].forEach(op => {
+    // 03.11, дроби — 05.11. У дробей восемь действий, а не четыре, и список берётся
+    // из самого приложения (js/topics.js): появится девятое — тест скажет, что для
+    // него задач нет, а не промолчит. Карточка «ещё не написано» осталась на случай
+    // нового раздела и проверяется ниже — на содержимом, где одной клетки нет.
+    const FRAC_OPS = JSON.parse(fs.readFileSync(path.join(ROOT, 'js', 'topics.js'), 'utf8')
+        .match(/const OP_ORDER = (\[[^\]]*\])/)[1].replace(/'/g, '"'));
+    eq(FRAC_OPS.length, 8, 'действий у дробей');
+    const FOUR = ['add', 'sub', 'mul', 'div'];
+    [['integer+', FOUR], ['integer-', FOUR], ['decimal+', FOUR], ['fraction+', FRAC_OPS]].forEach(([sec, ops]) => {
+        ops.forEach(op => {
             for (let lvl = 1; lvl <= 5; lvl++) {
                 const key = `${sec}:${op}:${lvl}`;
                 assert(RU[key], `нет задач для ${key}`);
             }
         });
     });
-    eq(CELLS.length, 60, 'клеток должно быть шестьдесят');
+    eq(CELLS.length, 100, 'клеток должно быть сто');
 });
 
 test('у каждой клетки две задачи: за алмаз и за легенду', () => {
@@ -348,12 +362,13 @@ test('доступность считается из достижений, а н
 });
 
 test('у чужой клетки задачи нет', () => {
-    // Дроби ещё не написаны: там мастерство показывает карточку «ещё не написано»,
-    // а не молчит. Отрицательные и десятичные из этого списка ушли — у них теперь
-    // свои задачи.
-    eq(H.R.challengeFor('fraction+:simplify:3', 4), null);
-    eq(H.R.challengeFor('fraction+:mul:2', 5), null);
+    // Задачи теперь есть у всех четырёх разделов — дроби дописаны 05.11. Чужая клетка —
+    // та, которой в приложении не бывает: у целых нет сокращения, у дробей нет 6★.
+    eq(H.R.challengeFor('integer+:simplify:3', 4), null);
+    eq(H.R.challengeFor('fraction+:mul:6', 5), null);
     assert(H.R.challengeFor('decimal+:mul:2', 4), 'у десятичных задача должна быть');
+    assert(H.R.challengeFor('fraction+:simplify:3', 4), 'у дробей задача должна быть');
+    assert(H.R.challengeFor('fraction+:fracOfNumber:5', 5), 'и за легенду тоже');
 });
 
 group('Показ после миссии');
@@ -406,7 +421,9 @@ test('мастерство без задачи не молчит', () => {
     // мастерство до сих пор не давало НИЧЕГО и молча: очередь пополнялась только
     // когда текст находился. Самая дорогая вещь в игре приходила пустой, и ученик
     // мог решить, что награда сломалась. Чего нет — про то и говорим прямо.
-    const box = load({ CHALLENGE_CONTENT: CONTENT });
+    // Теперь задачи есть везде, но файл внешний, и новый раздел может прийти раньше
+    // своих задач, — поэтому проверяем на содержимом, где одной клетки нет.
+    const box = load({ CHALLENGE_CONTENT: contentWithout('fraction+:mul:3') });
     box.R.push('fraction+:mul:3', 4);
     eq(box.R.showNextChallengeReveal(), true, 'окно должно открыться и без задачи');
     eq(box.dom.byId.challengeReveal.hidden, false);
@@ -417,7 +434,7 @@ test('мастерство без задачи не молчит', () => {
 
 test('окно без задачи закрывается первым тапом', () => {
     // Раскрывать там нечего, и второй тап пришёлся бы по пустому месту.
-    const box = load({ CHALLENGE_CONTENT: CONTENT });
+    const box = load({ CHALLENGE_CONTENT: contentWithout('fraction+:mul:3') });
     box.R.push('fraction+:mul:3', 4);
     box.R.showNextChallengeReveal();
     box.R.tapChallengeReveal();
